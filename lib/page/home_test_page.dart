@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:omnicast/generated/l10n.dart';
-import 'package:omnicast/router/route_table.dart';
 import 'package:omnicast/utils/global_extension.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -8,13 +8,13 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 import '../base/base_controller.dart';
 import '../base/base_scaffold_page.dart';
 import '../events/text_event.dart';
+import '../generated/route_table.dart';
 import '../main.dart';
-import '../utils/log_util.dart';
 import '../utils/toast_util.dart';
 import '../utils/storage.dart';
 
-@GetXRoutePage("/home")
-class HomePage extends BaseScaffoldPage<HomePageController> {
+@GetXRoutePage("/home_test")
+class HomeTestPage extends BaseScaffoldPage<HomePageController> {
   @override
   HomePageController generateController() {
     return HomePageController();
@@ -30,13 +30,14 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
         Center(
           child: Obx(
             () => Icon(
-              themeController.themeMode.value == ThemeMode.light 
-                  ? Icons.light_mode 
+              themeController.themeMode.value == ThemeMode.light
+                  ? Icons.light_mode
                   : Icons.dark_mode,
               size: 20,
             ),
           ),
         ).marginOnly(right: 10.w),
+
         // 显示当前语言
         Center(
           child: Obx(
@@ -57,6 +58,12 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SvgPicture.asset(
+          'assets/svg/safety.svg',
+          width: 40.h,
+          height: 40.h,
+        ).marginOnly(bottom: 10.h),
+        Image.asset('assets/img/1.png', width: 100).marginOnly(bottom: 10.h),
         ElevatedButton(
           onPressed: () async {
             Get.toNamed(RouteTable.event);
@@ -65,13 +72,11 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
         ).marginOnly(bottom: 10.h),
         ElevatedButton(
           onPressed: () async {
-            Get.toNamed(RouteTable.http);
           },
           child: const Text("Http mock example"),
         ).marginOnly(bottom: 10.h),
         ElevatedButton(
           onPressed: () async {
-            Get.toNamed(RouteTable.lightStorage);
           },
           child: const Text("lightStorage example"),
         ).marginOnly(bottom: 10.h),
@@ -94,11 +99,13 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
           onPressed: () {
             themeController.switchTheme();
           },
-          child: Obx(() => Text(
-            themeController.themeMode.value == ThemeMode.light
-                ? "切换到深色主题 / Dark Mode"
-                : "切换到浅色主题 / Light Mode",
-          )),
+          child: Obx(
+            () => Text(
+              themeController.themeMode.value == ThemeMode.light
+                  ? "切换到深色主题 / Dark Mode"
+                  : "切换到浅色主题 / Light Mode",
+            ),
+          ),
         ).marginOnly(bottom: 10.h),
       ],
     ).align(Alignment.center);
@@ -176,5 +183,4 @@ class HomePageController extends BaseController {
       default:
     }
   }
-
 }

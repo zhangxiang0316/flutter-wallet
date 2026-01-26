@@ -1,16 +1,35 @@
 # omnicast
 
-A new Flutter project.
+## 路由生成
 
-## Getting Started
+```agsl
+flutter pub run build_runner build
+```
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+## IOS 打包 ipa
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+ios生成logo
+```
+flutter pub get
+flutter pub run flutter_launcher_icons:main
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+flutter clean
+flutter build ipa --release
+```
+
+
+## android 打包
+```agsl
+flutter build apk --release
+```
+
+升级包
+flutter pub upgrade flutter_quill
+
+
+
+
+

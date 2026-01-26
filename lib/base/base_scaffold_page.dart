@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
 
 import 'base_controller.dart';
 import 'base_page.dart';
@@ -13,6 +15,10 @@ abstract class BaseScaffoldPage<T extends BaseController> extends BasePage<T> {
       body: getBody(),
       bottomNavigationBar: getBottomNavigationBar(),
     );
+  }
+
+  void back() {
+    Get.back();
   }
 
   /// 获取页面标题栏，子类需实现

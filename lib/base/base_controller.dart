@@ -10,6 +10,7 @@ import 'page_life_state.dart';
 class BaseController extends SuperController with PageLifeState {
   /// EventBus 订阅对象
   StreamSubscription? streamSubscription;
+
   @mustCallSuper
   @override
   void onReady() {
@@ -18,8 +19,9 @@ class BaseController extends SuperController with PageLifeState {
     var listenerEventList = getListenEvent();
     // 如果有需要监听的事件，则注册 EventBus 监听
     if (listenerEventList.isNotEmpty) {
-      streamSubscription =
-          EventBus().onTypes(listenerEventList).listen(onReceiveEvent);
+      streamSubscription = EventBus()
+          .onTypes(listenerEventList)
+          .listen(onReceiveEvent);
     }
   }
 

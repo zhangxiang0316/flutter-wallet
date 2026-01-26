@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/src/widgets/preferred_size.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
@@ -29,17 +31,15 @@ class TestPage extends BaseScaffoldPage<TestPageController> {
 
   @override
   Widget? getBody() {
-    return Column(
-      children: [
-        Text('${controller.id}', style: TextStyle(color: Colors.black)),
-      ],
+    return Obx(
+      () => Column(children: [Text(controller.name.value).marginOnly(top: 20.h)]),
     );
   }
 }
 
 class TestPageController extends BaseController {
-  int id = 0;
-  String name = '';
+  var id = 0.obs;
+  var name = ''.obs;
 
   @override
   void onPageVisible() {
@@ -47,8 +47,8 @@ class TestPageController extends BaseController {
     super.onPageVisible();
     final args = Get.arguments;
 
-    id = args['id'];
-    name = args['name'];
-    update();
+    id.value = args['id'];
+    name.value = args['name'];
+    // update();
   }
 }
