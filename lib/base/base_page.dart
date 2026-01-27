@@ -13,6 +13,30 @@ abstract class BasePage<T extends BaseController> extends GetView<T> {
   /// 抽象方法：由子类实现以生成具体的控制器实例
   T generateController();
 
+  void back() {
+    Get.back();
+  }
+
+  void finishActivity() {
+    Get.back();
+  }
+
+  void showActivity(
+    String path, {
+    dynamic arguments,
+    int? id,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+  }) {
+    Get.toNamed(
+      path,
+      arguments: arguments,
+      id: id,
+      preventDuplicates: preventDuplicates,
+      parameters: parameters,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     this.context = context;

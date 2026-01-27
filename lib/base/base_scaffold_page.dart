@@ -17,10 +17,6 @@ abstract class BaseScaffoldPage<T extends BaseController> extends BasePage<T> {
     );
   }
 
-  void back() {
-    Get.back();
-  }
-
   /// 获取页面标题栏，子类需实现
   PreferredSizeWidget? getAppBar();
 

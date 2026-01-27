@@ -71,13 +71,12 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
                 RouteTable.generate_video,
               ),
               const SizedBox(width: 12),
-              buildItem("PPT", CupertinoIcons.plus, ''),
+              buildItem("PPT", CupertinoIcons.plus,  RouteTable.generate_ppt),
             ],
           ).marginOnly(bottom: 12.h),
-
           Row(
             children: [
-              buildItem("AI 博客", CupertinoIcons.play_circle, ''),
+              buildItem("AI 博客", CupertinoIcons.play_circle, RouteTable.generate_ppt),
               const SizedBox(width: 12),
               buildItem("文本转语音", CupertinoIcons.plus, ''),
             ],
@@ -106,7 +105,7 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
           //   Get.toNamed(RouteTable.login);
           //   return;
           // }
-          Get.toNamed(route);
+          showActivity(route);
         },
         child: Container(
           width: double.infinity,

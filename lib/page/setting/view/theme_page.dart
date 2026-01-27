@@ -1,12 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/preferred_size.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_utils/src/extensions/widget_extensions.dart';
+import 'package:get/get.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
 import 'package:omnicast/main.dart';
@@ -48,34 +43,60 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
         child: Column(
           children: [
             GestureDetector(
-              onTap: () => themeController.switchTheme(),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => themeController.setThemeMode(ThemeMode.system),
               child: Container(
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text('浅色主题'),
+                    Text('跟随系统'),
                     Spacer(),
-                    Visibility(
-                      visible:
-                          themeController.themeMode.value == ThemeMode.light,
-                      child: Icon(CupertinoIcons.check_mark, size: 20.r),
+                    Obx(
+                      () => Visibility(
+                        visible:
+                            themeController.themeMode.value == ThemeMode.system,
+                        child: Icon(CupertinoIcons.check_mark, size: 20.r),
+                      ),
                     ),
                   ],
                 ),
               ),
             ).marginOnly(bottom: 16.h),
             GestureDetector(
-              onTap: () => themeController.switchTheme(),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => themeController.setThemeMode(ThemeMode.light),
+              child: Container(
+                padding: EdgeInsets.all(5.h),
+                child: Row(
+                  children: [
+                    Text('浅色主题'),
+                    Spacer(),
+                    Obx(
+                      () => Visibility(
+                        visible:
+                            themeController.themeMode.value == ThemeMode.light,
+                        child: Icon(CupertinoIcons.check_mark, size: 20.r),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ).marginOnly(bottom: 16.h),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => themeController.setThemeMode(ThemeMode.dark),
               child: Container(
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
                     Text('深色主题'),
                     Spacer(),
-                    Visibility(
-                      visible:
-                          themeController.themeMode.value == ThemeMode.dark,
-                      child: Icon(CupertinoIcons.check_mark, size: 20.r),
+                    Obx(
+                      () => Visibility(
+                        visible:
+                            themeController.themeMode.value == ThemeMode.dark,
+                        child: Icon(CupertinoIcons.check_mark, size: 20.r),
+                      ),
                     ),
                   ],
                 ),

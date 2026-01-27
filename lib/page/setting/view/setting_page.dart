@@ -10,6 +10,7 @@ import 'package:omnicast/base/base_scaffold_page.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../generated/route_table.dart';
+import '../../../main.dart';
 import '../../../utils/global_extension.dart';
 import '../../../utils/storage.dart';
 
@@ -33,6 +34,8 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
 
   @override
   Widget? getBody() {
+    final themeController = Get.find<ThemeController>();
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.h),
       child: Column(
@@ -64,7 +67,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 ),
               ],
             ),
-          ).marginOnly(bottom: 15.h),
+          ).marginOnly(bottom: 16.h),
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
@@ -74,24 +77,36 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
             child: Column(
               children: [
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => Get.toNamed(RouteTable.language),
                   child: Row(
                     children: [
-                      Text('语言'),
-                      Spacer(),
-                      Obx(() => Text(controller.currentLanguage.value)),
+                      const Text('语言'),
+                      const Spacer(),
+                      Obx(
+                        () => Text(
+                          controller.currentLanguage.value,
+                          style: TextStyle(fontSize: 12.sp),
+                        ),
+                      ),
                       SizedBox(width: 10.w),
                       Icon(Icons.arrow_forward_ios, size: 16.r),
                     ],
                   ),
                 ).marginOnly(bottom: 16.h),
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => Get.toNamed(RouteTable.theme),
                   child: Row(
                     children: [
-                      Text('主题'),
-                      Spacer(),
-                      Text('亮色'),
+                      const Text('主题'),
+                      const Spacer(),
+                      Obx(
+                        () => Text(
+                          controller.theme.value,
+                          style: TextStyle(fontSize: 12.sp),
+                        ),
+                      ),
                       SizedBox(width: 10.w),
                       Icon(Icons.arrow_forward_ios, size: 16.r),
                     ],
@@ -110,11 +125,19 @@ class SettingController extends BaseController {
   final currentLanguage = ''.obs;
   final _storage = Storage();
   static const String _languageKey = 'app_language';
+  final themeController = Get.find<ThemeController>();
+  final theme = ''.obs;
 
   @override
   void onPageActive() {
     super.onPageActive();
     _loadSavedLanguage();
+
+    theme.value = themeController.themeMode.value == ThemeMode.dark
+        ? '深色主题'
+        : themeController.themeMode.value == ThemeMode.light
+        ? '浅色主题'
+        : '跟随系统';
   }
 
   /// 加载保存的语言设置

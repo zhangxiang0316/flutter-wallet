@@ -36,17 +36,27 @@ class ThemeController extends GetxController {
   }
 
   // 切换主题并持久化
+  Future<void> setThemeMode(ThemeMode mode) async {
+    themeMode.value = mode;
+    await _storage.setStorage(_themeKey, mode.toString());
+  }
+
+  // 切换主题并持久化 (Legacy)
   Future<void> switchTheme() async {
-    themeMode.value = themeMode.value == ThemeMode.light
-        ? ThemeMode.dark
-        : ThemeMode.light;
-    await _storage.setStorage(_themeKey, themeMode.value.toString());
+    if (themeMode.value == ThemeMode.light) {
+      setThemeMode(ThemeMode.dark);
+    } else {
+      setThemeMode(ThemeMode.light);
+    }
   }
 
   // 将字符串还原为 ThemeMode
   ThemeMode _getThemeModeFromString(String theme) {
     if (theme.contains('dark')) {
       return ThemeMode.dark;
+    }
+    if (theme.contains('system')) {
+      return ThemeMode.system;
     }
     return ThemeMode.light;
   }

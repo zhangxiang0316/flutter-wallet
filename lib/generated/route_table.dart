@@ -11,6 +11,7 @@ import 'package:omnicast/page/setting/view/language_page.dart';
 import 'package:omnicast/page/setting/view/theme_page.dart';
 import 'package:omnicast/page/login/view/login_page.dart';
 import 'package:omnicast/page/generate/view/generate_video_page.dart';
+import 'package:omnicast/page/generate/view/generate_ppt_page.dart';
 
 class RouteTable {
   static const String home = '/home';
@@ -24,6 +25,7 @@ class RouteTable {
   static const String theme = '/theme';
   static const String login = '/login';
   static const String generate_video = '/generate_video';
+  static const String generate_ppt = '/generate_ppt';
 
   static final List<GetPage> pages = [
     GetPage(
@@ -69,6 +71,10 @@ class RouteTable {
     GetPage(
       name: '/generate_video',
       page: () => GenerateVideoPage(),
+    ),
+    GetPage(
+      name: '/generate_ppt',
+      page: () => GeneratePptPage(),
     ),
   ];
 }
