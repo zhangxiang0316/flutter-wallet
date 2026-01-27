@@ -37,7 +37,16 @@ class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
                     color: Theme.of(context!).cardColor,
                     borderRadius: BorderRadius.circular(20.r),
                   ),
-                  child: Center(child: Text('音频和视频')),
+                  child: Center(
+                    child: Text(
+                      '音频和视频',
+                      style: TextStyle(
+                        color: controller.bottomSelectedIndex == 0
+                            ? Theme.of(context!).primaryColor
+                            : Colors.grey,
+                      ),
+                    ),
+                  ),
                 ).onTab(() => controller.bottomTap(0)),
               ),
               SizedBox(width: 12.w),
@@ -48,7 +57,16 @@ class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
                     color: Theme.of(context!).cardColor,
                     borderRadius: BorderRadius.circular(20.r),
                   ),
-                  child: Center(child: Text('AI 生图')),
+                  child: Center(
+                    child: Text(
+                      'AI 生图',
+                      style: TextStyle(
+                        color: controller.bottomSelectedIndex == 1
+                            ? Theme.of(context!).primaryColor
+                            : Colors.grey,
+                      ),
+                    ),
+                  ),
                 ).onTab(() => controller.bottomTap(1)),
               ),
             ],
@@ -64,7 +82,7 @@ class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
       // physics: const NeverScrollableScrollPhysics(), // 禁止滑动
       controller: controller.pageController,
       onPageChanged: controller.pageChanged,
-      children: [VideoHistoryPage(),ImageHistoryPage()],
+      children: [VideoHistoryPage(), ImageHistoryPage()],
     );
   }
 }

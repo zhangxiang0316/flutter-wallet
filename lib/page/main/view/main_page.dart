@@ -124,12 +124,6 @@ class MainController extends BaseController {
   }
 
   @override
-  void onReady() {
-    // TODO: implement onReady
-    super.onReady();
-  }
-
-  @override
   void onClose() {
     pageController?.dispose();
     super.onClose();
