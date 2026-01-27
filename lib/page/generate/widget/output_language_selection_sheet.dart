@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:omnicast/base/base_controller.dart';
 import 'package:omnicast/base/base_page.dart';
 
@@ -37,11 +38,13 @@ class OutputLanguageSelectionSheet
             ),
           ),
           SizedBox(height: 20.h),
-          _buildOption('英语'),
-          SizedBox(height: 16.h),
-          _buildOption('中文(普通话)'),
-          SizedBox(height: 16.h),
-          _buildOption('泰语'),
+          Obx(
+            () => Column(
+              children: controller.modes
+                  .map((e) => _buildOption(e).marginOnly(bottom: 16.h))
+                  .toList(),
+            ),
+          ),
           SizedBox(height: 100.h),
         ],
       ),
@@ -57,6 +60,7 @@ class OutputLanguageSelectionSheet
       },
       behavior: HitTestBehavior.opaque,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(
@@ -80,4 +84,6 @@ class OutputLanguageSelectionSheet
   }
 }
 
-class OutputLanguageSelectionController extends BaseController {}
+class OutputLanguageSelectionController extends BaseController {
+  final List<String> modes = ['英语', '中文(普通话)', '泰语'].obs;
+}

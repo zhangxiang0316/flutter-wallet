@@ -189,7 +189,7 @@ class MyApp extends StatelessWidget {
               seedColor: Colors.blue,
               brightness: Brightness.dark,
               // 主色调 - 用于按钮、选中状态等
-              primary: Colors.blueAccent,
+              primary: Colors.blue,
               // 主色调上的文字颜色
               onPrimary: Colors.black,
               // 次要色 - 用于辅助元素

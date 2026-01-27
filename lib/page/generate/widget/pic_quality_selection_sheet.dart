@@ -7,14 +7,17 @@ import 'package:get/get_utils/src/extensions/widget_extensions.dart';
 import 'package:omnicast/base/base_controller.dart';
 import 'package:omnicast/base/base_page.dart';
 
-class PicRatioSelectionSheet extends BasePage<PicRatioSelectionController> {
+class PicQualitySelectionSheet extends BasePage<PicQualitySelectionController> {
   final String currentMode;
   final Function(String) onSelected;
 
-  PicRatioSelectionSheet({required this.currentMode, required this.onSelected});
+  PicQualitySelectionSheet({
+    required this.currentMode,
+    required this.onSelected,
+  });
 
   @override
-  Widget buildWidget(PicRatioSelectionController controller) {
+  Widget buildWidget(PicQualitySelectionController controller) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(16.w),
@@ -31,7 +34,7 @@ class PicRatioSelectionSheet extends BasePage<PicRatioSelectionController> {
         children: [
           Center(
             child: Text(
-              '选择图片比例',
+              '选择图片清晰度',
               style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
             ),
           ),
@@ -76,11 +79,11 @@ class PicRatioSelectionSheet extends BasePage<PicRatioSelectionController> {
   }
 
   @override
-  PicRatioSelectionController generateController() {
-    return PicRatioSelectionController();
+  PicQualitySelectionController generateController() {
+    return PicQualitySelectionController();
   }
 }
 
-class PicRatioSelectionController extends BaseController {
-  final List<String> modes = ['16:9 · 横版', '9:16 · 竖版', '1:1 · 方版'].obs;
+class PicQualitySelectionController extends BaseController {
+  final List<String> modes = ['1K', '2K', '4K'].obs;
 }

@@ -7,6 +7,7 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
+import 'package:omnicast/widget/line_item.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../generated/route_table.dart';
@@ -56,13 +57,27 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                     color: Colors.blue,
                     borderRadius: BorderRadius.circular(20.r),
                   ),
-                  child: Center(child: Text('飞')),
+                  child: Center(
+                    child: Text(
+                      '飞',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ).marginOnly(right: 10.w),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('张飞').marginOnly(bottom: 4.h),
-                    Text('zhangfei@qq.com'),
+                    Text(
+                      '张飞',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ).marginOnly(bottom: 4.h),
+                    Text('zhangfei@qq.com', style: TextStyle(fontSize: 13.sp)),
                   ],
                 ),
               ],
@@ -79,37 +94,18 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => Get.toNamed(RouteTable.language),
-                  child: Row(
-                    children: [
-                      const Text('语言'),
-                      const Spacer(),
-                      Obx(
-                        () => Text(
-                          controller.currentLanguage.value,
-                          style: TextStyle(fontSize: 12.sp),
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Icon(Icons.arrow_forward_ios, size: 16.r),
-                    ],
+                  child: Obx(
+                    () => LineItem(
+                      title: '语言',
+                      value: controller.currentLanguage.value,
+                    ),
                   ),
                 ).marginOnly(bottom: 16.h),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => Get.toNamed(RouteTable.theme),
-                  child: Row(
-                    children: [
-                      const Text('主题'),
-                      const Spacer(),
-                      Obx(
-                        () => Text(
-                          controller.theme.value,
-                          style: TextStyle(fontSize: 12.sp),
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Icon(Icons.arrow_forward_ios, size: 16.r),
-                    ],
+                  child: Obx(
+                    () => LineItem(title: '主题', value: controller.theme.value),
                   ),
                 ),
               ],

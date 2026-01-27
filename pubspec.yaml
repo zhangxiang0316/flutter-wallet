@@ -26,7 +26,6 @@ dependencies:
   getx_route_annotations:
   flutter_svg: ^2.2.3
   image_picker: ^1.2.1
-  file_picker: ^10.3.9
 
 dev_dependencies:
   flutter_test:

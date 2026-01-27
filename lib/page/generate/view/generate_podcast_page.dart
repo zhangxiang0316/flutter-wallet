@@ -5,20 +5,20 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
 import 'package:omnicast/page/generate/widget/input_card.dart';
 import 'package:omnicast/page/generate/widget/mode_selection_sheet.dart';
-import 'package:omnicast/widget/line_item.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../utils/global_extension.dart';
+import '../../../widget/line_item.dart';
 import '../widget/output_language_selection_sheet.dart';
 import '../widget/pic_ratio_selection_sheet.dart';
 import '../widget/voice_selection_sheet.dart';
 
-/// 生成视频页面
-@GetXRoutePage('/generate_video')
-class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
+/// 生成播客页面
+@GetXRoutePage('/generate_podcast')
+class GeneratePodcastPage extends BaseScaffoldPage<GeneratePodcastController> {
   @override
-  GenerateVideoController generateController() {
-    return GenerateVideoController();
+  GeneratePodcastController generateController() {
+    return GeneratePodcastController();
   }
 
   @override
@@ -28,7 +28,7 @@ class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
         back();
       }),
       centerTitle: true,
-      title: const Text("解说视频", style: TextStyle(fontWeight: FontWeight.w700)),
+      title: const Text("AI 播客", style: TextStyle(fontWeight: FontWeight.w700)),
     );
   }
 
@@ -62,22 +62,6 @@ class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
                           currentMode: controller.selectedMode.value,
                           onSelected: (value) {
                             controller.selectedMode.value = value;
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ).marginOnly(bottom: 16.h),
-                Obx(
-                  () => LineItem(
-                    title: '图片比例',
-                    value: controller.selectedPicRatio.value,
-                    onTap: () {
-                      Get.bottomSheet(
-                        PicRatioSelectionSheet(
-                          currentMode: controller.selectedPicRatio.value,
-                          onSelected: (value) {
-                            controller.selectedPicRatio.value = value;
                           },
                         ),
                       );
@@ -125,7 +109,7 @@ class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
   }
 }
 
-class GenerateVideoController extends BaseController {
+class GeneratePodcastController extends BaseController {
   final TextEditingController textController = TextEditingController();
   final selectedMode = '知识图解'.obs;
   final selectedPicRatio = '16:9 · 横版'.obs;

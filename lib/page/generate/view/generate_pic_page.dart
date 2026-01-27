@@ -9,21 +9,21 @@ import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:get/get_utils/src/extensions/widget_extensions.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
-import 'package:omnicast/widget/line_item.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../utils/global_extension.dart';
+import '../../../widget/line_item.dart';
 import '../widget/input_card.dart';
 import '../widget/output_language_selection_sheet.dart';
 import '../widget/pic_ratio_selection_sheet.dart';
 import '../widget/voice_selection_sheet.dart';
 
-/// 生成 PPT 页面
-@GetXRoutePage('/generate_ppt')
-class GeneratePptPage extends BaseScaffoldPage<GeneratePptController> {
+/// 生成图片页面
+@GetXRoutePage('/generate_pic')
+class GeneratePicPage extends BaseScaffoldPage<GeneratePicController> {
   @override
-  GeneratePptController generateController() {
-    return GeneratePptController();
+  GeneratePicController generateController() {
+    return GeneratePicController();
   }
 
   @override
@@ -33,7 +33,7 @@ class GeneratePptPage extends BaseScaffoldPage<GeneratePptController> {
         finishActivity();
       }),
       centerTitle: true,
-      title: const Text("PPT", style: TextStyle(fontWeight: FontWeight.w700)),
+      title: const Text("AI 生图", style: TextStyle(fontWeight: FontWeight.w700)),
     );
   }
 
@@ -44,7 +44,9 @@ class GeneratePptPage extends BaseScaffoldPage<GeneratePptController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InputCard(placeholder: '制作一个关于苹果2025年的PPT').marginOnly(bottom: 20.h),
+          InputCard(
+            placeholder: '描述你想生成的图片',
+          ).marginOnly(bottom: 20.h),
           Text(
             '创建设置',
             style: TextStyle(fontSize: 14.sp),
@@ -58,7 +60,7 @@ class GeneratePptPage extends BaseScaffoldPage<GeneratePptController> {
             child: Column(
               children: [
                 Obx(
-                  () => LineItem(
+                      () => LineItem(
                     title: '图片比例',
                     value: controller.selectedPicRatio.value,
                     onTap: () {
@@ -75,30 +77,14 @@ class GeneratePptPage extends BaseScaffoldPage<GeneratePptController> {
                 ).marginOnly(bottom: 16.h),
                 Obx(
                   () => LineItem(
-                    title: '输出语言',
-                    value: controller.selectedOutputLanguage.value,
-                    onTap: () {
-                      Get.bottomSheet(
-                        OutputLanguageSelectionSheet(
-                          currentMode: controller.selectedOutputLanguage.value,
-                          onSelected: (value) {
-                            controller.selectedOutputLanguage.value = value;
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ).marginOnly(bottom: 16.h),
-                Obx(
-                  () => LineItem(
-                    title: '音色',
-                    value: controller.selectedVoice.value,
+                    title: '图片清晰度',
+                    value: controller.selectedPicQuality.value,
                     onTap: () {
                       Get.bottomSheet(
                         VoiceSelectionSheet(
-                          currentMode: controller.selectedVoice.value,
+                          currentMode: controller.selectedPicQuality.value,
                           onSelected: (value) {
-                            controller.selectedVoice.value = value;
+                            controller.selectedPicQuality.value = value;
                           },
                         ),
                       );
@@ -114,8 +100,7 @@ class GeneratePptPage extends BaseScaffoldPage<GeneratePptController> {
   }
 }
 
-class GeneratePptController extends BaseController {
-  final selectedPicRatio = '16:9 · 横版'.obs;
-  final selectedOutputLanguage = '中文(普通话)'.obs;
-  final selectedVoice = '晓曼'.obs;
+class GeneratePicController extends BaseController {
+  final selectedPicRatio = '1:1'.obs;
+  final selectedPicQuality = '2K'.obs;
 }

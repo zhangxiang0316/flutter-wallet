@@ -1,34 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/src/widgets/framework.dart';
+import 'package:flutter/src/widgets/preferred_size.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
+import 'package:get/get_utils/src/extensions/widget_extensions.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
-import 'package:omnicast/page/generate/widget/input_card.dart';
-import 'package:omnicast/page/generate/widget/mode_selection_sheet.dart';
-import 'package:omnicast/widget/line_item.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../utils/global_extension.dart';
+import '../../../widget/line_item.dart';
+import '../widget/input_card.dart';
 import '../widget/output_language_selection_sheet.dart';
-import '../widget/pic_ratio_selection_sheet.dart';
 import '../widget/voice_selection_sheet.dart';
 
-/// 生成视频页面
-@GetXRoutePage('/generate_video')
-class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
+@GetXRoutePage('/text_to_speech')
+class TextToSpeechPage extends BaseScaffoldPage<TextToSpeechController> {
   @override
-  GenerateVideoController generateController() {
-    return GenerateVideoController();
+  TextToSpeechController generateController() {
+    return TextToSpeechController();
   }
 
   @override
   PreferredSizeWidget? getAppBar() {
     return AppBar(
       leading: Icon(Icons.chevron_left, size: 32.w).onTab(() {
-        back();
+        finishActivity();
       }),
       centerTitle: true,
-      title: const Text("解说视频", style: TextStyle(fontWeight: FontWeight.w700)),
+      title: const Text("文本转语音", style: TextStyle(fontWeight: FontWeight.w700)),
     );
   }
 
@@ -39,7 +42,7 @@ class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InputCard(placeholder: '2025 年 11 月的科技趋势').marginOnly(bottom: 20.h),
+          InputCard(placeholder: '输入文字，上传文件,我们帮你自然的读出来').marginOnly(bottom: 20.h),
           Text(
             '创建设置',
             style: TextStyle(fontSize: 14.sp),
@@ -53,39 +56,7 @@ class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
             child: Column(
               children: [
                 Obx(
-                  () => LineItem(
-                    title: '模式',
-                    value: controller.selectedMode.value,
-                    onTap: () {
-                      Get.bottomSheet(
-                        ModeSelectionSheet(
-                          currentMode: controller.selectedMode.value,
-                          onSelected: (value) {
-                            controller.selectedMode.value = value;
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ).marginOnly(bottom: 16.h),
-                Obx(
-                  () => LineItem(
-                    title: '图片比例',
-                    value: controller.selectedPicRatio.value,
-                    onTap: () {
-                      Get.bottomSheet(
-                        PicRatioSelectionSheet(
-                          currentMode: controller.selectedPicRatio.value,
-                          onSelected: (value) {
-                            controller.selectedPicRatio.value = value;
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ).marginOnly(bottom: 16.h),
-                Obx(
-                  () => LineItem(
+                      () => LineItem(
                     title: '输出语言',
                     value: controller.selectedOutputLanguage.value,
                     onTap: () {
@@ -101,7 +72,7 @@ class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
                   ),
                 ).marginOnly(bottom: 16.h),
                 Obx(
-                  () => LineItem(
+                      () => LineItem(
                     title: '音色',
                     value: controller.selectedVoice.value,
                     onTap: () {
@@ -122,19 +93,11 @@ class GenerateVideoPage extends BaseScaffoldPage<GenerateVideoController> {
         ],
       ),
     );
+
   }
 }
 
-class GenerateVideoController extends BaseController {
-  final TextEditingController textController = TextEditingController();
-  final selectedMode = '知识图解'.obs;
-  final selectedPicRatio = '16:9 · 横版'.obs;
+class TextToSpeechController extends BaseController {
   final selectedOutputLanguage = '中文(普通话)'.obs;
   final selectedVoice = '晓曼'.obs;
-
-  @override
-  void onClose() {
-    textController.dispose();
-    super.onClose();
-  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:omnicast/base/base_controller.dart';
 import 'package:omnicast/base/base_page.dart';
 
@@ -33,9 +34,18 @@ class ModeSelectionSheet extends BasePage<ModeSelectionController> {
             ),
           ),
           SizedBox(height: 20.h),
-          _buildOption('知识图解', '生成图解视频'),
-          SizedBox(height: 16.h),
-          _buildOption('故事演义', '生成儿童故事'),
+          Obx(
+            () => Column(
+              children: controller.modes
+                  .map(
+                    (e) => _buildOption(
+                      e['title'],
+                      e['desc'],
+                    ).marginOnly(bottom: 16.h),
+                  )
+                  .toList(),
+            ),
+          ),
           SizedBox(height: 100.h),
         ],
       ),
@@ -52,6 +62,7 @@ class ModeSelectionSheet extends BasePage<ModeSelectionController> {
       behavior: HitTestBehavior.opaque,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,4 +93,9 @@ class ModeSelectionSheet extends BasePage<ModeSelectionController> {
   }
 }
 
-class ModeSelectionController extends BaseController {}
+class ModeSelectionController extends BaseController {
+  final List<Map<String, dynamic>> modes = [
+    {'title': '知识图解', 'desc': '生成图解视频'},
+    {'title': '故事演义', 'desc': '生成儿童故事'},
+  ].obs;
+}

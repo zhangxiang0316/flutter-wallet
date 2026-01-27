@@ -71,22 +71,34 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
                 RouteTable.generate_video,
               ),
               const SizedBox(width: 12),
-              buildItem("PPT", CupertinoIcons.plus,  RouteTable.generate_ppt),
+              buildItem("PPT", CupertinoIcons.plus, RouteTable.generate_ppt),
             ],
           ).marginOnly(bottom: 12.h),
           Row(
             children: [
-              buildItem("AI 博客", CupertinoIcons.play_circle, RouteTable.generate_ppt),
+              buildItem(
+                "AI 博客",
+                CupertinoIcons.play_circle,
+                RouteTable.generate_podcast,
+              ),
               const SizedBox(width: 12),
-              buildItem("文本转语音", CupertinoIcons.plus, ''),
+              buildItem(
+                "文本转语音",
+                CupertinoIcons.plus,
+                RouteTable.text_to_speech,
+              ),
             ],
           ).marginOnly(bottom: 12.h),
 
           Row(
             children: [
-              buildItem("AI 生图", CupertinoIcons.play_circle, ''),
+              buildItem(
+                "AI 生图",
+                CupertinoIcons.play_circle,
+                RouteTable.generate_pic,
+              ),
               const SizedBox(width: 12),
-              buildItem("音色克隆", CupertinoIcons.plus, ''),
+              buildItem("音色克隆", CupertinoIcons.plus, RouteTable.voice_cloning),
             ],
           ).marginOnly(bottom: 12.h),
         ],
@@ -120,7 +132,7 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
               Icon(icon, size: 30.h).marginOnly(bottom: 5.h),
               Text(
                 title,
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
               ),
             ],
           ),

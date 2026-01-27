@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
@@ -10,6 +9,10 @@ import '../../../base/base_controller.dart';
 import '../../../utils/global_extension.dart';
 
 class InputCard extends BasePage<InputCardController> {
+  final String placeholder;
+
+  InputCard({required this.placeholder});
+
   @override
   Widget buildWidget(InputCardController controller) {
     return Container(
@@ -33,12 +36,12 @@ class InputCard extends BasePage<InputCardController> {
             maxLines: 4,
             minLines: 4,
             decoration: InputDecoration(
-              hintText: '介绍 2025 年 11 月的科技趋势',
-              hintStyle: TextStyle(fontSize: 16.sp),
+              hintText: placeholder,
+              hintStyle: TextStyle(fontSize: 14.sp),
               border: InputBorder.none,
               contentPadding: EdgeInsets.zero,
             ),
-            style: TextStyle(fontSize: 16.sp, height: 1.5),
+            style: TextStyle(fontSize: 14.sp, height: 1.5),
           ),
           SizedBox(height: 20.h),
           Row(
@@ -59,7 +62,7 @@ class InputCard extends BasePage<InputCardController> {
                 width: 40.w,
                 height: 40.w,
                 decoration: BoxDecoration(
-                  color: Theme.of(context!).primaryColor,
+                  color: Theme.of(context!).colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.arrow_forward, color: Colors.white),
@@ -85,4 +88,28 @@ class InputCard extends BasePage<InputCardController> {
 
 class InputCardController extends BaseController {
   TextEditingController textController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> pickFile() async {
+    // FilePickerResult? result = await FilePicker.platform.pickFiles();
+    //
+    // if (result != null) {
+    //   PlatformFile file = result.files.first;
+    //   print('Picked file: ${file.name}');
+    //   // TODO: Handle the picked file (e.g., upload or display)
+    // } else {
+    //   // User canceled the picker
+    // }
+  }
+
+  Future<void> pickImage(ImageSource source) async {
+    final XFile? image = await _picker.pickImage(source: source);
+
+    if (image != null) {
+      print('Picked image: ${image.path}');
+      // TODO: Handle the picked image (e.g., upload or display)
+    } else {
+      // User canceled the picker
+    }
+  }
 }
