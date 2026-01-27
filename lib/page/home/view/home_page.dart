@@ -4,7 +4,6 @@ import 'package:flutter/src/widgets/framework.dart';
 
 import 'package:flutter/src/widgets/preferred_size.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_utils/src/extensions/widget_extensions.dart';
@@ -19,10 +18,10 @@ import '../../../utils/storage.dart';
 import '../../../utils/toast_util.dart';
 
 @GetXRoutePage('/home')
-class HomePage extends BaseScaffoldPage<HomePageController> {
+class HomePage extends BaseScaffoldPage<HomeController> {
   @override
-  HomePageController generateController() {
-    return HomePageController();
+  HomeController generateController() {
+    return HomeController();
   }
 
   @override
@@ -71,7 +70,11 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
                 RouteTable.generate_video,
               ),
               const SizedBox(width: 12),
-              buildItem(S.of(context!).ppt, CupertinoIcons.plus, RouteTable.generate_ppt),
+              buildItem(
+                S.of(context!).ppt,
+                CupertinoIcons.plus,
+                RouteTable.generate_ppt,
+              ),
             ],
           ).marginOnly(bottom: 12.h),
           Row(
@@ -98,7 +101,11 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
                 RouteTable.generate_pic,
               ),
               const SizedBox(width: 12),
-              buildItem(S.of(context!).voiceCloning, CupertinoIcons.plus, RouteTable.voice_cloning),
+              buildItem(
+                S.of(context!).voiceCloning,
+                CupertinoIcons.plus,
+                RouteTable.voice_cloning,
+              ),
             ],
           ).marginOnly(bottom: 12.h),
         ],
@@ -142,7 +149,7 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
   }
 }
 
-class HomePageController extends BaseController {
+class HomeController extends BaseController {
   String token = '';
   bool isLogin = false;
 
@@ -155,7 +162,6 @@ class HomePageController extends BaseController {
 
   @override
   void onReceiveEvent(event) {
-    print("---1111111----${event.text}");
     switch (event.runtimeType) {
       case CustomTextEvent:
         Toast.show(event.text);

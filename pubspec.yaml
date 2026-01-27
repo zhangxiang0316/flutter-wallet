@@ -26,6 +26,8 @@ dependencies:
   getx_route_annotations:
   flutter_svg: ^2.2.3
   image_picker: ^1.2.1
+  easy_refresh: ^3.4.0  #下拉刷新
+
 
 dev_dependencies:
   flutter_test:

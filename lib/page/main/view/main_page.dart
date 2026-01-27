@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_controller.dart';
 import 'package:omnicast/base/base_page.dart';
+import 'package:omnicast/page/projects/view/projects_page.dart';
 
 import '../../home/view/home_page.dart';
 
@@ -105,9 +106,8 @@ class MainPage extends BasePage<MainController> {
       onPageChanged: controller.pageChanged,
       children: [
         HomePage(),
+        ProjectsPage(),
         HomePage(),
-        HomePage(),
-        // MinePage()
       ],
     );
   }
@@ -116,6 +116,24 @@ class MainPage extends BasePage<MainController> {
 class MainController extends BaseController {
   int bottomSelectedIndex = 0;
   PageController? pageController;
+
+  @override
+  void onInit() {
+    super.onInit();
+    pageController = PageController(initialPage: bottomSelectedIndex);
+  }
+
+  @override
+  void onReady() {
+    // TODO: implement onReady
+    super.onReady();
+  }
+
+  @override
+  void onClose() {
+    pageController?.dispose();
+    super.onClose();
+  }
 
   void bottomTap(int index) {
     if (index != 0) {}

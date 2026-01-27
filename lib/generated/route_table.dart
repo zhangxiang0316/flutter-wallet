@@ -16,6 +16,7 @@ import 'package:omnicast/page/home_test_page.dart';
 import 'package:omnicast/page/generate/view/text_to_speech_page.dart';
 import 'package:omnicast/page/generate/view/generate_pic_page.dart';
 import 'package:omnicast/page/generate/view/voice_cloning_page.dart';
+import 'package:omnicast/page/projects/view/projects_page.dart';
 
 class RouteTable {
   static const String home = '/home';
@@ -34,6 +35,7 @@ class RouteTable {
   static const String text_to_speech = '/text_to_speech';
   static const String generate_pic = '/generate_pic';
   static const String voice_cloning = '/voice_cloning';
+  static const String projects = '/projects';
 
   static final List<GetPage> pages = [
     GetPage(name: '/home', page: () => HomePage()),
@@ -52,5 +54,6 @@ class RouteTable {
     GetPage(name: '/text_to_speech', page: () => TextToSpeechPage()),
     GetPage(name: '/generate_pic', page: () => GeneratePicPage()),
     GetPage(name: '/voice_cloning', page: () => VoiceCloningPage()),
+    GetPage(name: '/projects', page: () => ProjectsPage()),
   ];
 }

@@ -45,6 +45,7 @@ abstract class BasePage<T extends BaseController> extends GetView<T> {
     return LifecycleWrapper(
       onLifecycleEvent: (LifecycleEvent lifecycleEvent) {
         // 监听页面生命周期事件并分发给控制器
+        if (!Get.isRegistered<T>()) return;
         switch (lifecycleEvent) {
           case LifecycleEvent.visible:
             // 页面变为可见
