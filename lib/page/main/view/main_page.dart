@@ -7,6 +7,7 @@ import 'package:omnicast/base/base_page.dart';
 
 import '../../home/view/home_page.dart';
 
+/// 主页面
 @GetXRoutePage('/main')
 class MainPage extends BasePage<MainController> {
   @override

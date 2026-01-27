@@ -2,5 +2,14 @@
   "@@locale": "en",
   "phone": "phone",
   "email": "email",
-  "login": "login"
+  "login": "login",
+  "appName": "OmniCast",
+  "hello": "Hello",
+  "whatToCreate": "What do you want to create today?",
+  "explanationVideo": "Explanation Video",
+  "ppt": "PPT",
+  "aiBlog": "AI Blog",
+  "textToSpeech": "Text to Speech",
+  "aiImage": "AI Image Generation",
+  "voiceCloning": "Voice Cloning"
 }

@@ -2,5 +2,14 @@
   "@@locale": "zh",
   "login": "登录",
   "email": "注册",
-  "phone": "手机"
+  "phone": "手机",
+  "appName": "OmniCast",
+  "hello": "你好",
+  "whatToCreate": "今天想创作些什么呢？",
+  "explanationVideo": "解说视频",
+  "ppt": "PPT",
+  "aiBlog": "AI 博客",
+  "textToSpeech": "文本转语音",
+  "aiImage": "AI 生图",
+  "voiceCloning": "音色克隆"
 }

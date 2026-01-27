@@ -45,17 +45,5 @@ class StrCommon {
   static const String unsupportedHttpProtocol = '不支持的HTTP协议';
 
 
-  ///--------------------------- 测试路由 -------------------------------
-  static const String pageA = 'PageA';
-  static const String pageA2 = 'PageA2';
-  static const String pageB = 'PageB';
-  static const String pageC = 'PageC';
-  static const String pageD = 'PageD';
-
-  static const String toPageCDestroyCurrent = '前往PageC，并销毁当前页面';
-  static const String routeInterceptFromPageAtoPageD = '路由拦截 从PageA前往PageD';
-  static const String backPreviousPage = '返回上一页';
-  static const String toPageD = '前往PageD';
-  static const String toHomeDestroyAll = '前往首页，并销毁所有页面';
 
 }

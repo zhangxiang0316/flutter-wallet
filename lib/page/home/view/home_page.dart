@@ -28,7 +28,7 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
   @override
   PreferredSizeWidget? getAppBar() {
     return AppBar(
-      title: Text("OmniCast"),
+      title: Text(S.of(context!).appName),
       actions: [
         IconButton(
           icon: Icon(CupertinoIcons.gear_big, size: 25.w),
@@ -53,37 +53,37 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
             children: [
               Icon(CupertinoIcons.flag, size: 40.h).marginOnly(right: 5.w),
               Text(
-                "你好",
+                S.of(context!).hello,
                 style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
               ),
             ],
           ).marginOnly(bottom: 10.h),
           Text(
-            "今天想创作些什么呢？",
+            S.of(context!).whatToCreate,
             style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.w700),
           ).marginOnly(bottom: 60.h),
 
           Row(
             children: [
               buildItem(
-                "解说视频",
+                S.of(context!).explanationVideo,
                 CupertinoIcons.play_circle,
                 RouteTable.generate_video,
               ),
               const SizedBox(width: 12),
-              buildItem("PPT", CupertinoIcons.plus, RouteTable.generate_ppt),
+              buildItem(S.of(context!).ppt, CupertinoIcons.plus, RouteTable.generate_ppt),
             ],
           ).marginOnly(bottom: 12.h),
           Row(
             children: [
               buildItem(
-                "AI 博客",
+                S.of(context!).aiBlog,
                 CupertinoIcons.play_circle,
                 RouteTable.generate_podcast,
               ),
               const SizedBox(width: 12),
               buildItem(
-                "文本转语音",
+                S.of(context!).textToSpeech,
                 CupertinoIcons.plus,
                 RouteTable.text_to_speech,
               ),
@@ -93,12 +93,12 @@ class HomePage extends BaseScaffoldPage<HomePageController> {
           Row(
             children: [
               buildItem(
-                "AI 生图",
+                S.of(context!).aiImage,
                 CupertinoIcons.play_circle,
                 RouteTable.generate_pic,
               ),
               const SizedBox(width: 12),
-              buildItem("音色克隆", CupertinoIcons.plus, RouteTable.voice_cloning),
+              buildItem(S.of(context!).voiceCloning, CupertinoIcons.plus, RouteTable.voice_cloning),
             ],
           ).marginOnly(bottom: 12.h),
         ],

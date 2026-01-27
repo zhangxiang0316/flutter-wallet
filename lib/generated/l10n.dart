@@ -69,6 +69,76 @@ class S {
   String get login {
     return Intl.message('login', name: 'login', desc: '', args: []);
   }
+
+  /// `OmniCast`
+  String get appName {
+    return Intl.message('OmniCast', name: 'appName', desc: '', args: []);
+  }
+
+  /// `Hello`
+  String get hello {
+    return Intl.message('Hello', name: 'hello', desc: '', args: []);
+  }
+
+  /// `What do you want to create today?`
+  String get whatToCreate {
+    return Intl.message(
+      'What do you want to create today?',
+      name: 'whatToCreate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Explanation Video`
+  String get explanationVideo {
+    return Intl.message(
+      'Explanation Video',
+      name: 'explanationVideo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `PPT`
+  String get ppt {
+    return Intl.message('PPT', name: 'ppt', desc: '', args: []);
+  }
+
+  /// `AI Blog`
+  String get aiBlog {
+    return Intl.message('AI Blog', name: 'aiBlog', desc: '', args: []);
+  }
+
+  /// `Text to Speech`
+  String get textToSpeech {
+    return Intl.message(
+      'Text to Speech',
+      name: 'textToSpeech',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `AI Image Generation`
+  String get aiImage {
+    return Intl.message(
+      'AI Image Generation',
+      name: 'aiImage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Voice Cloning`
+  String get voiceCloning {
+    return Intl.message(
+      'Voice Cloning',
+      name: 'voiceCloning',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

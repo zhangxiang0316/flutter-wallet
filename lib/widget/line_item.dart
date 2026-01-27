@@ -7,6 +7,7 @@ import 'package:omnicast/base/base_page.dart';
 
 import '../base/base_controller.dart';
 
+/// 列表项
 class LineItem extends BasePage<LineController> {
   final String title;
   final String value;
