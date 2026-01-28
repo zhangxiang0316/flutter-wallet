@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/page/projects/view/image_history_page.dart';
 import 'package:omnicast/page/projects/view/video_history_page.dart';
@@ -10,6 +11,7 @@ import 'package:omnicast/utils/global_extension.dart';
 import '../../../base/base_controller.dart';
 import '../../../base/base_scaffold_page.dart';
 
+/// 项目页面
 @GetXRoutePage('/projects')
 class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
   @override
@@ -70,7 +72,7 @@ class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
                 ).onTab(() => controller.bottomTap(1)),
               ),
             ],
-          ),
+          ).marginOnly(bottom: 16.h),
           Expanded(child: buildPageView()),
         ],
       ),

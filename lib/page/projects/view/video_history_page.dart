@@ -10,6 +10,7 @@ import 'package:omnicast/widget/base_easy_refresh.dart';
 
 import '../../../base/base_controller.dart';
 
+/// 视频历史页面
 class VideoHistoryPage extends BaseScaffoldPage<VideoHistoryController> {
   @override
   VideoHistoryController generateController() {
@@ -31,40 +32,51 @@ class VideoHistoryPage extends BaseScaffoldPage<VideoHistoryController> {
       onLoad: () async {
         controller.loadList(false);
       },
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(top: 16.h),
-        child: Obx(
-          () => Column(
-            children: controller.videoHistoryList
-                .map(
-                  (item) => Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context!).cardColor,
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    padding: EdgeInsets.all(16.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Image.network(
-                              item['cover'],
-                              width: 100,
-                              height: 100,
-                            ).marginOnly(right: 10.w),
-                            Text(item['title']),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ).marginOnly(bottom: 10.h),
-                )
-                .toList(),
-          ),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Obx(
+                () => ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: controller.videoHistoryList.length,
+                  padding: EdgeInsets.only(bottom: 10.h),
+                  separatorBuilder: (context, index) => SizedBox(height: 10.h),
+                  itemBuilder: (context, index) {
+                    final item = controller.videoHistoryList[index];
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      padding: EdgeInsets.all(16.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Image.network(
+                                item['cover'],
+                                width: 100,
+                                height: 100,
+                              ).marginOnly(right: 10.w),
+                              Text(item['title']),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -90,7 +102,7 @@ class VideoHistoryController extends BaseController {
     }
     videoHistoryList.addAll(
       List.generate(
-        4,
+        10,
         (index) => {
           'id': index,
           'title': '视频标题 $index',
