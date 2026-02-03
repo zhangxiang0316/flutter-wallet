@@ -25,32 +25,26 @@ class ImageHistoryPage extends BaseScaffoldPage<ImageHistoryController> {
 
   @override
   Widget? getBody() {
-    return BaseEasyRefresh(
-      controller: controller.easyRefreshController,
-      onRefresh: () async {
-        controller.loadList(true);
-      },
-      onLoad: () async {
-        controller.loadList(false);
-      },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Obx(
-                () => GridView.builder(
+    return BaseRefreshView(
+      request: (page, pageSize) => controller.getHistoryList(page, pageSize),
+      contentBuilder: (context, dataList) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: controller.imageHistoryList.length,
+                  itemCount: dataList.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2, // 每行两个
                     crossAxisSpacing: 16, // 横向间距
                     mainAxisSpacing: 16, // 纵向间距
                   ),
                   itemBuilder: (BuildContext context, int index) {
-                    var item = controller.imageHistoryList[index];
+                    var item = dataList[index];
                     return Container(
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
@@ -80,43 +74,31 @@ class ImageHistoryPage extends BaseScaffoldPage<ImageHistoryController> {
                   },
                 ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }
 
 class ImageHistoryController extends BaseController {
-  late EasyRefreshController? easyRefreshController;
-  final RxList<dynamic> imageHistoryList = [].obs;
+  Future<List<Map<String, dynamic>>> getHistoryList(
+    int page,
+    int pageSize,
+  ) async {
+    print('------------获取图片历史列表------------$page-----$pageSize');
+    // 模拟网络延迟
+    await Future.delayed(const Duration(milliseconds: 1000));
 
-  @override
-  void onInit() {
-    super.onInit();
-    easyRefreshController = EasyRefreshController(
-      controlFinishRefresh: true,
-      controlFinishLoad: true,
-    );
-    loadList(true);
-  }
-
-  void loadList(bool isRefresh) async {
-    if (isRefresh) {
-      imageHistoryList.clear();
-    }
-    imageHistoryList.addAll(
-      List.generate(
-        10,
-        (index) => {
-          'id': index,
-          'title': '图片标题 $index',
-          'cover': 'https://picsum.photos/300/200?random=$index',
-        },
-      ),
-    );
-    easyRefreshController?.finishRefresh();
-    easyRefreshController?.finishLoad();
+    // 模拟分页数据
+    return List.generate(pageSize, (index) {
+      final id = (page - 1) * pageSize + index;
+      return {
+        'id': id,
+        'title': '视频标题 $id',
+        'cover': 'https://picsum.photos/100/100?random=$id',
+      };
+    });
   }
 }
