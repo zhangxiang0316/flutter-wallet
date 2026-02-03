@@ -44,7 +44,7 @@ class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
                       '音频和视频',
                       style: TextStyle(
                         color: controller.bottomSelectedIndex == 0
-                            ? Theme.of(context!).primaryColor
+                            ? Theme.of(context!).colorScheme.primary
                             : Colors.grey,
                       ),
                     ),
@@ -64,7 +64,7 @@ class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
                       'AI 生图',
                       style: TextStyle(
                         color: controller.bottomSelectedIndex == 1
-                            ? Theme.of(context!).primaryColor
+                            ? Theme.of(context!).colorScheme.primary
                             : Colors.grey,
                       ),
                     ),
@@ -81,7 +81,7 @@ class ProjectsPage extends BaseScaffoldPage<ProjectsController> {
 
   Widget buildPageView() {
     return PageView(
-      // physics: const NeverScrollableScrollPhysics(), // 禁止滑动
+      physics: const NeverScrollableScrollPhysics(), // 禁止滑动
       controller: controller.pageController,
       onPageChanged: controller.pageChanged,
       children: [VideoHistoryPage(), ImageHistoryPage()],

@@ -27,6 +27,8 @@ dependencies:
   flutter_svg: ^2.2.3
   image_picker: ^1.2.1
   easy_refresh: ^3.4.0  #下拉刷新
+  decimal: ^3.2.4
+  rational: ^2.2.3
 
 
 dev_dependencies:
