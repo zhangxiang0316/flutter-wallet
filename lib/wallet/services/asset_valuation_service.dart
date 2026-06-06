@@ -28,6 +28,12 @@ class AssetValuationService {
     'ETH': 'ETHUSDT',
     'BTCB': 'BTCUSDT',
   };
+  static const Map<String, String> _coingeckoIds = {
+    'BNB': 'binancecoin',
+    'TRX': 'tron',
+    'ETH': 'ethereum',
+    'BTCB': 'bitcoin',
+  };
 
   Future<Decimal?> loadTotalUsdValue(List<ChainBalance> balances) async {
     final prices = await loadUsdPrices(balances);
@@ -37,11 +43,41 @@ class AssetValuationService {
   Future<Map<String, Decimal>> loadUsdPrices(
     List<ChainBalance> balances,
   ) async {
-    final tickerSymbols = balances
-        .map((balance) => _binanceTickerSymbols[balance.symbol.toUpperCase()])
+    final requestedSymbols = balances
+        .map((balance) => balance.symbol.toUpperCase())
+        .where((symbol) => !_stableSymbols.contains(symbol))
+        .where(
+          (symbol) =>
+              _binanceTickerSymbols.containsKey(symbol) ||
+              _coingeckoIds.containsKey(symbol),
+        )
+        .toSet()
+        .toList(growable: false);
+    if (requestedSymbols.isEmpty) {
+      return {};
+    }
+
+    final prices = <String, Decimal>{};
+    prices.addAll(await _loadBinanceUsdPrices(requestedSymbols));
+
+    final missingSymbols = requestedSymbols
+        .where((symbol) => !prices.containsKey(symbol))
+        .toList(growable: false);
+    if (missingSymbols.isNotEmpty) {
+      prices.addAll(await _loadCoinGeckoUsdPrices(missingSymbols));
+    }
+
+    return prices;
+  }
+
+  Future<Map<String, Decimal>> _loadBinanceUsdPrices(
+    List<String> requestedSymbols,
+  ) async {
+    final tickerSymbols = requestedSymbols
+        .map((symbol) => _binanceTickerSymbols[symbol])
         .whereType<String>()
         .toSet()
-        .toList();
+        .toList(growable: false);
     if (tickerSymbols.isEmpty) {
       return {};
     }
@@ -51,28 +87,81 @@ class AssetValuationService {
         'https://api.binance.com/api/v3/ticker/price',
         queryParameters: {'symbols': jsonEncode(tickerSymbols)},
       );
-      final data = response.data;
-      if (data is! List) {
-        return {};
-      }
-
-      final tickerPrices = <String, Decimal>{};
-      for (final item in data) {
-        if (item is! Map) continue;
-        final ticker = item['symbol']?.toString();
-        final price = Decimal.tryParse(item['price']?.toString() ?? '');
-        if (ticker == null || price == null) continue;
-        tickerPrices[ticker] = price;
-      }
-
-      return {
-        for (final entry in _binanceTickerSymbols.entries)
-          if (tickerPrices[entry.value] != null)
-            entry.key: tickerPrices[entry.value]!,
-      };
+      return parseBinancePrices(response.data, requestedSymbols);
     } catch (_) {
       return {};
     }
+  }
+
+  Future<Map<String, Decimal>> _loadCoinGeckoUsdPrices(
+    List<String> requestedSymbols,
+  ) async {
+    final ids = requestedSymbols
+        .map((symbol) => _coingeckoIds[symbol])
+        .whereType<String>()
+        .toSet()
+        .join(',');
+    if (ids.isEmpty) {
+      return {};
+    }
+
+    try {
+      final response = await _dio.get(
+        'https://api.coingecko.com/api/v3/simple/price',
+        queryParameters: {'ids': ids, 'vs_currencies': 'usd'},
+      );
+      return parseCoinGeckoPrices(response.data, requestedSymbols);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Map<String, Decimal> parseBinancePrices(
+    dynamic data,
+    Iterable<String> requestedSymbols,
+  ) {
+    if (data is! List) {
+      return {};
+    }
+
+    final normalizedSymbols = requestedSymbols
+        .map((symbol) => symbol.toUpperCase())
+        .toSet();
+    final tickerPrices = <String, Decimal>{};
+    for (final item in data) {
+      if (item is! Map) continue;
+      final ticker = item['symbol']?.toString();
+      final price = Decimal.tryParse(item['price']?.toString() ?? '');
+      if (ticker == null || price == null) continue;
+      tickerPrices[ticker] = price;
+    }
+
+    return {
+      for (final entry in _binanceTickerSymbols.entries)
+        if (normalizedSymbols.contains(entry.key) &&
+            tickerPrices[entry.value] != null)
+          entry.key: tickerPrices[entry.value]!,
+    };
+  }
+
+  Map<String, Decimal> parseCoinGeckoPrices(
+    dynamic data,
+    Iterable<String> requestedSymbols,
+  ) {
+    if (data is! Map) {
+      return {};
+    }
+
+    final prices = <String, Decimal>{};
+    for (final symbol in requestedSymbols.map((value) => value.toUpperCase())) {
+      final id = _coingeckoIds[symbol];
+      final item = id == null ? null : data[id];
+      if (item is! Map) continue;
+      final price = Decimal.tryParse(item['usd']?.toString() ?? '');
+      if (price == null) continue;
+      prices[symbol] = price;
+    }
+    return prices;
   }
 
   Decimal? calculateTotalUsdValue(

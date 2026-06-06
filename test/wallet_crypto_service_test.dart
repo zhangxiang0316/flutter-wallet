@@ -85,6 +85,62 @@ void main() {
       expect(service.formatUsdValue(total), r'$615.25');
     });
 
+    test('calculates BTCB value with mapped BTC price', () {
+      final total = service.calculateTotalUsdValue(
+        const [
+          ChainBalance(
+            chain: WalletChain.bsc,
+            symbol: 'BTCB',
+            name: 'Bitcoin BEP2',
+            amount: '0.01',
+            address: '0x1',
+          ),
+          ChainBalance(
+            chain: WalletChain.tron,
+            symbol: 'TRX',
+            name: 'TRON',
+            amount: '100',
+            address: 'T1',
+          ),
+        ],
+        prices: {'BTCB': Decimal.parse('65000'), 'TRX': Decimal.parse('0.12')},
+      );
+
+      expect(total?.toStringAsFixed(2), '662.00');
+    });
+
+    test('parses Binance prices for requested non-stable assets', () {
+      final prices = service.parseBinancePrices(
+        [
+          {'symbol': 'BNBUSDT', 'price': '300.50'},
+          {'symbol': 'TRXUSDT', 'price': '0.1201'},
+          {'symbol': 'BTCUSDT', 'price': '65000'},
+        ],
+        ['BNB', 'TRX', 'BTCB'],
+      );
+
+      expect(prices['BNB']?.toStringAsFixed(2), '300.50');
+      expect(prices['TRX']?.toString(), '0.1201');
+      expect(prices['BTCB']?.toString(), '65000');
+    });
+
+    test('parses CoinGecko fallback prices by wallet symbol', () {
+      final prices = service.parseCoinGeckoPrices(
+        {
+          'binancecoin': {'usd': 301.25},
+          'tron': {'usd': 0.119},
+          'ethereum': {'usd': '3500.5'},
+          'bitcoin': {'usd': 64999.99},
+        },
+        ['BNB', 'TRX', 'ETH', 'BTCB'],
+      );
+
+      expect(prices['BNB']?.toString(), '301.25');
+      expect(prices['TRX']?.toString(), '0.119');
+      expect(prices['ETH']?.toString(), '3500.5');
+      expect(prices['BTCB']?.toString(), '64999.99');
+    });
+
     test('uses stable coin prices without external price data', () {
       final total = service.calculateTotalUsdValue(const [
         ChainBalance(
