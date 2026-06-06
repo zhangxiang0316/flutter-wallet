@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/chain_balance.dart';
-import '../../../../wallet/models/wallet_chain.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_styles.dart';
 
@@ -56,7 +55,7 @@ class TransferFormPanel extends StatelessWidget {
             decoration: transferInputDecoration(
               context,
               label: S.of(context).recipientAddress,
-              hint: asset.chain == WalletChain.bsc ? '0x...' : 'T...',
+              hint: asset.chain.isEvm ? '0x...' : 'T...',
               icon: Icons.account_circle_outlined,
             ),
           ).marginOnly(bottom: 12.h),

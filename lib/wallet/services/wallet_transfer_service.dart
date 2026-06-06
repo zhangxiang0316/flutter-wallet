@@ -31,9 +31,8 @@ class WalletTransferService {
   final ECDomainParameters _domain;
 
   static const Duration _requestTimeout = Duration(seconds: 20);
-  static const int _bscChainId = 56;
-  static const int _bscNativeGasLimit = 21000;
-  static const int _bscTokenGasLimit = 100000;
+  static const int _evmNativeGasLimit = 21000;
+  static const int _evmTokenGasLimit = 100000;
   static const int _tronTokenFeeLimit = 30 * 1000 * 1000;
   static const String _base58Alphabet =
       '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -50,7 +49,8 @@ class WalletTransferService {
   }) {
     switch (asset.chain) {
       case WalletChain.bsc:
-        return _transferBsc(
+      case WalletChain.xLayer:
+        return _transferEvm(
           privateKeyHex: privateKeyHex,
           asset: asset,
           toAddress: toAddress,
@@ -73,7 +73,8 @@ class WalletTransferService {
   }) {
     switch (asset.chain) {
       case WalletChain.bsc:
-        return _estimateBscFee(
+      case WalletChain.xLayer:
+        return _estimateEvmFee(
           asset: asset,
           toAddress: toAddress,
           amount: amount,
@@ -87,21 +88,21 @@ class WalletTransferService {
     }
   }
 
-  Future<TransferFeeEstimate> _estimateBscFee({
+  Future<TransferFeeEstimate> _estimateEvmFee({
     required ChainBalance asset,
     required String toAddress,
     required String amount,
   }) async {
-    final normalizedTo = normalizeBscAddress(toAddress);
+    final normalizedTo = normalizeEvmAddress(toAddress);
     final value = amountToRawUnits(amount, asset.decimals);
     final isNative = asset.isNative;
     final txTo = isNative ? normalizedTo : asset.contractAddress!;
     final txValue = isNative ? value : BigInt.zero;
     final data = isNative ? '0x' : erc20TransferData(normalizedTo, value);
-    final gasPrice = await _bscRpcBigInt('eth_gasPrice', const []);
+    final gasPrice = await _evmRpcBigInt(asset.chain, 'eth_gasPrice', const []);
     BigInt gasLimit;
     try {
-      gasLimit = await _bscRpcBigInt('eth_estimateGas', [
+      gasLimit = await _evmRpcBigInt(asset.chain, 'eth_estimateGas', [
         {
           'from': asset.address,
           'to': txTo,
@@ -110,13 +111,13 @@ class WalletTransferService {
         },
       ]);
     } catch (_) {
-      gasLimit = BigInt.from(isNative ? _bscNativeGasLimit : _bscTokenGasLimit);
+      gasLimit = BigInt.from(isNative ? _evmNativeGasLimit : _evmTokenGasLimit);
     }
 
     final feeWei = gasLimit * gasPrice;
     return TransferFeeEstimate(
       amount: rawUnitsToAmount(feeWei, 18),
-      symbol: WalletChain.bsc.symbol,
+      symbol: asset.chain.symbol,
       rawAmount: feeWei,
       isFallback: false,
     );
@@ -182,16 +183,21 @@ class WalletTransferService {
     );
   }
 
-  Future<String> _transferBsc({
+  Future<String> _transferEvm({
     required String privateKeyHex,
     required ChainBalance asset,
     required String toAddress,
     required String amount,
   }) async {
-    final normalizedTo = normalizeBscAddress(toAddress);
+    final chainId = asset.chain.evmChainId;
+    if (chainId == null) {
+      throw StateError('${asset.chain.name} is not an EVM chain');
+    }
+
+    final normalizedTo = normalizeEvmAddress(toAddress);
     final value = amountToRawUnits(amount, asset.decimals);
-    final gasPrice = await _bscRpcBigInt('eth_gasPrice', const []);
-    final nonce = await _bscRpcBigInt('eth_getTransactionCount', [
+    final gasPrice = await _evmRpcBigInt(asset.chain, 'eth_gasPrice', const []);
+    final nonce = await _evmRpcBigInt(asset.chain, 'eth_getTransactionCount', [
       asset.address,
       'latest',
     ]);
@@ -202,8 +208,8 @@ class WalletTransferService {
     final data = isNative
         ? Uint8List(0)
         : hexToBytes(erc20TransferData(normalizedTo, value));
-    final gasLimit = isNative ? _bscNativeGasLimit : _bscTokenGasLimit;
-    final rawTx = _signBscTransaction(
+    final gasLimit = isNative ? _evmNativeGasLimit : _evmTokenGasLimit;
+    final rawTx = _signEvmTransaction(
       privateKeyHex: privateKeyHex,
       nonce: nonce,
       gasPrice: gasPrice,
@@ -211,13 +217,15 @@ class WalletTransferService {
       toAddress: txTo,
       value: txValue,
       data: data,
-      chainId: _bscChainId,
+      chainId: chainId,
     );
-    final response = await _bscRpc('eth_sendRawTransaction', ['0x$rawTx']);
+    final response = await _evmRpc(asset.chain, 'eth_sendRawTransaction', [
+      '0x$rawTx',
+    ]);
     if (response is String && response.isNotEmpty) {
       return response;
     }
-    throw StateError('BSC transfer failed');
+    throw StateError('${asset.chain.name} transfer failed');
   }
 
   Future<String> _transferTron({
@@ -306,9 +314,13 @@ class WalletTransferService {
     throw StateError('Invalid TRC20 transaction response');
   }
 
-  Future<dynamic> _bscRpc(String method, List<dynamic> params) async {
+  Future<dynamic> _evmRpc(
+    WalletChain chain,
+    String method,
+    List<dynamic> params,
+  ) async {
     final response = await _dio.post(
-      WalletChain.bsc.rpcUrl,
+      chain.rpcUrl,
       data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
       options: Options(headers: {'content-type': 'application/json'}),
     );
@@ -316,13 +328,19 @@ class WalletTransferService {
     if (data is Map && data['result'] != null) {
       return data['result'];
     }
-    throw StateError(data is Map ? data.toString() : 'Invalid BSC response');
+    throw StateError(
+      data is Map ? data.toString() : 'Invalid ${chain.name} response',
+    );
   }
 
-  Future<BigInt> _bscRpcBigInt(String method, List<dynamic> params) async {
-    final result = await _bscRpc(method, params);
+  Future<BigInt> _evmRpcBigInt(
+    WalletChain chain,
+    String method,
+    List<dynamic> params,
+  ) async {
+    final result = await _evmRpc(chain, method, params);
     if (result is! String) {
-      throw StateError('Invalid BSC number response');
+      throw StateError('Invalid ${chain.name} number response');
     }
     return BigInt.parse(result.replaceFirst('0x', ''), radix: 16);
   }
@@ -379,7 +397,7 @@ class WalletTransferService {
     }
   }
 
-  String _signBscTransaction({
+  String _signEvmTransaction({
     required String privateKeyHex,
     required BigInt nonce,
     required BigInt gasPrice,
@@ -528,7 +546,7 @@ class WalletTransferService {
   }
 
   static String erc20TransferData(String toAddress, BigInt amount) {
-    final address = normalizeBscAddress(toAddress);
+    final address = normalizeEvmAddress(toAddress);
     return '0xa9059cbb'
         '000000000000000000000000${address.replaceFirst('0x', '')}'
         '${amount.toRadixString(16).padLeft(64, '0')}';
@@ -541,9 +559,13 @@ class WalletTransferService {
   }
 
   static String normalizeBscAddress(String input) {
+    return normalizeEvmAddress(input);
+  }
+
+  static String normalizeEvmAddress(String input) {
     final address = input.trim();
     if (!RegExp(r'^0x[0-9a-fA-F]{40}$').hasMatch(address)) {
-      throw const FormatException('Invalid BSC address');
+      throw const FormatException('Invalid EVM address');
     }
     return '0x${address.substring(2).toLowerCase()}';
   }

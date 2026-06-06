@@ -24,34 +24,56 @@ class ChainBalanceService {
     required String tronAddress,
   }) async {
     final results = await Future.wait([
-      _loadBscBalances(bscAddress),
+      _loadEvmBalances(
+        chain: WalletChain.bsc,
+        assets: WalletAssetRegistry.bscAssets,
+        address: bscAddress,
+      ),
+      _loadEvmBalances(
+        chain: WalletChain.xLayer,
+        assets: WalletAssetRegistry.xLayerAssets,
+        address: bscAddress,
+      ),
       _loadTronBalances(tronAddress),
     ]);
     return results.expand((balances) => balances).toList();
   }
 
-  Future<List<ChainBalance>> _loadBscBalances(String address) async {
+  Future<List<ChainBalance>> _loadEvmBalances({
+    required WalletChain chain,
+    required List<WalletAsset> assets,
+    required String address,
+  }) async {
     return Future.wait(
-      WalletAssetRegistry.bscAssets.map(
-        (asset) => _loadBscAsset(asset, address),
+      assets.map(
+        (asset) => _loadEvmAsset(chain: chain, asset: asset, address: address),
       ),
     );
   }
 
-  Future<ChainBalance> _loadBscAsset(WalletAsset asset, String address) async {
+  Future<ChainBalance> _loadEvmAsset({
+    required WalletChain chain,
+    required WalletAsset asset,
+    required String address,
+  }) async {
     if (asset.isNative) {
-      return _loadBscNativeBalance(asset, address);
+      return _loadEvmNativeBalance(
+        chain: chain,
+        asset: asset,
+        address: address,
+      );
     }
-    return _loadBscTokenBalance(asset, address);
+    return _loadEvmTokenBalance(chain: chain, asset: asset, address: address);
   }
 
-  Future<ChainBalance> _loadBscNativeBalance(
-    WalletAsset asset,
-    String address,
-  ) async {
+  Future<ChainBalance> _loadEvmNativeBalance({
+    required WalletChain chain,
+    required WalletAsset asset,
+    required String address,
+  }) async {
     try {
       final response = await _dio.post(
-        WalletChain.bsc.rpcUrl,
+        chain.rpcUrl,
         data: {
           'jsonrpc': '2.0',
           'method': 'eth_getBalance',
@@ -67,7 +89,7 @@ class ChainBalanceService {
           radix: 16,
         );
         return ChainBalance(
-          chain: WalletChain.bsc,
+          chain: chain,
           symbol: asset.symbol,
           name: asset.name,
           amount: _formatUnits(wei, asset.decimals),
@@ -76,17 +98,17 @@ class ChainBalanceService {
         );
       }
       return ChainBalance(
-        chain: WalletChain.bsc,
+        chain: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',
         address: address,
         decimals: asset.decimals,
-        error: 'Invalid BSC response',
+        error: 'Invalid ${chain.name} response',
       );
     } catch (e) {
       return ChainBalance(
-        chain: WalletChain.bsc,
+        chain: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',
@@ -97,13 +119,14 @@ class ChainBalanceService {
     }
   }
 
-  Future<ChainBalance> _loadBscTokenBalance(
-    WalletAsset asset,
-    String address,
-  ) async {
+  Future<ChainBalance> _loadEvmTokenBalance({
+    required WalletChain chain,
+    required WalletAsset asset,
+    required String address,
+  }) async {
     try {
       final response = await _dio.post(
-        WalletChain.bsc.rpcUrl,
+        chain.rpcUrl,
         data: {
           'jsonrpc': '2.0',
           'method': 'eth_call',
@@ -122,7 +145,7 @@ class ChainBalanceService {
             ? BigInt.zero
             : BigInt.parse(result, radix: 16);
         return ChainBalance(
-          chain: WalletChain.bsc,
+          chain: chain,
           symbol: asset.symbol,
           name: asset.name,
           amount: _formatUnits(value, asset.decimals),
@@ -132,18 +155,18 @@ class ChainBalanceService {
         );
       }
       return ChainBalance(
-        chain: WalletChain.bsc,
+        chain: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',
         address: address,
         contractAddress: asset.contractAddress,
         decimals: asset.decimals,
-        error: 'Invalid BSC token response',
+        error: 'Invalid ${chain.name} token response',
       );
     } catch (e) {
       return ChainBalance(
-        chain: WalletChain.bsc,
+        chain: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',

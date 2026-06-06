@@ -115,13 +115,15 @@ void main() {
           {'symbol': 'BNBUSDT', 'price': '300.50'},
           {'symbol': 'TRXUSDT', 'price': '0.1201'},
           {'symbol': 'BTCUSDT', 'price': '65000'},
+          {'symbol': 'OKBUSDT', 'price': '52.25'},
         ],
-        ['BNB', 'TRX', 'BTCB'],
+        ['BNB', 'TRX', 'BTCB', 'OKB'],
       );
 
       expect(prices['BNB']?.toStringAsFixed(2), '300.50');
       expect(prices['TRX']?.toString(), '0.1201');
       expect(prices['BTCB']?.toString(), '65000');
+      expect(prices['OKB']?.toString(), '52.25');
     });
 
     test('parses CoinGecko fallback prices by wallet symbol', () {
@@ -131,14 +133,16 @@ void main() {
           'tron': {'usd': 0.119},
           'ethereum': {'usd': '3500.5'},
           'bitcoin': {'usd': 64999.99},
+          'okb': {'usd': 52.3},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'OKB'],
       );
 
       expect(prices['BNB']?.toString(), '301.25');
       expect(prices['TRX']?.toString(), '0.119');
       expect(prices['ETH']?.toString(), '3500.5');
       expect(prices['BTCB']?.toString(), '64999.99');
+      expect(prices['OKB']?.toString(), '52.3');
     });
 
     test('uses stable coin prices without external price data', () {
@@ -208,6 +212,17 @@ void main() {
           BigInt.from(1000000),
         ),
         '0xa9059cbb0000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf00000000000000000000000000000000000000000000000000000000000f4240',
+      );
+    });
+
+    test('defines X Layer as an EVM chain', () {
+      expect(WalletChain.xLayer.evmChainId, 196);
+      expect(WalletChain.xLayer.symbol, 'OKB');
+      expect(
+        WalletTransferService.normalizeBscAddress(
+          '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        ),
+        '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf',
       );
     });
 

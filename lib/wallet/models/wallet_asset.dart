@@ -93,7 +93,30 @@ class WalletAssetRegistry {
     ),
   ];
 
-  static const all = [...bscAssets, ...tronAssets];
+  static const xLayerAssets = [
+    WalletAsset(
+      chain: WalletChain.xLayer,
+      symbol: 'OKB',
+      name: 'OKB',
+      decimals: 18,
+    ),
+    WalletAsset(
+      chain: WalletChain.xLayer,
+      symbol: 'USDT',
+      name: 'Tether USD0',
+      decimals: 6,
+      contractAddress: '0x779Ded0c9e1022225f8E0630b35a9b54bE713736',
+    ),
+    WalletAsset(
+      chain: WalletChain.xLayer,
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 6,
+      contractAddress: '0x74b7F16337b8972027F6196A17a631aC6dE26d22',
+    ),
+  ];
+
+  static const all = [...bscAssets, ...tronAssets, ...xLayerAssets];
 
   static WalletAsset? findTronAsset(String contractAddress) {
     final normalized = contractAddress.trim();

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
@@ -36,6 +38,8 @@ class HomeController extends BaseController {
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
 
+  Timer? _balanceRefreshTimer;
+
   @override
   void onInit() {
     super.onInit();
@@ -47,6 +51,7 @@ class HomeController extends BaseController {
     wallet = await _repository.loadWallet();
     update();
     if (wallet != null) {
+      _startBalanceRefreshTimer();
       refreshBalances();
     }
   }
@@ -68,6 +73,7 @@ class HomeController extends BaseController {
     await _repository.saveWallet(wallet!);
     update();
     Toast.show(S.current.walletCreated);
+    _startBalanceRefreshTimer();
     refreshBalances();
   }
 
@@ -87,6 +93,7 @@ class HomeController extends BaseController {
       await _repository.saveWallet(wallet!);
       update();
       Toast.show(S.current.walletImported);
+      _startBalanceRefreshTimer();
       refreshBalances();
       return true;
     } catch (_) {
@@ -120,11 +127,30 @@ class HomeController extends BaseController {
 
   /// 删除本地钱包和页面状态，不触发任何链上操作。
   Future<void> removeWallet() async {
+    _stopBalanceRefreshTimer();
     await _repository.clearWallet();
     wallet = null;
     balances = [];
     totalAssetsText = '--';
     update();
     Toast.show(S.current.walletRemoved);
+  }
+
+  void _startBalanceRefreshTimer() {
+    _stopBalanceRefreshTimer();
+    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      refreshBalances();
+    });
+  }
+
+  void _stopBalanceRefreshTimer() {
+    _balanceRefreshTimer?.cancel();
+    _balanceRefreshTimer = null;
+  }
+
+  @override
+  void onClose() {
+    _stopBalanceRefreshTimer();
+    super.onClose();
   }
 }

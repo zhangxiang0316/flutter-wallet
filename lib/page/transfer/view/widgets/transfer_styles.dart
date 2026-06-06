@@ -59,6 +59,8 @@ Color transferChainColor(WalletChain chain) {
   switch (chain) {
     case WalletChain.bsc:
       return const Color(0xFFF0B90B);
+    case WalletChain.xLayer:
+      return const Color(0xFF111827);
     case WalletChain.tron:
       return const Color(0xFFE50914);
   }
@@ -76,6 +78,8 @@ Color transferAssetColor(BuildContext context, String symbol) {
       return const Color(0xFF627EEA);
     case 'TRX':
       return const Color(0xFFE50914);
+    case 'OKB':
+      return const Color(0xFF111827);
     default:
       return Theme.of(context).colorScheme.primary;
   }

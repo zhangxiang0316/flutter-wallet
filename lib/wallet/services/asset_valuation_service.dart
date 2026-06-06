@@ -27,12 +27,14 @@ class AssetValuationService {
     'TRX': 'TRXUSDT',
     'ETH': 'ETHUSDT',
     'BTCB': 'BTCUSDT',
+    'OKB': 'OKBUSDT',
   };
   static const Map<String, String> _coingeckoIds = {
     'BNB': 'binancecoin',
     'TRX': 'tron',
     'ETH': 'ethereum',
     'BTCB': 'bitcoin',
+    'OKB': 'okb',
   };
 
   Future<Decimal?> loadTotalUsdValue(List<ChainBalance> balances) async {

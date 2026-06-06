@@ -28,6 +28,9 @@ class ChainSection extends StatelessWidget {
     final bscBalances = balances
         .where((balance) => balance.chain == WalletChain.bsc)
         .toList();
+    final xLayerBalances = balances
+        .where((balance) => balance.chain == WalletChain.xLayer)
+        .toList();
     final tronBalances = balances
         .where((balance) => balance.chain == WalletChain.tron)
         .toList();
@@ -37,6 +40,13 @@ class ChainSection extends StatelessWidget {
           chain: WalletChain.bsc,
           address: wallet.bscAddress,
           balances: bscBalances,
+          isLoading: isLoading,
+          onTransferPressed: onTransferPressed,
+        ).marginOnly(bottom: 12.h),
+        _ChainCard(
+          chain: WalletChain.xLayer,
+          address: wallet.bscAddress,
+          balances: xLayerBalances,
           isLoading: isLoading,
           onTransferPressed: onTransferPressed,
         ).marginOnly(bottom: 12.h),
