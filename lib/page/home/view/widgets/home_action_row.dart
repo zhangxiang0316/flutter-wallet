@@ -6,14 +6,26 @@ import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../generated/l10n.dart';
 
 class HomeActionRow extends StatelessWidget {
-  const HomeActionRow({super.key, required this.onRemove});
+  const HomeActionRow({
+    super.key,
+    required this.onAddWallet,
+    required this.onRemove,
+  });
 
+  final VoidCallback onAddWallet;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        _HomeActionButton(
+          filled: true,
+          onPressed: onAddWallet,
+          icon: Icons.add_rounded,
+          label: S.of(context).addWallet,
+        ),
+        SizedBox(width: 12.w),
         _HomeActionButton(
           filled: false,
           onPressed: onRemove,

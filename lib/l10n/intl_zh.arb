@@ -8,6 +8,8 @@
   "walletEmptySubtitle": "当前支持 BNB Smart Chain、Ethereum、X Layer 和 TRON 的地址管理与多资产链上余额查询。",
   "createWallet": "创建钱包",
   "importWallet": "导入钱包",
+  "addWallet": "添加钱包",
+  "switchWallet": "切换钱包",
   "totalAssets": "总资产估值",
   "refreshBalance": "刷新余额",
   "removeWallet": "移除钱包",

@@ -8,6 +8,8 @@
   "walletEmptySubtitle": "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.",
   "createWallet": "Create wallet",
   "importWallet": "Import wallet",
+  "addWallet": "Add wallet",
+  "switchWallet": "Switch wallet",
   "totalAssets": "Total assets",
   "refreshBalance": "Refresh",
   "removeWallet": "Remove wallet",

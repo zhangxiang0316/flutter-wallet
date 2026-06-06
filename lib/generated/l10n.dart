@@ -114,6 +114,21 @@ class S {
     );
   }
 
+  /// `Add wallet`
+  String get addWallet {
+    return Intl.message('Add wallet', name: 'addWallet', desc: '', args: []);
+  }
+
+  /// `Switch wallet`
+  String get switchWallet {
+    return Intl.message(
+      'Switch wallet',
+      name: 'switchWallet',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Total assets`
   String get totalAssets {
     return Intl.message(

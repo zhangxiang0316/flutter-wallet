@@ -28,6 +28,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "addWallet": MessageLookupByLibrary.simpleMessage("添加钱包"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "availableBalance": MessageLookupByLibrary.simpleMessage("可用余额"),
     "backToWallet": MessageLookupByLibrary.simpleMessage("返回钱包"),
@@ -60,6 +61,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "当前版本使用本地存储保存私钥，仅适合测试环境。请勿导入存有真实资产的钱包。",
     ),
+    "switchWallet": MessageLookupByLibrary.simpleMessage("切换钱包"),
     "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
     "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
     "transfer": MessageLookupByLibrary.simpleMessage("转账"),

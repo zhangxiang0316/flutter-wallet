@@ -27,7 +27,10 @@ class HomeController extends BaseController {
   final ChainBalanceService _balanceService;
   final AssetValuationService _valuationService;
 
-  /// 当前本地钱包；为空时首页展示创建/导入入口。
+  /// 本地保存的钱包列表。
+  List<WalletAccount> wallets = [];
+
+  /// 当前选中的钱包；为空时首页展示创建/导入入口。
   WalletAccount? wallet;
 
   /// 多链资产余额列表，由 [ChainBalanceService] 从链上查询。
@@ -43,6 +46,7 @@ class HomeController extends BaseController {
   final Set<String> expandedChainIds = {};
 
   Timer? _balanceRefreshTimer;
+  int _balanceRequestId = 0;
 
   @override
   void onInit() {
@@ -50,9 +54,10 @@ class HomeController extends BaseController {
     loadWallet();
   }
 
-  /// 启动时读取本地钱包；如果存在钱包，立即拉取链上余额。
+  /// 启动时读取本地钱包；如果存在钱包，立即拉取当前钱包的链上余额。
   Future<void> loadWallet() async {
-    wallet = await _repository.loadWallet();
+    wallets = await _repository.loadWallets();
+    wallet = await _repository.loadCurrentWallet();
     update();
     if (wallet != null) {
       _startBalanceRefreshTimer();
@@ -65,40 +70,38 @@ class HomeController extends BaseController {
     final keyPair = _cryptoService.importPrivateKey(
       _cryptoService.generatePrivateKeyHex(),
     );
-    wallet = WalletAccount(
-      name: 'Wallet 1',
+    final nextWallet = WalletAccount(
+      id: _createWalletId(keyPair.bscAddress),
+      name: 'Wallet ${wallets.length + 1}',
       privateKeyHex: keyPair.privateKeyHex,
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
       createdAt: DateTime.now(),
     );
-    balances = [];
-    totalAssetsText = '--';
-    await _repository.saveWallet(wallet!);
-    update();
+    await _saveAndSelectWallet(nextWallet);
     Toast.show(S.current.walletCreated);
-    _startBalanceRefreshTimer();
-    refreshBalances();
   }
 
   /// 导入用户输入的私钥，派生 EVM/TRON 地址并保存到本地。
   Future<bool> importWallet(String privateKey) async {
     try {
       final keyPair = _cryptoService.importPrivateKey(privateKey);
-      wallet = WalletAccount(
-        name: 'Imported Wallet',
+      final existingIndex = wallets.indexWhere(
+        (wallet) =>
+            wallet.bscAddress.toLowerCase() == keyPair.bscAddress.toLowerCase(),
+      );
+      final nextWallet = WalletAccount(
+        id: _createWalletId(keyPair.bscAddress),
+        name: existingIndex >= 0
+            ? wallets[existingIndex].name
+            : 'Wallet ${wallets.length + 1}',
         privateKeyHex: keyPair.privateKeyHex,
         bscAddress: keyPair.bscAddress,
         tronAddress: keyPair.tronAddress,
         createdAt: DateTime.now(),
       );
-      balances = [];
-      totalAssetsText = '--';
-      await _repository.saveWallet(wallet!);
-      update();
+      await _saveAndSelectWallet(nextWallet);
       Toast.show(S.current.walletImported);
-      _startBalanceRefreshTimer();
-      refreshBalances();
       return true;
     } catch (_) {
       Toast.show(S.current.invalidPrivateKey);
@@ -110,6 +113,7 @@ class HomeController extends BaseController {
   Future<void> refreshBalances() async {
     final currentWallet = wallet;
     if (currentWallet == null || isLoading) return;
+    final requestId = ++_balanceRequestId;
     isLoading = true;
     update();
 
@@ -117,15 +121,22 @@ class HomeController extends BaseController {
       (_) => _valuationService.cachedUsdPrices,
     );
 
-    balances = await _balanceService.loadBalances(
+    final nextBalances = await _balanceService.loadBalances(
       bscAddress: currentWallet.bscAddress,
       tronAddress: currentWallet.tronAddress,
     );
+    if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
+      return;
+    }
+    balances = nextBalances;
     _refreshTotalAssetsFromCachedPrices();
     isLoading = false;
     update();
 
     final latestPrices = await priceFuture;
+    if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
+      return;
+    }
     final totalValue = _valuationService.calculateTotalUsdValue(
       balances,
       prices: latestPrices,
@@ -160,16 +171,57 @@ class HomeController extends BaseController {
     return expandedChainIds.contains(chain.id);
   }
 
-  /// 删除本地钱包和页面状态，不触发任何链上操作。
+  Future<void> switchWallet(WalletAccount nextWallet) async {
+    if (wallet?.id == nextWallet.id) return;
+    await _repository.setCurrentWalletId(nextWallet.id);
+    wallet = nextWallet;
+    _resetWalletState();
+    update();
+    _startBalanceRefreshTimer();
+    refreshBalances();
+  }
+
+  /// 删除当前钱包和页面状态，不触发任何链上操作。
   Future<void> removeWallet() async {
-    _stopBalanceRefreshTimer();
-    await _repository.clearWallet();
-    wallet = null;
+    final currentWallet = wallet;
+    if (currentWallet == null) return;
+    await _repository.removeWallet(currentWallet.id);
+    wallets = await _repository.loadWallets();
+    wallet = await _repository.loadCurrentWallet();
+    _resetWalletState();
+    update();
+    if (wallet == null) {
+      _stopBalanceRefreshTimer();
+    } else {
+      _startBalanceRefreshTimer();
+      refreshBalances();
+    }
+    Toast.show(S.current.walletRemoved);
+  }
+
+  Future<void> _saveAndSelectWallet(WalletAccount nextWallet) async {
+    await _repository.saveWallet(nextWallet);
+    wallets = await _repository.loadWallets();
+    wallet = wallets.firstWhere(
+      (item) => item.id == nextWallet.id,
+      orElse: () => nextWallet,
+    );
+    _resetWalletState();
+    update();
+    _startBalanceRefreshTimer();
+    refreshBalances();
+  }
+
+  void _resetWalletState() {
+    _balanceRequestId++;
     balances = [];
     expandedChainIds.clear();
     totalAssetsText = '--';
-    update();
-    Toast.show(S.current.walletRemoved);
+    isLoading = false;
+  }
+
+  String _createWalletId(String evmAddress) {
+    return evmAddress.toLowerCase();
   }
 
   void _startBalanceRefreshTimer() {

@@ -29,6 +29,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "addWallet": MessageLookupByLibrary.simpleMessage("Add wallet"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "availableBalance": MessageLookupByLibrary.simpleMessage(
       "Available balance",
@@ -75,6 +76,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "This version stores private keys locally and is only suitable for testing. Do not import wallets with real assets.",
     ),
+    "switchWallet": MessageLookupByLibrary.simpleMessage("Switch wallet"),
     "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
     "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
     "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),

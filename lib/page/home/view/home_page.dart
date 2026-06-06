@@ -47,10 +47,15 @@ class HomePage extends BaseScaffoldPage<HomeController> {
             : [
                 WalletOverviewCard(
                   wallet: wallet,
+                  wallets: controller.wallets,
                   totalAssetsText: controller.totalAssetsText,
+                  onWalletSelected: controller.switchWallet,
                 ),
                 SizedBox(height: 16.h),
-                HomeActionRow(onRemove: controller.removeWallet),
+                HomeActionRow(
+                  onAddWallet: _showAddWalletSheet,
+                  onRemove: controller.removeWallet,
+                ),
                 SizedBox(height: 16.h),
                 ChainSection(
                   wallet: wallet,
@@ -117,6 +122,49 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                     }
                   },
                   child: Text(S.of(context!).confirmImport),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddWalletSheet() {
+    showModalBottomSheet(
+      context: context!,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 18.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                S.of(context!).addWallet,
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w800),
+              ).marginOnly(bottom: 14.h),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    Navigator.of(sheetContext).pop();
+                    await controller.createWallet();
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(S.of(context!).createWallet),
+                ),
+              ).marginOnly(bottom: 10.h),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    _showImportSheet();
+                  },
+                  icon: const Icon(Icons.file_download_outlined),
+                  label: Text(S.of(context!).importWallet),
                 ),
               ),
             ],
