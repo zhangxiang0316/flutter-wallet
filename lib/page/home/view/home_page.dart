@@ -32,7 +32,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   @override
   Widget? getBody() {
     final wallet = controller.wallet;
-    return SingleChildScrollView(
+    final content = SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,11 +50,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   totalAssetsText: controller.totalAssetsText,
                 ),
                 SizedBox(height: 16.h),
-                HomeActionRow(
-                  isLoading: controller.isLoading,
-                  onRefresh: controller.refreshBalances,
-                  onRemove: controller.removeWallet,
-                ),
+                HomeActionRow(onRemove: controller.removeWallet),
                 SizedBox(height: 16.h),
                 ChainSection(
                   wallet: wallet,
@@ -67,6 +64,13 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 const PrivateKeyNotice(),
               ],
       ),
+    );
+    if (wallet == null) {
+      return content;
+    }
+    return RefreshIndicator(
+      onRefresh: controller.refreshBalances,
+      child: content,
     );
   }
 

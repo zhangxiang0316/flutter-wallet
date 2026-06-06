@@ -6,38 +6,14 @@ import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../generated/l10n.dart';
 
 class HomeActionRow extends StatelessWidget {
-  const HomeActionRow({
-    super.key,
-    required this.isLoading,
-    required this.onRefresh,
-    required this.onRemove,
-  });
+  const HomeActionRow({super.key, required this.onRemove});
 
-  final bool isLoading;
-  final VoidCallback onRefresh;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _HomeActionButton(
-          filled: true,
-          onPressed: onRefresh,
-          icon: Icons.refresh_rounded,
-          loadingIcon: isLoading
-              ? SizedBox(
-                  width: 16.w,
-                  height: 16.w,
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                ).marginOnly(right: 7.w)
-              : null,
-          label: S.of(context).refreshBalance,
-        ),
-        SizedBox(width: 12.w),
         _HomeActionButton(
           filled: false,
           onPressed: onRemove,
@@ -55,14 +31,12 @@ class _HomeActionButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     required this.filled,
-    this.loadingIcon,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
   final bool filled;
-  final Widget? loadingIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -91,12 +65,11 @@ class _HomeActionButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                loadingIcon ??
-                    Icon(
-                      icon,
-                      size: 18.w,
-                      color: foreground,
-                    ).marginOnly(right: 7.w),
+                Icon(
+                  icon,
+                  size: 18.w,
+                  color: foreground,
+                ).marginOnly(right: 7.w),
                 Text(
                   label,
                   style: TextStyle(
