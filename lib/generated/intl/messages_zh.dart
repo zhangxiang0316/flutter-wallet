@@ -76,7 +76,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transferUnavailable": MessageLookupByLibrary.simpleMessage("转账信息不可用"),
     "walletCreated": MessageLookupByLibrary.simpleMessage("钱包已创建"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
-      "当前初版支持 BNB Smart Chain 和 TRON 的地址管理与多资产链上余额查询。",
+      "当前支持 BNB Smart Chain、Ethereum、X Layer 和 TRON 的地址管理与多资产链上余额查询。",
     ),
     "walletEmptyTitle": MessageLookupByLibrary.simpleMessage("创建或导入钱包"),
     "walletImported": MessageLookupByLibrary.simpleMessage("导入成功"),

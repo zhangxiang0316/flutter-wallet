@@ -95,7 +95,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "walletCreated": MessageLookupByLibrary.simpleMessage("Wallet created"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
-      "This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.",
+      "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.",
     ),
     "walletEmptyTitle": MessageLookupByLibrary.simpleMessage(
       "Create or import a wallet",

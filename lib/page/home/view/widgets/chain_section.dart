@@ -32,6 +32,9 @@ class ChainSection extends StatelessWidget {
     final bscBalances = balances
         .where((balance) => balance.chain == WalletChain.bsc)
         .toList();
+    final ethereumBalances = balances
+        .where((balance) => balance.chain == WalletChain.ethereum)
+        .toList();
     final xLayerBalances = balances
         .where((balance) => balance.chain == WalletChain.xLayer)
         .toList();
@@ -46,6 +49,15 @@ class ChainSection extends StatelessWidget {
           balances: bscBalances,
           isLoading: isLoading,
           isExpanded: isChainExpanded(WalletChain.bsc),
+          onToggle: onChainToggle,
+          onTransferPressed: onTransferPressed,
+        ).marginOnly(bottom: 12.h),
+        _ChainCard(
+          chain: WalletChain.ethereum,
+          address: wallet.bscAddress,
+          balances: ethereumBalances,
+          isLoading: isLoading,
+          isExpanded: isChainExpanded(WalletChain.ethereum),
           onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
         ).marginOnly(bottom: 12.h),

@@ -49,6 +49,7 @@ class WalletTransferService {
   }) {
     switch (asset.chain) {
       case WalletChain.bsc:
+      case WalletChain.ethereum:
       case WalletChain.xLayer:
         return _transferEvm(
           privateKeyHex: privateKeyHex,
@@ -73,6 +74,7 @@ class WalletTransferService {
   }) {
     switch (asset.chain) {
       case WalletChain.bsc:
+      case WalletChain.ethereum:
       case WalletChain.xLayer:
         return _estimateEvmFee(
           asset: asset,

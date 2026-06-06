@@ -5,7 +5,7 @@
   "login": "login",
   "appName": "沐晨钱包",
   "walletEmptyTitle": "Create or import a wallet",
-  "walletEmptySubtitle": "This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.",
+  "walletEmptySubtitle": "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.",
   "createWallet": "Create wallet",
   "importWallet": "Import wallet",
   "totalAssets": "Total assets",

@@ -32,6 +32,11 @@ class ChainBalanceService {
         address: bscAddress,
       ),
       _loadEvmBalances(
+        chain: WalletChain.ethereum,
+        assets: WalletAssetRegistry.ethereumAssets,
+        address: bscAddress,
+      ),
+      _loadEvmBalances(
         chain: WalletChain.xLayer,
         assets: WalletAssetRegistry.xLayerAssets,
         address: bscAddress,

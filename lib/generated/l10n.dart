@@ -28,10 +28,9 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name =
-        (locale.countryCode?.isEmpty ?? false)
-            ? locale.languageCode
-            : locale.toString();
+    final name = (locale.countryCode?.isEmpty ?? false)
+        ? locale.languageCode
+        : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -85,10 +84,10 @@ class S {
     );
   }
 
-  /// `This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.`
+  /// `Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.`
   String get walletEmptySubtitle {
     return Intl.message(
-      'This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.',
+      'Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.',
       name: 'walletEmptySubtitle',
       desc: '',
       args: [],

@@ -109,6 +109,37 @@ void main() {
       expect(total?.toStringAsFixed(2), '662.00');
     });
 
+    test('calculates Ethereum chain assets with stable and wrapped prices', () {
+      final total = service.calculateTotalUsdValue(
+        const [
+          ChainBalance(
+            chain: WalletChain.ethereum,
+            symbol: 'ETH',
+            name: 'Ethereum',
+            amount: '1.5',
+            address: '0x1',
+          ),
+          ChainBalance(
+            chain: WalletChain.ethereum,
+            symbol: 'DAI',
+            name: 'Dai Stablecoin',
+            amount: '20',
+            address: '0x1',
+          ),
+          ChainBalance(
+            chain: WalletChain.ethereum,
+            symbol: 'WBTC',
+            name: 'Wrapped BTC',
+            amount: '0.01',
+            address: '0x1',
+          ),
+        ],
+        prices: {'ETH': Decimal.parse('3000'), 'WBTC': Decimal.parse('65000')},
+      );
+
+      expect(total?.toStringAsFixed(2), '5170.00');
+    });
+
     test('parses Binance prices for requested non-stable assets', () {
       final prices = service.parseBinancePrices(
         [
@@ -117,12 +148,13 @@ void main() {
           {'symbol': 'BTCUSDT', 'price': '65000'},
           {'symbol': 'OKBUSDT', 'price': '52.25'},
         ],
-        ['BNB', 'TRX', 'BTCB', 'OKB'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB'],
       );
 
       expect(prices['BNB']?.toStringAsFixed(2), '300.50');
       expect(prices['TRX']?.toString(), '0.1201');
       expect(prices['BTCB']?.toString(), '65000');
+      expect(prices['WBTC']?.toString(), '65000');
       expect(prices['OKB']?.toString(), '52.25');
     });
 
@@ -146,12 +178,13 @@ void main() {
             {'instId': 'OKB-USDT', 'last': '52.4'},
           ],
         },
-        ['BNB', 'TRX', 'BTCB', 'OKB'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB'],
       );
 
       expect(prices['BNB']?.toString(), '302.1');
       expect(prices['TRX']?.toString(), '0.1208');
       expect(prices['BTCB']?.toString(), '65100');
+      expect(prices['WBTC']?.toString(), '65100');
       expect(prices['OKB']?.toString(), '52.4');
     });
 
@@ -184,13 +217,14 @@ void main() {
           'bitcoin': {'usd': 64999.99},
           'okb': {'usd': 52.3},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'OKB'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB'],
       );
 
       expect(prices['BNB']?.toString(), '301.25');
       expect(prices['TRX']?.toString(), '0.119');
       expect(prices['ETH']?.toString(), '3500.5');
       expect(prices['BTCB']?.toString(), '64999.99');
+      expect(prices['WBTC']?.toString(), '64999.99');
       expect(prices['OKB']?.toString(), '52.3');
     });
 
@@ -203,13 +237,14 @@ void main() {
           'BTC': {'USD': 60913.71},
           'OKB': {'USD': 69.12},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'OKB'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB'],
       );
 
       expect(prices['BNB']?.toString(), '574.65');
       expect(prices['TRX']?.toString(), '0.3202');
       expect(prices['ETH']?.toString(), '1566.43');
       expect(prices['BTCB']?.toString(), '60913.71');
+      expect(prices['WBTC']?.toString(), '60913.71');
       expect(prices['OKB']?.toString(), '69.12');
     });
 
@@ -283,7 +318,9 @@ void main() {
       );
     });
 
-    test('defines X Layer as an EVM chain', () {
+    test('defines Ethereum and X Layer as EVM chains', () {
+      expect(WalletChain.ethereum.evmChainId, 1);
+      expect(WalletChain.ethereum.symbol, 'ETH');
       expect(WalletChain.xLayer.evmChainId, 196);
       expect(WalletChain.xLayer.symbol, 'OKB');
       expect(

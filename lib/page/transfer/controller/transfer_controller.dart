@@ -86,8 +86,9 @@ class TransferController extends BaseController {
   void _validateAddress(ChainBalance asset, String address) {
     switch (asset.chain) {
       case WalletChain.bsc:
+      case WalletChain.ethereum:
       case WalletChain.xLayer:
-        WalletTransferService.normalizeBscAddress(address);
+        WalletTransferService.normalizeEvmAddress(address);
         break;
       case WalletChain.tron:
         WalletTransferService.tronAddressToHex(address);

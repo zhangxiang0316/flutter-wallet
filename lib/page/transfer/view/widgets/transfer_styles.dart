@@ -59,6 +59,8 @@ Color transferChainColor(WalletChain chain) {
   switch (chain) {
     case WalletChain.bsc:
       return const Color(0xFFF0B90B);
+    case WalletChain.ethereum:
+      return const Color(0xFF627EEA);
     case WalletChain.xLayer:
       return const Color(0xFF111827);
     case WalletChain.tron:
@@ -73,6 +75,7 @@ Color transferAssetColor(BuildContext context, String symbol) {
     case 'USDC':
       return const Color(0xFF2775CA);
     case 'BTCB':
+    case 'WBTC':
       return const Color(0xFFF7931A);
     case 'ETH':
       return const Color(0xFF627EEA);

@@ -30,7 +30,7 @@ class HomeController extends BaseController {
   /// 当前本地钱包；为空时首页展示创建/导入入口。
   WalletAccount? wallet;
 
-  /// BSC 和 TRON 的资产余额列表，由 [ChainBalanceService] 从链上查询。
+  /// 多链资产余额列表，由 [ChainBalanceService] 从链上查询。
   List<ChainBalance> balances = [];
 
   /// 已格式化的总资产估值文本。价格源不可用时显示 `--`。
@@ -81,7 +81,7 @@ class HomeController extends BaseController {
     refreshBalances();
   }
 
-  /// 导入用户输入的私钥，派生 BSC/TRON 地址并保存到本地。
+  /// 导入用户输入的私钥，派生 EVM/TRON 地址并保存到本地。
   Future<bool> importWallet(String privateKey) async {
     try {
       final keyPair = _cryptoService.importPrivateKey(privateKey);
@@ -106,7 +106,7 @@ class HomeController extends BaseController {
     }
   }
 
-  /// 查询两条链的资产余额。余额先更新到 UI，再异步刷新总资产估值。
+  /// 查询多条链的资产余额。余额先更新到 UI，再异步刷新总资产估值。
   Future<void> refreshBalances() async {
     final currentWallet = wallet;
     if (currentWallet == null || isLoading) return;

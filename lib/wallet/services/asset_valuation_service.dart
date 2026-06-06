@@ -32,12 +32,19 @@ class AssetValuationService {
   };
 
   static final Decimal _oneUsd = Decimal.one;
-  static const Set<String> _stableSymbols = {'USDT', 'USDC', 'BUSD', 'TUSD'};
+  static const Set<String> _stableSymbols = {
+    'USDT',
+    'USDC',
+    'BUSD',
+    'TUSD',
+    'DAI',
+  };
   static const Map<String, String> _binanceTickerSymbols = {
     'BNB': 'BNBUSDT',
     'TRX': 'TRXUSDT',
     'ETH': 'ETHUSDT',
     'BTCB': 'BTCUSDT',
+    'WBTC': 'BTCUSDT',
     'OKB': 'OKBUSDT',
   };
   static const Map<String, String> _okxTickerSymbols = {
@@ -45,6 +52,7 @@ class AssetValuationService {
     'TRX': 'TRX-USDT',
     'ETH': 'ETH-USDT',
     'BTCB': 'BTC-USDT',
+    'WBTC': 'BTC-USDT',
     'OKB': 'OKB-USDT',
   };
   static const Map<String, String> _coingeckoIds = {
@@ -52,6 +60,7 @@ class AssetValuationService {
     'TRX': 'tron',
     'ETH': 'ethereum',
     'BTCB': 'bitcoin',
+    'WBTC': 'bitcoin',
     'OKB': 'okb',
   };
   static const Map<String, String> _cryptoCompareSymbols = {
@@ -59,6 +68,7 @@ class AssetValuationService {
     'TRX': 'TRX',
     'ETH': 'ETH',
     'BTCB': 'BTC',
+    'WBTC': 'BTC',
     'OKB': 'OKB',
   };
   static final Set<String> _pricedSymbols = {

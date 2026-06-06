@@ -6,6 +6,13 @@ enum WalletChain {
     rpcUrl: 'https://bsc-dataseed.bnbchain.org',
     evmChainId: 56,
   ),
+  ethereum(
+    id: 'ethereum',
+    name: 'Ethereum',
+    symbol: 'ETH',
+    rpcUrl: 'https://ethereum-rpc.publicnode.com',
+    evmChainId: 1,
+  ),
   xLayer(
     id: 'x-layer',
     name: 'X Layer',

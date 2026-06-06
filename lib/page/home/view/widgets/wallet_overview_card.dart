@@ -69,7 +69,7 @@ class WalletOverviewCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Text(
-                      '${WalletChain.bsc.symbol} / ${WalletChain.xLayer.symbol} / ${WalletChain.tron.symbol}',
+                      '${WalletChain.bsc.symbol} / ${WalletChain.ethereum.symbol} / ${WalletChain.xLayer.symbol} / ${WalletChain.tron.symbol}',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 11.sp,
