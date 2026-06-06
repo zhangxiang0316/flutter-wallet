@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
 import '../../../generated/route_table.dart';
-import '../../../page/transfer/view/transfer_page.dart';
+import '../../../page/transfer/controller/transfer_controller.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/chain_section.dart';
