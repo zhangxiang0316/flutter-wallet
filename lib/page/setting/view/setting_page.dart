@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/preferred_size.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
 import 'package:omnicast/widget/line_item.dart';
 
@@ -15,8 +10,11 @@ import '../../../main.dart';
 import '../../../utils/global_extension.dart';
 import '../../../utils/storage.dart';
 
-@GetXRoutePage('/setting')
 class SettingPage extends BaseScaffoldPage<SettingController> {
+  SettingPage({this.showBackButton = true});
+
+  final bool showBackButton;
+
   @override
   SettingController generateController() {
     return SettingController();
@@ -25,9 +23,12 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
   @override
   PreferredSizeWidget? getAppBar() {
     return AppBar(
-      leading: Icon(Icons.arrow_back).onTab(() {
-        Get.back();
-      }),
+      automaticallyImplyLeading: showBackButton,
+      leading: showBackButton
+          ? Icon(Icons.arrow_back).onTab(() {
+              Get.back();
+            })
+          : null,
       centerTitle: true,
       title: const Text("设置", style: TextStyle(fontWeight: FontWeight.w700)),
     );
@@ -35,8 +36,6 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
 
   @override
   Widget? getBody() {
-    final themeController = Get.find<ThemeController>();
-
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.h),
       child: Column(

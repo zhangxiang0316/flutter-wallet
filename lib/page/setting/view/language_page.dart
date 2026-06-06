@@ -1,20 +1,11 @@
-import 'dart:math';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/preferred_size.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_rx/src/rx_types/rx_types.dart';
-import 'package:get/get_utils/src/extensions/internacionalization.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
 
 import '../../../base/base_controller.dart';
-import '../../../common/theme/app_theme_extension.dart';
 import '../../../utils/storage.dart';
 
 @GetXRoutePage('/language')
@@ -57,7 +48,7 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
                     Text('中文'),
                     Spacer(),
                     Visibility(
-                      visible: controller.currentLanguage == '中文',
+                      visible: controller.currentLanguage.value == '中文',
                       child: Icon(CupertinoIcons.check_mark, size: 20.r),
                     ),
                   ],
@@ -73,7 +64,7 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
                     Text('English'),
                     Spacer(),
                     Visibility(
-                      visible: controller.currentLanguage == 'English',
+                      visible: controller.currentLanguage.value == 'English',
                       child: Icon(CupertinoIcons.check_mark, size: 20.r),
                     ),
                   ],

@@ -70,74 +70,319 @@ class S {
     return Intl.message('login', name: 'login', desc: '', args: []);
   }
 
-  /// `OmniCast`
+  /// `OmniWallet`
   String get appName {
-    return Intl.message('OmniCast', name: 'appName', desc: '', args: []);
+    return Intl.message('OmniWallet', name: 'appName', desc: '', args: []);
   }
 
-  /// `Hello`
-  String get hello {
-    return Intl.message('Hello', name: 'hello', desc: '', args: []);
-  }
-
-  /// `What do you want to create today?`
-  String get whatToCreate {
+  /// `Create or import a wallet`
+  String get walletEmptyTitle {
     return Intl.message(
-      'What do you want to create today?',
-      name: 'whatToCreate',
+      'Create or import a wallet',
+      name: 'walletEmptyTitle',
       desc: '',
       args: [],
     );
   }
 
-  /// `Explanation Video`
-  String get explanationVideo {
+  /// `This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.`
+  String get walletEmptySubtitle {
     return Intl.message(
-      'Explanation Video',
-      name: 'explanationVideo',
+      'This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.',
+      name: 'walletEmptySubtitle',
       desc: '',
       args: [],
     );
   }
 
-  /// `PPT`
-  String get ppt {
-    return Intl.message('PPT', name: 'ppt', desc: '', args: []);
-  }
-
-  /// `AI Blog`
-  String get aiBlog {
-    return Intl.message('AI Blog', name: 'aiBlog', desc: '', args: []);
-  }
-
-  /// `Text to Speech`
-  String get textToSpeech {
+  /// `Create wallet`
+  String get createWallet {
     return Intl.message(
-      'Text to Speech',
-      name: 'textToSpeech',
+      'Create wallet',
+      name: 'createWallet',
       desc: '',
       args: [],
     );
   }
 
-  /// `AI Image Generation`
-  String get aiImage {
+  /// `Import wallet`
+  String get importWallet {
     return Intl.message(
-      'AI Image Generation',
-      name: 'aiImage',
+      'Import wallet',
+      name: 'importWallet',
       desc: '',
       args: [],
     );
   }
 
-  /// `Voice Cloning`
-  String get voiceCloning {
+  /// `Total assets`
+  String get totalAssets {
     return Intl.message(
-      'Voice Cloning',
-      name: 'voiceCloning',
+      'Total assets',
+      name: 'totalAssets',
       desc: '',
       args: [],
     );
+  }
+
+  /// `Refresh`
+  String get refreshBalance {
+    return Intl.message('Refresh', name: 'refreshBalance', desc: '', args: []);
+  }
+
+  /// `Remove wallet`
+  String get removeWallet {
+    return Intl.message(
+      'Remove wallet',
+      name: 'removeWallet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Some balance lookups failed`
+  String get balanceLoadFailed {
+    return Intl.message(
+      'Some balance lookups failed',
+      name: 'balanceLoadFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Loading...`
+  String get loading {
+    return Intl.message('Loading...', name: 'loading', desc: '', args: []);
+  }
+
+  /// `Security notice`
+  String get securityNotice {
+    return Intl.message(
+      'Security notice',
+      name: 'securityNotice',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This version stores private keys locally and is only suitable for testing. Do not import wallets with real assets.`
+  String get securityNoticeDetail {
+    return Intl.message(
+      'This version stores private keys locally and is only suitable for testing. Do not import wallets with real assets.',
+      name: 'securityNoticeDetail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import private key`
+  String get importPrivateKey {
+    return Intl.message(
+      'Import private key',
+      name: 'importPrivateKey',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a 64-character hex private key, optionally prefixed with 0x`
+  String get privateKeyHint {
+    return Intl.message(
+      'Enter a 64-character hex private key, optionally prefixed with 0x',
+      name: 'privateKeyHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import`
+  String get confirmImport {
+    return Intl.message('Import', name: 'confirmImport', desc: '', args: []);
+  }
+
+  /// `Wallet created`
+  String get walletCreated {
+    return Intl.message(
+      'Wallet created',
+      name: 'walletCreated',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import successful`
+  String get walletImported {
+    return Intl.message(
+      'Import successful',
+      name: 'walletImported',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet removed`
+  String get walletRemoved {
+    return Intl.message(
+      'Wallet removed',
+      name: 'walletRemoved',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid private key`
+  String get invalidPrivateKey {
+    return Intl.message(
+      'Invalid private key',
+      name: 'invalidPrivateKey',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transfer`
+  String get transfer {
+    return Intl.message('Transfer', name: 'transfer', desc: '', args: []);
+  }
+
+  /// `Transfer {symbol}`
+  String transferAsset(Object symbol) {
+    return Intl.message(
+      'Transfer $symbol',
+      name: 'transferAsset',
+      desc: '',
+      args: [symbol],
+    );
+  }
+
+  /// `Recipient address`
+  String get recipientAddress {
+    return Intl.message(
+      'Recipient address',
+      name: 'recipientAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount`
+  String get transferAmount {
+    return Intl.message('Amount', name: 'transferAmount', desc: '', args: []);
+  }
+
+  /// `Transfer`
+  String get confirmTransfer {
+    return Intl.message(
+      'Transfer',
+      name: 'confirmTransfer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction submitted`
+  String get transferSubmitted {
+    return Intl.message(
+      'Transaction submitted',
+      name: 'transferSubmitted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transfer failed. Check the address, amount, and on-chain balance.`
+  String get transferFailed {
+    return Intl.message(
+      'Transfer failed. Check the address, amount, and on-chain balance.',
+      name: 'transferFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transfer details are unavailable`
+  String get transferUnavailable {
+    return Intl.message(
+      'Transfer details are unavailable',
+      name: 'transferUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Available balance`
+  String get availableBalance {
+    return Intl.message(
+      'Available balance',
+      name: 'availableBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transfer details`
+  String get transferDetails {
+    return Intl.message(
+      'Transfer details',
+      name: 'transferDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network fee`
+  String get networkFee {
+    return Intl.message('Network fee', name: 'networkFee', desc: '', args: []);
+  }
+
+  /// `The network fee is paid in {symbol}. Make sure this wallet has enough balance.`
+  String networkFeeAsset(Object symbol) {
+    return Intl.message(
+      'The network fee is paid in $symbol. Make sure this wallet has enough balance.',
+      name: 'networkFeeAsset',
+      desc: '',
+      args: [symbol],
+    );
+  }
+
+  /// `Transaction hash`
+  String get transactionHash {
+    return Intl.message(
+      'Transaction hash',
+      name: 'transactionHash',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Copy hash`
+  String get copyHash {
+    return Intl.message('Copy hash', name: 'copyHash', desc: '', args: []);
+  }
+
+  /// `Back to wallet`
+  String get backToWallet {
+    return Intl.message(
+      'Back to wallet',
+      name: 'backToWallet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a valid recipient address and transfer amount`
+  String get transferInputInvalid {
+    return Intl.message(
+      'Enter a valid recipient address and transfer amount',
+      name: 'transferInputInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Copied`
+  String get copied {
+    return Intl.message('Copied', name: 'copied', desc: '', args: []);
   }
 }
 

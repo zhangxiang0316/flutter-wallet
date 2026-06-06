@@ -20,23 +20,77 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'en';
 
+  static String m0(symbol) =>
+      "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
+
+  static String m1(symbol) => "Transfer ${symbol}";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
-    "aiBlog": MessageLookupByLibrary.simpleMessage("AI Blog"),
-    "aiImage": MessageLookupByLibrary.simpleMessage("AI Image Generation"),
-    "appName": MessageLookupByLibrary.simpleMessage("OmniCast"),
+    "appName": MessageLookupByLibrary.simpleMessage("OmniWallet"),
+    "availableBalance": MessageLookupByLibrary.simpleMessage(
+      "Available balance",
+    ),
+    "backToWallet": MessageLookupByLibrary.simpleMessage("Back to wallet"),
+    "balanceLoadFailed": MessageLookupByLibrary.simpleMessage(
+      "Some balance lookups failed",
+    ),
+    "confirmImport": MessageLookupByLibrary.simpleMessage("Import"),
+    "confirmTransfer": MessageLookupByLibrary.simpleMessage("Transfer"),
+    "copied": MessageLookupByLibrary.simpleMessage("Copied"),
+    "copyHash": MessageLookupByLibrary.simpleMessage("Copy hash"),
+    "createWallet": MessageLookupByLibrary.simpleMessage("Create wallet"),
     "email": MessageLookupByLibrary.simpleMessage("email"),
-    "explanationVideo": MessageLookupByLibrary.simpleMessage(
-      "Explanation Video",
+    "importPrivateKey": MessageLookupByLibrary.simpleMessage(
+      "Import private key",
     ),
-    "hello": MessageLookupByLibrary.simpleMessage("Hello"),
+    "importWallet": MessageLookupByLibrary.simpleMessage("Import wallet"),
+    "invalidPrivateKey": MessageLookupByLibrary.simpleMessage(
+      "Invalid private key",
+    ),
+    "loading": MessageLookupByLibrary.simpleMessage("Loading..."),
     "login": MessageLookupByLibrary.simpleMessage("login"),
+    "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
+    "networkFeeAsset": m0,
     "phone": MessageLookupByLibrary.simpleMessage("phone"),
-    "ppt": MessageLookupByLibrary.simpleMessage("PPT"),
-    "textToSpeech": MessageLookupByLibrary.simpleMessage("Text to Speech"),
-    "voiceCloning": MessageLookupByLibrary.simpleMessage("Voice Cloning"),
-    "whatToCreate": MessageLookupByLibrary.simpleMessage(
-      "What do you want to create today?",
+    "privateKeyHint": MessageLookupByLibrary.simpleMessage(
+      "Enter a 64-character hex private key, optionally prefixed with 0x",
     ),
+    "recipientAddress": MessageLookupByLibrary.simpleMessage(
+      "Recipient address",
+    ),
+    "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
+    "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
+    "securityNotice": MessageLookupByLibrary.simpleMessage("Security notice"),
+    "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
+      "This version stores private keys locally and is only suitable for testing. Do not import wallets with real assets.",
+    ),
+    "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
+    "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
+    "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
+    "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
+    "transferAsset": m1,
+    "transferDetails": MessageLookupByLibrary.simpleMessage("Transfer details"),
+    "transferFailed": MessageLookupByLibrary.simpleMessage(
+      "Transfer failed. Check the address, amount, and on-chain balance.",
+    ),
+    "transferInputInvalid": MessageLookupByLibrary.simpleMessage(
+      "Enter a valid recipient address and transfer amount",
+    ),
+    "transferSubmitted": MessageLookupByLibrary.simpleMessage(
+      "Transaction submitted",
+    ),
+    "transferUnavailable": MessageLookupByLibrary.simpleMessage(
+      "Transfer details are unavailable",
+    ),
+    "walletCreated": MessageLookupByLibrary.simpleMessage("Wallet created"),
+    "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
+      "This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.",
+    ),
+    "walletEmptyTitle": MessageLookupByLibrary.simpleMessage(
+      "Create or import a wallet",
+    ),
+    "walletImported": MessageLookupByLibrary.simpleMessage("Import successful"),
+    "walletRemoved": MessageLookupByLibrary.simpleMessage("Wallet removed"),
   };
 }

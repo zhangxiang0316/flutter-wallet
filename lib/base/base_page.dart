@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:lifecycle/lifecycle.dart';
 
-import '../utils/log_util.dart';
 import 'base_controller.dart';
 
 /// 基础页面抽象类，集成 GetView 并支持生命周期管理
