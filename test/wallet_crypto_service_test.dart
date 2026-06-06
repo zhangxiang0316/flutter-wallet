@@ -126,6 +126,55 @@ void main() {
       expect(prices['OKB']?.toString(), '52.25');
     });
 
+    test('parses single Binance ticker response', () {
+      final prices = service.parseBinancePrices(
+        {'symbol': 'BNBUSDT', 'price': '300.50'},
+        ['BNB'],
+      );
+
+      expect(prices['BNB']?.toStringAsFixed(2), '300.50');
+    });
+
+    test('parses OKX USDT prices for requested non-stable assets', () {
+      final prices = service.parseOkxPrices(
+        {
+          'code': '0',
+          'data': [
+            {'instId': 'BNB-USDT', 'last': '302.1'},
+            {'instId': 'TRX-USDT', 'last': '0.1208'},
+            {'instId': 'BTC-USDT', 'last': '65100'},
+            {'instId': 'OKB-USDT', 'last': '52.4'},
+          ],
+        },
+        ['BNB', 'TRX', 'BTCB', 'OKB'],
+      );
+
+      expect(prices['BNB']?.toString(), '302.1');
+      expect(prices['TRX']?.toString(), '0.1208');
+      expect(prices['BTCB']?.toString(), '65100');
+      expect(prices['OKB']?.toString(), '52.4');
+    });
+
+    test('parses requested prices from OKX full spot ticker response', () {
+      final prices = service.parseOkxPrices(
+        {
+          'code': '0',
+          'data': [
+            {'instId': 'DOGE-USDT', 'last': '0.11'},
+            {'instId': 'BNB-USDT', 'last': '575.3'},
+            {'instId': 'BTC-USDT', 'last': '60920.7'},
+            {'instId': 'OKB-USDT', 'last': '68.62'},
+          ],
+        },
+        ['BNB', 'BTCB', 'OKB'],
+      );
+
+      expect(prices['BNB']?.toString(), '575.3');
+      expect(prices['BTCB']?.toString(), '60920.7');
+      expect(prices['OKB']?.toString(), '68.62');
+      expect(prices.containsKey('DOGE'), isFalse);
+    });
+
     test('parses CoinGecko fallback prices by wallet symbol', () {
       final prices = service.parseCoinGeckoPrices(
         {

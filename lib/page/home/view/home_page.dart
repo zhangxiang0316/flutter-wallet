@@ -59,6 +59,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   wallet: wallet,
                   balances: controller.balances,
                   isLoading: controller.isLoading,
+                  isChainExpanded: controller.isChainExpanded,
+                  onChainToggle: controller.toggleChainExpanded,
                   onTransferPressed: _openTransferPage,
                 ),
                 SizedBox(height: 16.h),

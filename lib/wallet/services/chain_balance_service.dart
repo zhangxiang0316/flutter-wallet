@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:dio/dio.dart';
 
 import '../models/chain_balance.dart';
@@ -36,7 +38,35 @@ class ChainBalanceService {
       ),
       _loadTronBalances(tronAddress),
     ]);
-    return results.expand((balances) => balances).toList();
+    final balances = results.expand((items) => items).toList();
+    _printLoadedBalances(results, balances);
+    return balances;
+  }
+
+  void _printLoadedBalances(
+    List<List<ChainBalance>> chainResults,
+    List<ChainBalance> balances,
+  ) {
+    final buffer = StringBuffer()
+      ..writeln('----- ChainBalanceService.loadBalances -----')
+      ..writeln('total=${balances.length}');
+
+    for (final chainBalances in chainResults) {
+      final chainName = chainBalances.isEmpty
+          ? 'empty'
+          : chainBalances.first.chain.name;
+      buffer.writeln('[$chainName] count=${chainBalances.length}');
+      for (final balance in chainBalances) {
+        buffer.writeln(
+          '  ${balance.symbol} amount=${balance.amount} '
+          'decimals=${balance.decimals} native=${balance.isNative} '
+          'contract=${balance.contractAddress ?? '-'} '
+          'error=${balance.error ?? '-'}',
+        );
+      }
+    }
+
+    developer.log(buffer.toString(), name: 'ChainBalanceService');
   }
 
   Future<List<ChainBalance>> _loadEvmBalances({

@@ -23,4 +23,11 @@ class ChainBalance {
 
   bool get hasError => error != null && error!.isNotEmpty;
   bool get isNative => contractAddress == null || contractAddress!.isEmpty;
+
+  @override
+  String toString() {
+    return 'ChainBalance(chain: ${chain.id}, symbol: $symbol, '
+        'amount: $amount, decimals: $decimals, address: $address, '
+        'contractAddress: ${contractAddress ?? '-'}, error: ${error ?? '-'})';
+  }
 }

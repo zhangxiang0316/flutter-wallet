@@ -15,12 +15,16 @@ class ChainSection extends StatelessWidget {
     required this.wallet,
     required this.balances,
     required this.isLoading,
+    required this.isChainExpanded,
+    required this.onChainToggle,
     required this.onTransferPressed,
   });
 
   final WalletAccount wallet;
   final List<ChainBalance> balances;
   final bool isLoading;
+  final bool Function(WalletChain chain) isChainExpanded;
+  final ValueChanged<WalletChain> onChainToggle;
   final ValueChanged<ChainBalance> onTransferPressed;
 
   @override
@@ -41,6 +45,8 @@ class ChainSection extends StatelessWidget {
           address: wallet.bscAddress,
           balances: bscBalances,
           isLoading: isLoading,
+          isExpanded: isChainExpanded(WalletChain.bsc),
+          onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
         ).marginOnly(bottom: 12.h),
         _ChainCard(
@@ -48,6 +54,8 @@ class ChainSection extends StatelessWidget {
           address: wallet.bscAddress,
           balances: xLayerBalances,
           isLoading: isLoading,
+          isExpanded: isChainExpanded(WalletChain.xLayer),
+          onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
         ).marginOnly(bottom: 12.h),
         _ChainCard(
@@ -55,6 +63,8 @@ class ChainSection extends StatelessWidget {
           address: wallet.tronAddress,
           balances: tronBalances,
           isLoading: isLoading,
+          isExpanded: isChainExpanded(WalletChain.tron),
+          onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
         ),
       ],
@@ -68,6 +78,8 @@ class _ChainCard extends StatelessWidget {
     required this.address,
     required this.balances,
     required this.isLoading,
+    required this.isExpanded,
+    required this.onToggle,
     required this.onTransferPressed,
   });
 
@@ -75,6 +87,8 @@ class _ChainCard extends StatelessWidget {
   final String address;
   final List<ChainBalance> balances;
   final bool isLoading;
+  final bool isExpanded;
+  final ValueChanged<WalletChain> onToggle;
   final ValueChanged<ChainBalance> onTransferPressed;
 
   @override
@@ -88,68 +102,105 @@ class _ChainCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 38.w,
-                height: 38.w,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: chainColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  chain.symbol.characters.first,
-                  style: TextStyle(
-                    color: chainColor,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w900,
+          InkWell(
+            onTap: () => onToggle(chain),
+            borderRadius: BorderRadius.circular(8.r),
+            child: Row(
+              children: [
+                Container(
+                  width: 38.w,
+                  height: 38.w,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: chainColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(
+                    chain.symbol.characters.first,
+                    style: TextStyle(
+                      color: chainColor,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(width: 11.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      chain.name,
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w700,
+                SizedBox(width: 11.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        chain.name,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    Text(
-                      address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.58),
-                        fontSize: 12.sp,
+                      Text(
+                        address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.58),
+                          fontSize: 12.sp,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ).marginOnly(bottom: 12.h),
-          ...balances.map(
-            (balance) => _AssetRow(
-              balance: balance,
-              onTransferPressed: onTransferPressed,
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 24.w,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
             ),
           ),
-          if (balances.isEmpty) _EmptyBalancePlaceholder(isLoading: isLoading),
-          if (hasError)
-            Text(
-              S.of(context).balanceLoadFailed,
-              style: TextStyle(
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: isExpanded
+                ? Column(
+                    key: ValueKey('${chain.id}-assets'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 12.h),
+                      ...balances.map(
+                        (balance) => _AssetRow(
+                          balance: balance,
+                          onTransferPressed: onTransferPressed,
+                        ),
+                      ),
+                      if (balances.isEmpty)
+                        _EmptyBalancePlaceholder(isLoading: isLoading),
+                      if (hasError)
+                        Text(
+                          S.of(context).balanceLoadFailed,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12.sp,
+                          ),
+                        ).marginOnly(top: 8.h),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+          if (!isExpanded && hasError)
+            Padding(
+              padding: EdgeInsets.only(top: 8.h),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 16.w,
                 color: Theme.of(context).colorScheme.error,
-                fontSize: 12.sp,
               ),
-            ).marginOnly(top: 8.h),
+            ),
         ],
       ),
     );

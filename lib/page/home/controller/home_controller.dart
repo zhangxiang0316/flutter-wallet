@@ -5,6 +5,7 @@ import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_account.dart';
+import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/asset_valuation_service.dart';
 import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/wallet_crypto_service.dart';
@@ -37,6 +38,9 @@ class HomeController extends BaseController {
 
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
+
+  /// 当前已展开的链。默认空集合，首页只展示链信息。
+  final Set<String> expandedChainIds = {};
 
   Timer? _balanceRefreshTimer;
 
@@ -125,12 +129,24 @@ class HomeController extends BaseController {
     update();
   }
 
+  void toggleChainExpanded(WalletChain chain) {
+    if (!expandedChainIds.add(chain.id)) {
+      expandedChainIds.remove(chain.id);
+    }
+    update();
+  }
+
+  bool isChainExpanded(WalletChain chain) {
+    return expandedChainIds.contains(chain.id);
+  }
+
   /// 删除本地钱包和页面状态，不触发任何链上操作。
   Future<void> removeWallet() async {
     _stopBalanceRefreshTimer();
     await _repository.clearWallet();
     wallet = null;
     balances = [];
+    expandedChainIds.clear();
     totalAssetsText = '--';
     update();
     Toast.show(S.current.walletRemoved);

@@ -29,12 +29,24 @@ class AssetValuationService {
     'BTCB': 'BTCUSDT',
     'OKB': 'OKBUSDT',
   };
+  static const Map<String, String> _okxTickerSymbols = {
+    'BNB': 'BNB-USDT',
+    'TRX': 'TRX-USDT',
+    'ETH': 'ETH-USDT',
+    'BTCB': 'BTC-USDT',
+    'OKB': 'OKB-USDT',
+  };
   static const Map<String, String> _coingeckoIds = {
     'BNB': 'binancecoin',
     'TRX': 'tron',
     'ETH': 'ethereum',
     'BTCB': 'bitcoin',
     'OKB': 'okb',
+  };
+  static final Set<String> _pricedSymbols = {
+    ..._okxTickerSymbols.keys,
+    ..._coingeckoIds.keys,
+    ..._binanceTickerSymbols.keys,
   };
 
   Future<Decimal?> loadTotalUsdValue(List<ChainBalance> balances) async {
@@ -45,28 +57,35 @@ class AssetValuationService {
   Future<Map<String, Decimal>> loadUsdPrices(
     List<ChainBalance> balances,
   ) async {
-    final requestedSymbols = balances
+    final balanceSymbols = balances
         .map((balance) => balance.symbol.toUpperCase())
         .where((symbol) => !_stableSymbols.contains(symbol))
-        .where(
-          (symbol) =>
-              _binanceTickerSymbols.containsKey(symbol) ||
-              _coingeckoIds.containsKey(symbol),
-        )
+        .where(_pricedSymbols.contains)
         .toSet()
         .toList(growable: false);
-    if (requestedSymbols.isEmpty) {
+    if (balanceSymbols.isEmpty) {
       return {};
     }
 
+    // Load the complete supported price set once a priced asset exists. This
+    // avoids missing valuation when a chain request returns zero/error rows
+    // before the specific non-stable balance has refreshed.
+    final requestedSymbols = _pricedSymbols.toList(growable: false);
     final prices = <String, Decimal>{};
-    prices.addAll(await _loadBinanceUsdPrices(requestedSymbols));
+    prices.addAll(await _loadOkxUsdtPrices(requestedSymbols));
 
-    final missingSymbols = requestedSymbols
+    var missingSymbols = requestedSymbols
         .where((symbol) => !prices.containsKey(symbol))
         .toList(growable: false);
     if (missingSymbols.isNotEmpty) {
       prices.addAll(await _loadCoinGeckoUsdPrices(missingSymbols));
+    }
+
+    missingSymbols = requestedSymbols
+        .where((symbol) => !prices.containsKey(symbol))
+        .toList(growable: false);
+    if (missingSymbols.isNotEmpty) {
+      prices.addAll(await _loadBinanceUsdPrices(missingSymbols));
     }
 
     return prices;
@@ -84,15 +103,74 @@ class AssetValuationService {
       return {};
     }
 
+    final prices = <String, Decimal>{};
+
     try {
       final response = await _dio.get(
         'https://api.binance.com/api/v3/ticker/price',
         queryParameters: {'symbols': jsonEncode(tickerSymbols)},
       );
-      return parseBinancePrices(response.data, requestedSymbols);
+      prices.addAll(parseBinancePrices(response.data, requestedSymbols));
     } catch (_) {
+      for (final symbol in requestedSymbols) {
+        final ticker = _binanceTickerSymbols[symbol];
+        if (ticker == null) continue;
+        try {
+          final response = await _dio.get(
+            'https://api.binance.com/api/v3/ticker/price',
+            queryParameters: {'symbol': ticker},
+          );
+          prices.addAll(parseBinancePrices(response.data, [symbol]));
+        } catch (_) {
+          // Keep trying other symbols and fallback sources.
+        }
+      }
+    }
+
+    return prices;
+  }
+
+  Future<Map<String, Decimal>> _loadOkxUsdtPrices(
+    List<String> requestedSymbols,
+  ) async {
+    final tickerSymbols = requestedSymbols
+        .map((symbol) => _okxTickerSymbols[symbol])
+        .whereType<String>()
+        .toSet()
+        .toList(growable: false);
+    if (tickerSymbols.isEmpty) {
       return {};
     }
+
+    final prices = <String, Decimal>{};
+    try {
+      final response = await _dio.get(
+        'https://www.okx.com/api/v5/market/tickers',
+        queryParameters: {'instType': 'SPOT'},
+      );
+      prices.addAll(parseOkxPrices(response.data, requestedSymbols));
+    } catch (_) {
+      // Fall through to per-symbol requests.
+    }
+
+    final missingSymbols = requestedSymbols
+        .where((symbol) => !prices.containsKey(symbol))
+        .toList(growable: false);
+    for (final symbol in missingSymbols) {
+      final ticker = _okxTickerSymbols[symbol];
+      if (ticker == null) continue;
+      try {
+        final response = await _dio.get(
+          'https://www.okx.com/api/v5/market/ticker',
+          queryParameters: {'instId': ticker},
+        );
+        prices.addAll(parseOkxPrices(response.data, [symbol]));
+      } catch (_) {
+        // Continue with other symbols and fallback sources.
+      }
+    }
+
+    return prices;
   }
 
   Future<Map<String, Decimal>> _loadCoinGeckoUsdPrices(
@@ -122,6 +200,9 @@ class AssetValuationService {
     dynamic data,
     Iterable<String> requestedSymbols,
   ) {
+    if (data is Map) {
+      return parseBinancePrices([data], requestedSymbols);
+    }
     if (data is! List) {
       return {};
     }
@@ -140,6 +221,34 @@ class AssetValuationService {
 
     return {
       for (final entry in _binanceTickerSymbols.entries)
+        if (normalizedSymbols.contains(entry.key) &&
+            tickerPrices[entry.value] != null)
+          entry.key: tickerPrices[entry.value]!,
+    };
+  }
+
+  Map<String, Decimal> parseOkxPrices(
+    dynamic data,
+    Iterable<String> requestedSymbols,
+  ) {
+    if (data is! Map || data['data'] is! List) {
+      return {};
+    }
+
+    final normalizedSymbols = requestedSymbols
+        .map((symbol) => symbol.toUpperCase())
+        .toSet();
+    final tickerPrices = <String, Decimal>{};
+    for (final item in data['data'] as List) {
+      if (item is! Map) continue;
+      final ticker = item['instId']?.toString();
+      final price = Decimal.tryParse(item['last']?.toString() ?? '');
+      if (ticker == null || price == null) continue;
+      tickerPrices[ticker] = price;
+    }
+
+    return {
+      for (final entry in _okxTickerSymbols.entries)
         if (normalizedSymbols.contains(entry.key) &&
             tickerPrices[entry.value] != null)
           entry.key: tickerPrices[entry.value]!,
