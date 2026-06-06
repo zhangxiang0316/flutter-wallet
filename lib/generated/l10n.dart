@@ -70,9 +70,9 @@ class S {
     return Intl.message('login', name: 'login', desc: '', args: []);
   }
 
-  /// `OmniWallet`
+  /// `沐晨钱包`
   String get appName {
-    return Intl.message('OmniWallet', name: 'appName', desc: '', args: []);
+    return Intl.message('沐晨钱包', name: 'appName', desc: '', args: []);
   }
 
   /// `Create or import a wallet`

@@ -112,14 +112,26 @@ class HomeController extends BaseController {
     if (currentWallet == null || isLoading) return;
     isLoading = true;
     update();
+
+    final priceFuture = _valuationService.loadSupportedUsdPrices().catchError(
+      (_) => _valuationService.cachedUsdPrices,
+    );
+
     balances = await _balanceService.loadBalances(
       bscAddress: currentWallet.bscAddress,
       tronAddress: currentWallet.tronAddress,
     );
+    _refreshTotalAssetsFromCachedPrices();
     isLoading = false;
     update();
-    // 估值依赖外部价格接口，放在余额渲染后执行，避免资产列表被价格接口阻塞。
-    await refreshTotalAssets();
+
+    final latestPrices = await priceFuture;
+    final totalValue = _valuationService.calculateTotalUsdValue(
+      balances,
+      prices: latestPrices,
+    );
+    totalAssetsText = _valuationService.formatUsdValue(totalValue);
+    update();
   }
 
   /// 根据当前余额计算美元估值，并更新首页头部展示。
@@ -127,6 +139,14 @@ class HomeController extends BaseController {
     final totalValue = await _valuationService.loadTotalUsdValue(balances);
     totalAssetsText = _valuationService.formatUsdValue(totalValue);
     update();
+  }
+
+  void _refreshTotalAssetsFromCachedPrices() {
+    final totalValue = _valuationService.calculateTotalUsdValue(
+      balances,
+      prices: _valuationService.cachedUsdPrices,
+    );
+    totalAssetsText = _valuationService.formatUsdValue(totalValue);
   }
 
   void toggleChainExpanded(WalletChain chain) {

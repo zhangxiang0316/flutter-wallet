@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="omnicast"
+        android:label="沐晨钱包"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

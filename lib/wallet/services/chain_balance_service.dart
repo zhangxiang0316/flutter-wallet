@@ -353,9 +353,6 @@ class ChainBalanceService {
     if (trimmed.isEmpty) {
       return whole.toString();
     }
-    final displayFraction = trimmed.length > 6
-        ? trimmed.substring(0, 6)
-        : trimmed;
-    return '$whole.$displayFraction';
+    return '$whole.$trimmed';
   }
 }

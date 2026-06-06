@@ -194,6 +194,25 @@ void main() {
       expect(prices['OKB']?.toString(), '52.3');
     });
 
+    test('parses CryptoCompare fallback prices by wallet symbol', () {
+      final prices = service.parseCryptoComparePrices(
+        {
+          'BNB': {'USD': 574.65},
+          'TRX': {'USD': 0.3202},
+          'ETH': {'USD': 1566.43},
+          'BTC': {'USD': 60913.71},
+          'OKB': {'USD': 69.12},
+        },
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'OKB'],
+      );
+
+      expect(prices['BNB']?.toString(), '574.65');
+      expect(prices['TRX']?.toString(), '0.3202');
+      expect(prices['ETH']?.toString(), '1566.43');
+      expect(prices['BTCB']?.toString(), '60913.71');
+      expect(prices['OKB']?.toString(), '69.12');
+    });
+
     test('uses stable coin prices without external price data', () {
       final total = service.calculateTotalUsdValue(const [
         ChainBalance(

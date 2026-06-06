@@ -28,7 +28,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
-    "appName": MessageLookupByLibrary.simpleMessage("OmniWallet"),
+    "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "availableBalance": MessageLookupByLibrary.simpleMessage("可用余额"),
     "backToWallet": MessageLookupByLibrary.simpleMessage("返回钱包"),
     "balanceLoadFailed": MessageLookupByLibrary.simpleMessage("部分余额查询失败"),

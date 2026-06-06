@@ -3,7 +3,7 @@
   "login": "登录",
   "email": "注册",
   "phone": "手机",
-  "appName": "OmniWallet",
+  "appName": "沐晨钱包",
   "walletEmptyTitle": "创建或导入钱包",
   "walletEmptySubtitle": "当前初版支持 BNB Smart Chain 和 TRON 的地址管理与多资产链上余额查询。",
   "createWallet": "创建钱包",

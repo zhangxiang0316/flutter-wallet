@@ -3,7 +3,7 @@
   "phone": "phone",
   "email": "email",
   "login": "login",
-  "appName": "OmniWallet",
+  "appName": "沐晨钱包",
   "walletEmptyTitle": "Create or import a wallet",
   "walletEmptySubtitle": "This first version supports address management and multi-asset on-chain balance lookup for BNB Smart Chain and TRON.",
   "createWallet": "Create wallet",

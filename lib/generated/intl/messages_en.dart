@@ -29,7 +29,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
-    "appName": MessageLookupByLibrary.simpleMessage("OmniWallet"),
+    "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "availableBalance": MessageLookupByLibrary.simpleMessage(
       "Available balance",
     ),
