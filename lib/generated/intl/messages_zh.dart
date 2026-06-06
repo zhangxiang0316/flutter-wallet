@@ -20,9 +20,11 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'zh';
 
-  static String m0(symbol) => "手续费将使用 ${symbol} 支付，请确认钱包中有足够余额。";
+  static String m0(amount) => "最高约 ${amount}";
 
-  static String m1(symbol) => "转账 ${symbol}";
+  static String m1(symbol) => "手续费将使用 ${symbol} 支付，请确认钱包中有足够余额。";
+
+  static String m2(symbol) => "转账 ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -36,13 +38,17 @@ class MessageLookup extends MessageLookupByLibrary {
     "copyHash": MessageLookupByLibrary.simpleMessage("复制哈希"),
     "createWallet": MessageLookupByLibrary.simpleMessage("创建钱包"),
     "email": MessageLookupByLibrary.simpleMessage("注册"),
+    "estimatedNetworkFee": MessageLookupByLibrary.simpleMessage("预计网络手续费"),
+    "feeEstimating": MessageLookupByLibrary.simpleMessage("正在查询手续费..."),
+    "feeFallback": m0,
+    "feeUnavailable": MessageLookupByLibrary.simpleMessage("暂时无法查询手续费，请稍后重试。"),
     "importPrivateKey": MessageLookupByLibrary.simpleMessage("导入私钥"),
     "importWallet": MessageLookupByLibrary.simpleMessage("导入钱包"),
     "invalidPrivateKey": MessageLookupByLibrary.simpleMessage("私钥格式不正确"),
     "loading": MessageLookupByLibrary.simpleMessage("加载中..."),
     "login": MessageLookupByLibrary.simpleMessage("登录"),
     "networkFee": MessageLookupByLibrary.simpleMessage("网络手续费"),
-    "networkFeeAsset": m0,
+    "networkFeeAsset": m1,
     "phone": MessageLookupByLibrary.simpleMessage("手机"),
     "privateKeyHint": MessageLookupByLibrary.simpleMessage(
       "请输入 64 位十六进制私钥，可带 0x 前缀",
@@ -58,7 +64,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
     "transfer": MessageLookupByLibrary.simpleMessage("转账"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-    "transferAsset": m1,
+    "transferAsset": m2,
     "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "转账失败，请检查地址、数量和链上余额",

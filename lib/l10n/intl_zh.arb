@@ -38,10 +38,19 @@
   "availableBalance": "可用余额",
   "transferDetails": "转账信息",
   "networkFee": "网络手续费",
+  "estimatedNetworkFee": "预计网络手续费",
   "networkFeeAsset": "手续费将使用 {symbol} 支付，请确认钱包中有足够余额。",
   "@networkFeeAsset": {
     "placeholders": {
       "symbol": {}
+    }
+  },
+  "feeEstimating": "正在查询手续费...",
+  "feeUnavailable": "暂时无法查询手续费，请稍后重试。",
+  "feeFallback": "最高约 {amount}",
+  "@feeFallback": {
+    "placeholders": {
+      "amount": {}
     }
   },
   "transactionHash": "交易哈希",

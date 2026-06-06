@@ -38,10 +38,19 @@
   "availableBalance": "Available balance",
   "transferDetails": "Transfer details",
   "networkFee": "Network fee",
+  "estimatedNetworkFee": "Estimated network fee",
   "networkFeeAsset": "The network fee is paid in {symbol}. Make sure this wallet has enough balance.",
   "@networkFeeAsset": {
     "placeholders": {
       "symbol": {}
+    }
+  },
+  "feeEstimating": "Estimating fee...",
+  "feeUnavailable": "Fee estimate is unavailable. Try again later.",
+  "feeFallback": "Up to {amount}",
+  "@feeFallback": {
+    "placeholders": {
+      "amount": {}
     }
   },
   "transactionHash": "Transaction hash",

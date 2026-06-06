@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../base/base_scaffold_page.dart';
+import '../../../common/theme/app_theme_extension.dart';
 import '../../../generated/l10n.dart';
 import '../../../generated/route_table.dart';
 import '../../../page/transfer/view/transfer_page.dart';
@@ -54,24 +55,34 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// 未创建/导入钱包时展示的引导卡片。
   Widget _buildEmptyWallet() {
+    final colorScheme = Theme.of(context!).colorScheme;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Theme.of(context!).cardColor,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
+      padding: EdgeInsets.all(18.w),
+      decoration: _panelDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.account_balance_wallet,
-            size: 44.w,
-            color: Theme.of(context!).colorScheme.primary,
-          ).marginOnly(bottom: 12.h),
+          Container(
+            width: 54.w,
+            height: 54.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.14),
+              ),
+            ),
+            child: Icon(
+              Icons.account_balance_wallet,
+              size: 30.w,
+              color: colorScheme.primary,
+            ),
+          ).marginOnly(bottom: 16.h),
           Text(
             S.of(context!).walletEmptyTitle,
-            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w700),
+            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w800),
           ).marginOnly(bottom: 8.h),
           Text(
             S.of(context!).walletEmptySubtitle,
@@ -85,6 +96,12 @@ class HomePage extends BaseScaffoldPage<HomeController> {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 13.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
               onPressed: controller.createWallet,
               icon: const Icon(Icons.add),
               label: Text(S.of(context!).createWallet),
@@ -93,6 +110,12 @@ class HomePage extends BaseScaffoldPage<HomeController> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 13.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
               onPressed: () => _showImportSheet(),
               icon: const Icon(Icons.file_download_outlined),
               label: Text(S.of(context!).importWallet),
@@ -105,40 +128,139 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// 钱包概览卡片，展示钱包名称和已计算的美元总资产估值。
   Widget _buildWalletHeader(WalletAccount wallet) {
+    final colorScheme = Theme.of(context!).colorScheme;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
-        color: Theme.of(context!).colorScheme.primary,
+        color: colorScheme.primary,
         borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            wallet.name,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ).marginOnly(bottom: 22.h),
-          Text(
-            S.of(context!).totalAssets,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.76),
-              fontSize: 13.sp,
-            ),
-          ),
-          Text(
-            controller.totalAssetsText,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28.sp,
-              fontWeight: FontWeight.w700,
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.22),
+            blurRadius: 18.r,
+            offset: Offset(0, 10.h),
           ),
         ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -16.w,
+            top: -18.h,
+            child: Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 118.w,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      wallet.name,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 5.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Text(
+                      '${WalletChain.bsc.symbol} / ${WalletChain.tron.symbol}',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ).marginOnly(bottom: 24.h),
+              Text(
+                S.of(context!).totalAssets,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.74),
+                  fontSize: 13.sp,
+                ),
+              ),
+              Text(
+                controller.totalAssetsText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required bool filled,
+    Widget? loadingIcon,
+  }) {
+    final colorScheme = Theme.of(context!).colorScheme;
+    final foreground = filled ? Colors.white : colorScheme.onSurface;
+    return Expanded(
+      child: Material(
+        color: filled ? colorScheme.primary : Theme.of(context!).cardColor,
+        borderRadius: BorderRadius.circular(8.r),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8.r),
+          child: Container(
+            height: 46.h,
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8.r),
+              border: filled
+                  ? null
+                  : Border.all(
+                      color: context!.appTheme.dividerColor!.withValues(
+                        alpha: 0.6,
+                      ),
+                    ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                loadingIcon ??
+                    Icon(
+                      icon,
+                      size: 18.w,
+                      color: foreground,
+                    ).marginOnly(right: 7.w),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -147,26 +269,28 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   Widget _buildActionRow() {
     return Row(
       children: [
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: controller.refreshBalances,
-            icon: controller.isLoading
-                ? SizedBox(
-                    width: 16.w,
-                    height: 16.w,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh),
-            label: Text(S.of(context!).refreshBalance),
-          ),
+        _buildActionButton(
+          filled: true,
+          onPressed: controller.refreshBalances,
+          icon: Icons.refresh_rounded,
+          loadingIcon: controller.isLoading
+              ? SizedBox(
+                  width: 16.w,
+                  height: 16.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ).marginOnly(right: 7.w)
+              : null,
+          label: S.of(context!).refreshBalance,
         ),
         SizedBox(width: 12.w),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: controller.removeWallet,
-            icon: const Icon(Icons.delete_outline),
-            label: Text(S.of(context!).removeWallet),
-          ),
+        _buildActionButton(
+          filled: false,
+          onPressed: controller.removeWallet,
+          icon: Icons.delete_outline_rounded,
+          label: S.of(context!).removeWallet,
         ),
       ],
     );
@@ -199,23 +323,34 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     List<ChainBalance> balances,
   ) {
     final hasError = balances.any((balance) => balance.hasError);
+    final chainColor = _chainColor(chain);
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Theme.of(context!).cardColor,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
+      padding: EdgeInsets.all(14.w),
+      decoration: _panelDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 18.r,
-                child: Text(chain.symbol.characters.first),
+              Container(
+                width: 38.w,
+                height: 38.w,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: chainColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  chain.symbol.characters.first,
+                  style: TextStyle(
+                    color: chainColor,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: 11.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,6 +364,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                     ),
                     Text(
                       address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Theme.of(
                           context!,
@@ -240,16 +377,26 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 ),
               ),
             ],
-          ).marginOnly(bottom: 14.h),
+          ).marginOnly(bottom: 12.h),
           ...balances.map(_buildAssetRow),
           if (balances.isEmpty)
-            Text(
-              controller.isLoading ? S.of(context!).loading : '--',
-              style: TextStyle(
-                fontSize: 14.sp,
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+              decoration: BoxDecoration(
                 color: Theme.of(
                   context!,
-                ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ).colorScheme.onSurface.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Text(
+                controller.isLoading ? S.of(context!).loading : '--',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Theme.of(
+                    context!,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
               ),
             ),
           if (hasError)
@@ -267,10 +414,36 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// 单个代币余额行，右侧入口跳转到独立转账页面。
   Widget _buildAssetRow(ChainBalance balance) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+    final assetColor = _assetColor(balance.symbol);
+    return Container(
+      margin: EdgeInsets.only(top: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context!).colorScheme.onSurface.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: context!.appTheme.dividerColor!.withValues(alpha: 0.42),
+        ),
+      ),
       child: Row(
         children: [
+          Container(
+            width: 34.w,
+            height: 34.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: assetColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Text(
+              balance.symbol.characters.first,
+              style: TextStyle(
+                color: assetColor,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ).marginOnly(right: 10.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +474,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 120.w),
+                constraints: BoxConstraints(maxWidth: 106.w),
                 child: Text(
                   '${balance.amount} ${balance.symbol}',
                   textAlign: TextAlign.right,
@@ -313,6 +486,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 ),
               ),
               IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tight(Size(38.w, 38.w)),
                 onPressed: () => _openTransferPage(balance),
                 icon: Container(
                   width: 34.w,
@@ -376,6 +552,49 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         ],
       ),
     );
+  }
+
+  BoxDecoration _panelDecoration() {
+    return BoxDecoration(
+      color: Theme.of(context!).cardColor,
+      borderRadius: BorderRadius.circular(8.r),
+      border: Border.all(
+        color: context!.appTheme.dividerColor!.withValues(alpha: 0.45),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: context!.appTheme.cardShadowColor ?? Colors.transparent,
+          blurRadius: 14.r,
+          offset: Offset(0, 6.h),
+        ),
+      ],
+    );
+  }
+
+  Color _chainColor(WalletChain chain) {
+    switch (chain) {
+      case WalletChain.bsc:
+        return const Color(0xFFF0B90B);
+      case WalletChain.tron:
+        return const Color(0xFFE50914);
+    }
+  }
+
+  Color _assetColor(String symbol) {
+    switch (symbol.toUpperCase()) {
+      case 'USDT':
+        return const Color(0xFF26A17B);
+      case 'USDC':
+        return const Color(0xFF2775CA);
+      case 'BTCB':
+        return const Color(0xFFF7931A);
+      case 'ETH':
+        return const Color(0xFF627EEA);
+      case 'TRX':
+        return const Color(0xFFE50914);
+      default:
+        return Theme.of(context!).colorScheme.primary;
+    }
   }
 
   /// 导入私钥的底部弹窗，提交后由控制器校验并持久化钱包。

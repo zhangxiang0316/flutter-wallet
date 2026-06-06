@@ -335,6 +335,16 @@ class S {
     return Intl.message('Network fee', name: 'networkFee', desc: '', args: []);
   }
 
+  /// `Estimated network fee`
+  String get estimatedNetworkFee {
+    return Intl.message(
+      'Estimated network fee',
+      name: 'estimatedNetworkFee',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `The network fee is paid in {symbol}. Make sure this wallet has enough balance.`
   String networkFeeAsset(Object symbol) {
     return Intl.message(
@@ -342,6 +352,36 @@ class S {
       name: 'networkFeeAsset',
       desc: '',
       args: [symbol],
+    );
+  }
+
+  /// `Estimating fee...`
+  String get feeEstimating {
+    return Intl.message(
+      'Estimating fee...',
+      name: 'feeEstimating',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Fee estimate is unavailable. Try again later.`
+  String get feeUnavailable {
+    return Intl.message(
+      'Fee estimate is unavailable. Try again later.',
+      name: 'feeUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Up to {amount}`
+  String feeFallback(Object amount) {
+    return Intl.message(
+      'Up to $amount',
+      name: 'feeFallback',
+      desc: '',
+      args: [amount],
     );
   }
 

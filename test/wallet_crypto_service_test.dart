@@ -131,6 +131,20 @@ void main() {
       );
     });
 
+    test('formats raw fee units for display', () {
+      expect(
+        WalletTransferService.rawUnitsToAmount(
+          BigInt.from(21000) * BigInt.from(3000000000),
+          18,
+        ),
+        '0.000063',
+      );
+      expect(
+        WalletTransferService.rawUnitsToAmount(BigInt.from(30000000), 6),
+        '30',
+      );
+    });
+
     test('encodes ERC20 transfer data', () {
       expect(
         WalletTransferService.erc20TransferData(

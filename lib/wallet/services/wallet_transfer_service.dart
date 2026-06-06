@@ -66,6 +66,122 @@ class WalletTransferService {
     }
   }
 
+  Future<TransferFeeEstimate> estimateFee({
+    required ChainBalance asset,
+    required String toAddress,
+    required String amount,
+  }) {
+    switch (asset.chain) {
+      case WalletChain.bsc:
+        return _estimateBscFee(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
+      case WalletChain.tron:
+        return _estimateTronFee(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
+    }
+  }
+
+  Future<TransferFeeEstimate> _estimateBscFee({
+    required ChainBalance asset,
+    required String toAddress,
+    required String amount,
+  }) async {
+    final normalizedTo = normalizeBscAddress(toAddress);
+    final value = amountToRawUnits(amount, asset.decimals);
+    final isNative = asset.isNative;
+    final txTo = isNative ? normalizedTo : asset.contractAddress!;
+    final txValue = isNative ? value : BigInt.zero;
+    final data = isNative ? '0x' : erc20TransferData(normalizedTo, value);
+    final gasPrice = await _bscRpcBigInt('eth_gasPrice', const []);
+    BigInt gasLimit;
+    try {
+      gasLimit = await _bscRpcBigInt('eth_estimateGas', [
+        {
+          'from': asset.address,
+          'to': txTo,
+          'value': _hexQuantity(txValue),
+          if (!isNative) 'data': data,
+        },
+      ]);
+    } catch (_) {
+      gasLimit = BigInt.from(isNative ? _bscNativeGasLimit : _bscTokenGasLimit);
+    }
+
+    final feeWei = gasLimit * gasPrice;
+    return TransferFeeEstimate(
+      amount: rawUnitsToAmount(feeWei, 18),
+      symbol: WalletChain.bsc.symbol,
+      rawAmount: feeWei,
+      isFallback: false,
+    );
+  }
+
+  Future<TransferFeeEstimate> _estimateTronFee({
+    required ChainBalance asset,
+    required String toAddress,
+    required String amount,
+  }) async {
+    final value = amountToRawUnits(amount, asset.decimals);
+    final chainParameters = await _loadTronChainParameters();
+    final transactionFee = chainParameters['getTransactionFee'] ?? BigInt.one;
+    final energyFee = chainParameters['getEnergyFee'] ?? BigInt.from(420);
+
+    if (asset.isNative) {
+      final transaction = await _createTronNativeTransaction(
+        fromAddress: asset.address,
+        toAddress: toAddress,
+        amount: value,
+      );
+      final rawDataHex = transaction['raw_data_hex']?.toString() ?? '';
+      final bandwidthBytes = BigInt.from(rawDataHex.length ~/ 2);
+      final feeSun = bandwidthBytes * transactionFee;
+      return TransferFeeEstimate(
+        amount: rawUnitsToAmount(feeSun, 6),
+        symbol: WalletChain.tron.symbol,
+        rawAmount: feeSun,
+        isFallback: false,
+      );
+    }
+
+    final energy = await _estimateTronEnergy(
+      fromAddress: asset.address,
+      toAddress: toAddress,
+      contractAddress: asset.contractAddress!,
+      amount: value,
+    );
+    if (energy != null) {
+      final transaction = await _createTronTokenTransaction(
+        fromAddress: asset.address,
+        toAddress: toAddress,
+        contractAddress: asset.contractAddress!,
+        amount: value,
+      );
+      final rawDataHex = transaction['raw_data_hex']?.toString() ?? '';
+      final bandwidthFee = BigInt.from(rawDataHex.length ~/ 2) * transactionFee;
+      final feeSun = energy * energyFee + bandwidthFee;
+      return TransferFeeEstimate(
+        amount: rawUnitsToAmount(feeSun, 6),
+        symbol: WalletChain.tron.symbol,
+        rawAmount: feeSun,
+        isFallback: false,
+      );
+    }
+
+    final fallbackFee = BigInt.from(_tronTokenFeeLimit);
+    return TransferFeeEstimate(
+      amount: rawUnitsToAmount(fallbackFee, 6),
+      symbol: WalletChain.tron.symbol,
+      rawAmount: fallbackFee,
+      isFallback: true,
+    );
+  }
+
   Future<String> _transferBsc({
     required String privateKeyHex,
     required ChainBalance asset,
@@ -211,6 +327,58 @@ class WalletTransferService {
     return BigInt.parse(result.replaceFirst('0x', ''), radix: 16);
   }
 
+  Future<Map<String, BigInt>> _loadTronChainParameters() async {
+    try {
+      final response = await _dio.get(
+        '${WalletChain.tron.rpcUrl}/wallet/getchainparameters',
+        options: Options(headers: {'content-type': 'application/json'}),
+      );
+      final data = response.data;
+      if (data is! Map || data['chainParameter'] is! List) {
+        return {};
+      }
+      final values = <String, BigInt>{};
+      for (final item in data['chainParameter'] as List) {
+        if (item is! Map) continue;
+        final key = item['key']?.toString();
+        final value = BigInt.tryParse(item['value']?.toString() ?? '');
+        if (key != null && value != null) {
+          values[key] = value;
+        }
+      }
+      return values;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<BigInt?> _estimateTronEnergy({
+    required String fromAddress,
+    required String toAddress,
+    required String contractAddress,
+    required BigInt amount,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${WalletChain.tron.rpcUrl}/wallet/estimateenergy',
+        data: {
+          'owner_address': fromAddress,
+          'contract_address': contractAddress,
+          'function_selector': 'transfer(address,uint256)',
+          'parameter': trc20TransferParameter(toAddress, amount),
+          'visible': true,
+        },
+        options: Options(headers: {'content-type': 'application/json'}),
+      );
+      final data = response.data;
+      if (data is! Map) return null;
+      final value = data['energy_required'] ?? data['energy_used'];
+      return BigInt.tryParse(value?.toString() ?? '');
+    } catch (_) {
+      return null;
+    }
+  }
+
   String _signBscTransaction({
     required String privateKeyHex,
     required BigInt nonce,
@@ -339,6 +507,24 @@ class WalletTransferService {
       throw const FormatException('Too many decimal places');
     }
     return shifted.toBigInt();
+  }
+
+  static String rawUnitsToAmount(BigInt value, int decimals) {
+    final base = BigInt.from(10).pow(decimals);
+    final whole = value ~/ base;
+    final fraction = value.remainder(base).toString().padLeft(decimals, '0');
+    final trimmed = fraction.replaceFirst(RegExp(r'0+$'), '');
+    if (trimmed.isEmpty) {
+      return whole.toString();
+    }
+    final displayFraction = trimmed.length > 8
+        ? trimmed.substring(0, 8)
+        : trimmed;
+    return '$whole.$displayFraction';
+  }
+
+  static String _hexQuantity(BigInt value) {
+    return '0x${value.toRadixString(16)}';
   }
 
   static String erc20TransferData(String toAddress, BigInt amount) {
@@ -508,4 +694,20 @@ class WalletTransferService {
     }
     return diff == 0;
   }
+}
+
+class TransferFeeEstimate {
+  const TransferFeeEstimate({
+    required this.amount,
+    required this.symbol,
+    required this.rawAmount,
+    this.isFallback = false,
+  });
+
+  final String amount;
+  final String symbol;
+  final BigInt rawAmount;
+  final bool isFallback;
+
+  String get displayText => '$amount $symbol';
 }

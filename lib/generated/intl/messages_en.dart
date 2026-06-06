@@ -20,10 +20,12 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'en';
 
-  static String m0(symbol) =>
+  static String m0(amount) => "Up to ${amount}";
+
+  static String m1(symbol) =>
       "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
 
-  static String m1(symbol) => "Transfer ${symbol}";
+  static String m2(symbol) => "Transfer ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -41,6 +43,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "copyHash": MessageLookupByLibrary.simpleMessage("Copy hash"),
     "createWallet": MessageLookupByLibrary.simpleMessage("Create wallet"),
     "email": MessageLookupByLibrary.simpleMessage("email"),
+    "estimatedNetworkFee": MessageLookupByLibrary.simpleMessage(
+      "Estimated network fee",
+    ),
+    "feeEstimating": MessageLookupByLibrary.simpleMessage("Estimating fee..."),
+    "feeFallback": m0,
+    "feeUnavailable": MessageLookupByLibrary.simpleMessage(
+      "Fee estimate is unavailable. Try again later.",
+    ),
     "importPrivateKey": MessageLookupByLibrary.simpleMessage(
       "Import private key",
     ),
@@ -51,7 +61,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "loading": MessageLookupByLibrary.simpleMessage("Loading..."),
     "login": MessageLookupByLibrary.simpleMessage("login"),
     "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
-    "networkFeeAsset": m0,
+    "networkFeeAsset": m1,
     "phone": MessageLookupByLibrary.simpleMessage("phone"),
     "privateKeyHint": MessageLookupByLibrary.simpleMessage(
       "Enter a 64-character hex private key, optionally prefixed with 0x",
@@ -69,7 +79,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
     "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-    "transferAsset": m1,
+    "transferAsset": m2,
     "transferDetails": MessageLookupByLibrary.simpleMessage("Transfer details"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "Transfer failed. Check the address, amount, and on-chain balance.",
