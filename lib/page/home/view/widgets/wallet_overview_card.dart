@@ -27,13 +27,21 @@ class WalletOverviewCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
-        color: colorScheme.primary,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.primary,
+            Color.lerp(colorScheme.primary, const Color(0xFF0F766E), 0.38)!,
+            const Color(0xFF102A43),
+          ],
+        ),
         borderRadius: BorderRadius.circular(8.r),
         boxShadow: [
           BoxShadow(
             color: colorScheme.primary.withValues(alpha: 0.22),
-            blurRadius: 18.r,
-            offset: Offset(0, 10.h),
+            blurRadius: 24.r,
+            offset: Offset(0, 12.h),
           ),
         ],
       ),
@@ -52,6 +60,7 @@ class WalletOverviewCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: _WalletSwitcherButton(
@@ -60,24 +69,7 @@ class WalletOverviewCard extends StatelessWidget {
                       onWalletSelected: onWalletSelected,
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 5.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Text(
-                      '${WalletChain.bsc.symbol} / ${WalletChain.ethereum.symbol} / ${WalletChain.xLayer.symbol} / ${WalletChain.tron.symbol}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                  _ChainTicker(),
                 ],
               ).marginOnly(bottom: 24.h),
               Text(
@@ -91,10 +83,13 @@ class WalletOverviewCard extends StatelessWidget {
                 totalAssetsText,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 32.sp,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 34.sp,
+                  fontWeight: FontWeight.w900,
+                  height: 1.05,
                 ),
-              ),
+              ).marginOnly(top: 4.h),
+              SizedBox(height: 18.h),
+              _AddressStrip(wallet: wallet),
             ],
           ),
         ],
@@ -198,11 +193,11 @@ class _WalletSwitcherButton extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.14),
+            color: Colors.white.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -253,6 +248,119 @@ class _WalletSwitcherButton extends StatelessWidget {
 
   String _shortAddress(String address) {
     if (address.length <= 12) {
+      return address;
+    }
+    return '${address.substring(0, 6)}...${address.substring(address.length - 4)}';
+  }
+}
+
+class _ChainTicker extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final chains = [
+      WalletChain.bsc,
+      WalletChain.ethereum,
+      WalletChain.xLayer,
+      WalletChain.tron,
+    ];
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: chains
+            .map(
+              (chain) => Container(
+                width: 22.w,
+                height: 22.w,
+                alignment: Alignment.center,
+                margin: EdgeInsets.only(left: chain == chains.first ? 0 : 4.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(7.r),
+                ),
+                child: Text(
+                  chain.symbol.characters.first,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            )
+            .toList(growable: false),
+      ),
+    );
+  }
+}
+
+class _AddressStrip extends StatelessWidget {
+  const _AddressStrip({required this.wallet});
+
+  final WalletAccount wallet;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.key_rounded,
+            color: Colors.white.withValues(alpha: 0.76),
+            size: 16.w,
+          ).marginOnly(right: 8.w),
+          Expanded(
+            child: Text(
+              _shortAddress(wallet.bscAddress),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.86),
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            WalletChain.tron.symbol,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.52),
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(width: 6.w),
+          Expanded(
+            child: Text(
+              _shortAddress(wallet.tronAddress),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.72),
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _shortAddress(String address) {
+    if (address.length <= 14) {
       return address;
     }
     return '${address.substring(0, 6)}...${address.substring(address.length - 4)}';

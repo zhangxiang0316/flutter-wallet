@@ -34,7 +34,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     final wallet = controller.wallet;
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 22.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: wallet == null
@@ -71,11 +71,11 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       ),
     );
     if (wallet == null) {
-      return content;
+      return _HomeBackground(child: content);
     }
     return RefreshIndicator(
       onRefresh: controller.refreshBalances,
-      child: content,
+      child: _HomeBackground(child: content),
     );
   }
 
@@ -188,5 +188,32 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     if (submitted == true) {
       controller.refreshBalances();
     }
+  }
+}
+
+class _HomeBackground extends StatelessWidget {
+  const _HomeBackground({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            colorScheme.primary.withValues(alpha: isDark ? 0.18 : 0.08),
+            Theme.of(context).scaffoldBackgroundColor,
+            Theme.of(context).scaffoldBackgroundColor,
+          ],
+          stops: const [0, 0.34, 1],
+        ),
+      ),
+      child: child,
+    );
   }
 }

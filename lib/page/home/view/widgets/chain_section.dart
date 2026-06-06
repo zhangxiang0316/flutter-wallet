@@ -107,114 +107,220 @@ class _ChainCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasError = balances.any((balance) => balance.hasError);
     final chainColor = homeChainColor(chain);
+    final nativeBalance = _nativeBalanceText();
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.w),
+      clipBehavior: Clip.antiAlias,
       decoration: homePanelDecoration(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          InkWell(
-            onTap: () => onToggle(chain),
-            borderRadius: BorderRadius.circular(8.r),
-            child: Row(
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(width: 4.w, color: chainColor),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(14.w, 14.w, 14.w, 14.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38.w,
-                  height: 38.w,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: chainColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Text(
-                    chain.symbol.characters.first,
-                    style: TextStyle(
-                      color: chainColor,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 11.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                InkWell(
+                  onTap: () => onToggle(chain),
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: Row(
                     children: [
-                      Text(
-                        chain.name,
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w700,
+                      Container(
+                        width: 40.w,
+                        height: 40.w,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: chainColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(
+                            color: chainColor.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Text(
+                          chain.symbol.characters.first,
+                          style: TextStyle(
+                            color: chainColor,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                      Text(
-                        address,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                      SizedBox(width: 11.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    chain.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                if (hasError)
+                                  Icon(
+                                    Icons.error_outline_rounded,
+                                    size: 15.w,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ).marginOnly(left: 5.w),
+                              ],
+                            ),
+                            SizedBox(height: 3.h),
+                            Text(
+                              _shortAddress(address),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.56),
+                                fontSize: 12.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      _ChainSummaryPill(
+                        count: balances.length,
+                        amount: nativeBalance,
+                        symbol: chain.symbol,
+                        color: chainColor,
+                        isLoading: isLoading && balances.isEmpty,
+                      ),
+                      AnimatedRotation(
+                        turns: isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 24.w,
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.58),
-                          fontSize: 12.sp,
+                          ).colorScheme.onSurface.withValues(alpha: 0.55),
                         ),
                       ),
                     ],
                   ),
                 ),
-                AnimatedRotation(
-                  turns: isExpanded ? 0.5 : 0,
+                AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),
-                  child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 24.w,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.55),
-                  ),
+                  child: isExpanded
+                      ? Column(
+                          key: ValueKey('${chain.id}-assets'),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 12.h),
+                            ...balances.map(
+                              (balance) => _AssetRow(
+                                balance: balance,
+                                onTransferPressed: onTransferPressed,
+                              ),
+                            ),
+                            if (balances.isEmpty)
+                              _EmptyBalancePlaceholder(isLoading: isLoading),
+                            if (hasError)
+                              Text(
+                                S.of(context).balanceLoadFailed,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontSize: 12.sp,
+                                ),
+                              ).marginOnly(top: 8.h),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
                 ),
               ],
             ),
           ),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            child: isExpanded
-                ? Column(
-                    key: ValueKey('${chain.id}-assets'),
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 12.h),
-                      ...balances.map(
-                        (balance) => _AssetRow(
-                          balance: balance,
-                          onTransferPressed: onTransferPressed,
-                        ),
-                      ),
-                      if (balances.isEmpty)
-                        _EmptyBalancePlaceholder(isLoading: isLoading),
-                      if (hasError)
-                        Text(
-                          S.of(context).balanceLoadFailed,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 12.sp,
-                          ),
-                        ).marginOnly(top: 8.h),
-                    ],
-                  )
-                : const SizedBox.shrink(),
-          ),
-          if (!isExpanded && hasError)
-            Padding(
-              padding: EdgeInsets.only(top: 8.h),
-              child: Icon(
-                Icons.error_outline_rounded,
-                size: 16.w,
-                color: Theme.of(context).colorScheme.error,
-              ),
-            ),
         ],
       ),
+    );
+  }
+
+  String _nativeBalanceText() {
+    for (final balance in balances) {
+      if (balance.isNative) {
+        return balance.amount;
+      }
+    }
+    return '--';
+  }
+
+  String _shortAddress(String value) {
+    if (value.length <= 16) {
+      return value;
+    }
+    return '${value.substring(0, 8)}...${value.substring(value.length - 6)}';
+  }
+}
+
+class _ChainSummaryPill extends StatelessWidget {
+  const _ChainSummaryPill({
+    required this.count,
+    required this.amount,
+    required this.symbol,
+    required this.color,
+    required this.isLoading,
+  });
+
+  final int count;
+  final String amount;
+  final String symbol;
+  final Color color;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxWidth: 116.w),
+      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
+      ),
+      child: isLoading
+          ? SizedBox(
+              width: 16.w,
+              height: 16.w,
+              child: CircularProgressIndicator(strokeWidth: 2, color: color),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$amount $symbol',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
