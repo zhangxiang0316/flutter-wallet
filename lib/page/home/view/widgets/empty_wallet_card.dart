@@ -44,12 +44,12 @@ class EmptyWalletCard extends StatelessWidget {
           ).marginOnly(bottom: 16.h),
           Text(
             S.of(context).walletEmptyTitle,
-            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w800),
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w800),
           ).marginOnly(bottom: 8.h),
           Text(
             S.of(context).walletEmptySubtitle,
             style: TextStyle(
-              fontSize: 14.sp,
+              fontSize: 12.sp,
               color: colorScheme.onSurface.withValues(alpha: 0.65),
             ),
           ).marginOnly(bottom: 24.h),

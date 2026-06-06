@@ -99,7 +99,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
             children: [
               Text(
                 S.of(context!).importPrivateKey,
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
               ).marginOnly(bottom: 12.h),
               TextField(
                 controller: textController,
@@ -143,7 +143,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
             children: [
               Text(
                 S.of(context!).addWallet,
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
               ).marginOnly(bottom: 14.h),
               SizedBox(
                 width: double.infinity,

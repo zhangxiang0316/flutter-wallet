@@ -145,7 +145,7 @@ class _ChainCard extends StatelessWidget {
                           chain.symbol.characters.first,
                           style: TextStyle(
                             color: chainColor,
-                            fontSize: 16.sp,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -163,7 +163,7 @@ class _ChainCard extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 15.sp,
+                                      fontSize: 13.sp,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -185,7 +185,7 @@ class _ChainCard extends StatelessWidget {
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onSurface.withValues(alpha: 0.56),
-                                fontSize: 12.sp,
+                                fontSize: 11.sp,
                               ),
                             ),
                           ],
@@ -234,7 +234,7 @@ class _ChainCard extends StatelessWidget {
                                 S.of(context).balanceLoadFailed,
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.error,
-                                  fontSize: 12.sp,
+                                  fontSize: 11.sp,
                                 ),
                               ).marginOnly(top: 8.h),
                           ],
@@ -307,7 +307,7 @@ class _ChainSummaryPill extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 12.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -315,7 +315,7 @@ class _ChainSummaryPill extends StatelessWidget {
                   '$count',
                   style: TextStyle(
                     color: color,
-                    fontSize: 10.sp,
+                    fontSize: 9.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -342,7 +342,7 @@ class _EmptyBalancePlaceholder extends StatelessWidget {
       child: Text(
         isLoading ? S.of(context).loading : '--',
         style: TextStyle(
-          fontSize: 14.sp,
+          fontSize: 12.sp,
           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
         ),
       ),
@@ -383,7 +383,7 @@ class _AssetRow extends StatelessWidget {
               balance.symbol.characters.first,
               style: TextStyle(
                 color: assetColor,
-                fontSize: 14.sp,
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -395,7 +395,7 @@ class _AssetRow extends StatelessWidget {
                 Text(
                   balance.symbol,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -404,7 +404,7 @@ class _AssetRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 11.sp,
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.56),
@@ -424,7 +424,7 @@ class _AssetRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

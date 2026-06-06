@@ -30,13 +30,13 @@ class PrivateKeyNotice extends StatelessWidget {
                 Text(
                   S.of(context).securityNotice,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   S.of(context).securityNoticeDetail,
-                  style: TextStyle(fontSize: 12.sp),
+                  style: TextStyle(fontSize: 11.sp),
                 ),
               ],
             ),

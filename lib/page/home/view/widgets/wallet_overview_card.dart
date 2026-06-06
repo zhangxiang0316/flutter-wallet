@@ -76,14 +76,14 @@ class WalletOverviewCard extends StatelessWidget {
                 S.of(context).totalAssets,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.74),
-                  fontSize: 13.sp,
+                  fontSize: 12.sp,
                 ),
               ),
               Text(
                 totalAssetsText,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 34.sp,
+                  fontSize: 28.sp,
                   fontWeight: FontWeight.w900,
                   height: 1.05,
                 ),
@@ -162,7 +162,7 @@ class _WalletSwitcherButton extends StatelessWidget {
                           Text(
                             item.name,
                             style: TextStyle(
-                              fontSize: 14.sp,
+                              fontSize: 13.sp,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -287,7 +287,7 @@ class _ChainTicker extends StatelessWidget {
                   chain.symbol.characters.first,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 10.sp,
+                    fontSize: 9.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -327,7 +327,7 @@ class _AddressStrip extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.86),
-                fontSize: 12.sp,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -337,7 +337,7 @@ class _AddressStrip extends StatelessWidget {
             WalletChain.tron.symbol,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.52),
-              fontSize: 11.sp,
+              fontSize: 10.sp,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -349,7 +349,7 @@ class _AddressStrip extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.72),
-                fontSize: 12.sp,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w600,
               ),
             ),

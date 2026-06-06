@@ -74,7 +74,7 @@ class _HomeActionButton extends StatelessWidget {
           onTap: onPressed,
           borderRadius: BorderRadius.circular(8.r),
           child: Container(
-            height: 46.h,
+            height: 42.h,
             padding: EdgeInsets.symmetric(horizontal: 12.w),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8.r),
@@ -109,7 +109,7 @@ class _HomeActionButton extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: foreground,
-                    fontSize: 13.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
