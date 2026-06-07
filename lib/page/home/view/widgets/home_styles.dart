@@ -9,13 +9,13 @@ BoxDecoration homePanelDecoration(BuildContext context) {
     color: Theme.of(context).cardColor,
     borderRadius: BorderRadius.circular(8.r),
     border: Border.all(
-      color: context.appTheme.dividerColor!.withValues(alpha: 0.45),
+      color: context.appTheme.dividerColor!.withValues(alpha: 0.38),
     ),
     boxShadow: [
       BoxShadow(
         color: context.appTheme.cardShadowColor ?? Colors.transparent,
-        blurRadius: 14.r,
-        offset: Offset(0, 6.h),
+        blurRadius: 12.r,
+        offset: Offset(0, 5.h),
       ),
     ],
   );

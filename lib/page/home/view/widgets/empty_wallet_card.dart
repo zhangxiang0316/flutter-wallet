@@ -20,14 +20,14 @@ class EmptyWalletCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(16.w),
       decoration: homePanelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 54.w,
-            height: 54.w,
+            width: 48.w,
+            height: 48.w,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: colorScheme.primary.withValues(alpha: 0.1),
@@ -38,26 +38,27 @@ class EmptyWalletCard extends StatelessWidget {
             ),
             child: Icon(
               Icons.account_balance_wallet,
-              size: 30.w,
+              size: 27.w,
               color: colorScheme.primary,
             ),
-          ).marginOnly(bottom: 16.h),
+          ).marginOnly(bottom: 14.h),
           Text(
             S.of(context).walletEmptyTitle,
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w800),
+            style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w800),
           ).marginOnly(bottom: 8.h),
           Text(
             S.of(context).walletEmptySubtitle,
             style: TextStyle(
               fontSize: 12.sp,
+              height: 1.42,
               color: colorScheme.onSurface.withValues(alpha: 0.65),
             ),
-          ).marginOnly(bottom: 24.h),
+          ).marginOnly(bottom: 20.h),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 13.h),
+                minimumSize: Size.fromHeight(42.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),
@@ -71,7 +72,7 @@ class EmptyWalletCard extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 13.h),
+                minimumSize: Size.fromHeight(42.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),

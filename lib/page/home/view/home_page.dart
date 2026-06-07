@@ -25,7 +25,44 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   /// 首页顶部标题栏，当前钱包模块只展示应用名称。
   @override
   PreferredSizeWidget? getAppBar() {
-    return AppBar(title: Text(S.of(context!).appName));
+    final colorScheme = Theme.of(context!).colorScheme;
+    return AppBar(
+      backgroundColor: Theme.of(context!).scaffoldBackgroundColor,
+      titleSpacing: 16.w,
+      toolbarHeight: 54.h,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      title: Row(
+        children: [
+          Container(
+            width: 30.w,
+            height: 30.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.16),
+              ),
+            ),
+            child: Icon(
+              Icons.account_balance_wallet_outlined,
+              color: colorScheme.primary,
+              size: 17.w,
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              S.of(context!).appName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 根据本地是否已有钱包，切换空钱包引导或钱包资产面板。
@@ -34,7 +71,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     final wallet = controller.wallet;
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 22.h),
+      padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 22.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: wallet == null
@@ -85,12 +122,18 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     showModalBottomSheet(
       context: context!,
       isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context!).cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
       builder: (sheetContext) {
+        final colorScheme = Theme.of(sheetContext).colorScheme;
         return Padding(
           padding: EdgeInsets.only(
             left: 16.w,
             right: 16.w,
-            top: 18.h,
+            top: 4.h,
             bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 18.h,
           ),
           child: Column(
@@ -106,13 +149,40 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 minLines: 2,
                 maxLines: 4,
                 decoration: InputDecoration(
+                  filled: true,
+                  fillColor: colorScheme.onSurface.withValues(alpha: 0.04),
                   hintText: S.of(context!).privateKeyHint,
-                  border: const OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 12.h,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                    borderSide: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                    borderSide: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                    borderSide: BorderSide(color: colorScheme.primary),
+                  ),
                 ),
               ).marginOnly(bottom: 14.h),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: Size.fromHeight(42.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
                   onPressed: () async {
                     final ok = await controller.importWallet(
                       textController.text,
@@ -134,9 +204,14 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   void _showAddWalletSheet() {
     showModalBottomSheet(
       context: context!,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context!).cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
       builder: (sheetContext) {
         return Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 18.h),
+          padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 18.h),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,6 +223,12 @@ class HomePage extends BaseScaffoldPage<HomeController> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: Size.fromHeight(42.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
                   onPressed: () async {
                     Navigator.of(sheetContext).pop();
                     await controller.createWallet();
@@ -159,6 +240,12 @@ class HomePage extends BaseScaffoldPage<HomeController> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: Size.fromHeight(42.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
                   onPressed: () {
                     Navigator.of(sheetContext).pop();
                     _showImportSheet();

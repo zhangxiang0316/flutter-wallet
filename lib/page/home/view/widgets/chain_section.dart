@@ -108,10 +108,15 @@ class _ChainCard extends StatelessWidget {
     final hasError = balances.any((balance) => balance.hasError);
     final chainColor = homeChainColor(chain);
     final nativeBalance = _nativeBalanceText();
+    final dividerColor = context.appTheme.dividerColor!.withValues(alpha: 0.45);
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
-      decoration: homePanelDecoration(context),
+      decoration: homePanelDecoration(context).copyWith(
+        border: Border.all(
+          color: isExpanded ? chainColor.withValues(alpha: 0.28) : dividerColor,
+        ),
+      ),
       child: Stack(
         children: [
           Positioned(
@@ -121,106 +126,130 @@ class _ChainCard extends StatelessWidget {
             child: Container(width: 4.w, color: chainColor),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(14.w, 14.w, 14.w, 14.w),
+            padding: EdgeInsets.fromLTRB(13.w, 12.h, 12.w, 12.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: () => onToggle(chain),
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40.w,
-                        height: 40.w,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: chainColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(
-                            color: chainColor.withValues(alpha: 0.18),
+                Semantics(
+                  button: true,
+                  expanded: isExpanded,
+                  label: chain.name,
+                  child: InkWell(
+                    onTap: () => onToggle(chain),
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38.w,
+                          height: 38.w,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: chainColor.withValues(alpha: 0.11),
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(
+                              color: chainColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Text(
+                            chain.symbol.characters.first,
+                            style: TextStyle(
+                              color: chainColor,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          chain.symbol.characters.first,
-                          style: TextStyle(
-                            color: chainColor,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 11.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    chain.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w800,
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      chain.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (hasError)
-                                  Icon(
-                                    Icons.error_outline_rounded,
-                                    size: 15.w,
-                                    color: Theme.of(context).colorScheme.error,
-                                  ).marginOnly(left: 5.w),
-                              ],
-                            ),
-                            SizedBox(height: 3.h),
-                            Text(
-                              _shortAddress(address),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.56),
-                                fontSize: 11.sp,
+                                  if (isLoading && balances.isNotEmpty)
+                                    _ChainStatusDot(
+                                      color: chainColor,
+                                    ).marginOnly(left: 6.w),
+                                  if (hasError)
+                                    Icon(
+                                      Icons.error_outline_rounded,
+                                      size: 15.w,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ).marginOnly(left: 5.w),
+                                ],
                               ),
-                            ),
-                          ],
+                              SizedBox(height: 3.h),
+                              Text(
+                                _shortAddress(address),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.56),
+                                  fontSize: 10.5.sp,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 8.w),
-                      _ChainSummaryPill(
-                        count: balances.length,
-                        amount: nativeBalance,
-                        symbol: chain.symbol,
-                        color: chainColor,
-                        isLoading: isLoading && balances.isEmpty,
-                      ),
-                      AnimatedRotation(
-                        turns: isExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 180),
-                        child: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 24.w,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.55),
+                        SizedBox(width: 8.w),
+                        _ChainSummaryPill(
+                          count: balances.length,
+                          amount: nativeBalance,
+                          symbol: chain.symbol,
+                          color: chainColor,
+                          isLoading: isLoading && balances.isEmpty,
                         ),
-                      ),
-                    ],
+                        AnimatedRotation(
+                          turns: isExpanded ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 23.w,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),
+                  transitionBuilder: (child, animation) {
+                    return SizeTransition(
+                      sizeFactor: animation,
+                      axisAlignment: -1,
+                      child: FadeTransition(opacity: animation, child: child),
+                    );
+                  },
                   child: isExpanded
                       ? Column(
                           key: ValueKey('${chain.id}-assets'),
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 12.h),
+                            SizedBox(height: 10.h),
+                            Divider(
+                              height: 1.h,
+                              thickness: 1,
+                              color: dividerColor,
+                            ),
+                            SizedBox(height: 2.h),
                             ...balances.map(
                               (balance) => _AssetRow(
                                 balance: balance,
@@ -228,7 +257,9 @@ class _ChainCard extends StatelessWidget {
                               ),
                             ),
                             if (balances.isEmpty)
-                              _EmptyBalancePlaceholder(isLoading: isLoading),
+                              _EmptyBalancePlaceholder(
+                                isLoading: isLoading,
+                              ).marginOnly(top: 8.h),
                             if (hasError)
                               Text(
                                 S.of(context).balanceLoadFailed,
@@ -266,6 +297,21 @@ class _ChainCard extends StatelessWidget {
   }
 }
 
+class _ChainStatusDot extends StatelessWidget {
+  const _ChainStatusDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 10.w,
+      height: 10.w,
+      child: CircularProgressIndicator(strokeWidth: 1.8, color: color),
+    );
+  }
+}
+
 class _ChainSummaryPill extends StatelessWidget {
   const _ChainSummaryPill({
     required this.count,
@@ -284,8 +330,8 @@ class _ChainSummaryPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(maxWidth: 116.w),
-      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 6.h),
+      constraints: BoxConstraints(maxWidth: 112.w, minHeight: 38.h),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8.r),
@@ -315,7 +361,7 @@ class _ChainSummaryPill extends StatelessWidget {
                   '$count',
                   style: TextStyle(
                     color: color,
-                    fontSize: 9.sp,
+                    fontSize: 9.5.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -334,7 +380,7 @@ class _EmptyBalancePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(8.r),
@@ -361,7 +407,7 @@ class _AssetRow extends StatelessWidget {
     final assetColor = homeAssetColor(context, balance.symbol);
     return Container(
       margin: EdgeInsets.only(top: 8.h),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(8.r),
@@ -372,8 +418,8 @@ class _AssetRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 34.w,
-            height: 34.w,
+            width: 32.w,
+            height: 32.w,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: assetColor.withValues(alpha: 0.12),
@@ -395,8 +441,8 @@ class _AssetRow extends StatelessWidget {
                 Text(
                   balance.symbol,
                   style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
@@ -404,10 +450,10 @@ class _AssetRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11.sp,
+                    fontSize: 10.5.sp,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.56),
+                    ).colorScheme.onSurface.withValues(alpha: 0.54),
                   ),
                 ),
               ],
@@ -418,39 +464,44 @@ class _AssetRow extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 106.w),
+                constraints: BoxConstraints(maxWidth: 110.w),
                 child: Text(
                   '${balance.amount} ${balance.symbol}',
                   textAlign: TextAlign.right,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: BoxConstraints.tight(Size(38.w, 38.w)),
-                onPressed: () => onTransferPressed(balance),
-                icon: Container(
-                  width: 34.w,
-                  height: 34.w,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8.r),
+              Semantics(
+                button: true,
+                label: S.of(context).transfer,
+                child: IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints.tight(Size(40.w, 40.w)),
+                  onPressed: () => onTransferPressed(balance),
+                  icon: Container(
+                    width: 32.w,
+                    height: 32.w,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Icon(
+                      Icons.near_me_rounded,
+                      size: 18.w,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.outbound_rounded,
-                    size: 20.w,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  tooltip: S.of(context).transfer,
                 ),
-                tooltip: S.of(context).transfer,
               ),
             ],
           ),

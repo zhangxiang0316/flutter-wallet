@@ -105,12 +105,16 @@ class _HomeActionButton extends StatelessWidget {
                   size: 18.w,
                   color: foreground,
                 ).marginOnly(right: 7.w),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: foreground,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w800,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: foreground,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
