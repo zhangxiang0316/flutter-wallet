@@ -32,6 +32,7 @@ class AssetValuationService {
   };
 
   static final Decimal _oneUsd = Decimal.one;
+  static final Decimal _minimumDisplayValue = Decimal.parse('0.01');
   static const Set<String> _stableSymbols = {
     'USDT',
     'USDC',
@@ -425,9 +426,46 @@ class AssetValuationService {
     return hasPricedAsset ? total : null;
   }
 
+  String? formatNonStableUsdValue(
+    ChainBalance balance, {
+    Map<String, Decimal> prices = const {},
+  }) {
+    if (isStableSymbol(balance.symbol)) {
+      return null;
+    }
+
+    final amount = Decimal.tryParse(balance.amount);
+    if (amount == null) {
+      return '≈ -- USDT';
+    }
+    if (amount == Decimal.zero) {
+      return '≈ 0.00 USDT';
+    }
+
+    final price = priceForSymbol(balance.symbol, prices);
+    if (price == null) {
+      return '≈ -- USDT';
+    }
+    return '≈ ${formatStableEquivalent(amount * price)} USDT';
+  }
+
+  String formatStableEquivalent(Decimal value) {
+    if (value == Decimal.zero) {
+      return '0.00';
+    }
+    if (value.compareTo(_minimumDisplayValue) < 0) {
+      return value.toStringAsFixed(6);
+    }
+    return value.toStringAsFixed(2);
+  }
+
+  bool isStableSymbol(String symbol) {
+    return _stableSymbols.contains(symbol.toUpperCase());
+  }
+
   Decimal? priceForSymbol(String symbol, Map<String, Decimal> prices) {
     final normalized = symbol.toUpperCase();
-    if (_stableSymbols.contains(normalized)) {
+    if (isStableSymbol(normalized)) {
       return _oneUsd;
     }
     return prices[normalized];

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
+
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
@@ -38,6 +40,9 @@ class HomeController extends BaseController {
 
   /// 已格式化的总资产估值文本。价格源不可用时显示 `--`。
   String totalAssetsText = '--';
+
+  /// 非稳定币按当前价格换算成稳定币后的展示文本。
+  final Map<String, String> assetStableValueTexts = {};
 
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
@@ -163,6 +168,7 @@ class HomeController extends BaseController {
       }
       balances = nextBalances;
       _refreshTotalAssetsFromCachedPrices();
+      _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
       isLoading = false;
       update();
 
@@ -177,6 +183,7 @@ class HomeController extends BaseController {
         prices: latestPrices,
       );
       totalAssetsText = _valuationService.formatUsdValue(totalValue);
+      _refreshAssetStableValueTexts(latestPrices);
       update();
     } catch (_) {
       if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
@@ -204,6 +211,31 @@ class HomeController extends BaseController {
       prices: _valuationService.cachedUsdPrices,
     );
     totalAssetsText = _valuationService.formatUsdValue(totalValue);
+  }
+
+  String? stableValueTextFor(ChainBalance balance) {
+    return assetStableValueTexts[_assetStableValueKey(balance)];
+  }
+
+  void _refreshAssetStableValueTexts(Map<String, Decimal> prices) {
+    assetStableValueTexts.clear();
+    for (final balance in balances) {
+      final valueText = _valuationService.formatNonStableUsdValue(
+        balance,
+        prices: prices,
+      );
+      if (valueText != null) {
+        assetStableValueTexts[_assetStableValueKey(balance)] = valueText;
+      }
+    }
+  }
+
+  String _assetStableValueKey(ChainBalance balance) {
+    return [
+      balance.chain.id,
+      balance.contractAddress ?? 'native',
+      balance.symbol,
+    ].join(':');
   }
 
   void toggleChainExpanded(WalletChain chain) {
@@ -263,6 +295,7 @@ class HomeController extends BaseController {
   void _resetWalletState() {
     _balanceRequestId++;
     balances = [];
+    assetStableValueTexts.clear();
     expandedChainIds.clear();
     totalAssetsText = '--';
     isLoading = false;

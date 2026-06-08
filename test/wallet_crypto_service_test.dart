@@ -236,6 +236,31 @@ void main() {
       expect(total?.toStringAsFixed(2), '5170.00');
     });
 
+    test('formats non-stable asset value as stable coin equivalent', () {
+      final bnbText = service.formatNonStableUsdValue(
+        const ChainBalance(
+          chain: WalletChain.bsc,
+          symbol: 'BNB',
+          name: 'BNB',
+          amount: '2',
+          address: '0x1',
+        ),
+        prices: {'BNB': Decimal.parse('300')},
+      );
+      final usdtText = service.formatNonStableUsdValue(
+        const ChainBalance(
+          chain: WalletChain.bsc,
+          symbol: 'USDT',
+          name: 'Tether USD',
+          amount: '100',
+          address: '0x1',
+        ),
+      );
+
+      expect(bnbText, '≈ 600.00 USDT');
+      expect(usdtText, isNull);
+    });
+
     test('parses Binance prices for requested non-stable assets', () {
       final prices = service.parseBinancePrices(
         [
