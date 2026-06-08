@@ -38,6 +38,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "confirmWalletPassword": MessageLookupByLibrary.simpleMessage("确认钱包密码"),
     "copied": MessageLookupByLibrary.simpleMessage("已复制"),
     "copyHash": MessageLookupByLibrary.simpleMessage("复制哈希"),
+    "copyWalletAddress": MessageLookupByLibrary.simpleMessage("复制钱包地址"),
     "createWallet": MessageLookupByLibrary.simpleMessage("创建钱包"),
     "email": MessageLookupByLibrary.simpleMessage("注册"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("加密钱包"),
@@ -54,6 +55,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "networkFee": MessageLookupByLibrary.simpleMessage("网络手续费"),
     "networkFeeAsset": m1,
     "phone": MessageLookupByLibrary.simpleMessage("手机"),
+    "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
+      "EVM / TRX 多链主钱包",
+    ),
     "privateKeyHint": MessageLookupByLibrary.simpleMessage(
       "请输入 64 位十六进制私钥，可带 0x 前缀",
     ),

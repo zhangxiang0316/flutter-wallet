@@ -45,6 +45,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "copied": MessageLookupByLibrary.simpleMessage("Copied"),
     "copyHash": MessageLookupByLibrary.simpleMessage("Copy hash"),
+    "copyWalletAddress": MessageLookupByLibrary.simpleMessage(
+      "Copy wallet address",
+    ),
     "createWallet": MessageLookupByLibrary.simpleMessage("Create wallet"),
     "email": MessageLookupByLibrary.simpleMessage("email"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("Encrypt wallet"),
@@ -71,6 +74,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
     "networkFeeAsset": m1,
     "phone": MessageLookupByLibrary.simpleMessage("phone"),
+    "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
+      "EVM / TRX multi-chain wallet",
+    ),
     "privateKeyHint": MessageLookupByLibrary.simpleMessage(
       "Enter a 64-character hex private key, optionally prefixed with 0x",
     ),

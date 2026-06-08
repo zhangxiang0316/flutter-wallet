@@ -17,110 +17,88 @@ class HomeActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        _HomeActionButton(
-          filled: true,
-          onPressed: onAddWallet,
-          icon: Icons.add_rounded,
-          label: S.of(context).addWallet,
-        ),
-        SizedBox(width: 12.w),
-        _HomeActionButton(
-          filled: false,
-          destructive: true,
-          onPressed: onRemove,
-          icon: Icons.delete_outline_rounded,
-          label: S.of(context).removeWallet,
-        ),
+        _AddWalletButton(onPressed: onAddWallet),
+        SizedBox(height: 8.h),
+        _RemoveWalletButton(onPressed: onRemove),
       ],
     );
   }
 }
 
-class _HomeActionButton extends StatelessWidget {
-  const _HomeActionButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-    required this.filled,
-    this.destructive = false,
-  });
+class _AddWalletButton extends StatelessWidget {
+  const _AddWalletButton({required this.onPressed});
 
-  final IconData icon;
-  final String label;
   final VoidCallback onPressed;
-  final bool filled;
-  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final foreground = filled
-        ? Colors.white
-        : destructive
-        ? colorScheme.error
-        : colorScheme.onSurface;
-    final background = filled
-        ? colorScheme.primary
-        : destructive
-        ? colorScheme.error.withValues(alpha: 0.06)
-        : Theme.of(context).cardColor;
-    return Expanded(
-      child: Material(
-        color: background,
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(8.r),
+      child: InkWell(
+        onTap: onPressed,
         borderRadius: BorderRadius.circular(8.r),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8.r),
-          child: Container(
-            height: 42.h,
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.r),
-              border: filled
-                  ? null
-                  : Border.all(
-                      color: destructive
-                          ? colorScheme.error.withValues(alpha: 0.18)
-                          : context.appTheme.dividerColor!.withValues(
-                              alpha: 0.6,
-                            ),
-                    ),
-              boxShadow: filled
-                  ? [
-                      BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.18),
-                        blurRadius: 12.r,
-                        offset: Offset(0, 6.h),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 18.w,
-                  color: foreground,
-                ).marginOnly(right: 7.w),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
+        child: Container(
+          width: double.infinity,
+          height: 58.h,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(
+              color: context.appTheme.dividerColor!.withValues(alpha: 0.76),
             ),
           ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add_rounded,
+                size: 24.w,
+                color: colorScheme.onSurface.withValues(alpha: 0.76),
+              ).marginOnly(right: 8.w),
+              Flexible(
+                child: Text(
+                  S.of(context).addWallet,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _RemoveWalletButton extends StatelessWidget {
+  const _RemoveWalletButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton.icon(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.error,
+          minimumSize: Size(0, 34.h),
+          padding: EdgeInsets.symmetric(horizontal: 10.w),
+          textStyle: TextStyle(fontSize: 11.5.sp, fontWeight: FontWeight.w700),
+        ),
+        icon: Icon(Icons.delete_outline_rounded, size: 15.w),
+        label: Text(S.of(context).removeWallet),
       ),
     );
   }

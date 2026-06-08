@@ -10,6 +10,8 @@
   "importWallet": "Import wallet",
   "addWallet": "Add wallet",
   "switchWallet": "Switch wallet",
+  "primaryMultiChainWallet": "EVM / TRX multi-chain wallet",
+  "copyWalletAddress": "Copy wallet address",
   "totalAssets": "Total assets",
   "refreshBalance": "Refresh",
   "removeWallet": "Remove wallet",

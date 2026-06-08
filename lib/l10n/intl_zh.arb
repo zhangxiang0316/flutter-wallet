@@ -10,6 +10,8 @@
   "importWallet": "导入钱包",
   "addWallet": "添加钱包",
   "switchWallet": "切换钱包",
+  "primaryMultiChainWallet": "EVM / TRX 多链主钱包",
+  "copyWalletAddress": "复制钱包地址",
   "totalAssets": "总资产估值",
   "refreshBalance": "刷新余额",
   "removeWallet": "移除钱包",

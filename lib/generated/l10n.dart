@@ -28,9 +28,10 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name = (locale.countryCode?.isEmpty ?? false)
-        ? locale.languageCode
-        : locale.toString();
+    final name =
+        (locale.countryCode?.isEmpty ?? false)
+            ? locale.languageCode
+            : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -124,6 +125,26 @@ class S {
     return Intl.message(
       'Switch wallet',
       name: 'switchWallet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `EVM / TRX multi-chain wallet`
+  String get primaryMultiChainWallet {
+    return Intl.message(
+      'EVM / TRX multi-chain wallet',
+      name: 'primaryMultiChainWallet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Copy wallet address`
+  String get copyWalletAddress {
+    return Intl.message(
+      'Copy wallet address',
+      name: 'copyWalletAddress',
       desc: '',
       args: [],
     );
