@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "flutter-ui-ux": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "a0fc21d9328f80ab16c3e3463a12f4fd86462bc6370fe0ea016dc06ae1616654"
+    }
+  }
+}
