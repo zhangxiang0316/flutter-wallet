@@ -9,23 +9,26 @@ import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_chain.dart';
+import '../../../wallet/services/wallet_repository.dart';
+import '../../../wallet/services/wallet_secret_store.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
 
 class TransferPageArguments {
-  const TransferPageArguments({
-    required this.privateKeyHex,
-    required this.asset,
-  });
+  const TransferPageArguments({required this.walletId, required this.asset});
 
-  final String privateKeyHex;
+  final String walletId;
   final ChainBalance asset;
 }
 
 class TransferController extends BaseController {
-  TransferController({WalletTransferService? transferService})
-    : _transferService = transferService ?? WalletTransferService();
+  TransferController({
+    WalletTransferService? transferService,
+    WalletRepository? repository,
+  }) : _transferService = transferService ?? WalletTransferService(),
+       _repository = repository ?? WalletRepository();
 
   final WalletTransferService _transferService;
+  final WalletRepository _repository;
   final TextEditingController addressController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   TransferPageArguments? arguments;
@@ -48,9 +51,9 @@ class TransferController extends BaseController {
     }
   }
 
-  Future<void> submit() async {
+  bool validateTransferInput() {
     final args = arguments;
-    if (args == null || isSubmitting) return;
+    if (args == null) return false;
 
     try {
       WalletTransferService.amountToRawUnits(
@@ -60,6 +63,17 @@ class TransferController extends BaseController {
       _validateAddress(args.asset, addressController.text.trim());
     } catch (_) {
       Toast.show(S.current.transferInputInvalid);
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> submit(String password) async {
+    final args = arguments;
+    if (args == null || isSubmitting) return;
+    if (!validateTransferInput()) return;
+    if (password.isEmpty) {
+      Toast.show(S.current.walletPasswordRequired);
       return;
     }
 
@@ -67,14 +81,22 @@ class TransferController extends BaseController {
       isSubmitting = true;
       transactionHash = '';
       update();
+      final privateKeyHex = await _repository.readWalletPrivateKey(
+        walletId: args.walletId,
+        password: password,
+      );
       final hash = await _transferService.transfer(
-        privateKeyHex: args.privateKeyHex,
+        privateKeyHex: privateKeyHex,
         asset: args.asset,
         toAddress: addressController.text.trim(),
         amount: amountController.text.trim(),
       );
       transactionHash = hash;
       Toast.show(S.current.transferSubmitted);
+    } on WalletSecretMissingException {
+      Toast.show(S.current.walletSecretMissing);
+    } on WalletSecretInvalidPasswordException {
+      Toast.show(S.current.invalidWalletPassword);
     } catch (_) {
       Toast.show(S.current.transferFailed);
     } finally {

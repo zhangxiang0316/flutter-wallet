@@ -35,10 +35,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "balanceLoadFailed": MessageLookupByLibrary.simpleMessage("部分余额查询失败"),
     "confirmImport": MessageLookupByLibrary.simpleMessage("确认导入"),
     "confirmTransfer": MessageLookupByLibrary.simpleMessage("确认转账"),
+    "confirmWalletPassword": MessageLookupByLibrary.simpleMessage("确认钱包密码"),
     "copied": MessageLookupByLibrary.simpleMessage("已复制"),
     "copyHash": MessageLookupByLibrary.simpleMessage("复制哈希"),
     "createWallet": MessageLookupByLibrary.simpleMessage("创建钱包"),
     "email": MessageLookupByLibrary.simpleMessage("注册"),
+    "encryptWallet": MessageLookupByLibrary.simpleMessage("加密钱包"),
     "estimatedNetworkFee": MessageLookupByLibrary.simpleMessage("预计网络手续费"),
     "feeEstimating": MessageLookupByLibrary.simpleMessage("正在查询手续费..."),
     "feeFallback": m0,
@@ -46,6 +48,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "importPrivateKey": MessageLookupByLibrary.simpleMessage("导入私钥"),
     "importWallet": MessageLookupByLibrary.simpleMessage("导入钱包"),
     "invalidPrivateKey": MessageLookupByLibrary.simpleMessage("私钥格式不正确"),
+    "invalidWalletPassword": MessageLookupByLibrary.simpleMessage("钱包密码不正确"),
     "loading": MessageLookupByLibrary.simpleMessage("加载中..."),
     "login": MessageLookupByLibrary.simpleMessage("登录"),
     "networkFee": MessageLookupByLibrary.simpleMessage("网络手续费"),
@@ -59,7 +62,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
-      "当前版本使用本地存储保存私钥，仅适合测试环境。请勿导入存有真实资产的钱包。",
+      "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。",
     ),
     "switchWallet": MessageLookupByLibrary.simpleMessage("切换钱包"),
     "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
@@ -76,12 +79,33 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "transferSubmitted": MessageLookupByLibrary.simpleMessage("交易已提交"),
     "transferUnavailable": MessageLookupByLibrary.simpleMessage("转账信息不可用"),
+    "unlockWallet": MessageLookupByLibrary.simpleMessage("解锁钱包"),
+    "unlockWalletForTransfer": MessageLookupByLibrary.simpleMessage(
+      "请输入钱包密码解锁本机私钥，用于本次交易签名。",
+    ),
     "walletCreated": MessageLookupByLibrary.simpleMessage("钱包已创建"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
       "当前支持 BNB Smart Chain、Ethereum、X Layer 和 TRON 的地址管理与多资产链上余额查询。",
     ),
     "walletEmptyTitle": MessageLookupByLibrary.simpleMessage("创建或导入钱包"),
     "walletImported": MessageLookupByLibrary.simpleMessage("导入成功"),
+    "walletPassword": MessageLookupByLibrary.simpleMessage("钱包密码"),
+    "walletPasswordHint": MessageLookupByLibrary.simpleMessage(
+      "至少 6 位，用于加密本机私钥和转账前解锁。",
+    ),
+    "walletPasswordMismatch": MessageLookupByLibrary.simpleMessage(
+      "两次输入的钱包密码不一致",
+    ),
+    "walletPasswordRequired": MessageLookupByLibrary.simpleMessage("请输入钱包密码"),
+    "walletPasswordTooShort": MessageLookupByLibrary.simpleMessage(
+      "钱包密码至少 6 位",
+    ),
     "walletRemoved": MessageLookupByLibrary.simpleMessage("钱包已移除"),
+    "walletSecretMissing": MessageLookupByLibrary.simpleMessage("未找到该钱包的加密私钥"),
+    "walletSecurityMigrated": MessageLookupByLibrary.simpleMessage("钱包私钥已加密保存"),
+    "walletSecurityMigrationFailed": MessageLookupByLibrary.simpleMessage(
+      "钱包私钥加密失败，请重试",
+    ),
+    "walletSecurityUpgrade": MessageLookupByLibrary.simpleMessage("升级钱包安全"),
   };
 }

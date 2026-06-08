@@ -2,24 +2,27 @@ class WalletAccount {
   const WalletAccount({
     required this.id,
     required this.name,
-    required this.privateKeyHex,
     required this.bscAddress,
     required this.tronAddress,
     required this.createdAt,
+    this.privateKeyHex = '',
   });
 
   final String id;
   final String name;
+
+  /// Only populated for legacy wallets that were saved before secure storage.
   final String privateKeyHex;
   final String bscAddress;
   final String tronAddress;
   final DateTime createdAt;
 
+  bool get needsSecretMigration => privateKeyHex.isNotEmpty;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
-      'privateKeyHex': privateKeyHex,
       'bscAddress': bscAddress,
       'tronAddress': tronAddress,
       'createdAt': createdAt.toIso8601String(),

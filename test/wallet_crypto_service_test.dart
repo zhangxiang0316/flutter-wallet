@@ -1,10 +1,17 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:decimal/decimal.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
+import 'package:omnicast/wallet/models/wallet_account.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/asset_valuation_service.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
 import 'package:omnicast/wallet/services/wallet_crypto_service.dart';
+import 'package:omnicast/wallet/services/wallet_secret_store.dart';
 import 'package:omnicast/wallet/services/wallet_transfer_service.dart';
 
 void main() {
@@ -35,6 +42,53 @@ void main() {
     });
   });
 
+  group('WalletAccount', () {
+    test('does not serialize private keys to plain storage', () {
+      final wallet = WalletAccount(
+        id: 'wallet-1',
+        name: 'Wallet 1',
+        bscAddress: '0x1',
+        tronAddress: 'T1',
+        createdAt: DateTime.utc(2026),
+        privateKeyHex: 'legacy-private-key',
+      );
+
+      expect(wallet.needsSecretMigration, isTrue);
+      expect(wallet.toJson().containsKey('privateKeyHex'), isFalse);
+    });
+  });
+
+  group('WalletSecretStore', () {
+    setUp(() {
+      FlutterSecureStorage.setMockInitialValues({});
+    });
+
+    test('encrypts private keys and rejects invalid passwords', () async {
+      const privateKey =
+          '0000000000000000000000000000000000000000000000000000000000000001';
+      final store = WalletSecretStore();
+
+      await store.savePrivateKey(
+        walletId: 'wallet-1',
+        password: 'secret123',
+        privateKeyHex: privateKey,
+      );
+
+      expect(await store.hasPrivateKey('wallet-1'), isTrue);
+      expect(
+        await store.readPrivateKey(walletId: 'wallet-1', password: 'secret123'),
+        privateKey,
+      );
+      expect(
+        () => store.readPrivateKey(walletId: 'wallet-1', password: 'wrong'),
+        throwsA(isA<WalletSecretInvalidPasswordException>()),
+      );
+
+      final rawStorage = await const FlutterSecureStorage().readAll();
+      expect(rawStorage.values.join(), isNot(contains(privateKey)));
+    });
+  });
+
   group('ChainBalanceService', () {
     test('encodes ERC20 balanceOf calls', () {
       expect(
@@ -43,6 +97,48 @@ void main() {
         ),
         '0x70a082310000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf',
       );
+    });
+
+    test('falls back to the next EVM RPC when the primary fails', () async {
+      final dio = Dio();
+      final adapter = _FallbackRpcAdapter();
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(dio: dio);
+
+      final balances = await service.loadBalances(
+        bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+      );
+
+      final bnb = balances.firstWhere(
+        (balance) =>
+            balance.chain == WalletChain.bsc && balance.symbol == 'BNB',
+      );
+      expect(bnb.amount, '1');
+      expect(bnb.error, isNull);
+      expect(adapter.calls, contains('https://bsc-dataseed.bnbchain.org'));
+      expect(adapter.calls, contains('https://bsc-rpc.publicnode.com'));
+    });
+
+    test('falls back to the next TRON RPC when TronGrid fails', () async {
+      final dio = Dio();
+      final adapter = _FallbackRpcAdapter(failTronGridAccount: true);
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(dio: dio);
+
+      final balances = await service.loadBalances(
+        bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+      );
+
+      final trx = balances.firstWhere(
+        (balance) =>
+            balance.chain == WalletChain.tron && balance.symbol == 'TRX',
+      );
+      expect(trx.amount, '1');
+      expect(trx.error, isNull);
+      expect(adapter.calls, contains('https://api.trongrid.io'));
+      expect(adapter.calls, contains('https://tron-rpc.publicnode.com'));
     });
   });
 
@@ -341,4 +437,83 @@ void main() {
       );
     });
   });
+}
+
+class _FallbackRpcAdapter implements HttpClientAdapter {
+  _FallbackRpcAdapter({this.failTronGridAccount = false});
+
+  final bool failTronGridAccount;
+  final calls = <String>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    final origin = '${options.uri.scheme}://${options.uri.host}';
+    calls.add(origin);
+
+    if (origin == 'https://bsc-dataseed.bnbchain.org') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'error': {'code': -32000, 'message': 'temporary upstream error'},
+      });
+    }
+
+    if (origin == 'https://bsc-rpc.publicnode.com') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'result': _isEvmNativeRequest(options.data)
+            ? '0x0de0b6b3a7640000'
+            : '0x0',
+      });
+    }
+
+    if (origin == 'https://ethereum-rpc.publicnode.com' ||
+        origin == 'https://rpc.xlayer.tech') {
+      return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x0'});
+    }
+
+    if (origin == 'https://api.trongrid.io' &&
+        options.uri.path == '/wallet/getaccount') {
+      if (failTronGridAccount) {
+        return _jsonResponse({
+          'Error': 'temporary upstream error',
+        }, statusCode: 500);
+      }
+      return _jsonResponse({'balance': 0});
+    }
+
+    if (origin == 'https://tron-rpc.publicnode.com' &&
+        options.uri.path == '/wallet/getaccount') {
+      return _jsonResponse({'balance': 1000000});
+    }
+
+    if (origin == 'https://api.trongrid.io' &&
+        options.uri.path.startsWith('/v1/accounts/')) {
+      return _jsonResponse({'data': []});
+    }
+
+    return _jsonResponse({}, statusCode: 404);
+  }
+
+  bool _isEvmNativeRequest(dynamic data) {
+    return data is Map && data['method'] == 'eth_getBalance';
+  }
+
+  ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {
+    return ResponseBody.fromString(
+      jsonEncode(data),
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

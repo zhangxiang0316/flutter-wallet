@@ -20,6 +20,24 @@ class ChainBalanceService {
 
   final Dio _dio;
   static const Duration _requestTimeout = Duration(seconds: 12);
+  static const Map<WalletChain, List<String>> _evmRpcFallbacks = {
+    WalletChain.bsc: [
+      'https://bsc-dataseed.bnbchain.org',
+      'https://bsc-rpc.publicnode.com',
+    ],
+    WalletChain.ethereum: [
+      'https://ethereum-rpc.publicnode.com',
+      'https://eth.llamarpc.com',
+    ],
+    WalletChain.xLayer: [
+      'https://rpc.xlayer.tech',
+      'https://xlayerrpc.okx.com',
+    ],
+  };
+  static const List<String> _tronRpcFallbacks = [
+    'https://api.trongrid.io',
+    'https://tron-rpc.publicnode.com',
+  ];
 
   Future<List<ChainBalance>> loadBalances({
     required String bscAddress,
@@ -46,6 +64,75 @@ class ChainBalanceService {
     final balances = results.expand((items) => items).toList();
     _printLoadedBalances(results, balances);
     return balances;
+  }
+
+  Future<Map<dynamic, dynamic>> _postEvmRpc({
+    required WalletChain chain,
+    required Map<String, dynamic> data,
+  }) async {
+    Object? lastError;
+    for (final rpcUrl in _evmRpcUrls(chain)) {
+      try {
+        final response = await _dio.post(
+          rpcUrl,
+          data: data,
+          options: Options(headers: {'content-type': 'application/json'}),
+        );
+        final responseData = response.data;
+        if (responseData is Map && responseData['result'] is String) {
+          return responseData;
+        }
+        if (responseData is Map && responseData['error'] != null) {
+          throw StateError('${chain.name} RPC error: ${responseData['error']}');
+        }
+        throw StateError('Invalid ${chain.name} RPC response');
+      } catch (error) {
+        lastError = error;
+        developer.log(
+          '${chain.name} RPC request failed at $rpcUrl: $error',
+          name: 'ChainBalanceService',
+        );
+      }
+    }
+    throw StateError(
+      '${chain.name} RPC request failed: ${lastError ?? 'unknown error'}',
+    );
+  }
+
+  List<String> _evmRpcUrls(WalletChain chain) {
+    return _evmRpcFallbacks[chain] ?? [chain.rpcUrl];
+  }
+
+  Future<Map<dynamic, dynamic>> _postTronAccount(String address) async {
+    Object? lastError;
+    for (final rpcUrl in _tronRpcFallbacks) {
+      try {
+        final response = await _dio.post(
+          '$rpcUrl/wallet/getaccount',
+          data: {'address': address, 'visible': true},
+          options: Options(headers: {'content-type': 'application/json'}),
+        );
+        final responseData = response.data;
+        if (responseData is Map) {
+          if (responseData['Error'] != null || responseData['error'] != null) {
+            throw StateError(
+              'TRON RPC error: ${responseData['Error'] ?? responseData['error']}',
+            );
+          }
+          return responseData;
+        }
+        throw StateError('Invalid TRON response');
+      } catch (error) {
+        lastError = error;
+        developer.log(
+          'TRON account request failed at $rpcUrl: $error',
+          name: 'ChainBalanceService',
+        );
+      }
+    }
+    throw StateError(
+      'TRON account request failed: ${lastError ?? 'unknown error'}',
+    );
   }
 
   void _printLoadedBalances(
@@ -107,39 +194,23 @@ class ChainBalanceService {
     required String address,
   }) async {
     try {
-      final response = await _dio.post(
-        chain.rpcUrl,
+      final data = await _postEvmRpc(
+        chain: chain,
         data: {
           'jsonrpc': '2.0',
           'method': 'eth_getBalance',
           'params': [address, 'latest'],
           'id': 1,
         },
-        options: Options(headers: {'content-type': 'application/json'}),
       );
-      final data = response.data;
-      if (data is Map && data['result'] is String) {
-        final wei = BigInt.parse(
-          (data['result'] as String).replaceFirst('0x', ''),
-          radix: 16,
-        );
-        return ChainBalance(
-          chain: chain,
-          symbol: asset.symbol,
-          name: asset.name,
-          amount: _formatUnits(wei, asset.decimals),
-          address: address,
-          decimals: asset.decimals,
-        );
-      }
+      final wei = _parseHexQuantity(data['result'] as String);
       return ChainBalance(
         chain: chain,
         symbol: asset.symbol,
         name: asset.name,
-        amount: '0',
+        amount: _formatUnits(wei, asset.decimals),
         address: address,
         decimals: asset.decimals,
-        error: 'Invalid ${chain.name} response',
       );
     } catch (e) {
       return ChainBalance(
@@ -160,8 +231,8 @@ class ChainBalanceService {
     required String address,
   }) async {
     try {
-      final response = await _dio.post(
-        chain.rpcUrl,
+      final data = await _postEvmRpc(
+        chain: chain,
         data: {
           'jsonrpc': '2.0',
           'method': 'eth_call',
@@ -171,33 +242,16 @@ class ChainBalanceService {
           ],
           'id': 1,
         },
-        options: Options(headers: {'content-type': 'application/json'}),
       );
-      final data = response.data;
-      if (data is Map && data['result'] is String) {
-        final result = (data['result'] as String).replaceFirst('0x', '');
-        final value = result.isEmpty
-            ? BigInt.zero
-            : BigInt.parse(result, radix: 16);
-        return ChainBalance(
-          chain: chain,
-          symbol: asset.symbol,
-          name: asset.name,
-          amount: _formatUnits(value, asset.decimals),
-          address: address,
-          contractAddress: asset.contractAddress,
-          decimals: asset.decimals,
-        );
-      }
+      final value = _parseHexQuantity(data['result'] as String);
       return ChainBalance(
         chain: chain,
         symbol: asset.symbol,
         name: asset.name,
-        amount: '0',
+        amount: _formatUnits(value, asset.decimals),
         address: address,
         contractAddress: asset.contractAddress,
         decimals: asset.decimals,
-        error: 'Invalid ${chain.name} token response',
       );
     } catch (e) {
       return ChainBalance(
@@ -245,34 +299,18 @@ class ChainBalanceService {
   Future<ChainBalance> _loadTronNativeBalance(String address) async {
     final asset = WalletAssetRegistry.tronAssets.first;
     try {
-      final response = await _dio.post(
-        '${WalletChain.tron.rpcUrl}/wallet/getaccount',
-        data: {'address': address, 'visible': true},
-        options: Options(headers: {'content-type': 'application/json'}),
-      );
-      final data = response.data;
-      if (data is Map) {
-        final balance = data['balance'];
-        final sun = balance is int
-            ? BigInt.from(balance)
-            : BigInt.tryParse(balance?.toString() ?? '0') ?? BigInt.zero;
-        return ChainBalance(
-          chain: WalletChain.tron,
-          symbol: asset.symbol,
-          name: asset.name,
-          amount: _formatUnits(sun, asset.decimals),
-          address: address,
-          decimals: asset.decimals,
-        );
-      }
+      final data = await _postTronAccount(address);
+      final balance = data['balance'];
+      final sun = balance is int
+          ? BigInt.from(balance)
+          : BigInt.tryParse(balance?.toString() ?? '0') ?? BigInt.zero;
       return ChainBalance(
         chain: WalletChain.tron,
         symbol: asset.symbol,
         name: asset.name,
-        amount: '0',
+        amount: _formatUnits(sun, asset.decimals),
         address: address,
         decimals: asset.decimals,
-        error: 'Invalid TRON response',
       );
     } catch (e) {
       return ChainBalance(
@@ -348,6 +386,14 @@ class ChainBalanceService {
   static String erc20BalanceOfData(String address) {
     final cleanAddress = address.replaceFirst('0x', '').toLowerCase();
     return '0x70a08231${cleanAddress.padLeft(64, '0')}';
+  }
+
+  BigInt _parseHexQuantity(String value) {
+    final cleanValue = value.replaceFirst('0x', '');
+    if (cleanValue.isEmpty) {
+      return BigInt.zero;
+    }
+    return BigInt.parse(cleanValue, radix: 16);
   }
 
   String _formatUnits(BigInt value, int decimals) {

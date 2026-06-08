@@ -179,10 +179,10 @@ class S {
     );
   }
 
-  /// `This version stores private keys locally and is only suitable for testing. Do not import wallets with real assets.`
+  /// `Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.`
   String get securityNoticeDetail {
     return Intl.message(
-      'This version stores private keys locally and is only suitable for testing. Do not import wallets with real assets.',
+      'Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.',
       name: 'securityNoticeDetail',
       desc: '',
       args: [],
@@ -212,6 +212,146 @@ class S {
   /// `Import`
   String get confirmImport {
     return Intl.message('Import', name: 'confirmImport', desc: '', args: []);
+  }
+
+  /// `Wallet password`
+  String get walletPassword {
+    return Intl.message(
+      'Wallet password',
+      name: 'walletPassword',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `At least 6 characters. Used to encrypt local private keys and unlock transfers.`
+  String get walletPasswordHint {
+    return Intl.message(
+      'At least 6 characters. Used to encrypt local private keys and unlock transfers.',
+      name: 'walletPasswordHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm wallet password`
+  String get confirmWalletPassword {
+    return Intl.message(
+      'Confirm wallet password',
+      name: 'confirmWalletPassword',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the wallet password`
+  String get walletPasswordRequired {
+    return Intl.message(
+      'Enter the wallet password',
+      name: 'walletPasswordRequired',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet password must be at least 6 characters`
+  String get walletPasswordTooShort {
+    return Intl.message(
+      'Wallet password must be at least 6 characters',
+      name: 'walletPasswordTooShort',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet passwords do not match`
+  String get walletPasswordMismatch {
+    return Intl.message(
+      'Wallet passwords do not match',
+      name: 'walletPasswordMismatch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unlock wallet`
+  String get unlockWallet {
+    return Intl.message(
+      'Unlock wallet',
+      name: 'unlockWallet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the wallet password to unlock the local private key for this transaction.`
+  String get unlockWalletForTransfer {
+    return Intl.message(
+      'Enter the wallet password to unlock the local private key for this transaction.',
+      name: 'unlockWalletForTransfer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Incorrect wallet password`
+  String get invalidWalletPassword {
+    return Intl.message(
+      'Incorrect wallet password',
+      name: 'invalidWalletPassword',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Encrypted private key was not found for this wallet`
+  String get walletSecretMissing {
+    return Intl.message(
+      'Encrypted private key was not found for this wallet',
+      name: 'walletSecretMissing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Upgrade wallet security`
+  String get walletSecurityUpgrade {
+    return Intl.message(
+      'Upgrade wallet security',
+      name: 'walletSecurityUpgrade',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Encrypt wallet`
+  String get encryptWallet {
+    return Intl.message(
+      'Encrypt wallet',
+      name: 'encryptWallet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet private key encrypted`
+  String get walletSecurityMigrated {
+    return Intl.message(
+      'Wallet private key encrypted',
+      name: 'walletSecurityMigrated',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to encrypt wallet private key. Try again.`
+  String get walletSecurityMigrationFailed {
+    return Intl.message(
+      'Failed to encrypt wallet private key. Try again.',
+      name: 'walletSecurityMigrationFailed',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Wallet created`

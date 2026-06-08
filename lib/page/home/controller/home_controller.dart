@@ -42,6 +42,11 @@ class HomeController extends BaseController {
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
 
+  /// 旧版本钱包仍含明文私钥时为 true，需要先设置密码完成迁移。
+  bool needsSecretMigration = false;
+
+  bool isMigratingSecrets = false;
+
   /// 当前已展开的链。默认空集合，首页只展示链信息。
   final Set<String> expandedChainIds = {};
 
@@ -58,6 +63,7 @@ class HomeController extends BaseController {
   Future<void> loadWallet() async {
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
+    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
     update();
     if (wallet != null) {
       _startBalanceRefreshTimer();
@@ -66,24 +72,29 @@ class HomeController extends BaseController {
   }
 
   /// 随机生成私钥并创建测试钱包，保存后刷新链上余额。
-  Future<void> createWallet() async {
+  Future<bool> createWallet(String password) async {
     final keyPair = _cryptoService.importPrivateKey(
       _cryptoService.generatePrivateKeyHex(),
     );
     final nextWallet = WalletAccount(
       id: _createWalletId(keyPair.bscAddress),
       name: 'Wallet ${wallets.length + 1}',
-      privateKeyHex: keyPair.privateKeyHex,
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
       createdAt: DateTime.now(),
     );
+    await _repository.saveWalletSecret(
+      walletId: nextWallet.id,
+      password: password,
+      privateKeyHex: keyPair.privateKeyHex,
+    );
     await _saveAndSelectWallet(nextWallet);
     Toast.show(S.current.walletCreated);
+    return true;
   }
 
   /// 导入用户输入的私钥，派生 EVM/TRON 地址并保存到本地。
-  Future<bool> importWallet(String privateKey) async {
+  Future<bool> importWallet(String privateKey, String password) async {
     try {
       final keyPair = _cryptoService.importPrivateKey(privateKey);
       final existingIndex = wallets.indexWhere(
@@ -95,10 +106,14 @@ class HomeController extends BaseController {
         name: existingIndex >= 0
             ? wallets[existingIndex].name
             : 'Wallet ${wallets.length + 1}',
-        privateKeyHex: keyPair.privateKeyHex,
         bscAddress: keyPair.bscAddress,
         tronAddress: keyPair.tronAddress,
         createdAt: DateTime.now(),
+      );
+      await _repository.saveWalletSecret(
+        walletId: nextWallet.id,
+        password: password,
+        privateKeyHex: keyPair.privateKeyHex,
       );
       await _saveAndSelectWallet(nextWallet);
       Toast.show(S.current.walletImported);
@@ -106,6 +121,27 @@ class HomeController extends BaseController {
     } catch (_) {
       Toast.show(S.current.invalidPrivateKey);
       return false;
+    }
+  }
+
+  Future<bool> migrateLegacySecrets(String password) async {
+    if (isMigratingSecrets) return false;
+    try {
+      isMigratingSecrets = true;
+      update();
+      await _repository.migrateLegacyPlainSecrets(password);
+      wallets = await _repository.loadWallets();
+      wallet = await _repository.loadCurrentWallet();
+      needsSecretMigration = false;
+      Toast.show(S.current.walletSecurityMigrated);
+      update();
+      return true;
+    } catch (_) {
+      Toast.show(S.current.walletSecurityMigrationFailed);
+      return false;
+    } finally {
+      isMigratingSecrets = false;
+      update();
     }
   }
 
@@ -117,32 +153,42 @@ class HomeController extends BaseController {
     isLoading = true;
     update();
 
-    final priceFuture = _valuationService.loadSupportedUsdPrices().catchError(
-      (_) => _valuationService.cachedUsdPrices,
-    );
+    try {
+      final nextBalances = await _balanceService.loadBalances(
+        bscAddress: currentWallet.bscAddress,
+        tronAddress: currentWallet.tronAddress,
+      );
+      if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
+        return;
+      }
+      balances = nextBalances;
+      _refreshTotalAssetsFromCachedPrices();
+      isLoading = false;
+      update();
 
-    final nextBalances = await _balanceService.loadBalances(
-      bscAddress: currentWallet.bscAddress,
-      tronAddress: currentWallet.tronAddress,
-    );
-    if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
-      return;
+      final latestPrices = await _valuationService
+          .loadUsdPrices(balances)
+          .catchError((_) => _valuationService.cachedUsdPrices);
+      if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
+        return;
+      }
+      final totalValue = _valuationService.calculateTotalUsdValue(
+        balances,
+        prices: latestPrices,
+      );
+      totalAssetsText = _valuationService.formatUsdValue(totalValue);
+      update();
+    } catch (_) {
+      if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
+        return;
+      }
+      Toast.show(S.current.balanceLoadFailed);
+    } finally {
+      if (requestId == _balanceRequestId && wallet?.id == currentWallet.id) {
+        isLoading = false;
+        update();
+      }
     }
-    balances = nextBalances;
-    _refreshTotalAssetsFromCachedPrices();
-    isLoading = false;
-    update();
-
-    final latestPrices = await priceFuture;
-    if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
-      return;
-    }
-    final totalValue = _valuationService.calculateTotalUsdValue(
-      balances,
-      prices: latestPrices,
-    );
-    totalAssetsText = _valuationService.formatUsdValue(totalValue);
-    update();
   }
 
   /// 根据当前余额计算美元估值，并更新首页头部展示。
@@ -188,6 +234,7 @@ class HomeController extends BaseController {
     await _repository.removeWallet(currentWallet.id);
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
+    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
     _resetWalletState();
     update();
     if (wallet == null) {
@@ -206,6 +253,7 @@ class HomeController extends BaseController {
       (item) => item.id == nextWallet.id,
       orElse: () => nextWallet,
     );
+    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
     _resetWalletState();
     update();
     _startBalanceRefreshTimer();

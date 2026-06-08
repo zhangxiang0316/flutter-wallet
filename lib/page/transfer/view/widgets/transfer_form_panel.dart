@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
+import '../../../../utils/toast_util.dart';
 import '../../../../wallet/models/chain_balance.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_styles.dart';
@@ -79,7 +80,9 @@ class TransferFormPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
-              onPressed: controller.isSubmitting ? null : controller.submit,
+              onPressed: controller.isSubmitting
+                  ? null
+                  : () => _showUnlockSheet(context),
               icon: controller.isSubmitting
                   ? SizedBox(
                       width: 16.w,
@@ -99,5 +102,114 @@ class TransferFormPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showUnlockSheet(BuildContext context) async {
+    if (!controller.validateTransferInput()) return;
+
+    final passwordController = TextEditingController();
+    final password = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (sheetContext) {
+        final colorScheme = Theme.of(sheetContext).colorScheme;
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16.w,
+            right: 16.w,
+            top: 4.h,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 18.h,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34.w,
+                    height: 34.w,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Icon(
+                      Icons.lock_open_rounded,
+                      size: 19.w,
+                      color: colorScheme.primary,
+                    ),
+                  ).marginOnly(right: 10.w),
+                  Expanded(
+                    child: Text(
+                      S.of(sheetContext).unlockWallet,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ).marginOnly(bottom: 12.h),
+              Text(
+                S.of(sheetContext).unlockWalletForTransfer,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  height: 1.35,
+                  color: colorScheme.onSurface.withValues(alpha: 0.62),
+                ),
+              ).marginOnly(bottom: 14.h),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                autofocus: true,
+                decoration: transferInputDecoration(
+                  sheetContext,
+                  label: S.of(sheetContext).walletPassword,
+                  icon: Icons.lock_outline_rounded,
+                ),
+                onSubmitted: (_) => _submitPassword(
+                  sheetContext,
+                  passwordController.text.trim(),
+                ),
+              ).marginOnly(bottom: 14.h),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: Size.fromHeight(42.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                  onPressed: () => _submitPassword(
+                    sheetContext,
+                    passwordController.text.trim(),
+                  ),
+                  icon: const Icon(Icons.verified_user_outlined),
+                  label: Text(S.of(sheetContext).confirmTransfer),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    passwordController.dispose();
+    if (password == null) return;
+    await controller.submit(password);
+  }
+
+  void _submitPassword(BuildContext context, String password) {
+    if (password.isEmpty) {
+      Toast.show(S.current.walletPasswordRequired);
+      return;
+    }
+    Navigator.of(context).pop(password);
   }
 }

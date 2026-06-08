@@ -6,6 +6,7 @@ import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
 import '../../../generated/route_table.dart';
 import '../../../page/transfer/controller/transfer_controller.dart';
+import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/chain_section.dart';
@@ -69,6 +70,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   @override
   Widget? getBody() {
     final wallet = controller.wallet;
+    _scheduleLegacyMigrationSheet();
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 22.h),
@@ -77,7 +79,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         children: wallet == null
             ? [
                 EmptyWalletCard(
-                  onCreateWallet: controller.createWallet,
+                  onCreateWallet: _showCreateWalletSheet,
                   onImportWallet: _showImportSheet,
                 ),
               ]
@@ -118,7 +120,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// 导入私钥的底部弹窗，提交后由控制器校验并持久化钱包。
   void _showImportSheet() {
-    final textController = TextEditingController();
+    final privateKeyController = TextEditingController();
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
     showModalBottomSheet(
       context: context!,
       isScrollControlled: true,
@@ -145,7 +149,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
               ).marginOnly(bottom: 12.h),
               TextField(
-                controller: textController,
+                controller: privateKeyController,
                 minLines: 2,
                 maxLines: 4,
                 decoration: InputDecoration(
@@ -174,6 +178,15 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   ),
                 ),
               ).marginOnly(bottom: 14.h),
+              _PasswordTextField(
+                controller: passwordController,
+                label: S.of(context!).walletPassword,
+                hint: S.of(context!).walletPasswordHint,
+              ).marginOnly(bottom: 12.h),
+              _PasswordTextField(
+                controller: confirmPasswordController,
+                label: S.of(context!).confirmWalletPassword,
+              ).marginOnly(bottom: 14.h),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -184,8 +197,16 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                     ),
                   ),
                   onPressed: () async {
+                    final password = passwordController.text.trim();
+                    if (!_validatePassword(
+                      password,
+                      confirmPasswordController.text.trim(),
+                    )) {
+                      return;
+                    }
                     final ok = await controller.importWallet(
-                      textController.text,
+                      privateKeyController.text,
+                      password,
                     );
                     if (ok && sheetContext.mounted) {
                       Navigator.of(sheetContext).pop();
@@ -198,6 +219,18 @@ class HomePage extends BaseScaffoldPage<HomeController> {
           ),
         );
       },
+    ).whenComplete(() {
+      privateKeyController.dispose();
+      passwordController.dispose();
+      confirmPasswordController.dispose();
+    });
+  }
+
+  void _showCreateWalletSheet() {
+    _showPasswordSetupSheet(
+      title: S.of(context!).createWallet,
+      submitLabel: S.of(context!).createWallet,
+      onSubmit: controller.createWallet,
     );
   }
 
@@ -231,7 +264,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   ),
                   onPressed: () async {
                     Navigator.of(sheetContext).pop();
-                    await controller.createWallet();
+                    _showCreateWalletSheet();
                   },
                   icon: const Icon(Icons.add_rounded),
                   label: Text(S.of(context!).createWallet),
@@ -261,6 +294,135 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     );
   }
 
+  void _showPasswordSetupSheet({
+    required String title,
+    required String submitLabel,
+    required Future<bool> Function(String password) onSubmit,
+    bool isDismissible = true,
+  }) {
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    showModalBottomSheet(
+      context: context!,
+      isScrollControlled: true,
+      isDismissible: isDismissible,
+      enableDrag: isDismissible,
+      showDragHandle: isDismissible,
+      backgroundColor: Theme.of(context!).cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (sheetContext) {
+        return PopScope(
+          canPop: isDismissible,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16.w,
+              right: 16.w,
+              top: isDismissible ? 4.h : 18.h,
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 18.h,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ).marginOnly(bottom: 12.h),
+                Text(
+                  S.of(context!).walletPasswordHint,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    height: 1.35,
+                    color: Theme.of(
+                      sheetContext,
+                    ).colorScheme.onSurface.withValues(alpha: 0.62),
+                  ),
+                ).marginOnly(bottom: 14.h),
+                _PasswordTextField(
+                  controller: passwordController,
+                  label: S.of(context!).walletPassword,
+                ).marginOnly(bottom: 12.h),
+                _PasswordTextField(
+                  controller: confirmPasswordController,
+                  label: S.of(context!).confirmWalletPassword,
+                ).marginOnly(bottom: 14.h),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: Size.fromHeight(42.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final password = passwordController.text.trim();
+                      if (!_validatePassword(
+                        password,
+                        confirmPasswordController.text.trim(),
+                      )) {
+                        return;
+                      }
+                      final ok = await onSubmit(password);
+                      if (ok && sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                    },
+                    child: Text(submitLabel),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).whenComplete(() {
+      passwordController.dispose();
+      confirmPasswordController.dispose();
+    });
+  }
+
+  void _scheduleLegacyMigrationSheet() {
+    if (!controller.needsSecretMigration || _legacyMigrationSheetVisible) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!controller.needsSecretMigration ||
+          _legacyMigrationSheetVisible ||
+          context == null) {
+        return;
+      }
+      _legacyMigrationSheetVisible = true;
+      _showPasswordSetupSheet(
+        title: S.of(context!).walletSecurityUpgrade,
+        submitLabel: S.of(context!).encryptWallet,
+        isDismissible: false,
+        onSubmit: controller.migrateLegacySecrets,
+      );
+    });
+  }
+
+  bool _validatePassword(String password, String confirmPassword) {
+    if (password.isEmpty) {
+      Toast.show(S.current.walletPasswordRequired);
+      return false;
+    }
+    if (password.length < 6) {
+      Toast.show(S.current.walletPasswordTooShort);
+      return false;
+    }
+    if (password != confirmPassword) {
+      Toast.show(S.current.walletPasswordMismatch);
+      return false;
+    }
+    return true;
+  }
+
   /// 打开转账页面；页面返回成功结果后刷新首页余额。
   Future<void> _openTransferPage(ChainBalance balance) async {
     final currentWallet = controller.wallet;
@@ -268,7 +430,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     final submitted = await Get.toNamed(
       RouteTable.transfer,
       arguments: TransferPageArguments(
-        privateKeyHex: currentWallet.privateKeyHex,
+        walletId: currentWallet.id,
         asset: balance,
       ),
     );
@@ -276,6 +438,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       controller.refreshBalances();
     }
   }
+
+  bool _legacyMigrationSheetVisible = false;
 }
 
 class _HomeBackground extends StatelessWidget {
@@ -301,6 +465,51 @@ class _HomeBackground extends StatelessWidget {
         ),
       ),
       child: child,
+    );
+  }
+}
+
+class _PasswordTextField extends StatelessWidget {
+  const _PasswordTextField({
+    required this.controller,
+    required this.label,
+    this.hint,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return TextField(
+      controller: controller,
+      obscureText: true,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: colorScheme.onSurface.withValues(alpha: 0.04),
+        labelText: label,
+        hintText: hint,
+        prefixIcon: const Icon(Icons.lock_outline_rounded),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.r),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withValues(alpha: 0.3),
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.r),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withValues(alpha: 0.22),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.r),
+          borderSide: BorderSide(color: colorScheme.primary),
+        ),
+      ),
     );
   }
 }

@@ -1,10 +1,14 @@
 import '../../utils/storage.dart';
 import '../models/wallet_account.dart';
+import 'wallet_secret_store.dart';
 
 class WalletRepository {
-  WalletRepository({Storage? storage}) : _storage = storage ?? Storage();
+  WalletRepository({Storage? storage, WalletSecretStore? secretStore})
+    : _storage = storage ?? Storage(),
+      _secretStore = secretStore ?? WalletSecretStore();
 
   final Storage _storage;
+  final WalletSecretStore _secretStore;
   static const String _walletKey = 'crypto_wallet_account';
   static const String _walletsKey = 'crypto_wallet_accounts';
   static const String _currentWalletIdKey = 'crypto_current_wallet_id';
@@ -24,8 +28,6 @@ class WalletRepository {
     if (legacyWallet == null) {
       return [];
     }
-    await saveWallets([legacyWallet], currentWalletId: legacyWallet.id);
-    await _storage.removeStorage(_walletKey);
     return [legacyWallet];
   }
 
@@ -52,7 +54,12 @@ class WalletRepository {
   Future<void> saveWallets(
     List<WalletAccount> wallets, {
     String? currentWalletId,
+    bool allowDroppingLegacySecrets = false,
   }) async {
+    if (!allowDroppingLegacySecrets &&
+        wallets.any((wallet) => wallet.needsSecretMigration)) {
+      throw StateError('Legacy wallet secrets must be migrated before saving');
+    }
     await _storage.setStorage(
       _walletsKey,
       wallets.map((wallet) => wallet.toJson()).toList(),
@@ -73,6 +80,62 @@ class WalletRepository {
     await saveWallets(wallets, currentWalletId: wallet.id);
   }
 
+  Future<void> saveWalletSecret({
+    required String walletId,
+    required String password,
+    required String privateKeyHex,
+  }) {
+    return _secretStore.savePrivateKey(
+      walletId: walletId,
+      password: password,
+      privateKeyHex: privateKeyHex,
+    );
+  }
+
+  Future<String> readWalletPrivateKey({
+    required String walletId,
+    required String password,
+  }) {
+    return _secretStore.readPrivateKey(walletId: walletId, password: password);
+  }
+
+  Future<bool> hasWalletSecret(String walletId) {
+    return _secretStore.hasPrivateKey(walletId);
+  }
+
+  Future<bool> hasLegacyPlainSecrets() async {
+    final wallets = await loadWallets();
+    return wallets.any((wallet) => wallet.needsSecretMigration);
+  }
+
+  Future<void> migrateLegacyPlainSecrets(String password) async {
+    final wallets = await loadWallets();
+    final legacyWallets = wallets
+        .where((wallet) {
+          return wallet.needsSecretMigration;
+        })
+        .toList(growable: false);
+
+    if (legacyWallets.isEmpty) {
+      return;
+    }
+
+    for (final wallet in legacyWallets) {
+      await _secretStore.migratePlainSecret(
+        walletId: wallet.id,
+        password: password,
+        privateKeyHex: wallet.privateKeyHex,
+      );
+    }
+
+    await saveWallets(
+      wallets,
+      currentWalletId: await loadCurrentWalletId() ?? wallets.first.id,
+      allowDroppingLegacySecrets: true,
+    );
+    await _storage.removeStorage(_walletKey);
+  }
+
   Future<void> setCurrentWalletId(String walletId) {
     return _storage.setStorage(_currentWalletIdKey, walletId);
   }
@@ -86,6 +149,7 @@ class WalletRepository {
         : currentId;
 
     await saveWallets(wallets, currentWalletId: nextCurrentId);
+    await _secretStore.removePrivateKey(walletId);
     if (nextCurrentId == null) {
       await _storage.removeStorage(_currentWalletIdKey);
     }

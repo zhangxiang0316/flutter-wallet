@@ -40,10 +40,14 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "confirmImport": MessageLookupByLibrary.simpleMessage("Import"),
     "confirmTransfer": MessageLookupByLibrary.simpleMessage("Transfer"),
+    "confirmWalletPassword": MessageLookupByLibrary.simpleMessage(
+      "Confirm wallet password",
+    ),
     "copied": MessageLookupByLibrary.simpleMessage("Copied"),
     "copyHash": MessageLookupByLibrary.simpleMessage("Copy hash"),
     "createWallet": MessageLookupByLibrary.simpleMessage("Create wallet"),
     "email": MessageLookupByLibrary.simpleMessage("email"),
+    "encryptWallet": MessageLookupByLibrary.simpleMessage("Encrypt wallet"),
     "estimatedNetworkFee": MessageLookupByLibrary.simpleMessage(
       "Estimated network fee",
     ),
@@ -58,6 +62,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "importWallet": MessageLookupByLibrary.simpleMessage("Import wallet"),
     "invalidPrivateKey": MessageLookupByLibrary.simpleMessage(
       "Invalid private key",
+    ),
+    "invalidWalletPassword": MessageLookupByLibrary.simpleMessage(
+      "Incorrect wallet password",
     ),
     "loading": MessageLookupByLibrary.simpleMessage("Loading..."),
     "login": MessageLookupByLibrary.simpleMessage("login"),
@@ -74,7 +81,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("Security notice"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
-      "This version stores private keys locally and is only suitable for testing. Do not import wallets with real assets.",
+      "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.",
     ),
     "switchWallet": MessageLookupByLibrary.simpleMessage("Switch wallet"),
     "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
@@ -95,6 +102,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "transferUnavailable": MessageLookupByLibrary.simpleMessage(
       "Transfer details are unavailable",
     ),
+    "unlockWallet": MessageLookupByLibrary.simpleMessage("Unlock wallet"),
+    "unlockWalletForTransfer": MessageLookupByLibrary.simpleMessage(
+      "Enter the wallet password to unlock the local private key for this transaction.",
+    ),
     "walletCreated": MessageLookupByLibrary.simpleMessage("Wallet created"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
       "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.",
@@ -103,6 +114,31 @@ class MessageLookup extends MessageLookupByLibrary {
       "Create or import a wallet",
     ),
     "walletImported": MessageLookupByLibrary.simpleMessage("Import successful"),
+    "walletPassword": MessageLookupByLibrary.simpleMessage("Wallet password"),
+    "walletPasswordHint": MessageLookupByLibrary.simpleMessage(
+      "At least 6 characters. Used to encrypt local private keys and unlock transfers.",
+    ),
+    "walletPasswordMismatch": MessageLookupByLibrary.simpleMessage(
+      "Wallet passwords do not match",
+    ),
+    "walletPasswordRequired": MessageLookupByLibrary.simpleMessage(
+      "Enter the wallet password",
+    ),
+    "walletPasswordTooShort": MessageLookupByLibrary.simpleMessage(
+      "Wallet password must be at least 6 characters",
+    ),
     "walletRemoved": MessageLookupByLibrary.simpleMessage("Wallet removed"),
+    "walletSecretMissing": MessageLookupByLibrary.simpleMessage(
+      "Encrypted private key was not found for this wallet",
+    ),
+    "walletSecurityMigrated": MessageLookupByLibrary.simpleMessage(
+      "Wallet private key encrypted",
+    ),
+    "walletSecurityMigrationFailed": MessageLookupByLibrary.simpleMessage(
+      "Failed to encrypt wallet private key. Try again.",
+    ),
+    "walletSecurityUpgrade": MessageLookupByLibrary.simpleMessage(
+      "Upgrade wallet security",
+    ),
   };
 }
