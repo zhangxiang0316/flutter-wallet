@@ -182,6 +182,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     );
   }
 
+  /// 打开创建钱包密码设置流程。
   void _showCreateWalletSheet() {
     _showPasswordSetupSheet(
       title: S.of(context!).createWallet,
@@ -190,6 +191,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     );
   }
 
+  /// 打开添加钱包选择面板。
   void _showAddWalletSheet() {
     showModalBottomSheet(
       context: context!,
@@ -202,6 +204,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     );
   }
 
+  /// 打开密码设置面板。
+  ///
+  /// 创建钱包和旧钱包安全迁移共用该方法，通过 [onSubmit] 区分实际业务。
   void _showPasswordSetupSheet({
     required String title,
     required String submitLabel,
@@ -225,6 +230,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     );
   }
 
+  /// 在旧钱包仍含明文私钥时，安排安全迁移弹窗。
+  ///
+  /// 弹窗在当前帧绘制完成后出现，避免在 build 过程中直接打开 BottomSheet。
   void _scheduleLegacyMigrationSheet() {
     if (!controller.needsSecretMigration || _legacyMigrationSheetVisible) {
       return;
@@ -245,6 +253,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     });
   }
 
+  /// 在旧钱包缺少 Solana 地址时，安排地址升级弹窗。
   void _scheduleSolanaAddressUpgradeSheet() {
     if (controller.needsSecretMigration ||
         !controller.needsSolanaAddressUpgrade ||
@@ -268,6 +277,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     });
   }
 
+  /// 打开钱包密码解锁面板。
+  ///
+  /// 当前用于补全 Solana 地址等需要读取加密私钥的维护流程。
   void _showPasswordUnlockSheet({
     required String title,
     required String detail,
@@ -288,6 +300,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     ).whenComplete(() => _solanaAddressUpgradeSheetVisible = false);
   }
 
+  /// 校验创建/导入钱包时设置的本地密码。
   bool _validatePassword(String password, String confirmPassword) {
     if (password.isEmpty) {
       Toast.show(S.current.walletPasswordRequired);
@@ -320,6 +333,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     }
   }
 
+  /// 打开钱包详情页面。
+  ///
+  /// 返回后同步钱包名称等本地元数据。
   Future<void> _openWalletDetailPage() async {
     final currentWallet = controller.wallet;
     if (currentWallet == null) return;
@@ -334,6 +350,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     await Get.toNamed(RouteTable.receive, arguments: currentWallet);
   }
 
+  /// 旧钱包安全迁移弹窗是否正在显示。
   bool _legacyMigrationSheetVisible = false;
+
+  /// Solana 地址升级弹窗是否正在显示。
   bool _solanaAddressUpgradeSheetVisible = false;
 }

@@ -16,6 +16,10 @@ import '../../../wallet/services/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/wallet_secret_store.dart';
 
+/// 首页控制器。
+///
+/// 负责钱包生命周期、余额刷新、资产可见性过滤、USD 估值、旧数据安全迁移和
+/// 多钱包切换。首页 Widget 只消费这里整理好的状态，不直接访问钱包服务。
 class HomeController extends BaseController {
   HomeController({
     WalletRepository? repository,
@@ -45,8 +49,14 @@ class HomeController extends BaseController {
   /// 多链资产余额列表，由 [ChainBalanceService] 从链上查询。
   List<ChainBalance> balances = [];
 
+  /// 按用户资产显示设置过滤后的余额列表。
+  ///
+  /// 首页链资产区域和总资产估值都基于该列表计算，隐藏资产不会参与展示和汇总。
   List<ChainBalance> visibleBalances = [];
 
+  /// 当前被用户隐藏的资产 key 集合。
+  ///
+  /// key 的生成规则由 [WalletAssetVisibilityService] 维护，控制器只负责读取和传递。
   Set<String> hiddenAssetKeys = {};
 
   /// 已格式化的总资产估值文本。价格源不可用时显示 `--`。
@@ -64,17 +74,23 @@ class HomeController extends BaseController {
   /// 旧版本钱包仍含明文私钥时为 true，需要先设置密码完成迁移。
   bool needsSecretMigration = false;
 
+  /// 是否正在执行旧钱包明文私钥加密迁移。
   bool isMigratingSecrets = false;
 
   /// 旧钱包缺少 Solana 地址时为 true，需要输入钱包密码补派生地址。
   bool needsSolanaAddressUpgrade = false;
 
+  /// 是否正在为旧钱包补全 Solana 地址。
   bool isUpgradingSolanaAddresses = false;
 
   /// 当前已展开的链。默认空集合，首页只展示链信息。
   final Set<String> expandedChainIds = {};
 
   Timer? _balanceRefreshTimer;
+
+  /// 余额请求版本号。
+  ///
+  /// 切换钱包或重新发起刷新时递增，用于丢弃旧异步请求返回的过期结果。
   int _balanceRequestId = 0;
 
   @override
@@ -97,6 +113,10 @@ class HomeController extends BaseController {
     }
   }
 
+  /// 同步钱包元数据和资产显示配置。
+  ///
+  /// 从设置页或钱包详情页返回首页时调用，确保钱包名称、隐藏资产和总资产估值
+  /// 都用最新本地配置重新渲染。
   Future<void> syncWalletMetadata() async {
     hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
     _applyAssetVisibility();
@@ -153,6 +173,9 @@ class HomeController extends BaseController {
     }
   }
 
+  /// 使用助记词导入钱包。
+  ///
+  /// 助记词会派生出 EVM、TRON 和 Solana 地址，并把私钥/助记词加密保存到本地。
   Future<bool> importMnemonicWallet(String mnemonic, String password) async {
     try {
       final keyPair = _cryptoService.importMnemonic(mnemonic);
@@ -163,6 +186,10 @@ class HomeController extends BaseController {
     }
   }
 
+  /// 将旧版本明文私钥迁移为本地加密存储。
+  ///
+  /// 迁移成功后会顺带为缺少 Solana 地址的旧钱包补齐地址，避免用户还要再走
+  /// 一次解锁流程。
   Future<bool> migrateLegacySecrets(String password) async {
     if (isMigratingSecrets) return false;
     try {
@@ -191,6 +218,9 @@ class HomeController extends BaseController {
     }
   }
 
+  /// 为缺少 Solana 地址的旧钱包补派生地址。
+  ///
+  /// 该流程需要用户输入钱包密码以读取加密私钥，完成后会刷新余额。
   Future<bool> upgradeMissingSolanaAddresses(String password) async {
     if (isUpgradingSolanaAddresses) return false;
     try {
@@ -279,6 +309,9 @@ class HomeController extends BaseController {
     update();
   }
 
+  /// 使用缓存价格立即刷新总资产估值。
+  ///
+  /// 余额刷新后先用缓存价格更新 UI，再等待网络价格返回，减少总资产长时间空白。
   void _refreshTotalAssetsFromCachedPrices() {
     final totalValue = _valuationService.calculateTotalUsdValue(
       visibleBalances,
@@ -287,14 +320,19 @@ class HomeController extends BaseController {
     totalAssetsText = _valuationService.formatUsdValue(totalValue);
   }
 
+  /// 获取单个非稳定币资产的稳定币估值文本。
+  ///
+  /// 稳定币本身不需要额外换算，可能返回 null。
   String? stableValueTextFor(ChainBalance balance) {
     return assetStableValueTexts[_assetStableValueKey(balance)];
   }
 
+  /// 获取单条链的 USD 汇总估值文本。
   String chainUsdValueTextFor(WalletChain chain) {
     return chainUsdValueTexts[chain.id] ?? '--';
   }
 
+  /// 刷新非稳定币资产换算后的稳定币估值文本。
   void _refreshAssetStableValueTexts(Map<String, Decimal> prices) {
     assetStableValueTexts.clear();
     for (final balance in visibleBalances) {
@@ -308,6 +346,7 @@ class HomeController extends BaseController {
     }
   }
 
+  /// 按链汇总当前可见资产的 USD 估值。
   void _refreshChainUsdValueTexts(Map<String, Decimal> prices) {
     chainUsdValueTexts.clear();
     for (final chain in WalletChain.values) {
@@ -324,6 +363,9 @@ class HomeController extends BaseController {
     }
   }
 
+  /// 生成单个资产估值缓存 key。
+  ///
+  /// 同一条链上可能存在相同 symbol 的自定义资产，因此优先纳入合约地址区分。
   String _assetStableValueKey(ChainBalance balance) {
     return [
       balance.chain.id,
@@ -332,6 +374,7 @@ class HomeController extends BaseController {
     ].join(':');
   }
 
+  /// 输出估值 UI 状态，便于排查移动端价格缺失或总资产异常。
   void _logValuationUiState(Map<String, Decimal> prices) {
     final buffer = StringBuffer()
       ..writeln('----- HomeController valuation UI -----')
@@ -352,6 +395,7 @@ class HomeController extends BaseController {
     developer.log(buffer.toString(), name: 'HomeController');
   }
 
+  /// 展开或收起指定链下的币种列表。
   void toggleChainExpanded(WalletChain chain) {
     if (!expandedChainIds.add(chain.id)) {
       expandedChainIds.remove(chain.id);
@@ -359,10 +403,14 @@ class HomeController extends BaseController {
     update();
   }
 
+  /// 判断指定链是否已展开。
   bool isChainExpanded(WalletChain chain) {
     return expandedChainIds.contains(chain.id);
   }
 
+  /// 切换当前钱包。
+  ///
+  /// 切换后会清空旧余额、重启 30 秒刷新定时器，并立即请求新钱包余额。
   Future<void> switchWallet(WalletAccount nextWallet) async {
     if (wallet?.id == nextWallet.id) return;
     await _repository.setCurrentWalletId(nextWallet.id);
@@ -399,6 +447,9 @@ class HomeController extends BaseController {
     Toast.show(S.current.walletRemoved);
   }
 
+  /// 保存钱包并把它设为当前钱包。
+  ///
+  /// 创建和导入流程共用该方法，确保钱包列表、当前钱包和余额刷新状态一致。
   Future<void> _saveAndSelectWallet(WalletAccount nextWallet) async {
     await _repository.saveWallet(nextWallet);
     wallets = await _repository.loadWallets();
@@ -414,6 +465,9 @@ class HomeController extends BaseController {
     refreshBalances();
   }
 
+  /// 保存导入的钱包。
+  ///
+  /// 如果同一 EVM 地址已经存在，则沿用原钱包名称；否则使用递增默认名称。
   Future<bool> _saveImportedWallet(
     WalletKeyPair keyPair,
     String password,
@@ -443,6 +497,9 @@ class HomeController extends BaseController {
     return true;
   }
 
+  /// 清空当前钱包相关 UI 状态。
+  ///
+  /// 切换或删除钱包时调用，防止旧钱包余额和估值短暂显示在新钱包下。
   void _resetWalletState() {
     _balanceRequestId++;
     balances = [];
@@ -454,6 +511,7 @@ class HomeController extends BaseController {
     isLoading = false;
   }
 
+  /// 根据用户资产显示配置过滤余额列表。
   void _applyAssetVisibility() {
     visibleBalances = balances
         .where(
@@ -465,16 +523,21 @@ class HomeController extends BaseController {
         .toList(growable: false);
   }
 
+  /// 当前项目使用 EVM 地址小写形式作为钱包 ID。
   String _createWalletId(String evmAddress) {
     return evmAddress.toLowerCase();
   }
 
+  /// 判断当前钱包是否需要补全 Solana 地址。
   bool _needsSolanaAddressUpgrade(WalletAccount? wallet) {
     return wallet != null &&
         wallet.solanaAddress.trim().isEmpty &&
         !wallet.needsSecretMigration;
   }
 
+  /// 遍历本地钱包并补全缺失的 Solana 地址。
+  ///
+  /// [walletIds] 不为空时只处理指定钱包集合；为空时默认只处理当前钱包。
   Future<void> _upgradeMissingSolanaAddresses(
     String password, {
     Set<String>? walletIds,
@@ -511,6 +574,9 @@ class HomeController extends BaseController {
     needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
   }
 
+  /// 启动 30 秒余额定时刷新。
+  ///
+  /// 每次进入或切换钱包都会先停止旧定时器，避免多个定时器并发刷新。
   void _startBalanceRefreshTimer() {
     _stopBalanceRefreshTimer();
     _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -518,6 +584,7 @@ class HomeController extends BaseController {
     });
   }
 
+  /// 停止余额定时刷新。
   void _stopBalanceRefreshTimer() {
     _balanceRefreshTimer?.cancel();
     _balanceRefreshTimer = null;
@@ -530,8 +597,12 @@ class HomeController extends BaseController {
   }
 }
 
+/// 创建钱包后需要交给用户备份的信息。
+///
+/// 目前只包含助记词，底部弹窗会根据该对象切换到助记词备份步骤。
 class CreatedWalletBackup {
   const CreatedWalletBackup({required this.mnemonic});
 
+  /// 新钱包的助记词，用户需要离线保存。
   final String mnemonic;
 }

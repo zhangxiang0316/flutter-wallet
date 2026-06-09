@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 
+/// 转账页面通用面板装饰。
+///
+/// 统一圆角、边框和阴影，保证 Hero 以外的表单、手续费、结果面板视觉一致。
 BoxDecoration transferPanelDecoration(BuildContext context) {
   return BoxDecoration(
     color: Theme.of(context).cardColor,
@@ -21,6 +24,9 @@ BoxDecoration transferPanelDecoration(BuildContext context) {
   );
 }
 
+/// 转账页面通用输入框样式。
+///
+/// 支持标签、图标、占位符和后缀币种，主要用于地址、金额、密码输入框。
 InputDecoration transferInputDecoration(
   BuildContext context, {
   required String label,
@@ -55,6 +61,7 @@ InputDecoration transferInputDecoration(
   );
 }
 
+/// 获取链在转账页面中的强调色。
 Color transferChainColor(WalletChain chain) {
   switch (chain) {
     case WalletChain.bsc:
@@ -70,6 +77,9 @@ Color transferChainColor(WalletChain chain) {
   }
 }
 
+/// 获取币种在转账页面中的强调色。
+///
+/// 常见资产使用固定品牌色，其余资产回退到当前主题主色。
 Color transferAssetColor(BuildContext context, String symbol) {
   switch (symbol.toUpperCase()) {
     case 'USDT':

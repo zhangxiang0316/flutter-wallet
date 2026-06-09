@@ -13,13 +13,19 @@ import '../../../wallet/models/wallet_chain.dart';
 import '../controller/receive_controller.dart';
 
 @GetXRoutePage('/receive')
+/// 收款页面。
+///
+/// 支持用户切换链和该链上的币种，并为当前钱包地址生成二维码。页面只展示
+/// 公共地址，不涉及私钥读取或签名操作。
 // ignore: use_key_in_widget_constructors, must_be_immutable
 class ReceivePage extends BaseScaffoldPage<ReceiveController> {
+  /// 创建收款页面控制器。
   @override
   ReceiveController generateController() {
     return ReceiveController();
   }
 
+  /// 页面顶部导航栏。
   @override
   PreferredSizeWidget? getAppBar() {
     final colorScheme = Theme.of(context!).colorScheme;
@@ -51,6 +57,10 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
     );
   }
 
+  /// 页面主体。
+  ///
+  /// 当钱包或币种缺失时展示兜底提示；正常情况下依次展示收款摘要、
+  /// 链选择、币种选择、二维码和地址复制区域。
   @override
   Widget? getBody() {
     final wallet = controller.wallet;
@@ -97,6 +107,7 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
     );
   }
 
+  /// 复制当前收款地址。
   void _copyAddress(String address) {
     if (address.trim().isEmpty) return;
     Clipboard.setData(ClipboardData(text: address));
@@ -104,10 +115,16 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
   }
 }
 
+/// 收款页顶部摘要卡片。
+///
+/// 用于提示当前选择的币种和网络，让用户在展示二维码前确认收款上下文。
 class _ReceiveHero extends StatelessWidget {
   const _ReceiveHero({required this.asset, required this.chain});
 
+  /// 当前收款币种。
   final WalletAsset asset;
+
+  /// 当前收款网络。
   final WalletChain chain;
 
   @override
@@ -160,10 +177,16 @@ class _ReceiveHero extends StatelessWidget {
   }
 }
 
+/// 链选择器。
+///
+/// 横向展示所有支持链，切换后控制器会同步币种列表和地址。
 class _ChainSelector extends StatelessWidget {
   const _ChainSelector({required this.selectedChain, required this.onSelected});
 
+  /// 当前选中的链。
   final WalletChain selectedChain;
+
+  /// 用户选择链后的回调。
   final ValueChanged<WalletChain> onSelected;
 
   @override
@@ -219,6 +242,9 @@ class _ChainSelector extends StatelessWidget {
   }
 }
 
+/// 币种选择器。
+///
+/// 展示当前链默认资产和用户自定义资产，点击后更新二维码标题和上下文。
 class _AssetSelector extends StatelessWidget {
   const _AssetSelector({
     required this.assets,
@@ -227,9 +253,16 @@ class _AssetSelector extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// 当前链下可选资产列表。
   final List<WalletAsset> assets;
+
+  /// 当前选中的资产。
   final WalletAsset selectedAsset;
+
+  /// 自定义资产是否仍在加载中。
   final bool isLoading;
+
+  /// 用户选择资产后的回调。
   final ValueChanged<WalletAsset> onSelected;
 
   @override
@@ -302,6 +335,10 @@ class _AssetSelector extends StatelessWidget {
   }
 }
 
+/// 二维码和地址展示面板。
+///
+/// 二维码内容直接使用当前链地址。币种本身不改变地址，但会通过页面上下文
+/// 提醒用户只向当前网络转入所选资产。
 class _QrAddressPanel extends StatelessWidget {
   const _QrAddressPanel({
     required this.chain,
@@ -309,8 +346,13 @@ class _QrAddressPanel extends StatelessWidget {
     required this.onCopyPressed,
   });
 
+  /// 当前二维码对应的链。
   final WalletChain chain;
+
+  /// 当前链的钱包地址。
   final String address;
+
+  /// 复制地址按钮回调。
   final VoidCallback onCopyPressed;
 
   @override
@@ -409,6 +451,9 @@ class _QrAddressPanel extends StatelessWidget {
   }
 }
 
+/// 地址文本展示框。
+///
+/// 使用 [SelectableText] 允许用户长按选择，同时按钮提供一键复制。
 class _AddressBox extends StatelessWidget {
   const _AddressBox({
     required this.label,
@@ -416,8 +461,13 @@ class _AddressBox extends StatelessWidget {
     required this.enabled,
   });
 
+  /// 地址区标题。
   final String label;
+
+  /// 展示的地址或空地址提示。
   final String address;
+
+  /// 当前地址是否可用。
   final bool enabled;
 
   @override
@@ -462,11 +512,19 @@ class _AddressBox extends StatelessWidget {
   }
 }
 
+/// 收款页通用面板容器。
+///
+/// 统一白底、圆角、细边框和标题布局。
 class _Panel extends StatelessWidget {
   const _Panel({required this.title, required this.child, this.trailing});
 
+  /// 面板标题。
   final String title;
+
+  /// 面板主体内容。
   final Widget child;
+
+  /// 标题右侧的可选附加组件，例如加载状态。
   final Widget? trailing;
 
   @override
@@ -506,6 +564,9 @@ class _Panel extends StatelessWidget {
   }
 }
 
+/// 币种头像。
+///
+/// 使用币种首字母和链色生成轻量标识，避免依赖远程图标。
 class _AssetAvatar extends StatelessWidget {
   const _AssetAvatar({
     required this.symbol,
@@ -513,8 +574,13 @@ class _AssetAvatar extends StatelessWidget {
     required this.size,
   });
 
+  /// 币种简称。
   final String symbol;
+
+  /// 头像主色。
   final Color color;
+
+  /// 头像尺寸。
   final double size;
 
   @override
@@ -540,10 +606,14 @@ class _AssetAvatar extends StatelessWidget {
   }
 }
 
+/// 链选择器中的圆点标识。
 class _ChainDot extends StatelessWidget {
   const _ChainDot({required this.chain, required this.selected});
 
+  /// 对应链。
   final WalletChain chain;
+
+  /// 是否为当前选中链。
   final bool selected;
 
   @override
@@ -569,10 +639,12 @@ class _ChainDot extends StatelessWidget {
   }
 }
 
+/// 页面通用分隔线颜色。
 Color _dividerColor(BuildContext context) {
   return Theme.of(context).colorScheme.outline.withValues(alpha: 0.12);
 }
 
+/// 获取收款页中每条链的品牌色。
 Color _chainColor(WalletChain chain) {
   switch (chain) {
     case WalletChain.bsc:
@@ -588,6 +660,7 @@ Color _chainColor(WalletChain chain) {
   }
 }
 
+/// 获取链在小圆点中的单字母缩写。
 String _chainLabel(WalletChain chain) {
   switch (chain) {
     case WalletChain.bsc:

@@ -10,12 +10,18 @@ import '../../../base/base_controller.dart';
 import '../../../common/theme/app_theme_extension.dart';
 
 @GetXRoutePage('/theme')
+/// 应用主题设置页面。
+///
+/// 提供跟随系统、浅色和深色三种主题模式。实际主题状态由全局
+/// [ThemeController] 持有，本页面只负责展示和触发切换。
 class ThemePage extends BaseScaffoldPage<ThemesController> {
+  /// 创建主题页控制器。
   @override
   ThemesController generateController() {
     return ThemesController();
   }
 
+  /// 页面顶部导航栏。
   @override
   PreferredSizeWidget? getAppBar() {
     return AppBar(
@@ -28,6 +34,7 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
     );
   }
 
+  /// 主题选项列表。
   @override
   Widget? getBody() {
     final themeController = Get.find<ThemeController>();
@@ -109,6 +116,10 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
   }
 }
 
+/// 主题页控制器。
+///
+/// 当前只暴露主题扩展对象，便于后续如果页面需要读取品牌色或语义色时复用。
 class ThemesController extends BaseController {
+  /// 当前上下文中的主题扩展。
   final appTheme = Theme.of(Get.context!).extension<AppThemeExtension>()!;
 }

@@ -7,6 +7,10 @@ import '../../../../wallet/models/chain_balance.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_styles.dart';
 
+/// 转账手续费估算面板。
+///
+/// 根据 [TransferController] 的实时估算状态展示三种情况：正在查询、查询成功、
+/// 查询失败或尚未输入有效信息。面板只负责展示，不直接发起 RPC 请求。
 class TransferFeePanel extends StatelessWidget {
   const TransferFeePanel({
     super.key,
@@ -14,7 +18,10 @@ class TransferFeePanel extends StatelessWidget {
     required this.controller,
   });
 
+  /// 当前转账资产，用于展示网络名、手续费币种和链配色。
   final ChainBalance asset;
+
+  /// 转账控制器，提供手续费估算状态。
   final TransferController controller;
 
   @override
@@ -95,6 +102,7 @@ class TransferFeePanel extends StatelessWidget {
     );
   }
 
+  /// 构建手续费说明文本的统一样式。
   TextStyle _feeTextStyle(BuildContext context) {
     return TextStyle(
       fontSize: 12.sp,

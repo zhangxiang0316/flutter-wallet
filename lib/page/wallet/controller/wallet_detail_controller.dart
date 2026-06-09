@@ -7,18 +7,35 @@ import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/wallet_secret_store.dart';
 
+/// 钱包详情页控制器。
+///
+/// 负责加载钱包基础信息、改名，以及在用户输入钱包密码后临时解锁私钥或助记词。
+/// 控制器不会主动暴露密钥，只有明确点击查看并校验密码后才更新展示文本。
 class WalletDetailController extends BaseController {
   WalletDetailController({WalletRepository? repository})
     : _repository = repository ?? WalletRepository();
 
   final WalletRepository _repository;
 
+  /// 当前详情页展示的钱包。
   WalletAccount? wallet;
+
+  /// 解锁后临时展示的私钥文本，页面离开后随控制器释放。
   String privateKeyText = '';
+
+  /// 解锁后临时展示的助记词文本。
   String mnemonicText = '';
+
+  /// 当前钱包是否保存了助记词。
   bool hasMnemonic = false;
+
+  /// 私钥解锁请求状态，防止重复点击。
   bool isUnlockingPrivateKey = false;
+
+  /// 助记词解锁请求状态。
   bool isUnlockingMnemonic = false;
+
+  /// 钱包改名请求状态。
   bool isRenamingWallet = false;
 
   @override
@@ -27,6 +44,7 @@ class WalletDetailController extends BaseController {
     loadWallet();
   }
 
+  /// 根据路由参数中的钱包 ID 加载钱包详情。
   Future<void> loadWallet() async {
     final walletId = _walletIdFromArguments();
     final wallets = await _repository.loadWallets();
@@ -52,6 +70,9 @@ class WalletDetailController extends BaseController {
     update();
   }
 
+  /// 校验钱包密码并解锁私钥。
+  ///
+  /// 返回值用于底部弹窗判断是否关闭；失败时会显示对应 toast。
   Future<bool> unlockPrivateKey(String password) async {
     final currentWallet = wallet;
     if (currentWallet == null || isUnlockingPrivateKey) return false;
@@ -76,6 +97,7 @@ class WalletDetailController extends BaseController {
     }
   }
 
+  /// 校验钱包密码并解锁助记词。
   Future<bool> unlockMnemonic(String password) async {
     final currentWallet = wallet;
     if (currentWallet == null || isUnlockingMnemonic) return false;
@@ -100,6 +122,7 @@ class WalletDetailController extends BaseController {
     }
   }
 
+  /// 修改钱包名称并同步本地钱包列表。
   Future<bool> renameWallet(String name) async {
     final currentWallet = wallet;
     final trimmedName = name.trim();
@@ -130,6 +153,7 @@ class WalletDetailController extends BaseController {
     }
   }
 
+  /// 从 GetX 路由参数中读取钱包 ID。
   String _walletIdFromArguments() {
     final args = Get.arguments;
     if (args is String) {

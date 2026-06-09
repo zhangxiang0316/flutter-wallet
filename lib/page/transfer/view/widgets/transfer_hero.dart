@@ -7,9 +7,14 @@ import '../../../../wallet/models/chain_balance.dart';
 import '../../../../wallet/utils/asset_amount_formatter.dart';
 import 'transfer_styles.dart';
 
+/// 转账页顶部资产摘要卡片。
+///
+/// 用大面积主题色展示当前转账币种、链信息和可用余额，让用户在输入金额前
+/// 明确自己正在操作的资产。
 class TransferHero extends StatelessWidget {
   const TransferHero({super.key, required this.asset});
 
+  /// 当前正在转出的资产余额。
   final ChainBalance asset;
 
   @override

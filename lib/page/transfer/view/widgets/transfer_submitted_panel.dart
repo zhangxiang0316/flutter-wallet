@@ -6,9 +6,14 @@ import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../generated/l10n.dart';
 import '../../controller/transfer_controller.dart';
 
+/// 交易提交成功面板。
+///
+/// 显示链上广播返回的交易哈希，并提供复制哈希和返回首页两个动作。
+/// 首页会根据返回结果决定是否刷新余额。
 class TransferSubmittedPanel extends StatelessWidget {
   const TransferSubmittedPanel({super.key, required this.controller});
 
+  /// 转账控制器，提供交易哈希和按钮回调。
   final TransferController controller;
 
   @override

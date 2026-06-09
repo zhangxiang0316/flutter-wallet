@@ -9,6 +9,10 @@ import '../../../../wallet/models/wallet_chain.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_styles.dart';
 
+/// 转账表单面板。
+///
+/// 包含收款地址、转账金额和确认按钮。点击确认后先进行本地输入校验，
+/// 再弹出钱包密码输入框，由控制器完成私钥解锁和链上提交。
 class TransferFormPanel extends StatelessWidget {
   const TransferFormPanel({
     super.key,
@@ -16,7 +20,10 @@ class TransferFormPanel extends StatelessWidget {
     required this.controller,
   });
 
+  /// 当前要转出的资产。
   final ChainBalance asset;
+
+  /// 页面控制器，持有输入框和提交状态。
   final TransferController controller;
 
   @override
@@ -105,6 +112,9 @@ class TransferFormPanel extends StatelessWidget {
     );
   }
 
+  /// 打开钱包密码解锁弹窗。
+  ///
+  /// 这里不直接读取私钥，只把用户输入的密码交给控制器继续处理。
   Future<void> _showUnlockSheet(BuildContext context) async {
     if (!controller.validateTransferInput()) return;
 
@@ -206,6 +216,7 @@ class TransferFormPanel extends StatelessWidget {
     await controller.submit(password);
   }
 
+  /// 提交密码输入框内容并关闭底部弹窗。
   void _submitPassword(BuildContext context, String password) {
     if (password.isEmpty) {
       Toast.show(S.current.walletPasswordRequired);
@@ -214,6 +225,7 @@ class TransferFormPanel extends StatelessWidget {
     Navigator.of(context).pop(password);
   }
 
+  /// 根据链类型返回地址输入框占位提示。
   String _addressHint(ChainBalance asset) {
     switch (asset.chain) {
       case WalletChain.bsc:
