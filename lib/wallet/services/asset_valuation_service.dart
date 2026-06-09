@@ -67,6 +67,15 @@ class AssetValuationService {
     'OKB': 'okb',
     'SOL': 'solana',
   };
+  static const Map<String, String> _coinPaprikaIds = {
+    'BNB': 'bnb-binance-coin',
+    'TRX': 'trx-tron',
+    'ETH': 'eth-ethereum',
+    'BTCB': 'btc-bitcoin',
+    'WBTC': 'btc-bitcoin',
+    'OKB': 'okb-okb',
+    'SOL': 'sol-solana',
+  };
   static const Map<String, String> _cryptoCompareSymbols = {
     'BNB': 'BNB',
     'TRX': 'TRX',
@@ -79,6 +88,7 @@ class AssetValuationService {
   static final Set<String> _pricedSymbols = {
     ..._okxTickerSymbols.keys,
     ..._coingeckoIds.keys,
+    ..._coinPaprikaIds.keys,
     ..._binanceTickerSymbols.keys,
     ..._cryptoCompareSymbols.keys,
   };
@@ -142,30 +152,46 @@ class AssetValuationService {
     }
 
     final prices = <String, Decimal>{};
+    _logPriceRequest(requestedSymbols);
 
-    final primaryResults = await Future.wait([
-      _loadOkxUsdtPrices(
-        requestedSymbols,
-      ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
-      _loadCryptoCompareUsdPrices(
-        requestedSymbols,
-      ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
-      _loadCoinGeckoUsdPrices(
-        requestedSymbols,
-      ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
-    ]);
-    for (final result in primaryResults) {
-      prices.addAll(result);
-    }
+    await _mergePriceSource(
+      prices,
+      source: 'DeFiLlama',
+      requestedSymbols: requestedSymbols,
+      loader: _loadDefiLlamaUsdPrices,
+    );
+    await _mergePriceSource(
+      prices,
+      source: 'CoinGecko',
+      requestedSymbols: _missingSymbols(requestedSymbols, prices),
+      loader: _loadCoinGeckoUsdPrices,
+    );
+    await _mergePriceSource(
+      prices,
+      source: 'CoinPaprika',
+      requestedSymbols: _missingSymbols(requestedSymbols, prices),
+      loader: _loadCoinPaprikaUsdPrices,
+    );
+    await _mergePriceSource(
+      prices,
+      source: 'OKX',
+      requestedSymbols: _missingSymbols(requestedSymbols, prices),
+      loader: _loadOkxUsdtPrices,
+    );
 
-    var missingSymbols = requestedSymbols
-        .where((symbol) => !prices.containsKey(symbol))
-        .toList(growable: false);
+    var missingSymbols = _missingSymbols(requestedSymbols, prices);
     if (missingSymbols.isNotEmpty) {
-      final binancePrices = await _loadBinanceUsdPrices(
-        missingSymbols,
-      ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{});
-      prices.addAll(binancePrices);
+      final fallbackResults = await Future.wait([
+        _loadCryptoCompareUsdPrices(
+          missingSymbols,
+        ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
+        _loadBinanceUsdPrices(
+          missingSymbols,
+        ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
+      ]);
+      for (final result in fallbackResults) {
+        prices.addAll(result);
+      }
     }
 
     if (prices.isNotEmpty) {
@@ -173,7 +199,35 @@ class AssetValuationService {
       _cachedUsdPricesAt = DateTime.now();
     }
 
+    _logPriceResult(requestedSymbols, prices);
     return cachedUsdPrices;
+  }
+
+  Future<void> _mergePriceSource(
+    Map<String, Decimal> prices, {
+    required String source,
+    required List<String> requestedSymbols,
+    required Future<Map<String, Decimal>> Function(List<String> symbols) loader,
+  }) async {
+    if (requestedSymbols.isEmpty) {
+      return;
+    }
+    final result = await loader(
+      requestedSymbols,
+    ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{});
+    if (result.isNotEmpty) {
+      prices.addAll(result);
+    }
+    _logPriceSourceResult(source, requestedSymbols, result);
+  }
+
+  List<String> _missingSymbols(
+    List<String> requestedSymbols,
+    Map<String, Decimal> prices,
+  ) {
+    return requestedSymbols
+        .where((symbol) => !prices.containsKey(symbol))
+        .toList(growable: false);
   }
 
   Future<Map<String, Decimal>> _loadBinanceUsdPrices(
@@ -221,26 +275,29 @@ class AssetValuationService {
     List<String> requestedSymbols,
   ) async {
     final prices = <String, Decimal>{};
-    final symbolPrices = await Future.wait(
-      requestedSymbols.map(_loadOkxSymbolPrice),
-    );
-    for (final price in symbolPrices) {
-      prices.addAll(price);
+    try {
+      final response = await _dio.get(
+        'https://www.okx.com/api/v5/market/tickers',
+        queryParameters: {'instType': 'SPOT'},
+      );
+      prices.addAll(parseOkxPrices(response.data, requestedSymbols));
+    } catch (error) {
+      _logPriceSourceError('OKX all tickers', error);
     }
 
-    final missingSymbols = requestedSymbols
+    var missingSymbols = requestedSymbols
         .where((symbol) => !prices.containsKey(symbol))
         .toList(growable: false);
     if (missingSymbols.isNotEmpty) {
-      try {
-        final response = await _dio.get(
-          'https://www.okx.com/api/v5/market/tickers',
-          queryParameters: {'instType': 'SPOT'},
-        );
-        prices.addAll(parseOkxPrices(response.data, missingSymbols));
-      } catch (error) {
-        _logPriceSourceError('OKX all tickers', error);
-        // Continue with fallback sources.
+      final symbolPrices = await Future.wait(
+        missingSymbols.map(
+          (symbol) => _loadOkxSymbolPrice(
+            symbol,
+          ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
+        ),
+      );
+      for (final price in symbolPrices) {
+        prices.addAll(price);
       }
     }
 
@@ -308,6 +365,69 @@ class AssetValuationService {
       return parseCoinGeckoPrices(response.data, requestedSymbols);
     } catch (error) {
       _logPriceSourceError('CoinGecko', error);
+      return {};
+    }
+  }
+
+  Future<Map<String, Decimal>> _loadDefiLlamaUsdPrices(
+    List<String> requestedSymbols,
+  ) async {
+    final coins = requestedSymbols
+        .map((symbol) => _coingeckoIds[symbol])
+        .whereType<String>()
+        .map((id) => 'coingecko:$id')
+        .toSet()
+        .join(',');
+    if (coins.isEmpty) {
+      return {};
+    }
+
+    try {
+      final response = await _dio.get(
+        'https://coins.llama.fi/prices/current/$coins',
+      );
+      return parseDefiLlamaPrices(response.data, requestedSymbols);
+    } catch (error) {
+      _logPriceSourceError('DeFiLlama', error);
+      return {};
+    }
+  }
+
+  Future<Map<String, Decimal>> _loadCoinPaprikaUsdPrices(
+    List<String> requestedSymbols,
+  ) async {
+    final symbolsById = <String, List<String>>{};
+    for (final symbol in requestedSymbols) {
+      final id = _coinPaprikaIds[symbol];
+      if (id == null) continue;
+      symbolsById.putIfAbsent(id, () => <String>[]).add(symbol);
+    }
+    if (symbolsById.isEmpty) {
+      return {};
+    }
+
+    final symbolPrices = await Future.wait(
+      symbolsById.entries.map(
+        (entry) => _loadCoinPaprikaAssetPrice(
+          assetId: entry.key,
+          symbols: entry.value,
+        ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
+      ),
+    );
+    return {for (final prices in symbolPrices) ...prices};
+  }
+
+  Future<Map<String, Decimal>> _loadCoinPaprikaAssetPrice({
+    required String assetId,
+    required List<String> symbols,
+  }) async {
+    try {
+      final response = await _dio.get(
+        'https://api.coinpaprika.com/v1/tickers/$assetId',
+      );
+      return parseCoinPaprikaPrices(response.data, symbols);
+    } catch (error) {
+      _logPriceSourceError('CoinPaprika $assetId', error);
       return {};
     }
   }
@@ -389,6 +509,65 @@ class AssetValuationService {
       prices[symbol] = price;
     }
     return prices;
+  }
+
+  Map<String, Decimal> parseDefiLlamaPrices(
+    dynamic data,
+    Iterable<String> requestedSymbols,
+  ) {
+    if (data is! Map || data['coins'] is! Map) {
+      return {};
+    }
+
+    final coinPrices = <String, Decimal>{};
+    final coins = data['coins'] as Map;
+    for (final entry in coins.entries) {
+      final key = entry.key.toString();
+      final item = entry.value;
+      if (item is! Map) continue;
+      final price = Decimal.tryParse(item['price']?.toString() ?? '');
+      if (price == null) continue;
+      coinPrices[key] = price;
+    }
+
+    final normalizedSymbols = requestedSymbols
+        .map((symbol) => symbol.toUpperCase())
+        .toSet();
+    return {
+      for (final entry in _coingeckoIds.entries)
+        if (normalizedSymbols.contains(entry.key) &&
+            coinPrices['coingecko:${entry.value}'] != null)
+          entry.key: coinPrices['coingecko:${entry.value}']!,
+    };
+  }
+
+  Map<String, Decimal> parseCoinPaprikaPrices(
+    dynamic data,
+    Iterable<String> requestedSymbols,
+  ) {
+    final items = data is List ? data : [data];
+    final tickerPrices = <String, Decimal>{};
+    for (final item in items) {
+      if (item is! Map) continue;
+      final id = item['id']?.toString();
+      final quotes = item['quotes'];
+      final usdQuote = quotes is Map ? quotes['USD'] : null;
+      final price = usdQuote is Map
+          ? Decimal.tryParse(usdQuote['price']?.toString() ?? '')
+          : null;
+      if (id == null || price == null) continue;
+      tickerPrices[id] = price;
+    }
+
+    final normalizedSymbols = requestedSymbols
+        .map((symbol) => symbol.toUpperCase())
+        .toSet();
+    return {
+      for (final entry in _coinPaprikaIds.entries)
+        if (normalizedSymbols.contains(entry.key) &&
+            tickerPrices[entry.value] != null)
+          entry.key: tickerPrices[entry.value]!,
+    };
   }
 
   Map<String, Decimal> parseCryptoComparePrices(
@@ -499,6 +678,38 @@ class AssetValuationService {
     }
 
     developer.log(buffer.toString(), name: 'AssetValuationService');
+  }
+
+  void _logPriceRequest(List<String> requestedSymbols) {
+    developer.log(
+      'requesting USD prices for ${requestedSymbols.join(', ')}',
+      name: 'AssetValuationService',
+    );
+  }
+
+  void _logPriceSourceResult(
+    String source,
+    List<String> requestedSymbols,
+    Map<String, Decimal> prices,
+  ) {
+    developer.log(
+      '$source requested=${requestedSymbols.join(', ')} '
+      'prices=$prices',
+      name: 'AssetValuationService',
+    );
+  }
+
+  void _logPriceResult(
+    List<String> requestedSymbols,
+    Map<String, Decimal> prices,
+  ) {
+    final missingSymbols = requestedSymbols
+        .where((symbol) => !prices.containsKey(symbol))
+        .join(', ');
+    developer.log(
+      'resolved USD prices=$prices missing=${missingSymbols.isEmpty ? '-' : missingSymbols}',
+      name: 'AssetValuationService',
+    );
   }
 
   void _logPriceSourceError(String source, Object error) {

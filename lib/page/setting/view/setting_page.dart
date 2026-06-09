@@ -94,6 +94,21 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                     onTap: () => Get.toNamed(RouteTable.theme),
                   ),
                 ),
+                Divider(
+                  height: 1.h,
+                  thickness: 1,
+                  indent: 44.w,
+                  color: colorScheme.outline.withValues(alpha: 0.08),
+                ),
+                _SettingActionTile(
+                  icon: Icons.visibility_outlined,
+                  title: S.of(context!).assetVisibility,
+                  value: '',
+                  onTap: () async {
+                    await Get.toNamed(RouteTable.assetVisibility);
+                    controller.update();
+                  },
+                ),
               ],
             ),
           ),

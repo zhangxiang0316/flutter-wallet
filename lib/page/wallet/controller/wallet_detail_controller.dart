@@ -19,6 +19,7 @@ class WalletDetailController extends BaseController {
   bool hasMnemonic = false;
   bool isUnlockingPrivateKey = false;
   bool isUnlockingMnemonic = false;
+  bool isRenamingWallet = false;
 
   @override
   void onInit() {
@@ -95,6 +96,36 @@ class WalletDetailController extends BaseController {
       return false;
     } finally {
       isUnlockingMnemonic = false;
+      update();
+    }
+  }
+
+  Future<bool> renameWallet(String name) async {
+    final currentWallet = wallet;
+    final trimmedName = name.trim();
+    if (currentWallet == null || isRenamingWallet) return false;
+    if (trimmedName.isEmpty) {
+      Toast.show(S.current.walletNameRequired);
+      return false;
+    }
+
+    try {
+      isRenamingWallet = true;
+      update();
+      final nextWallet = await _repository.renameWallet(
+        walletId: currentWallet.id,
+        name: trimmedName,
+      );
+      if (nextWallet == null) {
+        Toast.show(S.current.balanceLoadFailed);
+        return false;
+      }
+      wallet = nextWallet;
+      Toast.show(S.current.walletNameUpdated);
+      update();
+      return true;
+    } finally {
+      isRenamingWallet = false;
       update();
     }
   }

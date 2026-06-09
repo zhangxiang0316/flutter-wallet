@@ -7,6 +7,7 @@ import 'package:omnicast/page/setting/view/language_page.dart';
 import 'package:omnicast/page/setting/view/setting_page.dart';
 import 'package:omnicast/page/setting/view/theme_page.dart';
 import 'package:omnicast/page/main/view/main_page.dart';
+import 'package:omnicast/page/setting/view/asset_visibility_page.dart';
 
 class RouteTable {
   static const String home = '/home';
@@ -16,6 +17,7 @@ class RouteTable {
   static const String setting = '/setting';
   static const String theme = '/theme';
   static const String main = '/main';
+  static const String assetVisibility = '/assetVisibility';
 
   static final List<GetPage> pages = [
     GetPage(name: '/home', page: () => HomePage()),
@@ -25,5 +27,6 @@ class RouteTable {
     GetPage(name: '/setting', page: () => SettingPage()),
     GetPage(name: '/theme', page: () => ThemePage()),
     GetPage(name: '/main', page: () => MainPage()),
+    GetPage(name: '/assetVisibility', page: () => AssetVisibilityPage()),
   ];
 }

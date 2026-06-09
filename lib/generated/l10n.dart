@@ -28,9 +28,10 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name = (locale.countryCode?.isEmpty ?? false)
-        ? locale.languageCode
-        : locale.toString();
+    final name =
+        (locale.countryCode?.isEmpty ?? false)
+            ? locale.languageCode
+            : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -87,6 +88,26 @@ class S {
   /// `Theme`
   String get theme {
     return Intl.message('Theme', name: 'theme', desc: '', args: []);
+  }
+
+  /// `Asset display`
+  String get assetVisibility {
+    return Intl.message(
+      'Asset display',
+      name: 'assetVisibility',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.`
+  String get assetVisibilityTip {
+    return Intl.message(
+      'Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.',
+      name: 'assetVisibilityTip',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `System`
@@ -184,6 +205,51 @@ class S {
     return Intl.message(
       'Wallet details',
       name: 'walletDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet name`
+  String get walletName {
+    return Intl.message('Wallet name', name: 'walletName', desc: '', args: []);
+  }
+
+  /// `Edit wallet name`
+  String get editWalletName {
+    return Intl.message(
+      'Edit wallet name',
+      name: 'editWalletName',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Save name`
+  String get saveWalletName {
+    return Intl.message(
+      'Save name',
+      name: 'saveWalletName',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a wallet name`
+  String get walletNameRequired {
+    return Intl.message(
+      'Enter a wallet name',
+      name: 'walletNameRequired',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet name updated`
+  String get walletNameUpdated {
+    return Intl.message(
+      'Wallet name updated',
+      name: 'walletNameUpdated',
       desc: '',
       args: [],
     );

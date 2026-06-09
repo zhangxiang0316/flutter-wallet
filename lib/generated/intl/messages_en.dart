@@ -34,6 +34,10 @@ class MessageLookup extends MessageLookupByLibrary {
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "addWallet": MessageLookupByLibrary.simpleMessage("Add wallet"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
+    "assetVisibility": MessageLookupByLibrary.simpleMessage("Asset display"),
+    "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
+      "Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.",
+    ),
     "availableBalance": MessageLookupByLibrary.simpleMessage(
       "Available balance",
     ),
@@ -57,6 +61,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Copy wallet address",
     ),
     "createWallet": MessageLookupByLibrary.simpleMessage("Create wallet"),
+    "editWalletName": MessageLookupByLibrary.simpleMessage("Edit wallet name"),
     "email": MessageLookupByLibrary.simpleMessage("email"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("Encrypt wallet"),
     "estimatedNetworkFee": MessageLookupByLibrary.simpleMessage(
@@ -104,6 +109,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
     "removeWalletConfirmMessage": m2,
+    "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("Security notice"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.",
@@ -151,6 +157,13 @@ class MessageLookup extends MessageLookupByLibrary {
       "Create or import a wallet",
     ),
     "walletImported": MessageLookupByLibrary.simpleMessage("Import successful"),
+    "walletName": MessageLookupByLibrary.simpleMessage("Wallet name"),
+    "walletNameRequired": MessageLookupByLibrary.simpleMessage(
+      "Enter a wallet name",
+    ),
+    "walletNameUpdated": MessageLookupByLibrary.simpleMessage(
+      "Wallet name updated",
+    ),
     "walletPassword": MessageLookupByLibrary.simpleMessage("Wallet password"),
     "walletPasswordHint": MessageLookupByLibrary.simpleMessage(
       "At least 6 characters. Used to encrypt local private keys and unlock transfers.",

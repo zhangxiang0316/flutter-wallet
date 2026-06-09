@@ -184,6 +184,21 @@ class WalletAssetRegistry {
     ...solanaAssets,
   ];
 
+  static List<WalletAsset> assetsForChain(WalletChain chain) {
+    switch (chain) {
+      case WalletChain.bsc:
+        return bscAssets;
+      case WalletChain.ethereum:
+        return ethereumAssets;
+      case WalletChain.tron:
+        return tronAssets;
+      case WalletChain.xLayer:
+        return xLayerAssets;
+      case WalletChain.solana:
+        return solanaAssets;
+    }
+  }
+
   static WalletAsset? findTronAsset(String contractAddress) {
     final normalized = contractAddress.trim();
     for (final asset in tronAssets) {

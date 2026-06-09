@@ -84,7 +84,10 @@ class HomePage extends BaseScaffoldPage<HomeController> {
             icon: const Icon(Icons.tune_rounded),
             color: colorScheme.onSurface.withValues(alpha: 0.82),
             iconSize: 20.w,
-            onPressed: () => Get.toNamed(RouteTable.setting),
+            onPressed: () async {
+              await Get.toNamed(RouteTable.setting);
+              await controller.syncWalletMetadata();
+            },
           ),
         ).marginOnly(right: 6.w),
       ],
@@ -132,7 +135,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 SizedBox(height: 16.h),
                 ChainSection(
                   wallet: wallet,
-                  balances: controller.balances,
+                  balances: controller.visibleBalances,
                   isLoading: controller.isLoading,
                   stableValueTextFor: controller.stableValueTextFor,
                   chainUsdValueTextFor: controller.chainUsdValueTextFor,
@@ -346,10 +349,11 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     }
   }
 
-  void _openWalletDetailPage() {
+  Future<void> _openWalletDetailPage() async {
     final currentWallet = controller.wallet;
     if (currentWallet == null) return;
-    Get.toNamed(RouteTable.walletDetail, arguments: currentWallet.id);
+    await Get.toNamed(RouteTable.walletDetail, arguments: currentWallet.id);
+    await controller.syncWalletMetadata();
   }
 
   bool _legacyMigrationSheetVisible = false;

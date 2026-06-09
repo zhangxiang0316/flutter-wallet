@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:decimal/decimal.dart';
 
@@ -10,6 +11,7 @@ import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/asset_valuation_service.dart';
 import '../../../wallet/services/chain_balance_service.dart';
+import '../../../wallet/services/wallet_asset_visibility_service.dart';
 import '../../../wallet/services/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/wallet_secret_store.dart';
@@ -20,15 +22,19 @@ class HomeController extends BaseController {
     WalletCryptoService? cryptoService,
     ChainBalanceService? balanceService,
     AssetValuationService? valuationService,
+    WalletAssetVisibilityService? assetVisibilityService,
   }) : _repository = repository ?? WalletRepository(),
        _cryptoService = cryptoService ?? WalletCryptoService(),
        _balanceService = balanceService ?? ChainBalanceService(),
-       _valuationService = valuationService ?? AssetValuationService();
+       _valuationService = valuationService ?? AssetValuationService(),
+       _assetVisibilityService =
+           assetVisibilityService ?? WalletAssetVisibilityService();
 
   final WalletRepository _repository;
   final WalletCryptoService _cryptoService;
   final ChainBalanceService _balanceService;
   final AssetValuationService _valuationService;
+  final WalletAssetVisibilityService _assetVisibilityService;
 
   /// 本地保存的钱包列表。
   List<WalletAccount> wallets = [];
@@ -38,6 +44,10 @@ class HomeController extends BaseController {
 
   /// 多链资产余额列表，由 [ChainBalanceService] 从链上查询。
   List<ChainBalance> balances = [];
+
+  List<ChainBalance> visibleBalances = [];
+
+  Set<String> hiddenAssetKeys = {};
 
   /// 已格式化的总资产估值文本。价格源不可用时显示 `--`。
   String totalAssetsText = '--';
@@ -75,6 +85,7 @@ class HomeController extends BaseController {
 
   /// 启动时读取本地钱包；如果存在钱包，立即拉取当前钱包的链上余额。
   Future<void> loadWallet() async {
+    hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
@@ -84,6 +95,25 @@ class HomeController extends BaseController {
       _startBalanceRefreshTimer();
       refreshBalances();
     }
+  }
+
+  Future<void> syncWalletMetadata() async {
+    hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
+    _applyAssetVisibility();
+    final currentWalletId = wallet?.id;
+    wallets = await _repository.loadWallets();
+    wallet = currentWalletId == null
+        ? await _repository.loadCurrentWallet()
+        : wallets.firstWhere(
+            (item) => item.id == currentWalletId,
+            orElse: () => wallet!,
+          );
+    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
+    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
+    _refreshTotalAssetsFromCachedPrices();
+    _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
+    _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
+    update();
   }
 
   /// 生成助记词并创建钱包，保存后刷新链上余额。
@@ -204,6 +234,8 @@ class HomeController extends BaseController {
         return;
       }
       balances = nextBalances;
+      hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
+      _applyAssetVisibility();
       _refreshTotalAssetsFromCachedPrices();
       _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
       _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
@@ -211,18 +243,19 @@ class HomeController extends BaseController {
       update();
 
       final latestPrices = await _valuationService
-          .loadUsdPrices(balances)
+          .loadUsdPrices(visibleBalances)
           .catchError((_) => _valuationService.cachedUsdPrices);
       if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
         return;
       }
       final totalValue = _valuationService.calculateTotalUsdValue(
-        balances,
+        visibleBalances,
         prices: latestPrices,
       );
       totalAssetsText = _valuationService.formatUsdValue(totalValue);
       _refreshAssetStableValueTexts(latestPrices);
       _refreshChainUsdValueTexts(latestPrices);
+      _logValuationUiState(latestPrices);
       update();
     } catch (_) {
       if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
@@ -239,14 +272,16 @@ class HomeController extends BaseController {
 
   /// 根据当前余额计算美元估值，并更新首页头部展示。
   Future<void> refreshTotalAssets() async {
-    final totalValue = await _valuationService.loadTotalUsdValue(balances);
+    final totalValue = await _valuationService.loadTotalUsdValue(
+      visibleBalances,
+    );
     totalAssetsText = _valuationService.formatUsdValue(totalValue);
     update();
   }
 
   void _refreshTotalAssetsFromCachedPrices() {
     final totalValue = _valuationService.calculateTotalUsdValue(
-      balances,
+      visibleBalances,
       prices: _valuationService.cachedUsdPrices,
     );
     totalAssetsText = _valuationService.formatUsdValue(totalValue);
@@ -262,7 +297,7 @@ class HomeController extends BaseController {
 
   void _refreshAssetStableValueTexts(Map<String, Decimal> prices) {
     assetStableValueTexts.clear();
-    for (final balance in balances) {
+    for (final balance in visibleBalances) {
       final valueText = _valuationService.formatNonStableUsdValue(
         balance,
         prices: prices,
@@ -276,7 +311,7 @@ class HomeController extends BaseController {
   void _refreshChainUsdValueTexts(Map<String, Decimal> prices) {
     chainUsdValueTexts.clear();
     for (final chain in WalletChain.values) {
-      final chainBalances = balances
+      final chainBalances = visibleBalances
           .where((balance) => balance.chain == chain)
           .toList(growable: false);
       final totalValue = _valuationService.calculateTotalUsdValue(
@@ -295,6 +330,26 @@ class HomeController extends BaseController {
       balance.contractAddress ?? 'native',
       balance.symbol,
     ].join(':');
+  }
+
+  void _logValuationUiState(Map<String, Decimal> prices) {
+    final buffer = StringBuffer()
+      ..writeln('----- HomeController valuation UI -----')
+      ..writeln('prices=$prices')
+      ..writeln('totalAssetsText=$totalAssetsText')
+      ..writeln('assetStableValueTexts=$assetStableValueTexts')
+      ..writeln('chainUsdValueTexts=$chainUsdValueTexts');
+
+    for (final balance in visibleBalances) {
+      if (_valuationService.isStableSymbol(balance.symbol)) {
+        continue;
+      }
+      buffer.writeln(
+        '${balance.chain.id}/${balance.symbol} amount=${balance.amount} '
+        'text=${stableValueTextFor(balance) ?? '-'}',
+      );
+    }
+    developer.log(buffer.toString(), name: 'HomeController');
   }
 
   void toggleChainExpanded(WalletChain chain) {
@@ -391,11 +446,23 @@ class HomeController extends BaseController {
   void _resetWalletState() {
     _balanceRequestId++;
     balances = [];
+    visibleBalances = [];
     assetStableValueTexts.clear();
     chainUsdValueTexts.clear();
     expandedChainIds.clear();
     totalAssetsText = '--';
     isLoading = false;
+  }
+
+  void _applyAssetVisibility() {
+    visibleBalances = balances
+        .where(
+          (balance) => _assetVisibilityService.isBalanceVisible(
+            balance,
+            hiddenAssetKeys,
+          ),
+        )
+        .toList(growable: false);
   }
 
   String _createWalletId(String evmAddress) {

@@ -32,6 +32,10 @@ class MessageLookup extends MessageLookupByLibrary {
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "addWallet": MessageLookupByLibrary.simpleMessage("添加钱包"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
+    "assetVisibility": MessageLookupByLibrary.simpleMessage("资产显示"),
+    "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
+      "关闭后，该币种会从首页资产列表和估值中隐藏；链上余额不会被删除，可随时重新开启。",
+    ),
     "availableBalance": MessageLookupByLibrary.simpleMessage("可用余额"),
     "backToWallet": MessageLookupByLibrary.simpleMessage("返回钱包"),
     "backupMnemonic": MessageLookupByLibrary.simpleMessage("备份助记词"),
@@ -47,6 +51,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "copyHash": MessageLookupByLibrary.simpleMessage("复制哈希"),
     "copyWalletAddress": MessageLookupByLibrary.simpleMessage("复制钱包地址"),
     "createWallet": MessageLookupByLibrary.simpleMessage("创建钱包"),
+    "editWalletName": MessageLookupByLibrary.simpleMessage("修改钱包名称"),
     "email": MessageLookupByLibrary.simpleMessage("注册"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("加密钱包"),
     "estimatedNetworkFee": MessageLookupByLibrary.simpleMessage("预计网络手续费"),
@@ -80,6 +85,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
     "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
     "removeWalletConfirmMessage": m2,
+    "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。",
@@ -119,6 +125,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "walletEmptyTitle": MessageLookupByLibrary.simpleMessage("创建或导入钱包"),
     "walletImported": MessageLookupByLibrary.simpleMessage("导入成功"),
+    "walletName": MessageLookupByLibrary.simpleMessage("钱包名称"),
+    "walletNameRequired": MessageLookupByLibrary.simpleMessage("请输入钱包名称"),
+    "walletNameUpdated": MessageLookupByLibrary.simpleMessage("钱包名称已更新"),
     "walletPassword": MessageLookupByLibrary.simpleMessage("钱包密码"),
     "walletPasswordHint": MessageLookupByLibrary.simpleMessage(
       "至少 6 位，用于加密本机私钥和转账前解锁。",

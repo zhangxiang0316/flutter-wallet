@@ -80,6 +80,30 @@ class WalletRepository {
     await saveWallets(wallets, currentWalletId: wallet.id);
   }
 
+  Future<WalletAccount?> renameWallet({
+    required String walletId,
+    required String name,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      return null;
+    }
+
+    final wallets = [...await loadWallets()];
+    final index = wallets.indexWhere((item) => item.id == walletId);
+    if (index < 0) {
+      return null;
+    }
+
+    final nextWallet = wallets[index].copyWith(name: trimmedName);
+    wallets[index] = nextWallet;
+    await saveWallets(
+      wallets,
+      currentWalletId: await loadCurrentWalletId() ?? walletId,
+    );
+    return nextWallet;
+  }
+
   Future<void> saveWalletSecret({
     required String walletId,
     required String password,

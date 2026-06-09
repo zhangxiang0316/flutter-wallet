@@ -69,7 +69,11 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
       child: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
         children: [
-          _WalletHeader(wallet: wallet),
+          _WalletHeader(
+            wallet: wallet,
+            isRenaming: controller.isRenamingWallet,
+            onRenamePressed: () => _showRenameWalletSheet(wallet.name),
+          ),
           SizedBox(height: 12.h),
           _AddressSection(wallet: wallet),
           SizedBox(height: 12.h),
@@ -93,6 +97,19 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
     );
   }
 
+  void _showRenameWalletSheet(String currentName) {
+    showModalBottomSheet(
+      context: context!,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _RenameWalletSheet(
+        currentName: currentName,
+        onSubmit: controller.renameWallet,
+      ),
+    );
+  }
+
   void _showPasswordUnlockSheet({
     required String title,
     required Future<bool> Function(String password) onSubmit,
@@ -109,9 +126,15 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
 }
 
 class _WalletHeader extends StatelessWidget {
-  const _WalletHeader({required this.wallet});
+  const _WalletHeader({
+    required this.wallet,
+    required this.isRenaming,
+    required this.onRenamePressed,
+  });
 
   final WalletAccount wallet;
+  final bool isRenaming;
+  final VoidCallback onRenamePressed;
 
   @override
   Widget build(BuildContext context) {
@@ -169,6 +192,25 @@ class _WalletHeader extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          SizedBox(width: 8.w),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            constraints: BoxConstraints.tight(Size(34.w, 34.w)),
+            padding: EdgeInsets.zero,
+            onPressed: isRenaming ? null : onRenamePressed,
+            icon: isRenaming
+                ? SizedBox(
+                    width: 16.w,
+                    height: 16.w,
+                    child: CircularProgressIndicator(strokeWidth: 2.w),
+                  )
+                : Icon(
+                    Icons.edit_rounded,
+                    size: 17.w,
+                    color: colorScheme.primary,
+                  ),
+            tooltip: S.of(context).editWalletName,
           ),
         ],
       ),
@@ -563,6 +605,112 @@ class _PasswordUnlockSheetState extends State<_PasswordUnlockSheet> {
     }
     setState(() => _isSubmitting = true);
     final ok = await widget.onSubmit(password);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _isSubmitting = false);
+  }
+}
+
+class _RenameWalletSheet extends StatefulWidget {
+  const _RenameWalletSheet({required this.currentName, required this.onSubmit});
+
+  final String currentName;
+  final Future<bool> Function(String name) onSubmit;
+
+  @override
+  State<_RenameWalletSheet> createState() => _RenameWalletSheetState();
+}
+
+class _RenameWalletSheetState extends State<_RenameWalletSheet> {
+  late final TextEditingController _nameController;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.currentName);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          16.w,
+          18.h,
+          16.w,
+          MediaQuery.of(context).viewInsets.bottom + 18.h,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              S.of(context).editWalletName,
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w900),
+            ).marginOnly(bottom: 14.h),
+            TextField(
+              controller: _nameController,
+              autofocus: true,
+              maxLength: 24,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: S.of(context).walletName,
+                prefixIcon: Icon(Icons.badge_outlined, size: 18.w),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                counterText: '',
+              ),
+              onSubmitted: (_) => _submit(),
+            ).marginOnly(bottom: 14.h),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: Text(S.of(context).cancel),
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: Text(S.of(context).saveWalletName),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      Toast.show(S.current.walletNameRequired);
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    final ok = await widget.onSubmit(name);
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).pop();

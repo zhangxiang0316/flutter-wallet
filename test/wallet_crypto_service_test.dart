@@ -350,6 +350,32 @@ void main() {
       expect(usdtText, isNull);
     });
 
+    test('formats zero and tiny non-stable asset values for UI display', () {
+      final zeroText = service.formatNonStableUsdValue(
+        const ChainBalance(
+          chain: WalletChain.bsc,
+          symbol: 'BNB',
+          name: 'BNB',
+          amount: '0',
+          address: '0x1',
+        ),
+        prices: {'BNB': Decimal.parse('600')},
+      );
+      final tinyText = service.formatNonStableUsdValue(
+        const ChainBalance(
+          chain: WalletChain.ethereum,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '0.000001',
+          address: '0x1',
+        ),
+        prices: {'ETH': Decimal.parse('1671.12')},
+      );
+
+      expect(zeroText, '≈ 0.00 USDT');
+      expect(tinyText, '≈ 0.001671 USDT');
+    });
+
     test('parses Binance prices for requested non-stable assets', () {
       final prices = service.parseBinancePrices(
         [
@@ -442,6 +468,57 @@ void main() {
       expect(prices['WBTC']?.toString(), '64999.99');
       expect(prices['OKB']?.toString(), '52.3');
       expect(prices['SOL']?.toString(), '150.8');
+    });
+
+    test('parses DeFiLlama prices by CoinGecko ids', () {
+      final prices = service.parseDefiLlamaPrices(
+        {
+          'coins': {
+            'coingecko:binancecoin': {'price': 600.21},
+            'coingecko:bitcoin': {'price': '62722.09'},
+            'coingecko:ethereum': {'price': 1671.12},
+            'coingecko:solana': {'price': 66.16},
+          },
+        },
+        ['BNB', 'BTCB', 'WBTC', 'ETH', 'SOL'],
+      );
+
+      expect(prices['BNB']?.toString(), '600.21');
+      expect(prices['BTCB']?.toString(), '62722.09');
+      expect(prices['WBTC']?.toString(), '62722.09');
+      expect(prices['ETH']?.toString(), '1671.12');
+      expect(prices['SOL']?.toString(), '66.16');
+    });
+
+    test('parses CoinPaprika fallback prices by wallet symbol', () {
+      final prices = service.parseCoinPaprikaPrices(
+        [
+          {
+            'id': 'bnb-binance-coin',
+            'quotes': {
+              'USD': {'price': 599.93},
+            },
+          },
+          {
+            'id': 'btc-bitcoin',
+            'quotes': {
+              'USD': {'price': '62643.07'},
+            },
+          },
+          {
+            'id': 'sol-solana',
+            'quotes': {
+              'USD': {'price': 66.14},
+            },
+          },
+        ],
+        ['BNB', 'BTCB', 'WBTC', 'SOL'],
+      );
+
+      expect(prices['BNB']?.toString(), '599.93');
+      expect(prices['BTCB']?.toString(), '62643.07');
+      expect(prices['WBTC']?.toString(), '62643.07');
+      expect(prices['SOL']?.toString(), '66.14');
     });
 
     test('parses CryptoCompare fallback prices by wallet symbol', () {
