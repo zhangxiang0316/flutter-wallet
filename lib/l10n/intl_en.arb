@@ -96,6 +96,21 @@
   "walletImported": "Import successful",
   "walletRemoved": "Wallet removed",
   "invalidPrivateKey": "Invalid private key",
+  "receive": "Receive",
+  "receiveAsset": "Receive {symbol}",
+  "@receiveAsset": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "receiveUnavailable": "Receive details are unavailable",
+  "selectReceiveChain": "Select network",
+  "selectReceiveAsset": "Select asset",
+  "receiveQrTitle": "Scan to receive",
+  "receiveQrTip": "Only send this asset on the selected network.",
+  "receiveAddress": "Receive address",
+  "copyReceiveAddress": "Copy address",
+  "receiveAddressEmpty": "This wallet does not have an address for this network",
   "transfer": "Transfer",
   "transferAsset": "Transfer {symbol}",
   "@transferAsset": {

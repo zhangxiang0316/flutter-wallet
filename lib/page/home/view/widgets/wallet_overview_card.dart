@@ -20,6 +20,7 @@ class WalletOverviewCard extends StatelessWidget {
     required this.onWalletSelected,
     required this.onWalletRemoved,
     required this.onAddWallet,
+    required this.onReceivePressed,
   });
 
   /// 当前选中的钱包。
@@ -40,6 +41,9 @@ class WalletOverviewCard extends StatelessWidget {
   /// 打开添加钱包流程。
   final VoidCallback onAddWallet;
 
+  /// 打开收款页面。
+  final VoidCallback onReceivePressed;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -51,6 +55,7 @@ class WalletOverviewCard extends StatelessWidget {
           onWalletSelected: onWalletSelected,
           onWalletRemoved: onWalletRemoved,
           onAddWallet: onAddWallet,
+          onReceivePressed: onReceivePressed,
         ).marginOnly(bottom: 12.h),
         const _PrimaryWalletPanel(),
       ],
@@ -69,6 +74,7 @@ class _BalanceHeroCard extends StatelessWidget {
     required this.onWalletSelected,
     required this.onWalletRemoved,
     required this.onAddWallet,
+    required this.onReceivePressed,
   });
 
   /// 当前选中的钱包。
@@ -88,6 +94,9 @@ class _BalanceHeroCard extends StatelessWidget {
 
   /// 打开添加钱包流程。
   final VoidCallback onAddWallet;
+
+  /// 打开收款页面。
+  final VoidCallback onReceivePressed;
 
   @override
   Widget build(BuildContext context) {
@@ -174,6 +183,11 @@ class _BalanceHeroCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+              ),
+              SizedBox(height: 18.h),
+              Align(
+                alignment: Alignment.center,
+                child: _HeroReceiveButton(onPressed: onReceivePressed),
               ),
             ],
           ),
@@ -288,6 +302,53 @@ class _WalletNamePill extends StatelessWidget {
                     ),
                   ),
                 ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hero 卡片上的收款快捷入口。
+class _HeroReceiveButton extends StatelessWidget {
+  const _HeroReceiveButton({required this.onPressed});
+
+  /// 点击后打开收款页面。
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: S.of(context).receive,
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999.r),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(999.r),
+          child: Container(
+            height: 38.h,
+            padding: EdgeInsets.symmetric(horizontal: 14.w),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999.r),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 17.w),
+                SizedBox(width: 7.w),
+                Text(
+                  S.of(context).receive,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
           ),

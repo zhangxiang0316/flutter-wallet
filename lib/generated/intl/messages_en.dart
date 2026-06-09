@@ -25,13 +25,15 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m1(symbol) =>
       "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
 
-  static String m2(symbol) =>
+  static String m2(symbol) => "Receive ${symbol}";
+
+  static String m3(symbol) =>
       "Remove \"${symbol}\"? The home page will no longer query this asset balance.";
 
-  static String m3(name) =>
+  static String m4(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m4(symbol) => "Transfer ${symbol}";
+  static String m5(symbol) => "Transfer ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -61,6 +63,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "copied": MessageLookupByLibrary.simpleMessage("Copied"),
     "copyHash": MessageLookupByLibrary.simpleMessage("Copy hash"),
+    "copyReceiveAddress": MessageLookupByLibrary.simpleMessage("Copy address"),
     "copyWalletAddress": MessageLookupByLibrary.simpleMessage(
       "Copy wallet address",
     ),
@@ -127,18 +130,35 @@ class MessageLookup extends MessageLookupByLibrary {
     "privateKeyHint": MessageLookupByLibrary.simpleMessage(
       "Enter a 64-character hex private key, optionally prefixed with 0x",
     ),
+    "receive": MessageLookupByLibrary.simpleMessage("Receive"),
+    "receiveAddress": MessageLookupByLibrary.simpleMessage("Receive address"),
+    "receiveAddressEmpty": MessageLookupByLibrary.simpleMessage(
+      "This wallet does not have an address for this network",
+    ),
+    "receiveAsset": m2,
+    "receiveQrTip": MessageLookupByLibrary.simpleMessage(
+      "Only send this asset on the selected network.",
+    ),
+    "receiveQrTitle": MessageLookupByLibrary.simpleMessage("Scan to receive"),
+    "receiveUnavailable": MessageLookupByLibrary.simpleMessage(
+      "Receive details are unavailable",
+    ),
     "recipientAddress": MessageLookupByLibrary.simpleMessage(
       "Recipient address",
     ),
     "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
     "removeCustomAsset": MessageLookupByLibrary.simpleMessage("Remove asset"),
-    "removeCustomAssetConfirmMessage": m2,
+    "removeCustomAssetConfirmMessage": m3,
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
-    "removeWalletConfirmMessage": m3,
+    "removeWalletConfirmMessage": m4,
     "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("Security notice"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.",
+    ),
+    "selectReceiveAsset": MessageLookupByLibrary.simpleMessage("Select asset"),
+    "selectReceiveChain": MessageLookupByLibrary.simpleMessage(
+      "Select network",
     ),
     "settings": MessageLookupByLibrary.simpleMessage("Settings"),
     "switchWallet": MessageLookupByLibrary.simpleMessage("Switch wallet"),
@@ -150,7 +170,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
     "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-    "transferAsset": m4,
+    "transferAsset": m5,
     "transferDetails": MessageLookupByLibrary.simpleMessage("Transfer details"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "Transfer failed. Check the address, amount, and on-chain balance.",

@@ -136,6 +136,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   onWalletSelected: controller.switchWallet,
                   onWalletRemoved: controller.removeWallet,
                   onAddWallet: _showAddWalletSheet,
+                  onReceivePressed: _openReceivePage,
                 ),
                 SizedBox(height: 16.h),
                 ChainSection(
@@ -324,6 +325,13 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     if (currentWallet == null) return;
     await Get.toNamed(RouteTable.walletDetail, arguments: currentWallet.id);
     await controller.syncWalletMetadata();
+  }
+
+  /// 打开收款页面，收款页只需要当前钱包的各链地址。
+  Future<void> _openReceivePage() async {
+    final currentWallet = controller.wallet;
+    if (currentWallet == null) return;
+    await Get.toNamed(RouteTable.receive, arguments: currentWallet);
   }
 
   bool _legacyMigrationSheetVisible = false;

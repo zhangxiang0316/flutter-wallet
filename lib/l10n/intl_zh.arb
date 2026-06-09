@@ -96,6 +96,21 @@
   "walletImported": "导入成功",
   "walletRemoved": "钱包已移除",
   "invalidPrivateKey": "私钥格式不正确",
+  "receive": "收款",
+  "receiveAsset": "收款 {symbol}",
+  "@receiveAsset": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "receiveUnavailable": "收款信息不可用",
+  "selectReceiveChain": "选择收款网络",
+  "selectReceiveAsset": "选择收款币种",
+  "receiveQrTitle": "扫码收款",
+  "receiveQrTip": "请仅通过当前选择的网络转入该币种。",
+  "receiveAddress": "收款地址",
+  "copyReceiveAddress": "复制地址",
+  "receiveAddressEmpty": "当前钱包没有该网络地址",
   "transfer": "转账",
   "transferAsset": "转账 {symbol}",
   "@transferAsset": {

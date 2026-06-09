@@ -35,6 +35,7 @@ dependencies:
   rational: ^2.2.3
   flutter_secure_storage: ^9.2.4
   solana: ^0.32.0+1
+  qr_flutter: ^4.1.0
 
 
 dev_dependencies:

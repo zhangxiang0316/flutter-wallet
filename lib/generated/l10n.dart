@@ -825,6 +825,101 @@ class S {
     );
   }
 
+  /// `Receive`
+  String get receive {
+    return Intl.message('Receive', name: 'receive', desc: '', args: []);
+  }
+
+  /// `Receive {symbol}`
+  String receiveAsset(Object symbol) {
+    return Intl.message(
+      'Receive $symbol',
+      name: 'receiveAsset',
+      desc: '',
+      args: [symbol],
+    );
+  }
+
+  /// `Receive details are unavailable`
+  String get receiveUnavailable {
+    return Intl.message(
+      'Receive details are unavailable',
+      name: 'receiveUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select network`
+  String get selectReceiveChain {
+    return Intl.message(
+      'Select network',
+      name: 'selectReceiveChain',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select asset`
+  String get selectReceiveAsset {
+    return Intl.message(
+      'Select asset',
+      name: 'selectReceiveAsset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Scan to receive`
+  String get receiveQrTitle {
+    return Intl.message(
+      'Scan to receive',
+      name: 'receiveQrTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Only send this asset on the selected network.`
+  String get receiveQrTip {
+    return Intl.message(
+      'Only send this asset on the selected network.',
+      name: 'receiveQrTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receive address`
+  String get receiveAddress {
+    return Intl.message(
+      'Receive address',
+      name: 'receiveAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Copy address`
+  String get copyReceiveAddress {
+    return Intl.message(
+      'Copy address',
+      name: 'copyReceiveAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This wallet does not have an address for this network`
+  String get receiveAddressEmpty {
+    return Intl.message(
+      'This wallet does not have an address for this network',
+      name: 'receiveAddressEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Transfer`
   String get transfer {
     return Intl.message('Transfer', name: 'transfer', desc: '', args: []);
