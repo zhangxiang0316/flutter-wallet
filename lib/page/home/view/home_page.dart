@@ -111,6 +111,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   balances: controller.balances,
                   isLoading: controller.isLoading,
                   stableValueTextFor: controller.stableValueTextFor,
+                  chainUsdValueTextFor: controller.chainUsdValueTextFor,
                   isChainExpanded: controller.isChainExpanded,
                   onChainToggle: controller.toggleChainExpanded,
                   onTransferPressed: _openTransferPage,

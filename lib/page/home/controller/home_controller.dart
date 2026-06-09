@@ -44,6 +44,9 @@ class HomeController extends BaseController {
   /// 非稳定币按当前价格换算成稳定币后的展示文本。
   final Map<String, String> assetStableValueTexts = {};
 
+  /// 每条链按当前价格汇总后的 USD 估值文本。
+  final Map<String, String> chainUsdValueTexts = {};
+
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
 
@@ -169,6 +172,7 @@ class HomeController extends BaseController {
       balances = nextBalances;
       _refreshTotalAssetsFromCachedPrices();
       _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
+      _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
       isLoading = false;
       update();
 
@@ -184,6 +188,7 @@ class HomeController extends BaseController {
       );
       totalAssetsText = _valuationService.formatUsdValue(totalValue);
       _refreshAssetStableValueTexts(latestPrices);
+      _refreshChainUsdValueTexts(latestPrices);
       update();
     } catch (_) {
       if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
@@ -217,6 +222,10 @@ class HomeController extends BaseController {
     return assetStableValueTexts[_assetStableValueKey(balance)];
   }
 
+  String chainUsdValueTextFor(WalletChain chain) {
+    return chainUsdValueTexts[chain.id] ?? '--';
+  }
+
   void _refreshAssetStableValueTexts(Map<String, Decimal> prices) {
     assetStableValueTexts.clear();
     for (final balance in balances) {
@@ -227,6 +236,22 @@ class HomeController extends BaseController {
       if (valueText != null) {
         assetStableValueTexts[_assetStableValueKey(balance)] = valueText;
       }
+    }
+  }
+
+  void _refreshChainUsdValueTexts(Map<String, Decimal> prices) {
+    chainUsdValueTexts.clear();
+    for (final chain in WalletChain.values) {
+      final chainBalances = balances
+          .where((balance) => balance.chain == chain)
+          .toList(growable: false);
+      final totalValue = _valuationService.calculateTotalUsdValue(
+        chainBalances,
+        prices: prices,
+      );
+      chainUsdValueTexts[chain.id] = _valuationService.formatUsdValue(
+        totalValue,
+      );
     }
   }
 
@@ -301,6 +326,7 @@ class HomeController extends BaseController {
     _balanceRequestId++;
     balances = [];
     assetStableValueTexts.clear();
+    chainUsdValueTexts.clear();
     expandedChainIds.clear();
     totalAssetsText = '--';
     isLoading = false;

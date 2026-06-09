@@ -19,6 +19,7 @@ class ChainSection extends StatelessWidget {
     required this.balances,
     required this.isLoading,
     required this.stableValueTextFor,
+    required this.chainUsdValueTextFor,
     required this.isChainExpanded,
     required this.onChainToggle,
     required this.onTransferPressed,
@@ -32,6 +33,9 @@ class ChainSection extends StatelessWidget {
   ///
   /// 稳定币自身不展示额外估值，所以这里可能返回 null。
   final String? Function(ChainBalance balance) stableValueTextFor;
+
+  /// 单条链下所有已定价资产汇总后的 USD 估值文本。
+  final String Function(WalletChain chain) chainUsdValueTextFor;
 
   /// 由控制器保存展开状态，避免刷新余额时丢失用户当前展开的链。
   final bool Function(WalletChain chain) isChainExpanded;
@@ -61,6 +65,7 @@ class ChainSection extends StatelessWidget {
           balances: bscBalances,
           isLoading: isLoading,
           stableValueTextFor: stableValueTextFor,
+          usdValueText: chainUsdValueTextFor(WalletChain.bsc),
           isExpanded: isChainExpanded(WalletChain.bsc),
           onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
@@ -71,6 +76,7 @@ class ChainSection extends StatelessWidget {
           balances: ethereumBalances,
           isLoading: isLoading,
           stableValueTextFor: stableValueTextFor,
+          usdValueText: chainUsdValueTextFor(WalletChain.ethereum),
           isExpanded: isChainExpanded(WalletChain.ethereum),
           onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
@@ -81,6 +87,7 @@ class ChainSection extends StatelessWidget {
           balances: xLayerBalances,
           isLoading: isLoading,
           stableValueTextFor: stableValueTextFor,
+          usdValueText: chainUsdValueTextFor(WalletChain.xLayer),
           isExpanded: isChainExpanded(WalletChain.xLayer),
           onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
@@ -91,6 +98,7 @@ class ChainSection extends StatelessWidget {
           balances: tronBalances,
           isLoading: isLoading,
           stableValueTextFor: stableValueTextFor,
+          usdValueText: chainUsdValueTextFor(WalletChain.tron),
           isExpanded: isChainExpanded(WalletChain.tron),
           onToggle: onChainToggle,
           onTransferPressed: onTransferPressed,
@@ -102,7 +110,7 @@ class ChainSection extends StatelessWidget {
 
 /// 单条链卡片。
 ///
-/// 头部展示链名称、地址和原生币摘要；展开后展示该链下每个币种的余额、
+/// 头部展示链名称、地址和链级 USD 估值；展开后展示该链下每个币种的余额、
 /// 估值和转账入口。
 class _ChainCard extends StatelessWidget {
   const _ChainCard({
@@ -111,6 +119,7 @@ class _ChainCard extends StatelessWidget {
     required this.balances,
     required this.isLoading,
     required this.stableValueTextFor,
+    required this.usdValueText,
     required this.isExpanded,
     required this.onToggle,
     required this.onTransferPressed,
@@ -121,6 +130,7 @@ class _ChainCard extends StatelessWidget {
   final List<ChainBalance> balances;
   final bool isLoading;
   final String? Function(ChainBalance balance) stableValueTextFor;
+  final String usdValueText;
   final bool isExpanded;
   final ValueChanged<WalletChain> onToggle;
   final ValueChanged<ChainBalance> onTransferPressed;
@@ -129,9 +139,6 @@ class _ChainCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasError = balances.any((balance) => balance.hasError);
     final chainColor = homeChainColor(chain);
-
-    // 折叠态只展示原生币余额，完整币种列表放在展开区域里。
-    final nativeBalance = _nativeBalanceText();
     final dividerColor = homeDividerColor(context);
     return Container(
       width: double.infinity,
@@ -220,9 +227,7 @@ class _ChainCard extends StatelessWidget {
                       ),
                       SizedBox(width: 8.w),
                       _ChainSummaryPill(
-                        count: balances.length,
-                        amount: nativeBalance,
-                        symbol: chain.symbol,
+                        usdValueText: usdValueText,
                         color: chainColor,
                         isLoading: isLoading && balances.isEmpty,
                       ),
@@ -288,16 +293,6 @@ class _ChainCard extends StatelessWidget {
     );
   }
 
-  /// 当前链的原生币余额，用于折叠态摘要展示。
-  String _nativeBalanceText() {
-    for (final balance in balances) {
-      if (balance.isNative) {
-        return balance.amount;
-      }
-    }
-    return '--';
-  }
-
   String _shortAddress(String value) {
     if (value.length <= 16) {
       return value;
@@ -322,19 +317,15 @@ class _ChainStatusDot extends StatelessWidget {
   }
 }
 
-/// 链卡片右侧的折叠态摘要，展示原生币余额和当前已加载币种数量。
+/// 链卡片右侧的折叠态摘要，只展示当前链的 USD 汇总估值。
 class _ChainSummaryPill extends StatelessWidget {
   const _ChainSummaryPill({
-    required this.count,
-    required this.amount,
-    required this.symbol,
+    required this.usdValueText,
     required this.color,
     required this.isLoading,
   });
 
-  final int count;
-  final String amount;
-  final String symbol;
+  final String usdValueText;
   final Color color;
   final bool isLoading;
 
@@ -342,41 +333,28 @@ class _ChainSummaryPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       constraints: BoxConstraints(maxWidth: 112.w, minHeight: 38.h),
+      alignment: Alignment.centerRight,
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: color.withValues(alpha: 0.14)),
-      ),
+      // decoration: BoxDecoration(
+        // color: color.withValues(alpha: 0.08),
+        // borderRadius: BorderRadius.circular(8.r),
+        // border: Border.all(color: color.withValues(alpha: 0.14)),
+      // ),
       child: isLoading
           ? SizedBox(
               width: 16.w,
               height: 16.w,
               child: CircularProgressIndicator(strokeWidth: 2, color: color),
             )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$amount $symbol',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 9.5.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+          : Text(
+              usdValueText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w800,
+              ),
             ),
     );
   }
