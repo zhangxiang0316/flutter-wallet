@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/chain_balance.dart';
+import '../../../../wallet/utils/asset_amount_formatter.dart';
 import 'transfer_styles.dart';
 
 class TransferHero extends StatelessWidget {
@@ -135,7 +136,7 @@ class TransferHero extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${asset.amount} ${asset.symbol}',
+                          '${formatAssetAmount(asset.amount)} ${asset.symbol}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

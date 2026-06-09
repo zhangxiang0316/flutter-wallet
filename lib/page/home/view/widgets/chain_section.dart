@@ -6,6 +6,7 @@ import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/chain_balance.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
+import '../../../../wallet/utils/asset_amount_formatter.dart';
 import 'home_styles.dart';
 
 /// 首页的多链资产区域。
@@ -335,11 +336,6 @@ class _ChainSummaryPill extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: 112.w, minHeight: 38.h),
       alignment: Alignment.centerRight,
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-      // decoration: BoxDecoration(
-        // color: color.withValues(alpha: 0.08),
-        // borderRadius: BorderRadius.circular(8.r),
-        // border: Border.all(color: color.withValues(alpha: 0.14)),
-      // ),
       child: isLoading
           ? SizedBox(
               width: 16.w,
@@ -460,7 +456,7 @@ class _AssetRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${balance.amount} ${balance.symbol}',
+                      formatAssetAmount(balance.amount),
                       textAlign: TextAlign.right,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
