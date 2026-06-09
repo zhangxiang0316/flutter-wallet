@@ -5,6 +5,9 @@ import 'package:get/get.dart';
 import '../../../../generated/l10n.dart';
 import 'home_styles.dart';
 
+/// 首页无钱包时展示的引导卡片。
+///
+/// 当本地没有钱包账户时，首页只展示这个卡片，引导用户创建新钱包或导入已有钱包。
 class EmptyWalletCard extends StatelessWidget {
   const EmptyWalletCard({
     super.key,
@@ -12,11 +15,15 @@ class EmptyWalletCard extends StatelessWidget {
     required this.onImportWallet,
   });
 
+  /// 打开创建钱包密码设置流程。
   final VoidCallback onCreateWallet;
+
+  /// 打开助记词/私钥导入流程。
   final VoidCallback onImportWallet;
 
   @override
   Widget build(BuildContext context) {
+    // 使用当前主题色作为空钱包图标和主按钮强调色。
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,

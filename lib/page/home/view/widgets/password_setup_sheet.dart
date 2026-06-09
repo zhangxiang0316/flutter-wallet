@@ -6,6 +6,10 @@ import '../../../../generated/l10n.dart';
 import '../../controller/home_controller.dart';
 import 'wallet_sheet_styles.dart';
 
+/// 首页创建钱包或密钥迁移时使用的密码设置面板。
+///
+/// 提交成功后，如果控制器返回 [CreatedWalletBackup]，组件会切换到助记词备份步骤；
+/// 如果返回 true，则表示普通加密/迁移流程完成并关闭弹窗。
 class PasswordSetupSheet extends StatefulWidget {
   const PasswordSetupSheet({
     super.key,
@@ -16,10 +20,19 @@ class PasswordSetupSheet extends StatefulWidget {
     required this.validatePassword,
   });
 
+  /// 面板标题，例如“创建钱包”或“钱包安全升级”。
   final String title;
+
+  /// 主按钮文案，由不同流程决定。
   final String submitLabel;
+
+  /// 是否允许用户手势关闭；安全迁移流程会禁止关闭。
   final bool isDismissible;
+
+  /// 使用用户输入的密码执行创建或迁移动作。
   final Future<Object?> Function(String password) onSubmit;
+
+  /// 校验密码和确认密码，失败时由调用方负责展示错误提示。
   final bool Function(String password, String confirmPassword) validatePassword;
 
   @override
@@ -27,11 +40,17 @@ class PasswordSetupSheet extends StatefulWidget {
 }
 
 class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
+  /// 钱包本地加密密码输入控制器。
   final TextEditingController _passwordController = TextEditingController();
+
+  /// 确认密码输入控制器。
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  /// 防止用户重复点击提交按钮。
   bool _isSubmitting = false;
+
+  /// 创建钱包成功后展示的助记词；为空时展示密码输入步骤。
   String? _mnemonic;
 
   @override
@@ -96,6 +115,7 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
   }
 
   Widget _buildMnemonicBackupStep(BuildContext context, String mnemonic) {
+    // 助记词按空格拆分后逐个编号展示。
     final words = mnemonic.split(' ');
     return Column(
       key: const ValueKey('mnemonic-step'),
@@ -125,6 +145,7 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
   }
 
   Future<void> _submit() async {
+    // 密码两端都去掉首尾空格，避免创建后用户无法用预期密码解锁。
     final password = _passwordController.text.trim();
     if (!widget.validatePassword(
       password,
@@ -134,6 +155,8 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     }
 
     setState(() => _isSubmitting = true);
+
+    // 创建钱包可能返回助记词备份信息，迁移流程通常返回 bool。
     final result = await widget.onSubmit(password);
     if (!mounted) return;
     if (result is CreatedWalletBackup) {
@@ -151,9 +174,13 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
   }
 }
 
+/// 助记词备份网格。
+///
+/// 将助记词按序号拆成固定三列展示，便于用户逐词核对和抄写。
 class _MnemonicWordGrid extends StatelessWidget {
   const _MnemonicWordGrid({required this.words});
 
+  /// 已按空格拆分后的助记词列表。
   final List<String> words;
 
   @override

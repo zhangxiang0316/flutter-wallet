@@ -4,6 +4,10 @@ import 'package:get/get.dart';
 
 import '../../../../common/theme/app_theme_extension.dart';
 
+/// 首页钱包相关底部弹窗的统一容器。
+///
+/// 封装 Vant 风格的圆角、顶部拖拽条、安全区和键盘底部间距，
+/// 让创建、导入、解锁等面板保持同一套视觉规范。
 class VantSheet extends StatelessWidget {
   const VantSheet({
     super.key,
@@ -12,8 +16,13 @@ class VantSheet extends StatelessWidget {
     this.showHandle = true,
   });
 
+  /// 弹窗内部具体内容。
   final Widget child;
+
+  /// 键盘弹出时需要追加的底部间距，通常来自 [MediaQuery.viewInsets]。
   final double bottomInset;
+
+  /// 是否展示顶部短横拖拽条。
   final bool showHandle;
 
   @override
@@ -65,9 +74,11 @@ class VantSheet extends StatelessWidget {
   }
 }
 
+/// 首页底部弹窗的统一标题样式。
 class VantSheetTitle extends StatelessWidget {
   const VantSheetTitle({super.key, required this.title});
 
+  /// 标题文本。
   final String title;
 
   @override
@@ -79,6 +90,9 @@ class VantSheetTitle extends StatelessWidget {
   }
 }
 
+/// 两段式切换控件。
+///
+/// 当前用于导入钱包时在“助记词”和“私钥”两种输入模式之间切换。
 class VantSegmentedControl extends StatelessWidget {
   const VantSegmentedControl({
     super.key,
@@ -88,13 +102,21 @@ class VantSegmentedControl extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// 左侧选项文案。
   final String leftLabel;
+
+  /// 右侧选项文案。
   final String rightLabel;
+
+  /// true 表示左侧选中，false 表示右侧选中。
   final bool leftSelected;
+
+  /// 选中项变化回调，参数含义同 [leftSelected]。
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    // 当前主题色用于未选中态文字和选中态强调色。
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.all(3.w),
@@ -120,6 +142,7 @@ class VantSegmentedControl extends StatelessWidget {
   }
 }
 
+/// 两段式切换控件里的单个选项。
 class _SegmentItem extends StatelessWidget {
   const _SegmentItem({
     required this.label,
@@ -127,12 +150,18 @@ class _SegmentItem extends StatelessWidget {
     required this.onTap,
   });
 
+  /// 当前选项文案。
   final String label;
+
+  /// 当前选项是否处于选中态。
   final bool selected;
+
+  /// 点击选项后的切换回调。
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    // 当前主题色用于选中和未选中状态的文字颜色。
     final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: InkWell(
@@ -173,6 +202,9 @@ class _SegmentItem extends StatelessWidget {
   }
 }
 
+/// 钱包密码输入框。
+///
+/// 统一设置隐藏输入、锁图标和 Vant 风格输入框装饰。
 class PasswordTextField extends StatelessWidget {
   const PasswordTextField({
     super.key,
@@ -181,8 +213,13 @@ class PasswordTextField extends StatelessWidget {
     this.hint,
   });
 
+  /// 外部持有的输入控制器，便于表单统一读取和释放。
   final TextEditingController controller;
+
+  /// 输入框标签。
   final String label;
+
+  /// 可选占位提示。
   final String? hint;
 
   @override
@@ -200,18 +237,34 @@ class PasswordTextField extends StatelessWidget {
   }
 }
 
+/// 首页钱包弹窗里文本输入框的统一装饰。
 InputDecoration vantInputDecoration(
   BuildContext context, {
+
+  /// Material 原生 labelText 参数。
   String? labelText,
+
+  /// 兼容旧调用的 label 参数，优先级低于 [labelText]。
   String? label,
+
+  /// 输入框占位提示。
   String? hintText,
+
+  /// 输入框左侧图标。
   IconData? prefixIcon,
 }) {
+  // 当前主题色用于输入框文字、图标和聚焦边框。
   final colorScheme = Theme.of(context).colorScheme;
+
+  // 应用主题扩展可覆盖输入框边框色。
   final appTheme = context.appTheme;
+
+  // 深色模式需要更高的填充不透明度，保证输入框层级清晰。
   final surfaceAlpha = Theme.of(context).brightness == Brightness.dark
       ? 0.08
       : 0.035;
+
+  // 输入框默认边框色。
   final borderColor =
       appTheme.inputBorderColor ?? colorScheme.outline.withValues(alpha: 0.22);
   return InputDecoration(
@@ -251,7 +304,9 @@ InputDecoration vantInputDecoration(
   );
 }
 
+/// 首页钱包弹窗里的主按钮样式。
 ButtonStyle vantFilledButtonStyle(BuildContext context) {
+  // 主按钮跟随当前主题主色。
   final colorScheme = Theme.of(context).colorScheme;
   return FilledButton.styleFrom(
     minimumSize: Size.fromHeight(44.h),
@@ -263,7 +318,9 @@ ButtonStyle vantFilledButtonStyle(BuildContext context) {
   );
 }
 
+/// 首页钱包弹窗里的次级描边按钮样式。
 ButtonStyle vantOutlinedButtonStyle(BuildContext context) {
+  // 描边按钮使用主题主色，透明描边降低视觉重量。
   final colorScheme = Theme.of(context).colorScheme;
   return OutlinedButton.styleFrom(
     minimumSize: Size.fromHeight(44.h),

@@ -4,8 +4,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 
+/// 首页卡片和面板的统一背景、圆角和边框样式。
 BoxDecoration homePanelDecoration(BuildContext context) {
+  // 当前主题色体系，用于兜底边框色。
   final colorScheme = Theme.of(context).colorScheme;
+
+  // 优先取应用主题扩展的分隔线颜色，没有配置时使用 Material outline。
   final dividerColor =
       context.appTheme.dividerColor ??
       colorScheme.outline.withValues(alpha: 0.18);
@@ -16,20 +20,26 @@ BoxDecoration homePanelDecoration(BuildContext context) {
   );
 }
 
+/// 首页分隔线颜色。
+///
+/// 优先使用主题扩展里的分隔线配置，深色模式下会降低不透明度。
 Color homeDividerColor(BuildContext context) {
   return (context.appTheme.dividerColor ?? const Color(0xFFEBEDF0)).withValues(
     alpha: Theme.of(context).brightness == Brightness.dark ? 0.5 : 1,
   );
 }
 
+/// 首页辅助说明文本颜色。
 Color homeSubTextColor(BuildContext context) {
   return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58);
 }
 
+/// 首页列表项按压态背景色。
 Color homeCellPressColor(BuildContext context) {
   return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.035);
 }
 
+/// 首页各条链的品牌识别色。
 Color homeChainColor(WalletChain chain) {
   switch (chain) {
     case WalletChain.bsc:
@@ -45,6 +55,9 @@ Color homeChainColor(WalletChain chain) {
   }
 }
 
+/// 首页各币种头像和标识的颜色。
+///
+/// 未显式配置的币种回退到当前主题主色，支持用户添加自定义币种后仍有可用配色。
 Color homeAssetColor(BuildContext context, String symbol) {
   switch (symbol.toUpperCase()) {
     case 'USDT':

@@ -6,6 +6,10 @@ import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
 import 'wallet_sheet_styles.dart';
 
+/// 首页需要用户输入钱包密码时的解锁面板。
+///
+/// 当前用于补全 Solana 地址等需要解密密钥的维护流程，输入正确密码后由
+/// [onSubmit] 执行实际操作。
 class PasswordUnlockSheet extends StatefulWidget {
   const PasswordUnlockSheet({
     super.key,
@@ -15,9 +19,16 @@ class PasswordUnlockSheet extends StatefulWidget {
     required this.onSubmit,
   });
 
+  /// 面板标题。
   final String title;
+
+  /// 标题下方的流程说明。
   final String detail;
+
+  /// 主按钮文案。
   final String submitLabel;
+
+  /// 使用用户输入的密码执行解锁后的操作，返回 true 时关闭弹窗。
   final Future<bool> Function(String password) onSubmit;
 
   @override
@@ -25,8 +36,10 @@ class PasswordUnlockSheet extends StatefulWidget {
 }
 
 class _PasswordUnlockSheetState extends State<PasswordUnlockSheet> {
+  /// 钱包密码输入控制器。
   final TextEditingController _passwordController = TextEditingController();
 
+  /// 防止用户重复点击提交按钮。
   bool _isSubmitting = false;
 
   @override
@@ -72,6 +85,7 @@ class _PasswordUnlockSheetState extends State<PasswordUnlockSheet> {
   }
 
   Future<void> _submit() async {
+    // 密码两端都去掉首尾空格，避免误输入空格导致校验失败。
     final password = _passwordController.text.trim();
     if (password.isEmpty) {
       Toast.show(S.current.walletPasswordRequired);
@@ -79,6 +93,8 @@ class _PasswordUnlockSheetState extends State<PasswordUnlockSheet> {
     }
 
     setState(() => _isSubmitting = true);
+
+    // 解锁后的实际维护操作由父页面/控制器执行。
     final ok = await widget.onSubmit(password);
     if (!mounted) return;
     if (ok) {

@@ -5,11 +5,15 @@ import 'package:get/get.dart';
 import '../../../../generated/l10n.dart';
 import 'home_styles.dart';
 
+/// 首页底部的本地私钥安全提示。
+///
+/// 提醒用户当前钱包密钥存储在本机，避免把安全说明分散在首页主体代码中。
 class PrivateKeyNotice extends StatelessWidget {
   const PrivateKeyNotice({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 使用错误色强化本地私钥安全提示的重要性。
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,

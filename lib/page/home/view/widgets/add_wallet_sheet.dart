@@ -5,6 +5,10 @@ import 'package:get/get.dart';
 import '../../../../generated/l10n.dart';
 import 'wallet_sheet_styles.dart';
 
+/// 首页“添加钱包”底部操作面板。
+///
+/// 这里只负责展示创建/导入两个入口；真正的创建、导入流程由父页面传入的
+/// 回调继续打开对应表单，避免多个 BottomSheet 同时叠在一起。
 class AddWalletSheet extends StatelessWidget {
   const AddWalletSheet({
     super.key,
@@ -12,7 +16,10 @@ class AddWalletSheet extends StatelessWidget {
     required this.onImportWallet,
   });
 
+  /// 点击“创建钱包”后的后续流程入口。
   final VoidCallback onCreateWallet;
+
+  /// 点击“导入钱包”后的后续流程入口。
   final VoidCallback onImportWallet;
 
   @override

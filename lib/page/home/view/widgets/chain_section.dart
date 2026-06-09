@@ -26,8 +26,13 @@ class ChainSection extends StatelessWidget {
     required this.onTransferPressed,
   });
 
+  /// 当前钱包账户，用于读取 EVM、Solana、TRON 等链地址。
   final WalletAccount wallet;
+
+  /// 控制器加载到的全部可见资产余额，组件内部会按链过滤展示。
   final List<ChainBalance> balances;
+
+  /// 首页余额是否正在刷新，用于展示链级和空态 loading。
   final bool isLoading;
 
   /// 非稳定币对应的稳定币估值文本，例如 `≈ 12.30 USDT`。
@@ -40,7 +45,11 @@ class ChainSection extends StatelessWidget {
 
   /// 由控制器保存展开状态，避免刷新余额时丢失用户当前展开的链。
   final bool Function(WalletChain chain) isChainExpanded;
+
+  /// 点击链卡片头部后的展开/收起回调。
   final ValueChanged<WalletChain> onChainToggle;
+
+  /// 点击单个币种转账按钮后的回调。
   final ValueChanged<ChainBalance> onTransferPressed;
 
   @override
@@ -48,6 +57,7 @@ class ChainSection extends StatelessWidget {
     // 按链枚举动态渲染，EVM 链共用 EVM 地址，非 EVM 链使用各自地址。
     final chainCards = WalletChain.values
         .map((chain) {
+          // 当前链下需要展示的资产余额列表。
           final chainBalances = balances
               .where((balance) => balance.chain == chain)
               .toList();
@@ -77,6 +87,7 @@ class ChainSection extends StatelessWidget {
     );
   }
 
+  /// 获取指定链在当前钱包里的展示地址。
   String _addressForChain(WalletChain chain) {
     if (chain.isEvm) {
       return wallet.bscAddress;
@@ -111,20 +122,42 @@ class _ChainCard extends StatelessWidget {
     required this.onTransferPressed,
   });
 
+  /// 当前卡片对应的链。
   final WalletChain chain;
+
+  /// 当前链在钱包中的展示地址。
   final String address;
+
+  /// 当前链下的资产余额列表。
   final List<ChainBalance> balances;
+
+  /// 当前链余额是否处于刷新状态。
   final bool isLoading;
+
+  /// 单个资产换算成稳定币后的估值文本生成器。
   final String? Function(ChainBalance balance) stableValueTextFor;
+
+  /// 当前链所有资产汇总后的 USD 文本。
   final String usdValueText;
+
+  /// 当前链是否处于展开状态。
   final bool isExpanded;
+
+  /// 点击链头部后的展开状态切换回调。
   final ValueChanged<WalletChain> onToggle;
+
+  /// 点击资产行转账按钮后的回调。
   final ValueChanged<ChainBalance> onTransferPressed;
 
   @override
   Widget build(BuildContext context) {
+    // 当前链是否存在任意余额查询错误。
     final hasError = balances.any((balance) => balance.hasError);
+
+    // 当前链用于头像、边框和 loading 的品牌色。
     final chainColor = homeChainColor(chain);
+
+    // 当前主题下的列表分隔线颜色。
     final dividerColor = homeDividerColor(context);
     return Container(
       width: double.infinity,
@@ -279,6 +312,7 @@ class _ChainCard extends StatelessWidget {
     );
   }
 
+  /// 将链地址压缩成首页列表可读的短地址。
   String _shortAddress(String value) {
     if (value.length <= 16) {
       return value;
@@ -291,6 +325,7 @@ class _ChainCard extends StatelessWidget {
 class _ChainStatusDot extends StatelessWidget {
   const _ChainStatusDot({required this.color});
 
+  /// loading 指示器颜色，跟随当前链品牌色。
   final Color color;
 
   @override
@@ -311,8 +346,13 @@ class _ChainSummaryPill extends StatelessWidget {
     required this.isLoading,
   });
 
+  /// 已格式化的当前链 USD 估值文本。
   final String usdValueText;
+
+  /// loading 指示器颜色，跟随当前链品牌色。
   final Color color;
+
+  /// true 时右侧摘要区域展示 loading。
   final bool isLoading;
 
   @override
@@ -345,6 +385,7 @@ class _ChainSummaryPill extends StatelessWidget {
 class _EmptyBalancePlaceholder extends StatelessWidget {
   const _EmptyBalancePlaceholder({required this.isLoading});
 
+  /// true 表示仍在加载，false 表示加载完成但没有可展示资产。
   final bool isLoading;
 
   @override
@@ -377,15 +418,21 @@ class _AssetRow extends StatelessWidget {
     required this.onTransferPressed,
   });
 
+  /// 当前资产余额数据。
   final ChainBalance balance;
 
   /// 非稳定币换算成稳定币后的展示文本；稳定币为 null。
   final String? stableValueText;
+
+  /// 点击转账按钮后的回调。
   final ValueChanged<ChainBalance> onTransferPressed;
 
   @override
   Widget build(BuildContext context) {
+    // 当前币种头像和标识使用的颜色。
     final assetColor = homeAssetColor(context, balance.symbol);
+
+    // Solana 转账暂未开放，按钮需要禁用。
     final transferEnabled = balance.chain != WalletChain.solana;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h),

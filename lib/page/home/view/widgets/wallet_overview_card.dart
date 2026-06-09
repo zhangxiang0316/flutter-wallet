@@ -7,6 +7,10 @@ import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 import 'home_styles.dart';
 
+/// 首页钱包资产概览区域。
+///
+/// 组合展示总资产卡片、当前钱包切换入口和多链钱包说明。所有钱包切换、
+/// 移除、添加动作都通过回调交给首页控制器处理。
 class WalletOverviewCard extends StatelessWidget {
   const WalletOverviewCard({
     super.key,
@@ -18,11 +22,22 @@ class WalletOverviewCard extends StatelessWidget {
     required this.onAddWallet,
   });
 
+  /// 当前选中的钱包。
   final WalletAccount wallet;
+
+  /// 本地已有钱包列表，用于钱包切换弹窗。
   final List<WalletAccount> wallets;
+
+  /// 已格式化的总资产 USD 文本。
   final String totalAssetsText;
+
+  /// 用户在切换弹窗中选择钱包后的回调。
   final ValueChanged<WalletAccount> onWalletSelected;
+
+  /// 用户确认移除钱包后的回调。
   final Future<void> Function(WalletAccount wallet) onWalletRemoved;
+
+  /// 打开添加钱包流程。
   final VoidCallback onAddWallet;
 
   @override
@@ -43,6 +58,9 @@ class WalletOverviewCard extends StatelessWidget {
   }
 }
 
+/// 顶部总资产 Hero 卡片。
+///
+/// 负责展示当前钱包入口、总资产估值和资产标题；总资产文本变化时使用轻量动画过渡。
 class _BalanceHeroCard extends StatelessWidget {
   const _BalanceHeroCard({
     required this.wallet,
@@ -53,15 +71,27 @@ class _BalanceHeroCard extends StatelessWidget {
     required this.onAddWallet,
   });
 
+  /// 当前选中的钱包。
   final WalletAccount wallet;
+
+  /// 本地已有钱包列表，用于传递给切换弹窗。
   final List<WalletAccount> wallets;
+
+  /// 已格式化的总资产 USD 文本。
   final String totalAssetsText;
+
+  /// 用户从切换弹窗选择钱包后的回调。
   final ValueChanged<WalletAccount> onWalletSelected;
+
+  /// 用户确认移除钱包后的回调。
   final Future<void> Function(WalletAccount wallet) onWalletRemoved;
+
+  /// 打开添加钱包流程。
   final VoidCallback onAddWallet;
 
   @override
   Widget build(BuildContext context) {
+    // 使用主题主色参与渐变，保证 Hero 卡片能跟随主题变化。
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
@@ -153,6 +183,9 @@ class _BalanceHeroCard extends StatelessWidget {
   }
 }
 
+/// Hero 卡片左上角的钱包名称胶囊入口。
+///
+/// 点击后打开钱包切换底部弹窗，同时提供添加钱包和移除钱包入口。
 class _WalletNamePill extends StatelessWidget {
   const _WalletNamePill({
     required this.wallet,
@@ -162,14 +195,24 @@ class _WalletNamePill extends StatelessWidget {
     required this.onAddWallet,
   });
 
+  /// 当前选中的钱包。
   final WalletAccount wallet;
+
+  /// 本地已有钱包列表，用于判断是否可以打开切换弹窗。
   final List<WalletAccount> wallets;
+
+  /// 用户从切换弹窗选择钱包后的回调。
   final ValueChanged<WalletAccount> onWalletSelected;
+
+  /// 用户确认移除钱包后的回调。
   final Future<void> Function(WalletAccount wallet) onWalletRemoved;
+
+  /// 打开添加钱包流程。
   final VoidCallback onAddWallet;
 
   @override
   Widget build(BuildContext context) {
+    // 只有存在钱包列表时才允许打开切换弹窗。
     final canOpen = wallets.isNotEmpty;
     final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
@@ -254,6 +297,9 @@ class _WalletNamePill extends StatelessWidget {
   }
 }
 
+/// 当前钱包支持的多链能力说明面板。
+///
+/// 用重叠链标识强调这是一个多链钱包，避免在首页重复展示各链地址。
 class _PrimaryWalletPanel extends StatelessWidget {
   const _PrimaryWalletPanel();
 
@@ -300,6 +346,9 @@ class _PrimaryWalletPanel extends StatelessWidget {
   }
 }
 
+/// 钱包切换弹窗中的单个钱包行。
+///
+/// 展示钱包名称、各链短地址、选中态和移除按钮。
 class _WalletOptionRow extends StatelessWidget {
   const _WalletOptionRow({
     required this.wallet,
@@ -308,9 +357,16 @@ class _WalletOptionRow extends StatelessWidget {
     required this.onRemovePressed,
   });
 
+  /// 当前行对应的钱包。
   final WalletAccount wallet;
+
+  /// 当前行是否为首页正在使用的钱包。
   final bool selected;
+
+  /// 点击钱包行后的选择回调。
   final VoidCallback onTap;
+
+  /// 点击移除按钮后的回调。
   final VoidCallback onRemovePressed;
 
   @override
@@ -416,6 +472,9 @@ class _WalletOptionRow extends StatelessWidget {
   }
 }
 
+/// 钱包头像。
+///
+/// 使用钱包名称首字母作为轻量标识；在深色 Hero 卡片和普通列表中会使用不同配色。
 class _WalletAvatar extends StatelessWidget {
   const _WalletAvatar({
     required this.wallet,
@@ -424,14 +483,23 @@ class _WalletAvatar extends StatelessWidget {
     this.onDark = false,
   });
 
+  /// 用于提取头像首字母的钱包。
   final WalletAccount wallet;
+
+  /// 是否处于选中态，选中态会使用强调色。
   final bool selected;
+
+  /// 头像尺寸，单位会通过 ScreenUtil 转换。
   final double size;
+
+  /// 是否展示在深色背景上。
   final bool onDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    // 深色背景或选中态使用白色文字，否则使用主题正文色。
     final foreground = onDark || selected
         ? Colors.white
         : colorScheme.onSurface.withValues(alpha: 0.72);
@@ -469,6 +537,9 @@ class _WalletAvatar extends StatelessWidget {
   }
 }
 
+/// 钱包在不同链上的短地址集合。
+///
+/// 钱包切换弹窗里使用该组件辅助识别具体账户。
 class _WalletAddressLine extends StatelessWidget {
   const _WalletAddressLine({
     required this.bscAddress,
@@ -476,13 +547,20 @@ class _WalletAddressLine extends StatelessWidget {
     required this.tronAddress,
   });
 
+  /// EVM 兼容链地址，当前 BSC、ETH、X Layer 共用该地址。
   final String bscAddress;
+
+  /// Solana 链地址。
   final String solanaAddress;
+
+  /// TRON 链地址。
   final String tronAddress;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    // 地址属于辅助识别信息，使用较弱正文色。
     final textColor = colorScheme.onSurface.withValues(alpha: 0.52);
     return Row(
       children: [
@@ -514,6 +592,7 @@ class _WalletAddressLine extends StatelessWidget {
   }
 }
 
+/// 单条短地址文本。
 class _WalletAddressText extends StatelessWidget {
   const _WalletAddressText({
     required this.label,
@@ -521,8 +600,13 @@ class _WalletAddressText extends StatelessWidget {
     required this.color,
   });
 
+  /// 链类型标签，例如 EVM、SOL、TRX。
   final String label;
+
+  /// 已经压缩后的短地址文本。
   final String address;
+
+  /// 地址文本颜色。
   final Color color;
 
   @override
@@ -540,11 +624,13 @@ class _WalletAddressText extends StatelessWidget {
   }
 }
 
+/// 首页多链钱包能力的重叠链标识。
 class _ChainOverlapTicker extends StatelessWidget {
   const _ChainOverlapTicker();
 
   @override
   Widget build(BuildContext context) {
+    // 首页当前支持展示的钱包链标识。
     final chains = [
       WalletChain.bsc,
       WalletChain.ethereum,
@@ -572,9 +658,11 @@ class _ChainOverlapTicker extends StatelessWidget {
   }
 }
 
+/// 单个链的圆形缩写标识。
 class _ChainCircle extends StatelessWidget {
   const _ChainCircle({required this.chain});
 
+  /// 当前圆形标识对应的链。
   final WalletChain chain;
 
   @override
@@ -630,6 +718,7 @@ class _ChainCircle extends StatelessWidget {
   }
 }
 
+/// 将地址压缩成前 6 后 4 的展示形式。
 String _shortWalletAddress(String address) {
   if (address.length <= 12) {
     return address;
@@ -637,6 +726,7 @@ String _shortWalletAddress(String address) {
   return '${address.substring(0, 6)}...${address.substring(address.length - 4)}';
 }
 
+/// 从钱包名称提取头像首字母。
 String _walletInitial(WalletAccount wallet) {
   final name = wallet.name.trim();
   if (name.isNotEmpty) {
@@ -645,9 +735,13 @@ String _walletInitial(WalletAccount wallet) {
   return 'W';
 }
 
+/// 钱包切换弹窗头部。
+///
+/// 左侧展示标题，右侧提供添加钱包和关闭弹窗按钮。
 class _WalletPickerHeader extends StatelessWidget {
   const _WalletPickerHeader({required this.onAddWallet});
 
+  /// 点击右侧加号后的添加钱包入口。
   final VoidCallback onAddWallet;
 
   @override
@@ -709,9 +803,11 @@ class _WalletPickerHeader extends StatelessWidget {
   }
 }
 
+/// 钱包切换弹窗顶部的当前钱包预览。
 class _CurrentWalletPreview extends StatelessWidget {
   const _CurrentWalletPreview({required this.wallet});
 
+  /// 当前首页正在使用的钱包。
   final WalletAccount wallet;
 
   @override
@@ -759,6 +855,9 @@ class _CurrentWalletPreview extends StatelessWidget {
   }
 }
 
+/// 打开钱包切换底部弹窗。
+///
+/// 弹窗内部只负责选择、添加和移除确认的 UI 编排，实际钱包状态更新由传入回调完成。
 void _showWalletPicker({
   required BuildContext context,
   required WalletAccount wallet,
@@ -773,6 +872,7 @@ void _showWalletPicker({
     showDragHandle: false,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
+      // 使用弹窗自身 context 的主题，避免跨 route 后主题引用不一致。
       final colorScheme = Theme.of(sheetContext).colorScheme;
       return SafeArea(
         top: false,
@@ -819,6 +919,7 @@ void _showWalletPicker({
                     itemCount: wallets.length,
                     separatorBuilder: (_, _) => SizedBox(height: 2.h),
                     itemBuilder: (_, index) {
+                      // 当前列表项对应的钱包账户。
                       final item = wallets[index];
                       return _WalletOptionRow(
                         wallet: item,
@@ -828,6 +929,7 @@ void _showWalletPicker({
                           onWalletSelected(item);
                         },
                         onRemovePressed: () async {
+                          // 移除钱包属于高风险操作，必须先二次确认。
                           final shouldRemove = await _confirmRemoveWallet(
                             sheetContext,
                             item,
@@ -851,10 +953,12 @@ void _showWalletPicker({
   );
 }
 
+/// 移除钱包前的二次确认弹窗。
 Future<bool> _confirmRemoveWallet(
   BuildContext context,
   WalletAccount wallet,
 ) async {
+  // 删除按钮使用错误色，提示这是不可恢复操作。
   final colorScheme = Theme.of(context).colorScheme;
   return await showDialog<bool>(
         context: context,
