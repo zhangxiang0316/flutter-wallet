@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
 import '../../../../wallet/models/chain_balance.dart';
+import '../../../../wallet/models/wallet_chain.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_styles.dart';
 
@@ -56,7 +57,7 @@ class TransferFormPanel extends StatelessWidget {
             decoration: transferInputDecoration(
               context,
               label: S.of(context).recipientAddress,
-              hint: asset.chain.isEvm ? '0x...' : 'T...',
+              hint: _addressHint(asset),
               icon: Icons.account_circle_outlined,
             ),
           ).marginOnly(bottom: 12.h),
@@ -211,5 +212,18 @@ class TransferFormPanel extends StatelessWidget {
       return;
     }
     Navigator.of(context).pop(password);
+  }
+
+  String _addressHint(ChainBalance asset) {
+    switch (asset.chain) {
+      case WalletChain.bsc:
+      case WalletChain.ethereum:
+      case WalletChain.xLayer:
+        return '0x...';
+      case WalletChain.tron:
+        return 'T...';
+      case WalletChain.solana:
+        return 'Solana address';
+    }
   }
 }

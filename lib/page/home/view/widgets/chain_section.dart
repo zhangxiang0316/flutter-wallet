@@ -432,8 +432,6 @@ class _AssetRow extends StatelessWidget {
     // 当前币种头像和标识使用的颜色。
     final assetColor = homeAssetColor(context, balance.symbol);
 
-    // Solana 转账暂未开放，按钮需要禁用。
-    final transferEnabled = balance.chain != WalletChain.solana;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h),
       child: Row(
@@ -520,30 +518,24 @@ class _AssetRow extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: BoxConstraints.tight(Size(40.w, 40.w)),
-                  onPressed: transferEnabled
-                      ? () => onTransferPressed(balance)
-                      : null,
+                  onPressed: () => onTransferPressed(balance),
                   icon: Container(
                     width: 30.w,
                     height: 30.w,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(
-                        alpha: transferEnabled ? 0.1 : 0.04,
-                      ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Icon(
                       Icons.near_me_rounded,
                       size: 18.w,
-                      color: transferEnabled
-                          ? Theme.of(context).colorScheme.primary
-                          : homeSubTextColor(context),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                  tooltip: transferEnabled
-                      ? S.of(context).transfer
-                      : S.of(context).transferUnavailable,
+                  tooltip: S.of(context).transfer,
                 ),
               ),
             ],

@@ -85,11 +85,18 @@ class TransferController extends BaseController {
         walletId: args.walletId,
         password: password,
       );
+      final solanaPrivateKey = args.asset.chain == WalletChain.solana
+          ? await _repository.readWalletSolanaPrivateKey(
+              walletId: args.walletId,
+              password: password,
+            )
+          : null;
       final hash = await _transferService.transfer(
         privateKeyHex: privateKeyHex,
         asset: args.asset,
         toAddress: addressController.text.trim(),
         amount: amountController.text.trim(),
+        solanaPrivateKey: solanaPrivateKey,
       );
       transactionHash = hash;
       Toast.show(S.current.transferSubmitted);

@@ -1,14 +1,20 @@
 import '../../utils/storage.dart';
 import '../models/wallet_account.dart';
+import 'wallet_crypto_service.dart';
 import 'wallet_secret_store.dart';
 
 class WalletRepository {
-  WalletRepository({Storage? storage, WalletSecretStore? secretStore})
-    : _storage = storage ?? Storage(),
-      _secretStore = secretStore ?? WalletSecretStore();
+  WalletRepository({
+    Storage? storage,
+    WalletSecretStore? secretStore,
+    WalletCryptoService? cryptoService,
+  }) : _storage = storage ?? Storage(),
+       _secretStore = secretStore ?? WalletSecretStore(),
+       _cryptoService = cryptoService ?? WalletCryptoService();
 
   final Storage _storage;
   final WalletSecretStore _secretStore;
+  final WalletCryptoService _cryptoService;
   static const String _walletKey = 'crypto_wallet_account';
   static const String _walletsKey = 'crypto_wallet_accounts';
   static const String _currentWalletIdKey = 'crypto_current_wallet_id';
@@ -136,6 +142,25 @@ class WalletRepository {
     required String password,
   }) {
     return _secretStore.readMnemonic(walletId: walletId, password: password);
+  }
+
+  Future<List<int>> readWalletSolanaPrivateKey({
+    required String walletId,
+    required String password,
+  }) async {
+    try {
+      final mnemonic = await readWalletMnemonic(
+        walletId: walletId,
+        password: password,
+      );
+      return _cryptoService.solanaPrivateKeyFromMnemonic(mnemonic);
+    } on WalletSecretMissingException {
+      final privateKeyHex = await readWalletPrivateKey(
+        walletId: walletId,
+        password: password,
+      );
+      return _cryptoService.solanaPrivateKeyFromPrivateKey(privateKeyHex);
+    }
   }
 
   Future<bool> hasWalletSecret(String walletId) {

@@ -19,7 +19,7 @@ dependencies:
   convert: ^3.1.2
   dio:
   logger:
-  pointycastle: ^4.0.0
+  pointycastle: ^3.9.1
   ed25519_edwards: ^0.3.1
   bip39_mnemonic: ^4.0.1
   json_annotation: ^4.9.0
@@ -34,6 +34,7 @@ dependencies:
   decimal: ^3.2.4
   rational: ^2.2.3
   flutter_secure_storage: ^9.2.4
+  solana: ^0.32.0+1
 
 
 dev_dependencies:

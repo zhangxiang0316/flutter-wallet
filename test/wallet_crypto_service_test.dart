@@ -71,6 +71,22 @@ void main() {
       );
     });
 
+    test('derives Solana signing seed from mnemonic and private key', () {
+      final mnemonic = service.generateMnemonic();
+      final keyPair = service.importMnemonic(mnemonic);
+      final mnemonicSeed = service.solanaPrivateKeyFromMnemonic(mnemonic);
+      final privateKeySeed = service.solanaPrivateKeyFromPrivateKey(
+        keyPair.privateKeyHex,
+      );
+
+      expect(mnemonicSeed, hasLength(32));
+      expect(privateKeySeed, hasLength(32));
+      expect(
+        service.importPrivateKey(keyPair.privateKeyHex).solanaAddress,
+        isNotEmpty,
+      );
+    });
+
     test('rejects malformed private keys', () {
       expect(() => service.importPrivateKey('abc'), throwsFormatException);
       expect(
@@ -698,6 +714,91 @@ void main() {
         '0000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf00000000000000000000000000000000000000000000000000000000000f4240',
       );
     });
+
+    test('submits native Solana transfer through RPC', () async {
+      final adapter = _FallbackRpcAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importPrivateKey(
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
+      );
+      final hash = await transferService.transfer(
+        privateKeyHex: keyPair.privateKeyHex,
+        solanaPrivateKey: cryptoService.solanaPrivateKeyFromPrivateKey(
+          keyPair.privateKeyHex,
+        ),
+        asset: ChainBalance(
+          chain: WalletChain.solana,
+          symbol: 'SOL',
+          name: 'Solana',
+          amount: '1',
+          address: keyPair.solanaAddress,
+          decimals: 9,
+        ),
+        toAddress: '11111111111111111111111111111111',
+        amount: '0.001',
+      );
+
+      expect(hash, 'solana-signature');
+      expect(adapter.solanaMethods, contains('getLatestBlockhash'));
+      expect(adapter.solanaMethods, contains('sendTransaction'));
+      expect(adapter.lastSolanaTransactionBase64, isNotEmpty);
+      expect(
+        base64Decode(adapter.lastSolanaTransactionBase64!).length,
+        greaterThan(100),
+      );
+    });
+
+    test('submits SPL token transfer through RPC', () async {
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importPrivateKey(
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
+      );
+      final sourceTokenAccount = cryptoService
+          .importPrivateKey(
+            '0x0000000000000000000000000000000000000000000000000000000000000002',
+          )
+          .solanaAddress;
+      final recipient = cryptoService
+          .importPrivateKey(
+            '0x0000000000000000000000000000000000000000000000000000000000000003',
+          )
+          .solanaAddress;
+      final adapter = _FallbackRpcAdapter(
+        solanaTokenAccountPubkey: sourceTokenAccount,
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+
+      final hash = await transferService.transfer(
+        privateKeyHex: keyPair.privateKeyHex,
+        solanaPrivateKey: cryptoService.solanaPrivateKeyFromPrivateKey(
+          keyPair.privateKeyHex,
+        ),
+        asset: ChainBalance(
+          chain: WalletChain.solana,
+          symbol: 'USDC',
+          name: 'USD Coin',
+          amount: '10',
+          address: keyPair.solanaAddress,
+          contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+          decimals: 6,
+        ),
+        toAddress: recipient,
+        amount: '1.25',
+      );
+
+      expect(hash, 'solana-signature');
+      expect(adapter.solanaMethods, contains('getTokenAccountsByOwner'));
+      expect(adapter.solanaMethods, contains('getLatestBlockhash'));
+      expect(adapter.solanaMethods, contains('sendTransaction'));
+      expect(adapter.lastSolanaTransactionBase64, isNotEmpty);
+      expect(
+        base64Decode(adapter.lastSolanaTransactionBase64!).length,
+        greaterThan(180),
+      );
+    });
   });
 }
 
@@ -705,11 +806,15 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   _FallbackRpcAdapter({
     this.failTronGridAccount = false,
     this.hangSolana = false,
+    this.solanaTokenAccountPubkey,
   });
 
   final bool failTronGridAccount;
   final bool hangSolana;
+  final String? solanaTokenAccountPubkey;
   final calls = <String>[];
+  final solanaMethods = <String>[];
+  String? lastSolanaTransactionBase64;
 
   @override
   Future<ResponseBody> fetch(
@@ -747,6 +852,10 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
       if (hangSolana) {
         return Completer<ResponseBody>().future;
       }
+      final method = _solanaMethod(options.data);
+      if (method != null) {
+        solanaMethods.add(method);
+      }
       if (_isSolanaMethod(options.data, 'getBalance')) {
         return _jsonResponse({
           'jsonrpc': '2.0',
@@ -755,10 +864,41 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
         });
       }
       if (_isSolanaMethod(options.data, 'getTokenAccountsByOwner')) {
+        final pubkey = solanaTokenAccountPubkey;
         return _jsonResponse({
           'jsonrpc': '2.0',
           'id': 1,
-          'result': {'value': []},
+          'result': {
+            'value': pubkey == null
+                ? []
+                : [
+                    {'pubkey': pubkey},
+                  ],
+          },
+        });
+      }
+      if (_isSolanaMethod(options.data, 'getLatestBlockhash')) {
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': {
+            'context': {'slot': 1},
+            'value': {
+              'blockhash': '11111111111111111111111111111111',
+              'lastValidBlockHeight': 1,
+            },
+          },
+        });
+      }
+      if (_isSolanaMethod(options.data, 'sendTransaction')) {
+        final params = options.data is Map ? options.data['params'] : null;
+        if (params is List && params.isNotEmpty && params.first is String) {
+          lastSolanaTransactionBase64 = params.first as String;
+        }
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': 'solana-signature',
         });
       }
     }
@@ -792,6 +932,10 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
 
   bool _isSolanaMethod(dynamic data, String method) {
     return data is Map && data['method'] == method;
+  }
+
+  String? _solanaMethod(dynamic data) {
+    return data is Map ? data['method']?.toString() : null;
   }
 
   ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {

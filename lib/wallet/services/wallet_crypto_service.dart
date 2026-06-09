@@ -66,6 +66,18 @@ class WalletCryptoService {
     );
   }
 
+  Uint8List solanaPrivateKeyFromMnemonic(String input) {
+    final mnemonic = normalizeMnemonic(input);
+    final seed = Uint8List.fromList(
+      Mnemonic.fromSentence(mnemonic, Language.english).seed,
+    );
+    return _deriveEd25519PrivateKey(seed, solanaDerivationPath);
+  }
+
+  Uint8List solanaPrivateKeyFromPrivateKey(String input) {
+    return Uint8List.fromList(hex.decode(normalizePrivateKey(input)));
+  }
+
   String normalizeMnemonic(String input) {
     final value = input
         .trim()

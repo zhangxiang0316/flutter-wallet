@@ -10,6 +10,7 @@ import 'package:pointycastle/ecc/api.dart';
 import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/signers/ecdsa_signer.dart';
+import 'package:solana/solana.dart';
 
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
@@ -34,6 +35,7 @@ class WalletTransferService {
   static const int _evmNativeGasLimit = 21000;
   static const int _evmTokenGasLimit = 100000;
   static const int _tronTokenFeeLimit = 30 * 1000 * 1000;
+  static const int _solanaLamportsPerSignature = 5000;
   static const String _base58Alphabet =
       '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   static final BigInt _secp256k1P = BigInt.parse(
@@ -46,6 +48,7 @@ class WalletTransferService {
     required ChainBalance asset,
     required String toAddress,
     required String amount,
+    List<int>? solanaPrivateKey,
   }) {
     switch (asset.chain) {
       case WalletChain.bsc:
@@ -65,7 +68,15 @@ class WalletTransferService {
           amount: amount,
         );
       case WalletChain.solana:
-        throw UnsupportedError('Solana transfer is not supported yet');
+        if (solanaPrivateKey == null) {
+          throw StateError('Missing Solana private key');
+        }
+        return _transferSolana(
+          solanaPrivateKey: solanaPrivateKey,
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
     }
   }
 
@@ -90,7 +101,11 @@ class WalletTransferService {
           amount: amount,
         );
       case WalletChain.solana:
-        throw UnsupportedError('Solana fee estimate is not supported yet');
+        return _estimateSolanaFee(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
     }
   }
 
@@ -189,6 +204,25 @@ class WalletTransferService {
     );
   }
 
+  Future<TransferFeeEstimate> _estimateSolanaFee({
+    required ChainBalance asset,
+    required String toAddress,
+    required String amount,
+  }) async {
+    normalizeSolanaAddress(toAddress);
+    amountToRawUnits(amount, asset.decimals);
+    final signatureCount = asset.isNative ? 1 : 1;
+    return TransferFeeEstimate(
+      amount: rawUnitsToAmount(
+        BigInt.from(_solanaLamportsPerSignature * signatureCount),
+        9,
+      ),
+      symbol: WalletChain.solana.symbol,
+      rawAmount: BigInt.from(_solanaLamportsPerSignature * signatureCount),
+      isFallback: true,
+    );
+  }
+
   Future<String> _transferEvm({
     required String privateKeyHex,
     required ChainBalance asset,
@@ -272,6 +306,50 @@ class WalletTransferService {
     throw StateError(data is Map ? data.toString() : 'TRON transfer failed');
   }
 
+  Future<String> _transferSolana({
+    required List<int> solanaPrivateKey,
+    required ChainBalance asset,
+    required String toAddress,
+    required String amount,
+  }) async {
+    final rawAmount = amountToRawUnits(amount, asset.decimals);
+    final signer = await Ed25519HDKeyPair.fromPrivateKeyBytes(
+      privateKey: solanaPrivateKey,
+    );
+    if (signer.address != normalizeSolanaAddress(asset.address)) {
+      throw StateError('Solana private key does not match sender address');
+    }
+
+    final recipientPublicKey = Ed25519HDPublicKey.fromBase58(
+      normalizeSolanaAddress(toAddress),
+    );
+    final blockhash = await _getLatestSolanaBlockhash();
+    final message = asset.isNative
+        ? _buildSolanaNativeTransferMessage(
+            fromPublicKey: signer.publicKey,
+            toPublicKey: recipientPublicKey,
+            lamports: rawAmount,
+          )
+        : await _buildSolanaTokenTransferMessage(
+            ownerPublicKey: signer.publicKey,
+            recipientPublicKey: recipientPublicKey,
+            asset: asset,
+            amount: rawAmount,
+          );
+    final transaction = await signer.signMessage(
+      message: message,
+      recentBlockhash: blockhash,
+    );
+    final response = await _solanaRpc('sendTransaction', [
+      transaction.encode(),
+      {'encoding': 'base64', 'preflightCommitment': 'confirmed'},
+    ]);
+    if (response is String && response.isNotEmpty) {
+      return response;
+    }
+    throw StateError('Solana transfer failed');
+  }
+
   Future<Map<String, dynamic>> _createTronNativeTransaction({
     required String fromAddress,
     required String toAddress,
@@ -349,6 +427,32 @@ class WalletTransferService {
       throw StateError('Invalid ${chain.name} number response');
     }
     return BigInt.parse(result.replaceFirst('0x', ''), radix: 16);
+  }
+
+  Future<dynamic> _solanaRpc(String method, List<dynamic> params) async {
+    final response = await _dio.post(
+      WalletChain.solana.rpcUrl,
+      data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
+      options: Options(headers: {'content-type': 'application/json'}),
+    );
+    final data = response.data;
+    if (data is Map && data['result'] != null) {
+      return data['result'];
+    }
+    throw StateError(data is Map ? data.toString() : 'Invalid Solana response');
+  }
+
+  Future<String> _getLatestSolanaBlockhash() async {
+    final result = await _solanaRpc('getLatestBlockhash', [
+      {'commitment': 'confirmed'},
+    ]);
+    if (result is Map) {
+      final value = result['value'];
+      if (value is Map && value['blockhash'] is String) {
+        return value['blockhash'] as String;
+      }
+    }
+    throw StateError('Invalid Solana blockhash response');
   }
 
   Future<Map<String, BigInt>> _loadTronChainParameters() async {
@@ -463,6 +567,118 @@ class WalletTransferService {
     final signed = Map<String, dynamic>.from(transaction);
     signed['signature'] = [hex.encode(signatureBytes)];
     return signed;
+  }
+
+  Message _buildSolanaNativeTransferMessage({
+    required Ed25519HDPublicKey fromPublicKey,
+    required Ed25519HDPublicKey toPublicKey,
+    required BigInt lamports,
+  }) {
+    return Message.only(
+      SystemInstruction.transfer(
+        fundingAccount: fromPublicKey,
+        recipientAccount: toPublicKey,
+        lamports: _solanaU64Amount(lamports, 'SOL transfer amount'),
+      ),
+    );
+  }
+
+  Future<Message> _buildSolanaTokenTransferMessage({
+    required Ed25519HDPublicKey ownerPublicKey,
+    required Ed25519HDPublicKey recipientPublicKey,
+    required ChainBalance asset,
+    required BigInt amount,
+  }) async {
+    final mintAddress = asset.contractAddress;
+    if (mintAddress == null || mintAddress.trim().isEmpty) {
+      throw StateError('Missing Solana token mint');
+    }
+    final mintPublicKey = Ed25519HDPublicKey.fromBase58(
+      normalizeSolanaAddress(mintAddress),
+    );
+    final sourceTokenAccount = await _findSolanaTokenAccount(
+      ownerAddress: ownerPublicKey.toBase58(),
+      mintAddress: mintPublicKey.toBase58(),
+      minimumAmount: amount,
+    );
+    if (sourceTokenAccount == null) {
+      throw StateError('Source Solana token account not found');
+    }
+
+    final sourceTokenPublicKey = Ed25519HDPublicKey.fromBase58(
+      sourceTokenAccount,
+    );
+    final destinationTokenPublicKey = await findAssociatedTokenAddress(
+      owner: recipientPublicKey,
+      mint: mintPublicKey,
+    );
+
+    return Message(
+      instructions: [
+        AssociatedTokenAccountInstruction.createAccountIdempotent(
+          funder: ownerPublicKey,
+          address: destinationTokenPublicKey,
+          owner: recipientPublicKey,
+          mint: mintPublicKey,
+          tokenProgramId: TokenProgramType.tokenProgram.id,
+        ),
+        TokenInstruction.transferChecked(
+          source: sourceTokenPublicKey,
+          mint: mintPublicKey,
+          destination: destinationTokenPublicKey,
+          owner: ownerPublicKey,
+          amount: _solanaU64Amount(amount, '${asset.symbol} transfer amount'),
+          decimals: asset.decimals,
+        ),
+      ],
+    );
+  }
+
+  Future<String?> _findSolanaTokenAccount({
+    required String ownerAddress,
+    required String mintAddress,
+    required BigInt minimumAmount,
+  }) async {
+    final data = await _solanaRpc('getTokenAccountsByOwner', [
+      ownerAddress,
+      {'mint': mintAddress},
+      {'encoding': 'jsonParsed'},
+    ]);
+    if (data is! Map) {
+      return null;
+    }
+    final values = data['value'];
+    if (values is! List || values.isEmpty) {
+      return null;
+    }
+    String? fallbackAccount;
+    var parsedAnyAmount = false;
+    for (final item in values) {
+      if (item is! Map) continue;
+      final pubkey = item['pubkey']?.toString();
+      if (pubkey == null || pubkey.isEmpty) continue;
+      fallbackAccount ??= pubkey;
+
+      final account = item['account'];
+      final accountData = account is Map ? account['data'] : null;
+      final parsed = accountData is Map ? accountData['parsed'] : null;
+      final info = parsed is Map ? parsed['info'] : null;
+      final tokenAmount = info is Map ? info['tokenAmount'] : null;
+      final rawAmount = tokenAmount is Map
+          ? BigInt.tryParse(tokenAmount['amount']?.toString() ?? '')
+          : null;
+      if (rawAmount == null) {
+        return pubkey;
+      }
+      parsedAnyAmount = true;
+      if (rawAmount >= minimumAmount) {
+        return pubkey;
+      }
+    }
+    if (parsedAnyAmount) {
+      throw StateError('Source Solana token account balance is insufficient');
+    }
+    return fallbackAccount;
   }
 
   ECSignature _signHash(String privateKeyHex, Uint8List hash) {
@@ -591,6 +807,13 @@ class WalletTransferService {
       throw const FormatException('Invalid Solana address');
     }
     return address;
+  }
+
+  static int _solanaU64Amount(BigInt value, String label) {
+    if (value <= BigInt.zero || value > BigInt.from(0x7fffffffffffffff)) {
+      throw FormatException('Invalid $label');
+    }
+    return value.toInt();
   }
 
   static Uint8List hexToBytes(String value) {
