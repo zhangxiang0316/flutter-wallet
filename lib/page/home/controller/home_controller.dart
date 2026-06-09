@@ -260,20 +260,25 @@ class HomeController extends BaseController {
   }
 
   /// 删除当前钱包和页面状态，不触发任何链上操作。
-  Future<void> removeWallet() async {
-    final currentWallet = wallet;
-    if (currentWallet == null) return;
-    await _repository.removeWallet(currentWallet.id);
+  Future<void> removeWallet([WalletAccount? targetWallet]) async {
+    final walletToRemove = targetWallet ?? wallet;
+    if (walletToRemove == null) return;
+    final removedCurrentWallet = wallet?.id == walletToRemove.id;
+    await _repository.removeWallet(walletToRemove.id);
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    _resetWalletState();
-    update();
-    if (wallet == null) {
-      _stopBalanceRefreshTimer();
+    if (removedCurrentWallet) {
+      _resetWalletState();
+      update();
+      if (wallet == null) {
+        _stopBalanceRefreshTimer();
+      } else {
+        _startBalanceRefreshTimer();
+        refreshBalances();
+      }
     } else {
-      _startBalanceRefreshTimer();
-      refreshBalances();
+      update();
     }
     Toast.show(S.current.walletRemoved);
   }

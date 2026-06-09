@@ -175,6 +175,21 @@ class S {
     );
   }
 
+  /// `Remove "{name}"? The wallet data saved on this device will be deleted.`
+  String removeWalletConfirmMessage(Object name) {
+    return Intl.message(
+      'Remove "$name"? The wallet data saved on this device will be deleted.',
+      name: 'removeWalletConfirmMessage',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `Cancel`
+  String get cancel {
+    return Intl.message('Cancel', name: 'cancel', desc: '', args: []);
+  }
+
   /// `Some balance lookups failed`
   String get balanceLoadFailed {
     return Intl.message(

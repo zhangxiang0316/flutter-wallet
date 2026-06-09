@@ -25,7 +25,10 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m1(symbol) =>
       "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
 
-  static String m2(symbol) => "Transfer ${symbol}";
+  static String m2(name) =>
+      "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
+
+  static String m3(symbol) => "Transfer ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -38,6 +41,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "balanceLoadFailed": MessageLookupByLibrary.simpleMessage(
       "Some balance lookups failed",
     ),
+    "cancel": MessageLookupByLibrary.simpleMessage("Cancel"),
     "confirmImport": MessageLookupByLibrary.simpleMessage("Import"),
     "confirmTransfer": MessageLookupByLibrary.simpleMessage("Transfer"),
     "confirmWalletPassword": MessageLookupByLibrary.simpleMessage(
@@ -85,6 +89,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
+    "removeWalletConfirmMessage": m2,
     "securityNotice": MessageLookupByLibrary.simpleMessage("Security notice"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.",
@@ -94,7 +99,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
     "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-    "transferAsset": m2,
+    "transferAsset": m3,
     "transferDetails": MessageLookupByLibrary.simpleMessage("Transfer details"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "Transfer failed. Check the address, amount, and on-chain balance.",

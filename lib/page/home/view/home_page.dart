@@ -12,7 +12,6 @@ import '../../../wallet/models/chain_balance.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/chain_section.dart';
 import 'widgets/empty_wallet_card.dart';
-import 'widgets/home_action_row.dart';
 import 'widgets/private_key_notice.dart';
 import 'widgets/wallet_overview_card.dart';
 
@@ -103,11 +102,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   wallets: controller.wallets,
                   totalAssetsText: controller.totalAssetsText,
                   onWalletSelected: controller.switchWallet,
-                ),
-                SizedBox(height: 16.h),
-                HomeActionRow(
+                  onWalletRemoved: controller.removeWallet,
                   onAddWallet: _showAddWalletSheet,
-                  onRemove: controller.removeWallet,
                 ),
                 SizedBox(height: 16.h),
                 ChainSection(
@@ -139,74 +135,16 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// 导入私钥的底部弹窗，提交后由控制器校验并持久化钱包。
   void _showImportSheet() {
-    final privateKeyController = TextEditingController();
-    final passwordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
     showModalBottomSheet(
       context: context!,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return _VantSheet(
-          bottomInset: MediaQuery.of(sheetContext).viewInsets.bottom,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _VantSheetTitle(title: S.of(context!).importPrivateKey),
-              TextField(
-                controller: privateKeyController,
-                minLines: 2,
-                maxLines: 4,
-                decoration: _vantInputDecoration(
-                  sheetContext,
-                  label: S.of(context!).importPrivateKey,
-                  hintText: S.of(context!).privateKeyHint,
-                  prefixIcon: Icons.key_rounded,
-                ),
-              ).marginOnly(bottom: 14.h),
-              _PasswordTextField(
-                controller: passwordController,
-                label: S.of(context!).walletPassword,
-                hint: S.of(context!).walletPasswordHint,
-              ).marginOnly(bottom: 12.h),
-              _PasswordTextField(
-                controller: confirmPasswordController,
-                label: S.of(context!).confirmWalletPassword,
-              ).marginOnly(bottom: 14.h),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: _vantFilledButtonStyle(sheetContext),
-                  onPressed: () async {
-                    final password = passwordController.text.trim();
-                    if (!_validatePassword(
-                      password,
-                      confirmPasswordController.text.trim(),
-                    )) {
-                      return;
-                    }
-                    final ok = await controller.importWallet(
-                      privateKeyController.text,
-                      password,
-                    );
-                    if (ok && sheetContext.mounted) {
-                      Navigator.of(sheetContext).pop();
-                    }
-                  },
-                  child: Text(S.of(context!).confirmImport),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    ).whenComplete(() {
-      privateKeyController.dispose();
-      passwordController.dispose();
-      confirmPasswordController.dispose();
-    });
+      builder: (sheetContext) => _ImportWalletSheet(
+        onSubmit: controller.importWallet,
+        validatePassword: _validatePassword,
+      ),
+    );
   }
 
   void _showCreateWalletSheet() {
@@ -235,7 +173,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   style: _vantFilledButtonStyle(sheetContext),
                   onPressed: () async {
                     Navigator.of(sheetContext).pop();
-                    _showCreateWalletSheet();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _showCreateWalletSheet();
+                    });
                   },
                   icon: const Icon(Icons.add_rounded),
                   label: Text(S.of(context!).createWallet),
@@ -247,7 +187,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   style: _vantOutlinedButtonStyle(sheetContext),
                   onPressed: () {
                     Navigator.of(sheetContext).pop();
-                    _showImportSheet();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _showImportSheet();
+                    });
                   },
                   icon: const Icon(Icons.file_download_outlined),
                   label: Text(S.of(context!).importWallet),
@@ -266,8 +208,6 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     required Future<bool> Function(String password) onSubmit,
     bool isDismissible = true,
   }) {
-    final passwordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
     showModalBottomSheet(
       context: context!,
       isScrollControlled: true,
@@ -275,64 +215,14 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       enableDrag: isDismissible,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return PopScope(
-          canPop: isDismissible,
-          child: _VantSheet(
-            showHandle: isDismissible,
-            bottomInset: MediaQuery.of(sheetContext).viewInsets.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _VantSheetTitle(title: title),
-                Text(
-                  S.of(context!).walletPasswordHint,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    height: 1.35,
-                    color: Theme.of(
-                      sheetContext,
-                    ).colorScheme.onSurface.withValues(alpha: 0.62),
-                  ),
-                ).marginOnly(bottom: 14.h),
-                _PasswordTextField(
-                  controller: passwordController,
-                  label: S.of(context!).walletPassword,
-                ).marginOnly(bottom: 12.h),
-                _PasswordTextField(
-                  controller: confirmPasswordController,
-                  label: S.of(context!).confirmWalletPassword,
-                ).marginOnly(bottom: 14.h),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    style: _vantFilledButtonStyle(sheetContext),
-                    onPressed: () async {
-                      final password = passwordController.text.trim();
-                      if (!_validatePassword(
-                        password,
-                        confirmPasswordController.text.trim(),
-                      )) {
-                        return;
-                      }
-                      final ok = await onSubmit(password);
-                      if (ok && sheetContext.mounted) {
-                        Navigator.of(sheetContext).pop();
-                      }
-                    },
-                    child: Text(submitLabel),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ).whenComplete(() {
-      passwordController.dispose();
-      confirmPasswordController.dispose();
-    });
+      builder: (sheetContext) => _PasswordSetupSheet(
+        title: title,
+        submitLabel: submitLabel,
+        isDismissible: isDismissible,
+        onSubmit: onSubmit,
+        validatePassword: _validatePassword,
+      ),
+    );
   }
 
   void _scheduleLegacyMigrationSheet() {
@@ -478,6 +368,194 @@ class _VantSheetTitle extends StatelessWidget {
       title,
       style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
     ).marginOnly(bottom: 14.h);
+  }
+}
+
+class _ImportWalletSheet extends StatefulWidget {
+  const _ImportWalletSheet({
+    required this.onSubmit,
+    required this.validatePassword,
+  });
+
+  final Future<bool> Function(String privateKey, String password) onSubmit;
+  final bool Function(String password, String confirmPassword) validatePassword;
+
+  @override
+  State<_ImportWalletSheet> createState() => _ImportWalletSheetState();
+}
+
+class _ImportWalletSheetState extends State<_ImportWalletSheet> {
+  final TextEditingController _privateKeyController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _privateKeyController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _VantSheet(
+      bottomInset: MediaQuery.of(context).viewInsets.bottom,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _VantSheetTitle(title: S.of(context).importPrivateKey),
+          TextField(
+            controller: _privateKeyController,
+            minLines: 2,
+            maxLines: 4,
+            decoration: _vantInputDecoration(
+              context,
+              label: S.of(context).importPrivateKey,
+              hintText: S.of(context).privateKeyHint,
+              prefixIcon: Icons.key_rounded,
+            ),
+          ).marginOnly(bottom: 14.h),
+          _PasswordTextField(
+            controller: _passwordController,
+            label: S.of(context).walletPassword,
+            hint: S.of(context).walletPasswordHint,
+          ).marginOnly(bottom: 12.h),
+          _PasswordTextField(
+            controller: _confirmPasswordController,
+            label: S.of(context).confirmWalletPassword,
+          ).marginOnly(bottom: 14.h),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: _vantFilledButtonStyle(context),
+              onPressed: _isSubmitting ? null : _submit,
+              child: Text(S.of(context).confirmImport),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final password = _passwordController.text.trim();
+    if (!widget.validatePassword(
+      password,
+      _confirmPasswordController.text.trim(),
+    )) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final ok = await widget.onSubmit(_privateKeyController.text, password);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _isSubmitting = false);
+  }
+}
+
+class _PasswordSetupSheet extends StatefulWidget {
+  const _PasswordSetupSheet({
+    required this.title,
+    required this.submitLabel,
+    required this.isDismissible,
+    required this.onSubmit,
+    required this.validatePassword,
+  });
+
+  final String title;
+  final String submitLabel;
+  final bool isDismissible;
+  final Future<bool> Function(String password) onSubmit;
+  final bool Function(String password, String confirmPassword) validatePassword;
+
+  @override
+  State<_PasswordSetupSheet> createState() => _PasswordSetupSheetState();
+}
+
+class _PasswordSetupSheetState extends State<_PasswordSetupSheet> {
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: widget.isDismissible,
+      child: _VantSheet(
+        showHandle: widget.isDismissible,
+        bottomInset: MediaQuery.of(context).viewInsets.bottom,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _VantSheetTitle(title: widget.title),
+            Text(
+              S.of(context).walletPasswordHint,
+              style: TextStyle(
+                fontSize: 12.sp,
+                height: 1.35,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.62),
+              ),
+            ).marginOnly(bottom: 14.h),
+            _PasswordTextField(
+              controller: _passwordController,
+              label: S.of(context).walletPassword,
+            ).marginOnly(bottom: 12.h),
+            _PasswordTextField(
+              controller: _confirmPasswordController,
+              label: S.of(context).confirmWalletPassword,
+            ).marginOnly(bottom: 14.h),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: _vantFilledButtonStyle(context),
+                onPressed: _isSubmitting ? null : _submit,
+                child: Text(widget.submitLabel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final password = _passwordController.text.trim();
+    if (!widget.validatePassword(
+      password,
+      _confirmPasswordController.text.trim(),
+    )) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final ok = await widget.onSubmit(password);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _isSubmitting = false);
   }
 }
 

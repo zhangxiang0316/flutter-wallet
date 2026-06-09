@@ -24,7 +24,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m1(symbol) => "手续费将使用 ${symbol} 支付，请确认钱包中有足够余额。";
 
-  static String m2(symbol) => "转账 ${symbol}";
+  static String m2(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+
+  static String m3(symbol) => "转账 ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -33,6 +35,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "availableBalance": MessageLookupByLibrary.simpleMessage("可用余额"),
     "backToWallet": MessageLookupByLibrary.simpleMessage("返回钱包"),
     "balanceLoadFailed": MessageLookupByLibrary.simpleMessage("部分余额查询失败"),
+    "cancel": MessageLookupByLibrary.simpleMessage("取消"),
     "confirmImport": MessageLookupByLibrary.simpleMessage("确认导入"),
     "confirmTransfer": MessageLookupByLibrary.simpleMessage("确认转账"),
     "confirmWalletPassword": MessageLookupByLibrary.simpleMessage("确认钱包密码"),
@@ -64,6 +67,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "recipientAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
     "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
     "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
+    "removeWalletConfirmMessage": m2,
     "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。",
@@ -73,7 +77,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
     "transfer": MessageLookupByLibrary.simpleMessage("转账"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-    "transferAsset": m2,
+    "transferAsset": m3,
     "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "转账失败，请检查地址、数量和链上余额",

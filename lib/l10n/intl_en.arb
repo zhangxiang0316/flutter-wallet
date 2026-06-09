@@ -15,6 +15,13 @@
   "totalAssets": "Total assets",
   "refreshBalance": "Refresh",
   "removeWallet": "Remove wallet",
+  "removeWalletConfirmMessage": "Remove \"{name}\"? The wallet data saved on this device will be deleted.",
+  "@removeWalletConfirmMessage": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "cancel": "Cancel",
   "balanceLoadFailed": "Some balance lookups failed",
   "loading": "Loading...",
   "securityNotice": "Security notice",
