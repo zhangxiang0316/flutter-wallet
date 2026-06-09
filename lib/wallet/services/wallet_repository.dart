@@ -118,6 +118,10 @@ class WalletRepository {
     return _secretStore.hasPrivateKey(walletId);
   }
 
+  Future<bool> hasWalletMnemonic(String walletId) {
+    return _secretStore.hasMnemonic(walletId);
+  }
+
   Future<bool> hasLegacyPlainSecrets() async {
     final wallets = await loadWallets();
     return wallets.any((wallet) => wallet.needsSecretMigration);

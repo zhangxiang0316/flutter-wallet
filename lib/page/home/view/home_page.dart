@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:getx_route_annotations/getx_route_annotations.dart';
 
 import '../../../base/base_scaffold_page.dart';
 import '../../../common/theme/app_theme_extension.dart';
@@ -15,6 +16,7 @@ import 'widgets/empty_wallet_card.dart';
 import 'widgets/private_key_notice.dart';
 import 'widgets/wallet_overview_card.dart';
 
+@GetXRoutePage('/home')
 // ignore: use_key_in_widget_constructors, must_be_immutable
 class HomePage extends BaseScaffoldPage<HomeController> {
   /// 创建首页控制器，负责钱包加载、余额刷新和资产估值。
@@ -40,21 +42,29 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       leading: Padding(
         padding: EdgeInsets.only(left: 12.w),
         child: Center(
-          child: Container(
-            width: 32.w,
-            height: 32.w,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.1),
+          child: Semantics(
+            button: controller.wallet != null,
+            label: S.of(context!).walletDetails,
+            child: InkWell(
+              onTap: controller.wallet == null ? null : _openWalletDetailPage,
               borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.16),
+              child: Container(
+                width: 32.w,
+                height: 32.w,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.16),
+                  ),
+                ),
+                child: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: colorScheme.primary,
+                  size: 17.w,
+                ),
               ),
-            ),
-            child: Icon(
-              Icons.account_balance_wallet_outlined,
-              color: colorScheme.primary,
-              size: 17.w,
             ),
           ),
         ),
@@ -334,6 +344,12 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     if (submitted == true) {
       controller.refreshBalances();
     }
+  }
+
+  void _openWalletDetailPage() {
+    final currentWallet = controller.wallet;
+    if (currentWallet == null) return;
+    Get.toNamed(RouteTable.walletDetail, arguments: currentWallet.id);
   }
 
   bool _legacyMigrationSheetVisible = false;

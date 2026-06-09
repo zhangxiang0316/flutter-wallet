@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
-import '../../../../utils/toast_util.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 import 'home_styles.dart';
@@ -39,7 +37,7 @@ class WalletOverviewCard extends StatelessWidget {
           onWalletRemoved: onWalletRemoved,
           onAddWallet: onAddWallet,
         ).marginOnly(bottom: 12.h),
-        _PrimaryWalletPanel(wallet: wallet),
+        const _PrimaryWalletPanel(),
       ],
     );
   }
@@ -227,18 +225,6 @@ class _WalletNamePill extends StatelessWidget {
                           height: 1.1,
                         ),
                       ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        _shortWalletAddress(wallet.bscAddress),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.68),
-                          fontSize: 9.5.sp,
-                          fontWeight: FontWeight.w700,
-                          height: 1.1,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -269,9 +255,7 @@ class _WalletNamePill extends StatelessWidget {
 }
 
 class _PrimaryWalletPanel extends StatelessWidget {
-  const _PrimaryWalletPanel({required this.wallet});
-
-  final WalletAccount wallet;
+  const _PrimaryWalletPanel();
 
   @override
   Widget build(BuildContext context) {
@@ -306,51 +290,13 @@ class _PrimaryWalletPanel extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 5.h),
-                  Text(
-                    'EVM ${_shortWalletAddress(wallet.bscAddress)}  SOL ${_shortWalletAddress(wallet.solanaAddress)}  TRX ${_shortWalletAddress(wallet.tronAddress)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: homeSubTextColor(context),
-                      fontSize: 10.5.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ],
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Semantics(
-              button: true,
-              label: S.of(context).copyWalletAddress,
-              child: IconButton(
-                visualDensity: VisualDensity.compact,
-                constraints: BoxConstraints.tight(Size(34.w, 34.w)),
-                padding: EdgeInsets.zero,
-                onPressed: () => _copyWalletAddress(context, wallet),
-                icon: Icon(
-                  Icons.content_copy_rounded,
-                  color: colorScheme.onSurface.withValues(alpha: 0.48),
-                  size: 18.w,
-                ),
-                tooltip: S.of(context).copyWalletAddress,
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  void _copyWalletAddress(BuildContext context, WalletAccount wallet) {
-    Clipboard.setData(
-      ClipboardData(
-        text:
-            'EVM: ${wallet.bscAddress}\nSOL: ${wallet.solanaAddress}\nTRX: ${wallet.tronAddress}',
-      ),
-    );
-    Toast.show(S.of(context).copied);
   }
 }
 

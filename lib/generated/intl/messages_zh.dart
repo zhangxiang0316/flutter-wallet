@@ -104,11 +104,16 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "transferSubmitted": MessageLookupByLibrary.simpleMessage("交易已提交"),
     "transferUnavailable": MessageLookupByLibrary.simpleMessage("转账信息不可用"),
+    "unlockToView": MessageLookupByLibrary.simpleMessage("输入钱包密码后查看"),
     "unlockWallet": MessageLookupByLibrary.simpleMessage("解锁钱包"),
     "unlockWalletForTransfer": MessageLookupByLibrary.simpleMessage(
       "请输入钱包密码解锁本机私钥，用于本次交易签名。",
     ),
+    "viewMnemonic": MessageLookupByLibrary.simpleMessage("查看助记词"),
+    "viewPrivateKey": MessageLookupByLibrary.simpleMessage("查看私钥"),
+    "walletAddresses": MessageLookupByLibrary.simpleMessage("链地址"),
     "walletCreated": MessageLookupByLibrary.simpleMessage("钱包已创建"),
+    "walletDetails": MessageLookupByLibrary.simpleMessage("钱包详情"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
       "当前支持 BNB Smart Chain、Ethereum、X Layer、Solana 和 TRON 的地址管理与多资产链上余额查询。",
     ),
@@ -127,6 +132,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "walletRemoved": MessageLookupByLibrary.simpleMessage("钱包已移除"),
     "walletSecretMissing": MessageLookupByLibrary.simpleMessage("未找到该钱包的加密私钥"),
+    "walletSecrets": MessageLookupByLibrary.simpleMessage("钱包密钥"),
     "walletSecurityMigrated": MessageLookupByLibrary.simpleMessage("钱包私钥已加密保存"),
     "walletSecurityMigrationFailed": MessageLookupByLibrary.simpleMessage(
       "钱包私钥加密失败，请重试",

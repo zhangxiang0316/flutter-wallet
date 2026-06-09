@@ -132,11 +132,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "transferUnavailable": MessageLookupByLibrary.simpleMessage(
       "Transfer details are unavailable",
     ),
+    "unlockToView": MessageLookupByLibrary.simpleMessage(
+      "Unlock with wallet password to view",
+    ),
     "unlockWallet": MessageLookupByLibrary.simpleMessage("Unlock wallet"),
     "unlockWalletForTransfer": MessageLookupByLibrary.simpleMessage(
       "Enter the wallet password to unlock the local private key for this transaction.",
     ),
+    "viewMnemonic": MessageLookupByLibrary.simpleMessage("View mnemonic"),
+    "viewPrivateKey": MessageLookupByLibrary.simpleMessage("View private key"),
+    "walletAddresses": MessageLookupByLibrary.simpleMessage("Chain addresses"),
     "walletCreated": MessageLookupByLibrary.simpleMessage("Wallet created"),
+    "walletDetails": MessageLookupByLibrary.simpleMessage("Wallet details"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
       "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, Solana, and TRON.",
     ),
@@ -161,6 +168,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "walletSecretMissing": MessageLookupByLibrary.simpleMessage(
       "Encrypted private key was not found for this wallet",
     ),
+    "walletSecrets": MessageLookupByLibrary.simpleMessage("Wallet secrets"),
     "walletSecurityMigrated": MessageLookupByLibrary.simpleMessage(
       "Wallet private key encrypted",
     ),

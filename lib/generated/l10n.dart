@@ -179,6 +179,66 @@ class S {
     );
   }
 
+  /// `Wallet details`
+  String get walletDetails {
+    return Intl.message(
+      'Wallet details',
+      name: 'walletDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Chain addresses`
+  String get walletAddresses {
+    return Intl.message(
+      'Chain addresses',
+      name: 'walletAddresses',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet secrets`
+  String get walletSecrets {
+    return Intl.message(
+      'Wallet secrets',
+      name: 'walletSecrets',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `View private key`
+  String get viewPrivateKey {
+    return Intl.message(
+      'View private key',
+      name: 'viewPrivateKey',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `View mnemonic`
+  String get viewMnemonic {
+    return Intl.message(
+      'View mnemonic',
+      name: 'viewMnemonic',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unlock with wallet password to view`
+  String get unlockToView {
+    return Intl.message(
+      'Unlock with wallet password to view',
+      name: 'unlockToView',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Total assets`
   String get totalAssets {
     return Intl.message(

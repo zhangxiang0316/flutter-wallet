@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
 
 import '../../../base/base_controller.dart';
@@ -10,6 +11,8 @@ import '../../../main.dart';
 import '../../../utils/global_extension.dart';
 import '../../../utils/storage.dart';
 
+@GetXRoutePage('/setting')
+// ignore: use_key_in_widget_constructors, must_be_immutable
 class SettingPage extends BaseScaffoldPage<SettingController> {
   @override
   SettingController generateController() {

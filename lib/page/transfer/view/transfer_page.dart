@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:getx_route_annotations/getx_route_annotations.dart';
 
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
@@ -11,6 +12,7 @@ import 'widgets/transfer_hero.dart';
 import 'widgets/transfer_submitted_panel.dart';
 import 'widgets/transfer_unavailable_panel.dart';
 
+@GetXRoutePage('/transfer')
 // ignore: use_key_in_widget_constructors, must_be_immutable
 class TransferPage extends BaseScaffoldPage<TransferController> {
   @override
