@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
-import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
+import 'home_styles.dart';
 
 class WalletOverviewCard extends StatelessWidget {
   const WalletOverviewCard({
@@ -61,8 +61,8 @@ class _BalanceHeroCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(minHeight: 198.h),
-      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 18.h),
+      constraints: BoxConstraints(minHeight: 186.h),
+      padding: EdgeInsets.fromLTRB(16.w, 15.h, 16.w, 17.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -74,13 +74,6 @@ class _BalanceHeroCard extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0284C7).withValues(alpha: 0.22),
-            blurRadius: 24.r,
-            offset: Offset(0, 12.h),
-          ),
-        ],
       ),
       child: Stack(
         children: [
@@ -101,7 +94,7 @@ class _BalanceHeroCard extends StatelessWidget {
                 wallets: wallets,
                 onWalletSelected: onWalletSelected,
               ),
-              SizedBox(height: 38.h),
+              SizedBox(height: 30.h),
               Align(
                 alignment: Alignment.center,
                 child: AnimatedSwitcher(
@@ -124,7 +117,7 @@ class _BalanceHeroCard extends StatelessWidget {
                       maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 38.sp,
+                        fontSize: 36.sp,
                         fontWeight: FontWeight.w900,
                         height: 1.02,
                       ),
@@ -259,16 +252,7 @@ class _PrimaryWalletPanel extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(
-              color: context.appTheme.dividerColor!.withValues(alpha: 0.42),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: context.appTheme.cardShadowColor ?? Colors.transparent,
-                blurRadius: 12.r,
-                offset: Offset(0, 5.h),
-              ),
-            ],
+            border: Border.all(color: homeDividerColor(context)),
           ),
           child: Row(
             children: [
@@ -337,7 +321,7 @@ class _WalletOptionRow extends StatelessWidget {
     return Material(
       color: selected
           ? colorScheme.primary.withValues(alpha: 0.09)
-          : colorScheme.onSurface.withValues(alpha: 0.035),
+          : Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(8.r),
       child: InkWell(
         onTap: onTap,
@@ -350,7 +334,7 @@ class _WalletOptionRow extends StatelessWidget {
             border: Border.all(
               color: selected
                   ? colorScheme.primary.withValues(alpha: 0.22)
-                  : colorScheme.outline.withValues(alpha: 0.12),
+                  : homeDividerColor(context),
             ),
           ),
           child: Row(
@@ -463,7 +447,7 @@ class _WalletAddressChip extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: colorScheme.onSurface.withValues(alpha: 0.045),
+        color: colorScheme.onSurface.withValues(alpha: 0.035),
         borderRadius: BorderRadius.circular(7.r),
       ),
       child: Row(
@@ -592,42 +576,56 @@ void _showWalletPicker({
 }) {
   showModalBottomSheet<void>(
     context: context,
-    showDragHandle: true,
-    backgroundColor: Theme.of(context).cardColor,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-    ),
+    showDragHandle: false,
+    backgroundColor: Colors.transparent,
     builder: (sheetContext) {
       return SafeArea(
         top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 18.h),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Theme.of(sheetContext).cardColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 36.w,
+                height: 4.h,
+                margin: EdgeInsets.only(top: 8.h, bottom: 12.h),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    sheetContext,
+                  ).colorScheme.onSurface.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999.r),
+                ),
+              ),
               Text(
                 S.of(sheetContext).switchWallet,
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
               ).marginOnly(bottom: 12.h),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.56,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: wallets
-                        .map(
-                          (item) => _WalletOptionRow(
-                            wallet: item,
-                            selected: item.id == wallet.id,
-                            onTap: () {
-                              Navigator.of(sheetContext).pop();
-                              onWalletSelected(item);
-                            },
-                          ).marginOnly(bottom: 8.h),
-                        )
-                        .toList(growable: false),
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(sheetContext).size.height * 0.56,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: wallets
+                          .map(
+                            (item) => _WalletOptionRow(
+                              wallet: item,
+                              selected: item.id == wallet.id,
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                onWalletSelected(item);
+                              },
+                            ).marginOnly(bottom: 8.h),
+                          )
+                          .toList(growable: false),
+                    ),
                   ),
                 ),
               ),

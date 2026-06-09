@@ -5,20 +5,29 @@ import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 
 BoxDecoration homePanelDecoration(BuildContext context) {
+  final colorScheme = Theme.of(context).colorScheme;
+  final dividerColor =
+      context.appTheme.dividerColor ??
+      colorScheme.outline.withValues(alpha: 0.18);
   return BoxDecoration(
     color: Theme.of(context).cardColor,
     borderRadius: BorderRadius.circular(8.r),
-    border: Border.all(
-      color: context.appTheme.dividerColor!.withValues(alpha: 0.38),
-    ),
-    boxShadow: [
-      BoxShadow(
-        color: context.appTheme.cardShadowColor ?? Colors.transparent,
-        blurRadius: 12.r,
-        offset: Offset(0, 5.h),
-      ),
-    ],
+    border: Border.all(color: dividerColor.withValues(alpha: 0.72)),
   );
+}
+
+Color homeDividerColor(BuildContext context) {
+  return (context.appTheme.dividerColor ?? const Color(0xFFEBEDF0)).withValues(
+    alpha: Theme.of(context).brightness == Brightness.dark ? 0.5 : 1,
+  );
+}
+
+Color homeSubTextColor(BuildContext context) {
+  return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58);
+}
+
+Color homeCellPressColor(BuildContext context) {
+  return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.035);
 }
 
 Color homeChainColor(WalletChain chain) {

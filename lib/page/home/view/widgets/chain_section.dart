@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
-import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/chain_balance.dart';
 import '../../../../wallet/models/wallet_account.dart';
@@ -133,178 +132,158 @@ class _ChainCard extends StatelessWidget {
 
     // 折叠态只展示原生币余额，完整币种列表放在展开区域里。
     final nativeBalance = _nativeBalanceText();
-    final dividerColor = context.appTheme.dividerColor!.withValues(alpha: 0.45);
+    final dividerColor = homeDividerColor(context);
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: homePanelDecoration(context).copyWith(
         border: Border.all(
-          color: isExpanded ? chainColor.withValues(alpha: 0.28) : dividerColor,
+          color: isExpanded ? chainColor.withValues(alpha: 0.22) : dividerColor,
         ),
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(width: 4.w, color: chainColor),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(13.w, 12.h, 12.w, 12.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  // 链卡片头部是展开/收起开关。
-                  button: true,
-                  expanded: isExpanded,
-                  label: chain.name,
-                  child: InkWell(
-                    onTap: () => onToggle(chain),
-                    borderRadius: BorderRadius.circular(8.r),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 38.w,
-                          height: 38.w,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: chainColor.withValues(alpha: 0.11),
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(
-                              color: chainColor.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: Text(
-                            chain.symbol.characters.first,
-                            style: TextStyle(
-                              color: chainColor,
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w900,
-                            ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              // 链卡片头部是展开/收起开关。
+              button: true,
+              expanded: isExpanded,
+              label: chain.name,
+              child: InkWell(
+                onTap: () => onToggle(chain),
+                borderRadius: BorderRadius.circular(8.r),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2.h),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36.w,
+                        height: 36.w,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: chainColor.withValues(alpha: 0.11),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Text(
+                          chain.symbol.characters.first,
+                          style: TextStyle(
+                            color: chainColor,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        SizedBox(width: 10.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      chain.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13.sp,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isLoading && balances.isNotEmpty)
-                                    _ChainStatusDot(
-                                      color: chainColor,
-                                    ).marginOnly(left: 6.w),
-                                  if (hasError)
-                                    Icon(
-                                      Icons.error_outline_rounded,
-                                      size: 15.w,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
-                                    ).marginOnly(left: 5.w),
-                                ],
-                              ),
-                              SizedBox(height: 3.h),
-                              Text(
-                                _shortAddress(address),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.56),
-                                  fontSize: 10.5.sp,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        _ChainSummaryPill(
-                          count: balances.length,
-                          amount: nativeBalance,
-                          symbol: chain.symbol,
-                          color: chainColor,
-                          isLoading: isLoading && balances.isEmpty,
-                        ),
-                        // AnimatedRotation(
-                        //   turns: isExpanded ? 0.5 : 0,
-                        //   duration: const Duration(milliseconds: 180),
-                        //   curve: Curves.easeOutCubic,
-                        //   child: Icon(
-                        //     Icons.keyboard_arrow_down_rounded,
-                        //     size: 23.w,
-                        //     color: Theme.of(
-                        //       context,
-                        //     ).colorScheme.onSurface.withValues(alpha: 0.55),
-                        //   ),
-                        // ),
-                      ],
-                    ),
-                  ),
-                ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  transitionBuilder: (child, animation) {
-                    // 展开/收起时只做高度和透明度变化，避免列表内容突然跳动。
-                    return SizeTransition(
-                      sizeFactor: animation,
-                      axisAlignment: -1,
-                      child: FadeTransition(opacity: animation, child: child),
-                    );
-                  },
-                  child: isExpanded
-                      ? Column(
-                          key: ValueKey('${chain.id}-assets'),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 10.h),
-                            Divider(
-                              height: 1.h,
-                              thickness: 1,
-                              color: dividerColor,
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    chain.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                if (isLoading && balances.isNotEmpty)
+                                  _ChainStatusDot(
+                                    color: chainColor,
+                                  ).marginOnly(left: 6.w),
+                                if (hasError)
+                                  Icon(
+                                    Icons.error_outline_rounded,
+                                    size: 15.w,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ).marginOnly(left: 5.w),
+                              ],
                             ),
-                            SizedBox(height: 2.h),
-                            ...balances.map(
-                              (balance) => _AssetRow(
-                                balance: balance,
-                                // 非稳定币会展示按当前价格换算的稳定币估值。
-                                stableValueText: stableValueTextFor(balance),
-                                onTransferPressed: onTransferPressed,
+                            SizedBox(height: 3.h),
+                            Text(
+                              _shortAddress(address),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: homeSubTextColor(context),
+                                fontSize: 10.5.sp,
                               ),
                             ),
-                            if (balances.isEmpty)
-                              _EmptyBalancePlaceholder(
-                                isLoading: isLoading,
-                              ).marginOnly(top: 8.h),
-                            if (hasError)
-                              Text(
-                                S.of(context).balanceLoadFailed,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                  fontSize: 11.sp,
-                                ),
-                              ).marginOnly(top: 8.h),
                           ],
-                        )
-                      : const SizedBox.shrink(),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      _ChainSummaryPill(
+                        count: balances.length,
+                        amount: nativeBalance,
+                        symbol: chain.symbol,
+                        color: chainColor,
+                        isLoading: isLoading && balances.isEmpty,
+                      ),
+                      AnimatedRotation(
+                        turns: isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOutCubic,
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 23.w,
+                          color: homeSubTextColor(context),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              transitionBuilder: (child, animation) {
+                // 展开/收起时只做高度和透明度变化，避免列表内容突然跳动。
+                return SizeTransition(
+                  sizeFactor: animation,
+                  axisAlignment: -1,
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child: isExpanded
+                  ? Column(
+                      key: ValueKey('${chain.id}-assets'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 10.h),
+                        Divider(height: 1.h, thickness: 1, color: dividerColor),
+                        ...balances.map(
+                          (balance) => _AssetRow(
+                            balance: balance,
+                            // 非稳定币会展示按当前价格换算的稳定币估值。
+                            stableValueText: stableValueTextFor(balance),
+                            onTransferPressed: onTransferPressed,
+                          ),
+                        ),
+                        if (balances.isEmpty)
+                          _EmptyBalancePlaceholder(
+                            isLoading: isLoading,
+                          ).marginOnly(top: 8.h),
+                        if (hasError)
+                          Text(
+                            S.of(context).balanceLoadFailed,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 11.sp,
+                            ),
+                          ).marginOnly(top: 8.h),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -448,16 +427,8 @@ class _AssetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final assetColor = homeAssetColor(context, balance.symbol);
-    return Container(
-      margin: EdgeInsets.only(top: 8.h),
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(
-          color: context.appTheme.dividerColor!.withValues(alpha: 0.42),
-        ),
-      ),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 10.h),
       child: Row(
         children: [
           Container(
@@ -494,9 +465,7 @@ class _AssetRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 10.5.sp,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.54),
+                    color: homeSubTextColor(context),
                   ),
                 ),
               ],
@@ -529,9 +498,7 @@ class _AssetRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.54),
+                          color: homeSubTextColor(context),
                           fontSize: 10.sp,
                           fontWeight: FontWeight.w700,
                         ),
@@ -548,8 +515,8 @@ class _AssetRow extends StatelessWidget {
                   constraints: BoxConstraints.tight(Size(40.w, 40.w)),
                   onPressed: () => onTransferPressed(balance),
                   icon: Container(
-                    width: 32.w,
-                    height: 32.w,
+                    width: 30.w,
+                    height: 30.w,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Theme.of(

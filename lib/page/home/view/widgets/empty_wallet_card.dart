@@ -20,21 +20,18 @@ class EmptyWalletCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 16.h),
       decoration: homePanelDecoration(context),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 48.w,
-            height: 48.w,
+            width: 52.w,
+            height: 52.w,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.14),
-              ),
+              shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.account_balance_wallet,
@@ -44,21 +41,24 @@ class EmptyWalletCard extends StatelessWidget {
           ).marginOnly(bottom: 14.h),
           Text(
             S.of(context).walletEmptyTitle,
-            style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w800),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
           ).marginOnly(bottom: 8.h),
           Text(
             S.of(context).walletEmptySubtitle,
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12.sp,
               height: 1.42,
-              color: colorScheme.onSurface.withValues(alpha: 0.65),
+              color: homeSubTextColor(context),
             ),
           ).marginOnly(bottom: 20.h),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
-                minimumSize: Size.fromHeight(42.h),
+                minimumSize: Size.fromHeight(44.h),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),
@@ -72,7 +72,10 @@ class EmptyWalletCard extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                minimumSize: Size.fromHeight(42.h),
+                minimumSize: Size.fromHeight(44.h),
+                side: BorderSide(
+                  color: colorScheme.primary.withValues(alpha: 0.42),
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),

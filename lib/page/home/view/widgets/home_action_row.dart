@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
-import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../generated/l10n.dart';
+import 'home_styles.dart';
 
 class HomeActionRow extends StatelessWidget {
   const HomeActionRow({
@@ -43,20 +43,18 @@ class _AddWalletButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(8.r),
         child: Container(
           width: double.infinity,
-          height: 58.h,
+          height: 52.h,
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(
-              color: context.appTheme.dividerColor!.withValues(alpha: 0.76),
-            ),
+            border: Border.all(color: homeDividerColor(context)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.add_rounded,
-                size: 24.w,
+                size: 22.w,
                 color: colorScheme.onSurface.withValues(alpha: 0.76),
               ).marginOnly(right: 8.w),
               Flexible(
@@ -66,7 +64,7 @@ class _AddWalletButton extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: colorScheme.onSurface,
-                    fontSize: 15.sp,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -95,7 +93,7 @@ class _RemoveWalletButton extends StatelessWidget {
           foregroundColor: colorScheme.error,
           minimumSize: Size(0, 34.h),
           padding: EdgeInsets.symmetric(horizontal: 10.w),
-          textStyle: TextStyle(fontSize: 11.5.sp, fontWeight: FontWeight.w700),
+          textStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
         ),
         icon: Icon(Icons.delete_outline_rounded, size: 15.w),
         label: Text(S.of(context).removeWallet),
