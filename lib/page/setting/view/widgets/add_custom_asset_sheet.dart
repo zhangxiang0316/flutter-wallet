@@ -6,6 +6,10 @@ import '../../../../utils/toast_util.dart';
 import '../../../../wallet/models/wallet_asset.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 
+/// 添加自定义资产底部弹窗。
+///
+/// 用户在这里输入合约地址、币种符号、名称和精度；EVM 链支持先尝试自动拉取
+/// 合约元数据，再提交到控制器保存。
 class AddCustomAssetSheet extends StatefulWidget {
   const AddCustomAssetSheet({
     super.key,
@@ -14,12 +18,17 @@ class AddCustomAssetSheet extends StatefulWidget {
     required this.onSubmit,
   });
 
+  /// 当前正在添加资产的链。
   final WalletChain chain;
+
+  /// 根据合约地址查询链上资产元数据。
   final Future<WalletAsset?> Function({
     required WalletChain chain,
     required String contractAddress,
   })
   onFetchMetadata;
+
+  /// 提交用户最终确认的自定义资产信息。
   final Future<bool> Function({
     required WalletChain chain,
     required String contractAddress,
@@ -34,12 +43,22 @@ class AddCustomAssetSheet extends StatefulWidget {
 }
 
 class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
+  /// 合约地址输入控制器。
   final TextEditingController _contractController = TextEditingController();
+
+  /// 币种符号输入控制器。
   final TextEditingController _symbolController = TextEditingController();
+
+  /// 币种名称输入控制器。
   final TextEditingController _nameController = TextEditingController();
+
+  /// 币种精度输入控制器。
   final TextEditingController _decimalsController = TextEditingController();
 
+  /// 是否正在自动获取合约元数据。
   bool _isFetching = false;
+
+  /// 是否正在提交自定义资产。
   bool _isSubmitting = false;
 
   @override
@@ -53,7 +72,10 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // 当前主题色用于按钮、链标签和输入框边框。
     final colorScheme = Theme.of(context).colorScheme;
+
+    // 键盘弹出时给底部弹窗补足避让距离。
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -204,7 +226,9 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
     );
   }
 
+  /// 根据用户输入的合约地址自动查询资产元数据。
   Future<void> _fetchMetadata() async {
+    // 合约地址提交前先去掉首尾空格。
     final contractAddress = _contractController.text.trim();
     if (contractAddress.isEmpty) {
       Toast.show(S.current.customAssetInvalid);
@@ -214,6 +238,8 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
     setState(() {
       _isFetching = true;
     });
+
+    // 元数据查询失败时服务层返回 null，UI 层只负责提示用户。
     final metadata = await widget.onFetchMetadata(
       chain: widget.chain,
       contractAddress: contractAddress,
@@ -227,13 +253,17 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
       Toast.show(S.current.customAssetMetadataUnavailable);
       return;
     }
+
+    // 查询成功后回填表单，允许用户继续手动调整。
     _contractController.text = metadata.contractAddress ?? contractAddress;
     _symbolController.text = metadata.symbol;
     _nameController.text = metadata.name;
     _decimalsController.text = metadata.decimals.toString();
   }
 
+  /// 校验并提交自定义资产表单。
   Future<void> _submit() async {
+    // 精度必须是整数，通常来自 ERC20 decimals。
     final decimals = int.tryParse(_decimalsController.text.trim());
     if (decimals == null) {
       Toast.show(S.current.customAssetInvalid);
@@ -243,6 +273,8 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
     setState(() {
       _isSubmitting = true;
     });
+
+    // 具体地址规范化、重复校验和持久化由控制器完成。
     final success = await widget.onSubmit(
       chain: widget.chain,
       contractAddress: _contractController.text.trim(),
@@ -261,6 +293,9 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
   }
 }
 
+/// 自定义资产表单输入框。
+///
+/// 统一输入框的字号、填充、圆角和聚焦边框样式。
 class _CustomAssetTextField extends StatelessWidget {
   const _CustomAssetTextField({
     required this.controller,
@@ -272,16 +307,30 @@ class _CustomAssetTextField extends StatelessWidget {
     this.onSubmitted,
   });
 
+  /// 输入框控制器。
   final TextEditingController controller;
+
+  /// 输入框标签。
   final String label;
+
+  /// 输入框占位提示。
   final String hint;
+
+  /// 键盘类型，例如精度字段使用数字键盘。
   final TextInputType? keyboardType;
+
+  /// 键盘动作按钮类型。
   final TextInputAction? textInputAction;
+
+  /// 文本大小写策略，币种符号会使用大写输入。
   final TextCapitalization textCapitalization;
+
+  /// 用户点击键盘提交按钮后的回调。
   final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
+    // 当前主题色用于输入框背景和聚焦边框。
     final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: controller,

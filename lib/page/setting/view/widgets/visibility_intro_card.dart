@@ -4,11 +4,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../generated/l10n.dart';
 import 'asset_visibility_styles.dart';
 
+/// 资产显示设置页顶部说明卡片。
+///
+/// 用简短文案解释当前页面的作用，避免用户误以为隐藏资产会删除链上余额。
 class VisibilityIntroCard extends StatelessWidget {
   const VisibilityIntroCard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 当前主题色用于说明图标和辅助文字。
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.all(12.w),

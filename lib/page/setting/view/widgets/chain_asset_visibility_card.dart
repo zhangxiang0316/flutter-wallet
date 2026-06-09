@@ -7,6 +7,9 @@ import '../../../../wallet/models/wallet_asset.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 import 'asset_visibility_styles.dart';
 
+/// 单条链的资产显示设置卡片。
+///
+/// 卡片头部展示链信息和添加自定义资产入口，下方逐个展示该链资产的显示开关。
 class ChainAssetVisibilityCard extends StatelessWidget {
   const ChainAssetVisibilityCard({
     super.key,
@@ -18,16 +21,30 @@ class ChainAssetVisibilityCard extends StatelessWidget {
     required this.onRemovePressed,
   });
 
+  /// 当前卡片对应的链。
   final WalletChain chain;
+
+  /// 当前链下默认资产和自定义资产合并后的列表。
   final List<WalletAsset> assets;
+
+  /// 判断资产当前是否在首页展示。
   final bool Function(WalletAsset asset) isVisible;
+
+  /// 切换资产显示/隐藏状态后的回调。
   final Future<void> Function(WalletAsset asset, bool visible) onChanged;
+
+  /// 点击链标题右侧加号后的回调。
   final VoidCallback onAddPressed;
+
+  /// 用户确认移除自定义资产后的回调。
   final Future<void> Function(WalletAsset asset) onRemovePressed;
 
   @override
   Widget build(BuildContext context) {
+    // 当前主题色用于文字和添加按钮。
     final colorScheme = Theme.of(context).colorScheme;
+
+    // 当前链品牌色用于链头像。
     final chainColor = _chainColor(chain);
     return Container(
       padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 4.h),
@@ -96,6 +113,7 @@ class ChainAssetVisibilityCard extends StatelessWidget {
     );
   }
 
+  /// 获取当前链在设置页中的品牌色。
   Color _chainColor(WalletChain chain) {
     switch (chain) {
       case WalletChain.bsc:
@@ -112,6 +130,9 @@ class ChainAssetVisibilityCard extends StatelessWidget {
   }
 }
 
+/// 单个资产的显示设置行。
+///
+/// 默认资产只展示开关，自定义资产额外展示删除按钮。
 class _AssetVisibilityTile extends StatelessWidget {
   const _AssetVisibilityTile({
     required this.asset,
@@ -120,13 +141,21 @@ class _AssetVisibilityTile extends StatelessWidget {
     this.onRemovePressed,
   });
 
+  /// 当前行对应的资产。
   final WalletAsset asset;
+
+  /// 当前资产是否在首页展示。
   final bool visible;
+
+  /// 切换开关后的回调。
   final ValueChanged<bool> onChanged;
+
+  /// 删除自定义资产的回调；为空表示这是默认资产，不允许删除。
   final Future<void> Function()? onRemovePressed;
 
   @override
   Widget build(BuildContext context) {
+    // 当前主题色用于资产头像、说明文字和删除按钮。
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
@@ -184,6 +213,7 @@ class _AssetVisibilityTile extends StatelessWidget {
               constraints: BoxConstraints.tight(Size(32.w, 32.w)),
               padding: EdgeInsets.zero,
               onPressed: () async {
+                // 自定义资产删除前需要二次确认，避免误删。
                 final shouldRemove = await _confirmRemoveCustomAsset(
                   context,
                   asset,
@@ -206,10 +236,12 @@ class _AssetVisibilityTile extends StatelessWidget {
   }
 }
 
+/// 移除自定义资产前的二次确认弹窗。
 Future<bool> _confirmRemoveCustomAsset(
   BuildContext context,
   WalletAsset asset,
 ) async {
+  // 删除确认按钮使用错误色，提示这是高风险操作。
   final colorScheme = Theme.of(context).colorScheme;
   return await showDialog<bool>(
         context: context,

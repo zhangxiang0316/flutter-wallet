@@ -16,16 +16,25 @@ import 'widgets/chain_asset_visibility_card.dart';
 import 'widgets/visibility_intro_card.dart';
 
 @GetXRoutePage('/assetVisibility')
+/// 资产显示设置页面。
+///
+/// 用户可以按链控制默认币种和自定义币种是否在首页资产列表展示，
+/// 也可以从当前页面为指定链添加自定义资产。
 // ignore: use_key_in_widget_constructors, must_be_immutable
 class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
+  /// 创建资产显示控制器，负责读取隐藏资产和自定义资产配置。
   @override
   AssetVisibilityController generateController() {
     return AssetVisibilityController();
   }
 
+  /// 设置页顶部导航栏。
   @override
   PreferredSizeWidget? getAppBar() {
+    // 当前主题色用于标题、返回按钮和底部分隔线。
     final colorScheme = Theme.of(context!).colorScheme;
+
+    // AppBar 底部细分隔线，降低透明度以贴近 Vant 风格。
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
       backgroundColor: Theme.of(context!).cardColor,
@@ -54,6 +63,9 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
     );
   }
 
+  /// 页面主体内容。
+  ///
+  /// 顶部展示说明卡片，下方按 [WalletChain.values] 渲染每条链的资产显示设置。
   @override
   Widget? getBody() {
     return ColoredBox(
@@ -80,6 +92,7 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
     );
   }
 
+  /// 打开指定链的自定义资产添加弹窗。
   void _showAddAssetSheet(WalletChain chain) {
     showModalBottomSheet(
       context: context!,
@@ -95,6 +108,9 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
   }
 }
 
+/// 资产显示设置控制器。
+///
+/// 负责管理隐藏资产 key、自定义资产列表，并把页面操作同步到本地存储服务。
 class AssetVisibilityController extends BaseController {
   AssetVisibilityController({
     WalletAssetVisibilityService? service,
@@ -102,37 +118,54 @@ class AssetVisibilityController extends BaseController {
   }) : _service = service ?? WalletAssetVisibilityService(),
        _customAssetService = customAssetService ?? WalletCustomAssetService();
 
+  /// 资产显示/隐藏配置服务。
   final WalletAssetVisibilityService _service;
+
+  /// 用户自定义资产服务。
   final WalletCustomAssetService _customAssetService;
+
+  /// 当前被隐藏的资产 key 集合。
   Set<String> hiddenAssetKeys = {};
+
+  /// 用户手动添加的自定义资产列表。
   List<WalletAsset> customAssets = [];
 
+  /// 初始化时加载本地资产显示配置。
   @override
   void onInit() {
     super.onInit();
     loadVisibility();
   }
 
+  /// 重新读取隐藏资产和自定义资产配置，并刷新页面。
   Future<void> loadVisibility() async {
     hiddenAssetKeys = await _service.loadHiddenAssetKeys();
     customAssets = await _customAssetService.loadCustomAssets();
     update();
   }
 
+  /// 获取指定链下最终展示在设置页中的资产列表。
+  ///
+  /// 默认资产和用户自定义资产在这里合并，避免 UI 层关心资产来源。
   List<WalletAsset> assetsForChain(WalletChain chain) {
     return WalletAssetRegistry.mergeCustomAssets(chain, customAssets);
   }
 
+  /// 判断某个资产当前是否允许在首页展示。
   bool isAssetVisible(WalletAsset asset) {
     return !hiddenAssetKeys.contains(_service.keyForAsset(asset));
   }
 
+  /// 更新单个资产的显示/隐藏状态。
   Future<void> setAssetVisible(WalletAsset asset, bool visible) async {
     await _service.setAssetVisible(asset: asset, visible: visible);
     hiddenAssetKeys = await _service.loadHiddenAssetKeys();
     update();
   }
 
+  /// 从链上查询 EVM 合约资产元数据。
+  ///
+  /// 查询失败时返回 null，由弹窗展示“无法获取”的提示。
   Future<WalletAsset?> fetchEvmTokenMetadata({
     required WalletChain chain,
     required String contractAddress,
@@ -147,6 +180,9 @@ class AssetVisibilityController extends BaseController {
     }
   }
 
+  /// 添加用户手动录入的自定义资产。
+  ///
+  /// 添加成功后会自动设置为可见，并重新加载页面数据。
   Future<bool> addCustomAsset({
     required WalletChain chain,
     required String contractAddress,
@@ -155,6 +191,7 @@ class AssetVisibilityController extends BaseController {
     required int decimals,
   }) async {
     try {
+      // 将用户输入标准化成钱包资产模型。
       final asset = _customAssetService.buildManualAsset(
         chain: chain,
         contractAddress: contractAddress,
@@ -175,8 +212,11 @@ class AssetVisibilityController extends BaseController {
     }
   }
 
+  /// 移除用户自定义资产，并清理对应的隐藏配置。
   Future<void> removeCustomAsset(WalletAsset asset) async {
     await _customAssetService.removeCustomAsset(asset);
+
+    // 自定义资产被删除后，它的隐藏 key 也不再需要保留。
     final keys = await _service.loadHiddenAssetKeys();
     keys.remove(_service.keyForAsset(asset));
     await _service.saveHiddenAssetKeys(keys);
