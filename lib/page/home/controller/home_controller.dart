@@ -86,11 +86,10 @@ class HomeController extends BaseController {
     }
   }
 
-  /// 随机生成私钥并创建测试钱包，保存后刷新链上余额。
-  Future<bool> createWallet(String password) async {
-    final keyPair = _cryptoService.importPrivateKey(
-      _cryptoService.generatePrivateKeyHex(),
-    );
+  /// 生成助记词并创建钱包，保存后刷新链上余额。
+  Future<CreatedWalletBackup?> createWallet(String password) async {
+    final mnemonic = _cryptoService.generateMnemonic();
+    final keyPair = _cryptoService.importMnemonic(mnemonic);
     final nextWallet = WalletAccount(
       id: _createWalletId(keyPair.bscAddress),
       name: 'Wallet ${wallets.length + 1}',
@@ -103,40 +102,33 @@ class HomeController extends BaseController {
       walletId: nextWallet.id,
       password: password,
       privateKeyHex: keyPair.privateKeyHex,
+      mnemonic: keyPair.mnemonic,
     );
     await _saveAndSelectWallet(nextWallet);
     Toast.show(S.current.walletCreated);
-    return true;
+    return CreatedWalletBackup(mnemonic: mnemonic);
   }
 
   /// 导入用户输入的私钥，派生 EVM/TRON 地址并保存到本地。
-  Future<bool> importWallet(String privateKey, String password) async {
+  Future<bool> importPrivateKeyWallet(
+    String privateKey,
+    String password,
+  ) async {
     try {
       final keyPair = _cryptoService.importPrivateKey(privateKey);
-      final existingIndex = wallets.indexWhere(
-        (wallet) =>
-            wallet.bscAddress.toLowerCase() == keyPair.bscAddress.toLowerCase(),
-      );
-      final nextWallet = WalletAccount(
-        id: _createWalletId(keyPair.bscAddress),
-        name: existingIndex >= 0
-            ? wallets[existingIndex].name
-            : 'Wallet ${wallets.length + 1}',
-        bscAddress: keyPair.bscAddress,
-        tronAddress: keyPair.tronAddress,
-        solanaAddress: keyPair.solanaAddress,
-        createdAt: DateTime.now(),
-      );
-      await _repository.saveWalletSecret(
-        walletId: nextWallet.id,
-        password: password,
-        privateKeyHex: keyPair.privateKeyHex,
-      );
-      await _saveAndSelectWallet(nextWallet);
-      Toast.show(S.current.walletImported);
-      return true;
+      return _saveImportedWallet(keyPair, password);
     } catch (_) {
       Toast.show(S.current.invalidPrivateKey);
+      return false;
+    }
+  }
+
+  Future<bool> importMnemonicWallet(String mnemonic, String password) async {
+    try {
+      final keyPair = _cryptoService.importMnemonic(mnemonic);
+      return _saveImportedWallet(keyPair, password);
+    } catch (_) {
+      Toast.show(S.current.invalidMnemonic);
       return false;
     }
   }
@@ -367,6 +359,35 @@ class HomeController extends BaseController {
     refreshBalances();
   }
 
+  Future<bool> _saveImportedWallet(
+    WalletKeyPair keyPair,
+    String password,
+  ) async {
+    final existingIndex = wallets.indexWhere(
+      (wallet) =>
+          wallet.bscAddress.toLowerCase() == keyPair.bscAddress.toLowerCase(),
+    );
+    final nextWallet = WalletAccount(
+      id: _createWalletId(keyPair.bscAddress),
+      name: existingIndex >= 0
+          ? wallets[existingIndex].name
+          : 'Wallet ${wallets.length + 1}',
+      bscAddress: keyPair.bscAddress,
+      tronAddress: keyPair.tronAddress,
+      solanaAddress: keyPair.solanaAddress,
+      createdAt: DateTime.now(),
+    );
+    await _repository.saveWalletSecret(
+      walletId: nextWallet.id,
+      password: password,
+      privateKeyHex: keyPair.privateKeyHex,
+      mnemonic: keyPair.mnemonic,
+    );
+    await _saveAndSelectWallet(nextWallet);
+    Toast.show(S.current.walletImported);
+    return true;
+  }
+
   void _resetWalletState() {
     _balanceRequestId++;
     balances = [];
@@ -440,4 +461,10 @@ class HomeController extends BaseController {
     _stopBalanceRefreshTimer();
     super.onClose();
   }
+}
+
+class CreatedWalletBackup {
+  const CreatedWalletBackup({required this.mnemonic});
+
+  final String mnemonic;
 }

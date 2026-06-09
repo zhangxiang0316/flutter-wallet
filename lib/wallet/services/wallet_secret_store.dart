@@ -51,14 +51,38 @@ class WalletSecretStore {
     required String password,
     required String privateKeyHex,
   }) async {
+    return _saveEncryptedText(
+      key: _secretKey(walletId),
+      password: password,
+      value: privateKeyHex,
+    );
+  }
+
+  Future<void> saveMnemonic({
+    required String walletId,
+    required String password,
+    required String mnemonic,
+  }) {
+    return _saveEncryptedText(
+      key: _mnemonicKey(walletId),
+      password: password,
+      value: mnemonic,
+    );
+  }
+
+  Future<void> _saveEncryptedText({
+    required String key,
+    required String password,
+    required String value,
+  }) async {
     final salt = _randomBytes(32);
     final nonce = _randomBytes(_nonceBytes);
-    final key = _deriveKey(password, salt);
-    final plainBytes = utf8.encode(privateKeyHex);
-    final cipherText = _aesGcmEncrypt(key, nonce, plainBytes);
+    final encryptionKey = _deriveKey(password, salt);
+    final plainBytes = utf8.encode(value);
+    final cipherText = _aesGcmEncrypt(encryptionKey, nonce, plainBytes);
 
     await _storage.write(
-      key: _secretKey(walletId),
+      key: key,
       value: jsonEncode({
         'version': 1,
         'kdf': 'pbkdf2-hmac-sha256',
@@ -74,12 +98,34 @@ class WalletSecretStore {
     required String walletId,
     required String password,
   }) async {
-    final payloadText = await _storage.read(key: _secretKey(walletId));
-    if (payloadText == null || payloadText.isEmpty) {
-      return _readLegacyEncryptedPrivateKey(
+    return _readEncryptedText(
+      key: _secretKey(walletId),
+      password: password,
+      onMissing: () => _readLegacyEncryptedPrivateKey(
         walletId: walletId,
         password: password,
-      );
+      ),
+    );
+  }
+
+  Future<String> readMnemonic({
+    required String walletId,
+    required String password,
+  }) {
+    return _readEncryptedText(key: _mnemonicKey(walletId), password: password);
+  }
+
+  Future<String> _readEncryptedText({
+    required String key,
+    required String password,
+    Future<String> Function()? onMissing,
+  }) async {
+    final payloadText = await _storage.read(key: key);
+    if (payloadText == null || payloadText.isEmpty) {
+      if (onMissing != null) {
+        return onMissing();
+      }
+      throw const WalletSecretMissingException();
     }
 
     try {
@@ -125,6 +171,7 @@ class WalletSecretStore {
 
   Future<void> removePrivateKey(String walletId) async {
     await _storage.delete(key: _secretKey(walletId));
+    await _storage.delete(key: _mnemonicKey(walletId));
     await _storage.delete(key: 'w_$walletId:salt');
     await _storage.delete(key: 'w_$walletId:nonce');
     await _storage.delete(key: 'w_$walletId:cipher');
@@ -135,6 +182,10 @@ class WalletSecretStore {
       return true;
     }
     return _storage.containsKey(key: 'w_$walletId:cipher');
+  }
+
+  Future<bool> hasMnemonic(String walletId) {
+    return _storage.containsKey(key: _mnemonicKey(walletId));
   }
 
   Future<void> migratePlainSecret({
@@ -198,5 +249,9 @@ class WalletSecretStore {
 
   String _secretKey(String walletId) {
     return 'wallet_secret_${base64Url.encode(utf8.encode(walletId))}';
+  }
+
+  String _mnemonicKey(String walletId) {
+    return 'wallet_mnemonic_${base64Url.encode(utf8.encode(walletId))}';
   }
 }

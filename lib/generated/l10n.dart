@@ -28,10 +28,9 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name =
-        (locale.countryCode?.isEmpty ?? false)
-            ? locale.languageCode
-            : locale.toString();
+    final name = (locale.countryCode?.isEmpty ?? false)
+        ? locale.languageCode
+        : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -270,6 +269,71 @@ class S {
     return Intl.message(
       'Enter a 64-character hex private key, optionally prefixed with 0x',
       name: 'privateKeyHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import mnemonic`
+  String get importMnemonic {
+    return Intl.message(
+      'Import mnemonic',
+      name: 'importMnemonic',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Mnemonic`
+  String get mnemonic {
+    return Intl.message('Mnemonic', name: 'mnemonic', desc: '', args: []);
+  }
+
+  /// `Enter 12 English words separated by spaces`
+  String get mnemonicHint {
+    return Intl.message(
+      'Enter 12 English words separated by spaces',
+      name: 'mnemonicHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Back up mnemonic`
+  String get backupMnemonic {
+    return Intl.message(
+      'Back up mnemonic',
+      name: 'backupMnemonic',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Write these words down in order and keep them offline. Anyone with these words can control your assets.`
+  String get backupMnemonicTip {
+    return Intl.message(
+      'Write these words down in order and keep them offline. Anyone with these words can control your assets.',
+      name: 'backupMnemonicTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `I have backed up the mnemonic`
+  String get mnemonicBackupConfirm {
+    return Intl.message(
+      'I have backed up the mnemonic',
+      name: 'mnemonicBackupConfirm',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid mnemonic`
+  String get invalidMnemonic {
+    return Intl.message(
+      'Invalid mnemonic',
+      name: 'invalidMnemonic',
       desc: '',
       args: [],
     );

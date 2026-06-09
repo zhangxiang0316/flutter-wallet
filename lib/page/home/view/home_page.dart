@@ -156,7 +156,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _ImportWalletSheet(
-        onSubmit: controller.importWallet,
+        onMnemonicSubmit: controller.importMnemonicWallet,
+        onPrivateKeySubmit: controller.importPrivateKeyWallet,
         validatePassword: _validatePassword,
       ),
     );
@@ -220,7 +221,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   void _showPasswordSetupSheet({
     required String title,
     required String submitLabel,
-    required Future<bool> Function(String password) onSubmit,
+    required Future<Object?> Function(String password) onSubmit,
     bool isDismissible = true,
   }) {
     showModalBottomSheet(
@@ -432,11 +433,15 @@ class _VantSheetTitle extends StatelessWidget {
 
 class _ImportWalletSheet extends StatefulWidget {
   const _ImportWalletSheet({
-    required this.onSubmit,
+    required this.onMnemonicSubmit,
+    required this.onPrivateKeySubmit,
     required this.validatePassword,
   });
 
-  final Future<bool> Function(String privateKey, String password) onSubmit;
+  final Future<bool> Function(String mnemonic, String password)
+  onMnemonicSubmit;
+  final Future<bool> Function(String privateKey, String password)
+  onPrivateKeySubmit;
   final bool Function(String password, String confirmPassword) validatePassword;
 
   @override
@@ -444,16 +449,17 @@ class _ImportWalletSheet extends StatefulWidget {
 }
 
 class _ImportWalletSheetState extends State<_ImportWalletSheet> {
-  final TextEditingController _privateKeyController = TextEditingController();
+  final TextEditingController _secretController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  bool _useMnemonic = true;
   bool _isSubmitting = false;
 
   @override
   void dispose() {
-    _privateKeyController.dispose();
+    _secretController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -467,16 +473,33 @@ class _ImportWalletSheetState extends State<_ImportWalletSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _VantSheetTitle(title: S.of(context).importPrivateKey),
+          _VantSheetTitle(title: S.of(context).importWallet),
+          _VantSegmentedControl(
+            leftLabel: S.of(context).importMnemonic,
+            rightLabel: S.of(context).importPrivateKey,
+            leftSelected: _useMnemonic,
+            onChanged: (value) {
+              setState(() {
+                _useMnemonic = value;
+                _secretController.clear();
+              });
+            },
+          ).marginOnly(bottom: 14.h),
           TextField(
-            controller: _privateKeyController,
-            minLines: 2,
-            maxLines: 4,
+            controller: _secretController,
+            minLines: _useMnemonic ? 3 : 2,
+            maxLines: _useMnemonic ? 5 : 4,
             decoration: _vantInputDecoration(
               context,
-              label: S.of(context).importPrivateKey,
-              hintText: S.of(context).privateKeyHint,
-              prefixIcon: Icons.key_rounded,
+              label: _useMnemonic
+                  ? S.of(context).mnemonic
+                  : S.of(context).importPrivateKey,
+              hintText: _useMnemonic
+                  ? S.of(context).mnemonicHint
+                  : S.of(context).privateKeyHint,
+              prefixIcon: _useMnemonic
+                  ? Icons.password_rounded
+                  : Icons.key_rounded,
             ),
           ).marginOnly(bottom: 14.h),
           _PasswordTextField(
@@ -511,7 +534,9 @@ class _ImportWalletSheetState extends State<_ImportWalletSheet> {
     }
 
     setState(() => _isSubmitting = true);
-    final ok = await widget.onSubmit(_privateKeyController.text, password);
+    final ok = _useMnemonic
+        ? await widget.onMnemonicSubmit(_secretController.text, password)
+        : await widget.onPrivateKeySubmit(_secretController.text, password);
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).pop();
@@ -533,7 +558,7 @@ class _PasswordSetupSheet extends StatefulWidget {
   final String title;
   final String submitLabel;
   final bool isDismissible;
-  final Future<bool> Function(String password) onSubmit;
+  final Future<Object?> Function(String password) onSubmit;
   final bool Function(String password, String confirmPassword) validatePassword;
 
   @override
@@ -546,6 +571,7 @@ class _PasswordSetupSheetState extends State<_PasswordSetupSheet> {
       TextEditingController();
 
   bool _isSubmitting = false;
+  String? _mnemonic;
 
   @override
   void dispose() {
@@ -561,40 +587,79 @@ class _PasswordSetupSheetState extends State<_PasswordSetupSheet> {
       child: _VantSheet(
         showHandle: widget.isDismissible,
         bottomInset: MediaQuery.of(context).viewInsets.bottom,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _VantSheetTitle(title: widget.title),
-            Text(
-              S.of(context).walletPasswordHint,
-              style: TextStyle(
-                fontSize: 12.sp,
-                height: 1.35,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.62),
-              ),
-            ).marginOnly(bottom: 14.h),
-            _PasswordTextField(
-              controller: _passwordController,
-              label: S.of(context).walletPassword,
-            ).marginOnly(bottom: 12.h),
-            _PasswordTextField(
-              controller: _confirmPasswordController,
-              label: S.of(context).confirmWalletPassword,
-            ).marginOnly(bottom: 14.h),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                style: _vantFilledButtonStyle(context),
-                onPressed: _isSubmitting ? null : _submit,
-                child: Text(widget.submitLabel),
-              ),
-            ),
-          ],
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: _mnemonic == null
+              ? _buildPasswordStep(context)
+              : _buildMnemonicBackupStep(context, _mnemonic!),
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordStep(BuildContext context) {
+    return Column(
+      key: const ValueKey('password-step'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _VantSheetTitle(title: widget.title),
+        Text(
+          S.of(context).walletPasswordHint,
+          style: TextStyle(
+            fontSize: 12.sp,
+            height: 1.35,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.62),
+          ),
+        ).marginOnly(bottom: 14.h),
+        _PasswordTextField(
+          controller: _passwordController,
+          label: S.of(context).walletPassword,
+        ).marginOnly(bottom: 12.h),
+        _PasswordTextField(
+          controller: _confirmPasswordController,
+          label: S.of(context).confirmWalletPassword,
+        ).marginOnly(bottom: 14.h),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            style: _vantFilledButtonStyle(context),
+            onPressed: _isSubmitting ? null : _submit,
+            child: Text(widget.submitLabel),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMnemonicBackupStep(BuildContext context, String mnemonic) {
+    final words = mnemonic.split(' ');
+    return Column(
+      key: const ValueKey('mnemonic-step'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _VantSheetTitle(title: S.of(context).backupMnemonic),
+        Text(
+          S.of(context).backupMnemonicTip,
+          style: TextStyle(
+            fontSize: 12.sp,
+            height: 1.35,
+            color: Theme.of(context).colorScheme.error,
+          ),
+        ).marginOnly(bottom: 14.h),
+        _MnemonicWordGrid(words: words).marginOnly(bottom: 14.h),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            style: _vantFilledButtonStyle(context),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(S.of(context).mnemonicBackupConfirm),
+          ),
+        ),
+      ],
     );
   }
 
@@ -608,13 +673,162 @@ class _PasswordSetupSheetState extends State<_PasswordSetupSheet> {
     }
 
     setState(() => _isSubmitting = true);
-    final ok = await widget.onSubmit(password);
+    final result = await widget.onSubmit(password);
     if (!mounted) return;
-    if (ok) {
+    if (result is CreatedWalletBackup) {
+      setState(() {
+        _mnemonic = result.mnemonic;
+        _isSubmitting = false;
+      });
+      return;
+    }
+    if (result == true) {
       Navigator.of(context).pop();
       return;
     }
     setState(() => _isSubmitting = false);
+  }
+}
+
+class _VantSegmentedControl extends StatelessWidget {
+  const _VantSegmentedControl({
+    required this.leftLabel,
+    required this.rightLabel,
+    required this.leftSelected,
+    required this.onChanged,
+  });
+
+  final String leftLabel;
+  final String rightLabel;
+  final bool leftSelected;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.all(3.w),
+      decoration: BoxDecoration(
+        color: colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        children: [
+          _SegmentItem(
+            label: leftLabel,
+            selected: leftSelected,
+            onTap: () => onChanged(true),
+          ),
+          _SegmentItem(
+            label: rightLabel,
+            selected: !leftSelected,
+            onTap: () => onChanged(false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentItem extends StatelessWidget {
+  const _SegmentItem({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6.r),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          alignment: Alignment.center,
+          padding: EdgeInsets.symmetric(vertical: 9.h),
+          decoration: BoxDecoration(
+            color: selected ? Theme.of(context).cardColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(6.r),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 8.r,
+                      offset: Offset(0, 2.h),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selected
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withValues(alpha: 0.58),
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MnemonicWordGrid extends StatelessWidget {
+  const _MnemonicWordGrid({required this.words});
+
+  final List<String> words;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: colorScheme.onSurface.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.12)),
+      ),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: words.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisSpacing: 8.h,
+          crossAxisSpacing: 8.w,
+          childAspectRatio: 2.85,
+        ),
+        itemBuilder: (context, index) {
+          return Container(
+            alignment: Alignment.centerLeft,
+            padding: EdgeInsets.symmetric(horizontal: 8.w),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(6.r),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Text(
+              '${index + 1}. ${words[index]}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w700),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

@@ -47,6 +47,24 @@ void main() {
       );
     });
 
+    test('generates and imports mnemonic wallets deterministically', () {
+      final mnemonic = service.generateMnemonic();
+      expect(mnemonic.split(' '), hasLength(12));
+
+      final first = service.importMnemonic(mnemonic);
+      final second = service.importMnemonic(mnemonic);
+
+      expect(first.mnemonic, mnemonic);
+      expect(first.privateKeyHex, second.privateKeyHex);
+      expect(first.bscAddress, second.bscAddress);
+      expect(first.tronAddress, second.tronAddress);
+      expect(first.solanaAddress, second.solanaAddress);
+      expect(
+        WalletTransferService.normalizeSolanaAddress(first.solanaAddress),
+        first.solanaAddress,
+      );
+    });
+
     test('rejects malformed private keys', () {
       expect(() => service.importPrivateKey('abc'), throwsFormatException);
       expect(
@@ -54,6 +72,13 @@ void main() {
           '0x0000000000000000000000000000000000000000000000000000000000000000',
         ),
         throwsFormatException,
+      );
+    });
+
+    test('rejects malformed mnemonics', () {
+      expect(
+        () => service.importMnemonic('alpha beta gamma'),
+        throwsA(isA<Exception>()),
       );
     });
   });
@@ -82,6 +107,8 @@ void main() {
     test('encrypts private keys and rejects invalid passwords', () async {
       const privateKey =
           '0000000000000000000000000000000000000000000000000000000000000001';
+      const mnemonic =
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
       final store = WalletSecretStore();
 
       await store.savePrivateKey(
@@ -89,11 +116,21 @@ void main() {
         password: 'secret123',
         privateKeyHex: privateKey,
       );
+      await store.saveMnemonic(
+        walletId: 'wallet-1',
+        password: 'secret123',
+        mnemonic: mnemonic,
+      );
 
       expect(await store.hasPrivateKey('wallet-1'), isTrue);
+      expect(await store.hasMnemonic('wallet-1'), isTrue);
       expect(
         await store.readPrivateKey(walletId: 'wallet-1', password: 'secret123'),
         privateKey,
+      );
+      expect(
+        await store.readMnemonic(walletId: 'wallet-1', password: 'secret123'),
+        mnemonic,
       );
       expect(
         () => store.readPrivateKey(walletId: 'wallet-1', password: 'wrong'),
@@ -102,6 +139,7 @@ void main() {
 
       final rawStorage = await const FlutterSecureStorage().readAll();
       expect(rawStorage.values.join(), isNot(contains(privateKey)));
+      expect(rawStorage.values.join(), isNot(contains(mnemonic)));
     });
   });
 

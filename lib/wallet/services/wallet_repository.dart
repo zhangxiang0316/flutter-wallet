@@ -84,12 +84,20 @@ class WalletRepository {
     required String walletId,
     required String password,
     required String privateKeyHex,
-  }) {
-    return _secretStore.savePrivateKey(
+    String? mnemonic,
+  }) async {
+    await _secretStore.savePrivateKey(
       walletId: walletId,
       password: password,
       privateKeyHex: privateKeyHex,
     );
+    if (mnemonic != null && mnemonic.trim().isNotEmpty) {
+      await _secretStore.saveMnemonic(
+        walletId: walletId,
+        password: password,
+        mnemonic: mnemonic,
+      );
+    }
   }
 
   Future<String> readWalletPrivateKey({
@@ -97,6 +105,13 @@ class WalletRepository {
     required String password,
   }) {
     return _secretStore.readPrivateKey(walletId: walletId, password: password);
+  }
+
+  Future<String> readWalletMnemonic({
+    required String walletId,
+    required String password,
+  }) {
+    return _secretStore.readMnemonic(walletId: walletId, password: password);
   }
 
   Future<bool> hasWalletSecret(String walletId) {

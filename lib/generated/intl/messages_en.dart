@@ -38,6 +38,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Available balance",
     ),
     "backToWallet": MessageLookupByLibrary.simpleMessage("Back to wallet"),
+    "backupMnemonic": MessageLookupByLibrary.simpleMessage("Back up mnemonic"),
+    "backupMnemonicTip": MessageLookupByLibrary.simpleMessage(
+      "Write these words down in order and keep them offline. Anyone with these words can control your assets.",
+    ),
     "balanceLoadFailed": MessageLookupByLibrary.simpleMessage(
       "Some balance lookups failed",
     ),
@@ -63,10 +67,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "feeUnavailable": MessageLookupByLibrary.simpleMessage(
       "Fee estimate is unavailable. Try again later.",
     ),
+    "importMnemonic": MessageLookupByLibrary.simpleMessage("Import mnemonic"),
     "importPrivateKey": MessageLookupByLibrary.simpleMessage(
       "Import private key",
     ),
     "importWallet": MessageLookupByLibrary.simpleMessage("Import wallet"),
+    "invalidMnemonic": MessageLookupByLibrary.simpleMessage("Invalid mnemonic"),
     "invalidPrivateKey": MessageLookupByLibrary.simpleMessage(
       "Invalid private key",
     ),
@@ -76,6 +82,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "language": MessageLookupByLibrary.simpleMessage("Language"),
     "loading": MessageLookupByLibrary.simpleMessage("Loading..."),
     "login": MessageLookupByLibrary.simpleMessage("login"),
+    "mnemonic": MessageLookupByLibrary.simpleMessage("Mnemonic"),
+    "mnemonicBackupConfirm": MessageLookupByLibrary.simpleMessage(
+      "I have backed up the mnemonic",
+    ),
+    "mnemonicHint": MessageLookupByLibrary.simpleMessage(
+      "Enter 12 English words separated by spaces",
+    ),
     "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
     "networkFeeAsset": m1,
     "phone": MessageLookupByLibrary.simpleMessage("phone"),
