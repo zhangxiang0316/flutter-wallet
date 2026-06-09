@@ -7,6 +7,7 @@ class WalletAsset {
     required this.name,
     required this.decimals,
     this.contractAddress,
+    this.isCustom = false,
   });
 
   final WalletChain chain;
@@ -14,8 +15,42 @@ class WalletAsset {
   final String name;
   final int decimals;
   final String? contractAddress;
+  final bool isCustom;
 
   bool get isNative => contractAddress == null || contractAddress!.isEmpty;
+
+  String get assetKey {
+    return [chain.id, contractAddress ?? 'native', symbol].join(':');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'chainId': chain.id,
+      'symbol': symbol,
+      'name': name,
+      'decimals': decimals,
+      'contractAddress': contractAddress,
+      'isCustom': isCustom,
+    };
+  }
+
+  factory WalletAsset.fromJson(Map<String, dynamic> json) {
+    final chain = WalletChain.values.firstWhere(
+      (item) => item.id == json['chainId'],
+      orElse: () => WalletChain.bsc,
+    );
+    final decimalsValue = json['decimals'];
+    return WalletAsset(
+      chain: chain,
+      symbol: json['symbol'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      decimals: decimalsValue is int
+          ? decimalsValue
+          : int.tryParse(decimalsValue?.toString() ?? '') ?? 0,
+      contractAddress: json['contractAddress'] as String?,
+      isCustom: json['isCustom'] as bool? ?? true,
+    );
+  }
 }
 
 class WalletAssetRegistry {
@@ -199,13 +234,48 @@ class WalletAssetRegistry {
     }
   }
 
+  static List<WalletAsset> mergeCustomAssets(
+    WalletChain chain,
+    List<WalletAsset> customAssets,
+  ) {
+    final assets = [...assetsForChain(chain)];
+    final existingKeys = assets.map(_assetContractKey).toSet();
+    for (final asset in customAssets.where((asset) => asset.chain == chain)) {
+      if (existingKeys.add(_assetContractKey(asset))) {
+        assets.add(asset);
+      }
+    }
+    return assets;
+  }
+
   static WalletAsset? findTronAsset(String contractAddress) {
-    final normalized = contractAddress.trim();
-    for (final asset in tronAssets) {
-      if (asset.contractAddress == normalized) {
+    return findAssetByContract(WalletChain.tron, contractAddress);
+  }
+
+  static WalletAsset? findAssetByContract(
+    WalletChain chain,
+    String contractAddress, {
+    List<WalletAsset> customAssets = const [],
+  }) {
+    final normalized = _contractKey(chain, contractAddress);
+    final assets = mergeCustomAssets(chain, customAssets);
+    for (final asset in assets) {
+      if (_contractKey(chain, asset.contractAddress) == normalized) {
         return asset;
       }
     }
     return null;
+  }
+
+  static String _assetContractKey(WalletAsset asset) {
+    return '${asset.chain.id}:${_contractKey(asset.chain, asset.contractAddress)}';
+  }
+
+  static String _contractKey(WalletChain chain, String? contractAddress) {
+    final value = contractAddress?.trim() ?? '';
+    if (value.isEmpty) {
+      return 'native';
+    }
+    return chain.isEvm ? value.toLowerCase() : value;
   }
 }

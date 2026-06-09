@@ -25,13 +25,17 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m1(symbol) =>
       "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
 
-  static String m2(name) =>
+  static String m2(symbol) =>
+      "Remove \"${symbol}\"? The home page will no longer query this asset balance.";
+
+  static String m3(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m3(symbol) => "Transfer ${symbol}";
+  static String m4(symbol) => "Transfer ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "addCustomAsset": MessageLookupByLibrary.simpleMessage("Add asset"),
     "addWallet": MessageLookupByLibrary.simpleMessage("Add wallet"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "assetVisibility": MessageLookupByLibrary.simpleMessage("Asset display"),
@@ -61,6 +65,25 @@ class MessageLookup extends MessageLookupByLibrary {
       "Copy wallet address",
     ),
     "createWallet": MessageLookupByLibrary.simpleMessage("Create wallet"),
+    "customAssetAdded": MessageLookupByLibrary.simpleMessage("Asset added"),
+    "customAssetContractAddress": MessageLookupByLibrary.simpleMessage(
+      "Contract address",
+    ),
+    "customAssetContractHint": MessageLookupByLibrary.simpleMessage(
+      "Enter the token contract or mint address on this chain",
+    ),
+    "customAssetDecimals": MessageLookupByLibrary.simpleMessage("Decimals"),
+    "customAssetDuplicate": MessageLookupByLibrary.simpleMessage(
+      "This asset already exists",
+    ),
+    "customAssetInvalid": MessageLookupByLibrary.simpleMessage(
+      "Check the contract address, symbol, name, and decimals",
+    ),
+    "customAssetMetadataUnavailable": MessageLookupByLibrary.simpleMessage(
+      "Token info is unavailable. Fill it in manually.",
+    ),
+    "customAssetName": MessageLookupByLibrary.simpleMessage("Name"),
+    "customAssetSymbol": MessageLookupByLibrary.simpleMessage("Symbol"),
     "editWalletName": MessageLookupByLibrary.simpleMessage("Edit wallet name"),
     "email": MessageLookupByLibrary.simpleMessage("email"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("Encrypt wallet"),
@@ -72,6 +95,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "feeUnavailable": MessageLookupByLibrary.simpleMessage(
       "Fee estimate is unavailable. Try again later.",
     ),
+    "fetchTokenInfo": MessageLookupByLibrary.simpleMessage("Detect token info"),
     "importMnemonic": MessageLookupByLibrary.simpleMessage("Import mnemonic"),
     "importPrivateKey": MessageLookupByLibrary.simpleMessage(
       "Import private key",
@@ -107,8 +131,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Recipient address",
     ),
     "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
+    "removeCustomAsset": MessageLookupByLibrary.simpleMessage("Remove asset"),
+    "removeCustomAssetConfirmMessage": m2,
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
-    "removeWalletConfirmMessage": m2,
+    "removeWalletConfirmMessage": m3,
     "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("Security notice"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
@@ -124,7 +150,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
     "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-    "transferAsset": m3,
+    "transferAsset": m4,
     "transferDetails": MessageLookupByLibrary.simpleMessage("Transfer details"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "Transfer failed. Check the address, amount, and on-chain balance.",

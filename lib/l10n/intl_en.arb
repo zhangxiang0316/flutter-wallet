@@ -9,6 +9,24 @@
   "theme": "Theme",
   "assetVisibility": "Asset display",
   "assetVisibilityTip": "Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.",
+  "addCustomAsset": "Add asset",
+  "removeCustomAsset": "Remove asset",
+  "removeCustomAssetConfirmMessage": "Remove \"{symbol}\"? The home page will no longer query this asset balance.",
+  "@removeCustomAssetConfirmMessage": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "customAssetContractAddress": "Contract address",
+  "customAssetContractHint": "Enter the token contract or mint address on this chain",
+  "customAssetSymbol": "Symbol",
+  "customAssetName": "Name",
+  "customAssetDecimals": "Decimals",
+  "fetchTokenInfo": "Detect token info",
+  "customAssetMetadataUnavailable": "Token info is unavailable. Fill it in manually.",
+  "customAssetDuplicate": "This asset already exists",
+  "customAssetInvalid": "Check the contract address, symbol, name, and decimals",
+  "customAssetAdded": "Asset added",
   "themeSystem": "System",
   "themeLight": "Light",
   "themeDark": "Dark",

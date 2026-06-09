@@ -8,15 +8,21 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/wallet_account.dart';
+import 'package:omnicast/wallet/models/wallet_asset.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/asset_valuation_service.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
+import 'package:omnicast/wallet/services/wallet_custom_asset_service.dart';
 import 'package:omnicast/wallet/services/wallet_crypto_service.dart';
 import 'package:omnicast/wallet/services/wallet_secret_store.dart';
 import 'package:omnicast/wallet/services/wallet_transfer_service.dart';
 import 'package:omnicast/wallet/utils/asset_amount_formatter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
+
   group('formatAssetAmount', () {
     test('limits token amounts to 8 decimal places for display', () {
       expect(formatAssetAmount('1'), '1');
@@ -96,6 +102,61 @@ void main() {
 
       expect(wallet.needsSecretMigration, isTrue);
       expect(wallet.toJson().containsKey('privateKeyHex'), isFalse);
+    });
+  });
+
+  group('WalletAssetRegistry', () {
+    test('serializes custom assets and merges them by contract address', () {
+      const customAsset = WalletAsset(
+        chain: WalletChain.bsc,
+        symbol: 'CAKE',
+        name: 'PancakeSwap Token',
+        decimals: 18,
+        contractAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
+        isCustom: true,
+      );
+
+      final decoded = WalletAsset.fromJson(customAsset.toJson());
+      final merged = WalletAssetRegistry.mergeCustomAssets(WalletChain.bsc, [
+        decoded,
+        const WalletAsset(
+          chain: WalletChain.bsc,
+          symbol: 'CAKE2',
+          name: 'Duplicate',
+          decimals: 18,
+          contractAddress: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+          isCustom: true,
+        ),
+      ]);
+
+      expect(decoded.isCustom, isTrue);
+      expect(decoded.symbol, 'CAKE');
+      expect(
+        merged.where(
+          (asset) => asset.contractAddress == decoded.contractAddress,
+        ),
+        hasLength(1),
+      );
+    });
+  });
+
+  group('WalletCustomAssetService', () {
+    test('builds manually added assets with normalized EVM addresses', () {
+      final service = WalletCustomAssetService();
+      final asset = service.buildManualAsset(
+        chain: WalletChain.bsc,
+        contractAddress: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+        symbol: 'cake',
+        name: 'PancakeSwap Token',
+        decimals: 18,
+      );
+
+      expect(asset.symbol, 'CAKE');
+      expect(
+        asset.contractAddress,
+        '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
+      );
+      expect(asset.isCustom, isTrue);
     });
   });
 

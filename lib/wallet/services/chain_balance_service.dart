@@ -5,9 +5,10 @@ import 'package:dio/dio.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
+import 'wallet_custom_asset_service.dart';
 
 class ChainBalanceService {
-  ChainBalanceService({Dio? dio})
+  ChainBalanceService({Dio? dio, WalletCustomAssetService? customAssetService})
     : _dio =
           dio ??
           Dio(
@@ -16,9 +17,11 @@ class ChainBalanceService {
               receiveTimeout: _requestTimeout,
               sendTimeout: _requestTimeout,
             ),
-          );
+          ),
+      _customAssetService = customAssetService ?? WalletCustomAssetService();
 
   final Dio _dio;
+  final WalletCustomAssetService _customAssetService;
   static const Duration _requestTimeout = Duration(seconds: 12);
   static const Duration _solanaRequestTimeout = Duration(seconds: 3);
   static const Duration _solanaChainTimeout = Duration(seconds: 5);
@@ -50,33 +53,43 @@ class ChainBalanceService {
     required String tronAddress,
     required String solanaAddress,
   }) async {
+    final customAssets = await _customAssetService.loadCustomAssets();
     final results = await Future.wait([
       _loadEvmBalances(
         chain: WalletChain.bsc,
-        assets: WalletAssetRegistry.bscAssets,
+        assets: WalletAssetRegistry.mergeCustomAssets(
+          WalletChain.bsc,
+          customAssets,
+        ),
         address: bscAddress,
       ),
       _loadEvmBalances(
         chain: WalletChain.ethereum,
-        assets: WalletAssetRegistry.ethereumAssets,
+        assets: WalletAssetRegistry.mergeCustomAssets(
+          WalletChain.ethereum,
+          customAssets,
+        ),
         address: bscAddress,
       ),
       _loadEvmBalances(
         chain: WalletChain.xLayer,
-        assets: WalletAssetRegistry.xLayerAssets,
+        assets: WalletAssetRegistry.mergeCustomAssets(
+          WalletChain.xLayer,
+          customAssets,
+        ),
         address: bscAddress,
       ),
-      _loadSolanaBalances(solanaAddress).timeout(
+      _loadSolanaBalances(solanaAddress, customAssets).timeout(
         _solanaChainTimeout,
         onTimeout: () {
           developer.log(
             'Solana balance lookup timed out; using zero fallback balances',
             name: 'ChainBalanceService',
           );
-          return _fallbackSolanaBalances(solanaAddress);
+          return _fallbackSolanaBalances(solanaAddress, customAssets);
         },
       ),
-      _loadTronBalances(tronAddress),
+      _loadTronBalances(tronAddress, customAssets),
     ]);
     final balances = results.expand((items) => items).toList();
     _printLoadedBalances(results, balances);
@@ -320,16 +333,21 @@ class ChainBalanceService {
     }
   }
 
-  Future<List<ChainBalance>> _loadTronBalances(String address) async {
+  Future<List<ChainBalance>> _loadTronBalances(
+    String address,
+    List<WalletAsset> customAssets,
+  ) async {
     final nativeBalance = await _loadTronNativeBalance(address);
-    final tokenBalances = await _loadTronTokenBalances(address);
+    final tokenBalances = await _loadTronTokenBalances(address, customAssets);
     final tokenMap = {
       for (final balance in tokenBalances)
         if (balance.contractAddress != null) balance.contractAddress!: balance,
     };
-    final knownTokens = WalletAssetRegistry.tronAssets
-        .where((asset) => !asset.isNative)
-        .map((asset) {
+    final knownTokens =
+        WalletAssetRegistry.mergeCustomAssets(
+          WalletChain.tron,
+          customAssets,
+        ).where((asset) => !asset.isNative).map((asset) {
           return tokenMap[asset.contractAddress] ??
               ChainBalance(
                 chain: WalletChain.tron,
@@ -344,27 +362,45 @@ class ChainBalanceService {
     final unknownTokens = tokenBalances.where((balance) {
       final contractAddress = balance.contractAddress;
       return contractAddress != null &&
-          WalletAssetRegistry.findTronAsset(contractAddress) == null;
+          WalletAssetRegistry.findAssetByContract(
+                WalletChain.tron,
+                contractAddress,
+                customAssets: customAssets,
+              ) ==
+              null;
     });
     return [nativeBalance, ...knownTokens, ...unknownTokens];
   }
 
-  Future<List<ChainBalance>> _loadSolanaBalances(String address) async {
+  Future<List<ChainBalance>> _loadSolanaBalances(
+    String address,
+    List<WalletAsset> customAssets,
+  ) async {
     if (address.trim().isEmpty) {
-      return _fallbackSolanaBalances(address);
+      return _fallbackSolanaBalances(address, customAssets);
     }
 
+    final solanaAssets = WalletAssetRegistry.mergeCustomAssets(
+      WalletChain.solana,
+      customAssets,
+    );
     final results = await Future.wait([
       _loadSolanaNativeBalance(address),
-      ...WalletAssetRegistry.solanaAssets
+      ...solanaAssets
           .where((asset) => !asset.isNative)
           .map((asset) => _loadSolanaTokenBalance(address, asset)),
     ]);
     return results;
   }
 
-  List<ChainBalance> _fallbackSolanaBalances(String address) {
-    return WalletAssetRegistry.solanaAssets
+  List<ChainBalance> _fallbackSolanaBalances(
+    String address,
+    List<WalletAsset> customAssets,
+  ) {
+    return WalletAssetRegistry.mergeCustomAssets(
+          WalletChain.solana,
+          customAssets,
+        )
         .map(
           (asset) => ChainBalance(
             chain: WalletChain.solana,
@@ -527,7 +563,10 @@ class ChainBalanceService {
     }
   }
 
-  Future<List<ChainBalance>> _loadTronTokenBalances(String address) async {
+  Future<List<ChainBalance>> _loadTronTokenBalances(
+    String address,
+    List<WalletAsset> customAssets,
+  ) async {
     try {
       final response = await _dio.get(
         '${WalletChain.tron.rpcUrl}/v1/accounts/$address',
@@ -548,7 +587,11 @@ class ChainBalanceService {
         if (item is! Map || item.isEmpty) continue;
         final contractAddress = item.keys.first.toString();
         final rawValue = item.values.first.toString();
-        final asset = WalletAssetRegistry.findTronAsset(contractAddress);
+        final asset = WalletAssetRegistry.findAssetByContract(
+          WalletChain.tron,
+          contractAddress,
+          customAssets: customAssets,
+        );
         final decimals = asset?.decimals ?? 6;
         balances.add(
           ChainBalance(
@@ -567,7 +610,10 @@ class ChainBalanceService {
       }
       return balances;
     } catch (_) {
-      return WalletAssetRegistry.tronAssets
+      return WalletAssetRegistry.mergeCustomAssets(
+            WalletChain.tron,
+            customAssets,
+          )
           .where((asset) => !asset.isNative)
           .map(
             (asset) => ChainBalance(

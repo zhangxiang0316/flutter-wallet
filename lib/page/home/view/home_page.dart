@@ -87,6 +87,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
             onPressed: () async {
               await Get.toNamed(RouteTable.setting);
               await controller.syncWalletMetadata();
+              controller.refreshBalances();
             },
           ),
         ).marginOnly(right: 6.w),

@@ -28,10 +28,9 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name =
-        (locale.countryCode?.isEmpty ?? false)
-            ? locale.languageCode
-            : locale.toString();
+    final name = (locale.countryCode?.isEmpty ?? false)
+        ? locale.languageCode
+        : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -105,6 +104,131 @@ class S {
     return Intl.message(
       'Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.',
       name: 'assetVisibilityTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add asset`
+  String get addCustomAsset {
+    return Intl.message(
+      'Add asset',
+      name: 'addCustomAsset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remove asset`
+  String get removeCustomAsset {
+    return Intl.message(
+      'Remove asset',
+      name: 'removeCustomAsset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remove "{symbol}"? The home page will no longer query this asset balance.`
+  String removeCustomAssetConfirmMessage(Object symbol) {
+    return Intl.message(
+      'Remove "$symbol"? The home page will no longer query this asset balance.',
+      name: 'removeCustomAssetConfirmMessage',
+      desc: '',
+      args: [symbol],
+    );
+  }
+
+  /// `Contract address`
+  String get customAssetContractAddress {
+    return Intl.message(
+      'Contract address',
+      name: 'customAssetContractAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the token contract or mint address on this chain`
+  String get customAssetContractHint {
+    return Intl.message(
+      'Enter the token contract or mint address on this chain',
+      name: 'customAssetContractHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Symbol`
+  String get customAssetSymbol {
+    return Intl.message(
+      'Symbol',
+      name: 'customAssetSymbol',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Name`
+  String get customAssetName {
+    return Intl.message('Name', name: 'customAssetName', desc: '', args: []);
+  }
+
+  /// `Decimals`
+  String get customAssetDecimals {
+    return Intl.message(
+      'Decimals',
+      name: 'customAssetDecimals',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Detect token info`
+  String get fetchTokenInfo {
+    return Intl.message(
+      'Detect token info',
+      name: 'fetchTokenInfo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Token info is unavailable. Fill it in manually.`
+  String get customAssetMetadataUnavailable {
+    return Intl.message(
+      'Token info is unavailable. Fill it in manually.',
+      name: 'customAssetMetadataUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This asset already exists`
+  String get customAssetDuplicate {
+    return Intl.message(
+      'This asset already exists',
+      name: 'customAssetDuplicate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Check the contract address, symbol, name, and decimals`
+  String get customAssetInvalid {
+    return Intl.message(
+      'Check the contract address, symbol, name, and decimals',
+      name: 'customAssetInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Asset added`
+  String get customAssetAdded {
+    return Intl.message(
+      'Asset added',
+      name: 'customAssetAdded',
       desc: '',
       args: [],
     );

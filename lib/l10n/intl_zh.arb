@@ -9,6 +9,24 @@
   "theme": "主题",
   "assetVisibility": "资产显示",
   "assetVisibilityTip": "关闭后，该币种会从首页资产列表和估值中隐藏；链上余额不会被删除，可随时重新开启。",
+  "addCustomAsset": "添加币种",
+  "removeCustomAsset": "移除币种",
+  "removeCustomAssetConfirmMessage": "确定要移除「{symbol}」吗？移除后首页不再查询该币种余额。",
+  "@removeCustomAssetConfirmMessage": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "customAssetContractAddress": "合约地址",
+  "customAssetContractHint": "请输入当前链上的代币合约或 Mint 地址",
+  "customAssetSymbol": "币种简称",
+  "customAssetName": "币种名称",
+  "customAssetDecimals": "精度",
+  "fetchTokenInfo": "自动识别币种信息",
+  "customAssetMetadataUnavailable": "暂时无法识别币种信息，请手动填写",
+  "customAssetDuplicate": "该币种已存在",
+  "customAssetInvalid": "请检查合约地址、简称、名称和精度",
+  "customAssetAdded": "币种已添加",
   "themeSystem": "跟随系统",
   "themeLight": "浅色主题",
   "themeDark": "深色主题",

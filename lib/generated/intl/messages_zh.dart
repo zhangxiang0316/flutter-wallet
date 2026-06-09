@@ -24,12 +24,15 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m1(symbol) => "手续费将使用 ${symbol} 支付，请确认钱包中有足够余额。";
 
-  static String m2(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+  static String m2(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
 
-  static String m3(symbol) => "转账 ${symbol}";
+  static String m3(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+
+  static String m4(symbol) => "转账 ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "addCustomAsset": MessageLookupByLibrary.simpleMessage("添加币种"),
     "addWallet": MessageLookupByLibrary.simpleMessage("添加钱包"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "assetVisibility": MessageLookupByLibrary.simpleMessage("资产显示"),
@@ -51,6 +54,21 @@ class MessageLookup extends MessageLookupByLibrary {
     "copyHash": MessageLookupByLibrary.simpleMessage("复制哈希"),
     "copyWalletAddress": MessageLookupByLibrary.simpleMessage("复制钱包地址"),
     "createWallet": MessageLookupByLibrary.simpleMessage("创建钱包"),
+    "customAssetAdded": MessageLookupByLibrary.simpleMessage("币种已添加"),
+    "customAssetContractAddress": MessageLookupByLibrary.simpleMessage("合约地址"),
+    "customAssetContractHint": MessageLookupByLibrary.simpleMessage(
+      "请输入当前链上的代币合约或 Mint 地址",
+    ),
+    "customAssetDecimals": MessageLookupByLibrary.simpleMessage("精度"),
+    "customAssetDuplicate": MessageLookupByLibrary.simpleMessage("该币种已存在"),
+    "customAssetInvalid": MessageLookupByLibrary.simpleMessage(
+      "请检查合约地址、简称、名称和精度",
+    ),
+    "customAssetMetadataUnavailable": MessageLookupByLibrary.simpleMessage(
+      "暂时无法识别币种信息，请手动填写",
+    ),
+    "customAssetName": MessageLookupByLibrary.simpleMessage("币种名称"),
+    "customAssetSymbol": MessageLookupByLibrary.simpleMessage("币种简称"),
     "editWalletName": MessageLookupByLibrary.simpleMessage("修改钱包名称"),
     "email": MessageLookupByLibrary.simpleMessage("注册"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("加密钱包"),
@@ -58,6 +76,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "feeEstimating": MessageLookupByLibrary.simpleMessage("正在查询手续费..."),
     "feeFallback": m0,
     "feeUnavailable": MessageLookupByLibrary.simpleMessage("暂时无法查询手续费，请稍后重试。"),
+    "fetchTokenInfo": MessageLookupByLibrary.simpleMessage("自动识别币种信息"),
     "importMnemonic": MessageLookupByLibrary.simpleMessage("导入助记词"),
     "importPrivateKey": MessageLookupByLibrary.simpleMessage("导入私钥"),
     "importWallet": MessageLookupByLibrary.simpleMessage("导入钱包"),
@@ -83,8 +102,10 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "recipientAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
     "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
+    "removeCustomAsset": MessageLookupByLibrary.simpleMessage("移除币种"),
+    "removeCustomAssetConfirmMessage": m2,
     "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
-    "removeWalletConfirmMessage": m2,
+    "removeWalletConfirmMessage": m3,
     "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
@@ -100,7 +121,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
     "transfer": MessageLookupByLibrary.simpleMessage("转账"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-    "transferAsset": m3,
+    "transferAsset": m4,
     "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "转账失败，请检查地址、数量和链上余额",
