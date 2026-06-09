@@ -12,6 +12,7 @@ import '../../../wallet/services/asset_valuation_service.dart';
 import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
+import '../../../wallet/services/wallet_secret_store.dart';
 
 class HomeController extends BaseController {
   HomeController({
@@ -55,6 +56,11 @@ class HomeController extends BaseController {
 
   bool isMigratingSecrets = false;
 
+  /// 旧钱包缺少 Solana 地址时为 true，需要输入钱包密码补派生地址。
+  bool needsSolanaAddressUpgrade = false;
+
+  bool isUpgradingSolanaAddresses = false;
+
   /// 当前已展开的链。默认空集合，首页只展示链信息。
   final Set<String> expandedChainIds = {};
 
@@ -72,6 +78,7 @@ class HomeController extends BaseController {
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
+    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
     update();
     if (wallet != null) {
       _startBalanceRefreshTimer();
@@ -89,6 +96,7 @@ class HomeController extends BaseController {
       name: 'Wallet ${wallets.length + 1}',
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
+      solanaAddress: keyPair.solanaAddress,
       createdAt: DateTime.now(),
     );
     await _repository.saveWalletSecret(
@@ -116,6 +124,7 @@ class HomeController extends BaseController {
             : 'Wallet ${wallets.length + 1}',
         bscAddress: keyPair.bscAddress,
         tronAddress: keyPair.tronAddress,
+        solanaAddress: keyPair.solanaAddress,
         createdAt: DateTime.now(),
       );
       await _repository.saveWalletSecret(
@@ -137,10 +146,17 @@ class HomeController extends BaseController {
     try {
       isMigratingSecrets = true;
       update();
+      final legacyWalletIds = wallets
+          .where((wallet) => wallet.needsSecretMigration)
+          .map((wallet) => wallet.id)
+          .toSet();
       await _repository.migrateLegacyPlainSecrets(password);
-      wallets = await _repository.loadWallets();
-      wallet = await _repository.loadCurrentWallet();
+      await _upgradeMissingSolanaAddresses(
+        password,
+        walletIds: legacyWalletIds,
+      );
       needsSecretMigration = false;
+      needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
       Toast.show(S.current.walletSecurityMigrated);
       update();
       return true;
@@ -149,6 +165,31 @@ class HomeController extends BaseController {
       return false;
     } finally {
       isMigratingSecrets = false;
+      update();
+    }
+  }
+
+  Future<bool> upgradeMissingSolanaAddresses(String password) async {
+    if (isUpgradingSolanaAddresses) return false;
+    try {
+      isUpgradingSolanaAddresses = true;
+      update();
+      await _upgradeMissingSolanaAddresses(password);
+      Toast.show(S.current.walletSolanaAddressUpgraded);
+      update();
+      refreshBalances();
+      return true;
+    } on WalletSecretMissingException {
+      Toast.show(S.current.walletSecretMissing);
+      return false;
+    } on WalletSecretInvalidPasswordException {
+      Toast.show(S.current.invalidWalletPassword);
+      return false;
+    } catch (_) {
+      Toast.show(S.current.walletSolanaAddressUpgradeFailed);
+      return false;
+    } finally {
+      isUpgradingSolanaAddresses = false;
       update();
     }
   }
@@ -165,6 +206,7 @@ class HomeController extends BaseController {
       final nextBalances = await _balanceService.loadBalances(
         bscAddress: currentWallet.bscAddress,
         tronAddress: currentWallet.tronAddress,
+        solanaAddress: currentWallet.solanaAddress,
       );
       if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
         return;
@@ -278,6 +320,7 @@ class HomeController extends BaseController {
     if (wallet?.id == nextWallet.id) return;
     await _repository.setCurrentWalletId(nextWallet.id);
     wallet = nextWallet;
+    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(nextWallet);
     _resetWalletState();
     update();
     _startBalanceRefreshTimer();
@@ -293,6 +336,7 @@ class HomeController extends BaseController {
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
+    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
     if (removedCurrentWallet) {
       _resetWalletState();
       update();
@@ -316,6 +360,7 @@ class HomeController extends BaseController {
       orElse: () => nextWallet,
     );
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
+    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
     _resetWalletState();
     update();
     _startBalanceRefreshTimer();
@@ -334,6 +379,48 @@ class HomeController extends BaseController {
 
   String _createWalletId(String evmAddress) {
     return evmAddress.toLowerCase();
+  }
+
+  bool _needsSolanaAddressUpgrade(WalletAccount? wallet) {
+    return wallet != null &&
+        wallet.solanaAddress.trim().isEmpty &&
+        !wallet.needsSecretMigration;
+  }
+
+  Future<void> _upgradeMissingSolanaAddresses(
+    String password, {
+    Set<String>? walletIds,
+  }) async {
+    final currentWalletId =
+        wallet?.id ?? await _repository.loadCurrentWalletId();
+    final nextWallets = <WalletAccount>[];
+    for (final item in await _repository.loadWallets()) {
+      final shouldUpgrade =
+          item.solanaAddress.trim().isEmpty &&
+          (walletIds?.contains(item.id) ?? item.id == currentWalletId);
+      if (!shouldUpgrade) {
+        nextWallets.add(item);
+        continue;
+      }
+
+      final privateKeyHex = item.needsSecretMigration
+          ? item.privateKeyHex
+          : await _repository.readWalletPrivateKey(
+              walletId: item.id,
+              password: password,
+            );
+      final keyPair = _cryptoService.importPrivateKey(privateKeyHex);
+      nextWallets.add(item.copyWith(solanaAddress: keyPair.solanaAddress));
+    }
+
+    await _repository.saveWallets(
+      nextWallets,
+      currentWalletId: currentWalletId,
+    );
+    wallets = await _repository.loadWallets();
+    wallet = await _repository.loadCurrentWallet();
+    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
+    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
   }
 
   void _startBalanceRefreshTimer() {

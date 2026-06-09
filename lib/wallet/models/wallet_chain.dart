@@ -20,6 +20,12 @@ enum WalletChain {
     rpcUrl: 'https://rpc.xlayer.tech',
     evmChainId: 196,
   ),
+  solana(
+    id: 'solana',
+    name: 'Solana',
+    symbol: 'SOL',
+    rpcUrl: 'https://api.mainnet-beta.solana.com',
+  ),
   tron(
     id: 'tron',
     name: 'TRON',

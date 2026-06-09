@@ -153,11 +153,35 @@ class WalletAssetRegistry {
     ),
   ];
 
+  static const solanaAssets = [
+    WalletAsset(
+      chain: WalletChain.solana,
+      symbol: 'SOL',
+      name: 'Solana',
+      decimals: 9,
+    ),
+    WalletAsset(
+      chain: WalletChain.solana,
+      symbol: 'USDT',
+      name: 'Tether USD',
+      decimals: 6,
+      contractAddress: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkYWHU4x8LcYYB7Q',
+    ),
+    WalletAsset(
+      chain: WalletChain.solana,
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 6,
+      contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    ),
+  ];
+
   static const all = [
     ...bscAssets,
     ...ethereumAssets,
     ...tronAssets,
     ...xLayerAssets,
+    ...solanaAssets,
   ];
 
   static WalletAsset? findTronAsset(String contractAddress) {

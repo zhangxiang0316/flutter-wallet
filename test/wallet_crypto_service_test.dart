@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -33,13 +34,17 @@ void main() {
       service = WalletCryptoService();
     });
 
-    test('derives BSC and TRON addresses from a private key', () {
+    test('derives BSC, Solana, and TRON addresses from a private key', () {
       final keyPair = service.importPrivateKey(
         '0x0000000000000000000000000000000000000000000000000000000000000001',
       );
 
       expect(keyPair.bscAddress, '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf');
       expect(keyPair.tronAddress, 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC');
+      expect(
+        WalletTransferService.normalizeSolanaAddress(keyPair.solanaAddress),
+        keyPair.solanaAddress,
+      );
     });
 
     test('rejects malformed private keys', () {
@@ -119,6 +124,7 @@ void main() {
       final balances = await service.loadBalances(
         bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
         tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        solanaAddress: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
       );
 
       final bnb = balances.firstWhere(
@@ -127,6 +133,12 @@ void main() {
       );
       expect(bnb.amount, '1');
       expect(bnb.error, isNull);
+      final sol = balances.firstWhere(
+        (balance) =>
+            balance.chain == WalletChain.solana && balance.symbol == 'SOL',
+      );
+      expect(sol.amount, '1');
+      expect(sol.error, isNull);
       expect(adapter.calls, contains('https://bsc-dataseed.bnbchain.org'));
       expect(adapter.calls, contains('https://bsc-rpc.publicnode.com'));
     });
@@ -140,6 +152,7 @@ void main() {
       final balances = await service.loadBalances(
         bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
         tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        solanaAddress: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
       );
 
       final trx = balances.firstWhere(
@@ -150,6 +163,33 @@ void main() {
       expect(trx.error, isNull);
       expect(adapter.calls, contains('https://api.trongrid.io'));
       expect(adapter.calls, contains('https://tron-rpc.publicnode.com'));
+    });
+
+    test('does not block all balances when Solana RPC hangs', () async {
+      final dio = Dio();
+      final adapter = _FallbackRpcAdapter(hangSolana: true);
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(dio: dio);
+
+      final balances = await service.loadBalances(
+        bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        solanaAddress: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+      );
+
+      final sol = balances.firstWhere(
+        (balance) =>
+            balance.chain == WalletChain.solana && balance.symbol == 'SOL',
+      );
+      expect(sol.amount, '0');
+      expect(sol.error, isNull);
+      expect(
+        balances.any(
+          (balance) =>
+              balance.chain == WalletChain.bsc && balance.symbol == 'BNB',
+        ),
+        isTrue,
+      );
     });
   });
 
@@ -279,8 +319,9 @@ void main() {
           {'symbol': 'TRXUSDT', 'price': '0.1201'},
           {'symbol': 'BTCUSDT', 'price': '65000'},
           {'symbol': 'OKBUSDT', 'price': '52.25'},
+          {'symbol': 'SOLUSDT', 'price': '150.75'},
         ],
-        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL'],
       );
 
       expect(prices['BNB']?.toStringAsFixed(2), '300.50');
@@ -288,6 +329,7 @@ void main() {
       expect(prices['BTCB']?.toString(), '65000');
       expect(prices['WBTC']?.toString(), '65000');
       expect(prices['OKB']?.toString(), '52.25');
+      expect(prices['SOL']?.toString(), '150.75');
     });
 
     test('parses single Binance ticker response', () {
@@ -308,9 +350,10 @@ void main() {
             {'instId': 'TRX-USDT', 'last': '0.1208'},
             {'instId': 'BTC-USDT', 'last': '65100'},
             {'instId': 'OKB-USDT', 'last': '52.4'},
+            {'instId': 'SOL-USDT', 'last': '151.2'},
           ],
         },
-        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL'],
       );
 
       expect(prices['BNB']?.toString(), '302.1');
@@ -318,6 +361,7 @@ void main() {
       expect(prices['BTCB']?.toString(), '65100');
       expect(prices['WBTC']?.toString(), '65100');
       expect(prices['OKB']?.toString(), '52.4');
+      expect(prices['SOL']?.toString(), '151.2');
     });
 
     test('parses requested prices from OKX full spot ticker response', () {
@@ -348,8 +392,9 @@ void main() {
           'ethereum': {'usd': '3500.5'},
           'bitcoin': {'usd': 64999.99},
           'okb': {'usd': 52.3},
+          'solana': {'usd': 150.8},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL'],
       );
 
       expect(prices['BNB']?.toString(), '301.25');
@@ -358,6 +403,7 @@ void main() {
       expect(prices['BTCB']?.toString(), '64999.99');
       expect(prices['WBTC']?.toString(), '64999.99');
       expect(prices['OKB']?.toString(), '52.3');
+      expect(prices['SOL']?.toString(), '150.8');
     });
 
     test('parses CryptoCompare fallback prices by wallet symbol', () {
@@ -368,8 +414,9 @@ void main() {
           'ETH': {'USD': 1566.43},
           'BTC': {'USD': 60913.71},
           'OKB': {'USD': 69.12},
+          'SOL': {'USD': 151.4},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL'],
       );
 
       expect(prices['BNB']?.toString(), '574.65');
@@ -378,6 +425,7 @@ void main() {
       expect(prices['BTCB']?.toString(), '60913.71');
       expect(prices['WBTC']?.toString(), '60913.71');
       expect(prices['OKB']?.toString(), '69.12');
+      expect(prices['SOL']?.toString(), '151.4');
     });
 
     test('uses stable coin prices without external price data', () {
@@ -455,6 +503,8 @@ void main() {
       expect(WalletChain.ethereum.symbol, 'ETH');
       expect(WalletChain.xLayer.evmChainId, 196);
       expect(WalletChain.xLayer.symbol, 'OKB');
+      expect(WalletChain.solana.evmChainId, isNull);
+      expect(WalletChain.solana.symbol, 'SOL');
       expect(
         WalletTransferService.normalizeBscAddress(
           '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
@@ -476,9 +526,13 @@ void main() {
 }
 
 class _FallbackRpcAdapter implements HttpClientAdapter {
-  _FallbackRpcAdapter({this.failTronGridAccount = false});
+  _FallbackRpcAdapter({
+    this.failTronGridAccount = false,
+    this.hangSolana = false,
+  });
 
   final bool failTronGridAccount;
+  final bool hangSolana;
   final calls = <String>[];
 
   @override
@@ -513,6 +567,26 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
       return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x0'});
     }
 
+    if (origin == 'https://api.mainnet-beta.solana.com') {
+      if (hangSolana) {
+        return Completer<ResponseBody>().future;
+      }
+      if (_isSolanaMethod(options.data, 'getBalance')) {
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': {'value': 1000000000},
+        });
+      }
+      if (_isSolanaMethod(options.data, 'getTokenAccountsByOwner')) {
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': {'value': []},
+        });
+      }
+    }
+
     if (origin == 'https://api.trongrid.io' &&
         options.uri.path == '/wallet/getaccount') {
       if (failTronGridAccount) {
@@ -538,6 +612,10 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
 
   bool _isEvmNativeRequest(dynamic data) {
     return data is Map && data['method'] == 'eth_getBalance';
+  }
+
+  bool _isSolanaMethod(dynamic data, String method) {
+    return data is Map && data['method'] == method;
   }
 
   ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
+import '../../../wallet/models/wallet_chain.dart';
 import '../controller/transfer_controller.dart';
 import 'widgets/transfer_fee_panel.dart';
 import 'widgets/transfer_form_panel.dart';
@@ -30,6 +31,9 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
     }
 
     final asset = args.asset;
+    if (asset.chain == WalletChain.solana) {
+      return const TransferUnavailablePanel();
+    }
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(

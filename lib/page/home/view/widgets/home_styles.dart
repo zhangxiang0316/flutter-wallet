@@ -38,6 +38,8 @@ Color homeChainColor(WalletChain chain) {
       return const Color(0xFF627EEA);
     case WalletChain.xLayer:
       return const Color(0xFF111827);
+    case WalletChain.solana:
+      return const Color(0xFF14F195);
     case WalletChain.tron:
       return const Color(0xFFE50914);
   }
@@ -58,6 +60,8 @@ Color homeAssetColor(BuildContext context, String symbol) {
       return const Color(0xFFE50914);
     case 'OKB':
       return const Color(0xFF111827);
+    case 'SOL':
+      return const Color(0xFF14F195);
     default:
       return Theme.of(context).colorScheme.primary;
   }

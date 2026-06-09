@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
+import 'package:ed25519_edwards/ed25519_edwards.dart' as ed25519;
 import 'package:pointycastle/digests/keccak.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/ecc/api.dart';
@@ -33,11 +34,13 @@ class WalletCryptoService {
     final ethAddressBytes = _ethereumAddressBytes(publicKey);
     final bscAddress = '0x${hex.encode(ethAddressBytes)}';
     final tronPayload = Uint8List.fromList([0x41, ...ethAddressBytes]);
+    final solanaAddress = _solanaAddressFromPrivateKey(privateKey);
 
     return WalletKeyPair(
       privateKeyHex: privateKey,
       bscAddress: _toChecksumEthereumAddress(bscAddress),
       tronAddress: _base58CheckEncode(tronPayload),
+      solanaAddress: solanaAddress,
     );
   }
 
@@ -95,6 +98,13 @@ class WalletCryptoService {
     return _base58Encode(Uint8List.fromList([...payload, ...checksum]));
   }
 
+  String _solanaAddressFromPrivateKey(String privateKeyHex) {
+    final seed = Uint8List.fromList(hex.decode(privateKeyHex));
+    final privateKey = ed25519.newKeyFromSeed(seed);
+    final publicKey = ed25519.public(privateKey);
+    return _base58Encode(Uint8List.fromList(publicKey.bytes));
+  }
+
   Uint8List _sha256(Uint8List bytes) {
     final digest = SHA256Digest()..update(bytes, 0, bytes.length);
     final output = Uint8List(32);
@@ -136,9 +146,11 @@ class WalletKeyPair {
     required this.privateKeyHex,
     required this.bscAddress,
     required this.tronAddress,
+    required this.solanaAddress,
   });
 
   final String privateKeyHex;
   final String bscAddress;
   final String tronAddress;
+  final String solanaAddress;
 }

@@ -5,6 +5,7 @@ class WalletAccount {
     required this.bscAddress,
     required this.tronAddress,
     required this.createdAt,
+    this.solanaAddress = '',
     this.privateKeyHex = '',
   });
 
@@ -15,9 +16,30 @@ class WalletAccount {
   final String privateKeyHex;
   final String bscAddress;
   final String tronAddress;
+  final String solanaAddress;
   final DateTime createdAt;
 
   bool get needsSecretMigration => privateKeyHex.isNotEmpty;
+
+  WalletAccount copyWith({
+    String? id,
+    String? name,
+    String? privateKeyHex,
+    String? bscAddress,
+    String? tronAddress,
+    String? solanaAddress,
+    DateTime? createdAt,
+  }) {
+    return WalletAccount(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      privateKeyHex: privateKeyHex ?? this.privateKeyHex,
+      bscAddress: bscAddress ?? this.bscAddress,
+      tronAddress: tronAddress ?? this.tronAddress,
+      solanaAddress: solanaAddress ?? this.solanaAddress,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -25,6 +47,7 @@ class WalletAccount {
       'name': name,
       'bscAddress': bscAddress,
       'tronAddress': tronAddress,
+      'solanaAddress': solanaAddress,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -32,6 +55,7 @@ class WalletAccount {
   factory WalletAccount.fromJson(Map<String, dynamic> json) {
     final bscAddress = json['bscAddress'] as String? ?? '';
     final tronAddress = json['tronAddress'] as String? ?? '';
+    final solanaAddress = json['solanaAddress'] as String? ?? '';
     final createdAt =
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now();
     return WalletAccount(
@@ -46,6 +70,7 @@ class WalletAccount {
       privateKeyHex: json['privateKeyHex'] as String? ?? '',
       bscAddress: bscAddress,
       tronAddress: tronAddress,
+      solanaAddress: solanaAddress,
       createdAt: createdAt,
     );
   }

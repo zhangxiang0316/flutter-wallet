@@ -47,6 +47,7 @@ class AssetValuationService {
     'BTCB': 'BTCUSDT',
     'WBTC': 'BTCUSDT',
     'OKB': 'OKBUSDT',
+    'SOL': 'SOLUSDT',
   };
   static const Map<String, String> _okxTickerSymbols = {
     'BNB': 'BNB-USDT',
@@ -55,6 +56,7 @@ class AssetValuationService {
     'BTCB': 'BTC-USDT',
     'WBTC': 'BTC-USDT',
     'OKB': 'OKB-USDT',
+    'SOL': 'SOL-USDT',
   };
   static const Map<String, String> _coingeckoIds = {
     'BNB': 'binancecoin',
@@ -63,6 +65,7 @@ class AssetValuationService {
     'BTCB': 'bitcoin',
     'WBTC': 'bitcoin',
     'OKB': 'okb',
+    'SOL': 'solana',
   };
   static const Map<String, String> _cryptoCompareSymbols = {
     'BNB': 'BNB',
@@ -71,6 +74,7 @@ class AssetValuationService {
     'BTCB': 'BTC',
     'WBTC': 'BTC',
     'OKB': 'OKB',
+    'SOL': 'SOL',
   };
   static final Set<String> _pricedSymbols = {
     ..._okxTickerSymbols.keys,

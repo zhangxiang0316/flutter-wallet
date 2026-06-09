@@ -115,6 +115,9 @@ class TransferController extends BaseController {
       case WalletChain.tron:
         WalletTransferService.tronAddressToHex(address);
         break;
+      case WalletChain.solana:
+        WalletTransferService.normalizeSolanaAddress(address);
+        break;
     }
   }
 

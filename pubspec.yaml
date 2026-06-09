@@ -20,6 +20,7 @@ dependencies:
   dio:
   logger:
   pointycastle: ^4.0.0
+  ed25519_edwards: ^0.3.1
   json_annotation: ^4.9.0
   cached_network_image:
   flutter_smart_dialog:

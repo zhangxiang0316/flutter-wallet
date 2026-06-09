@@ -308,7 +308,7 @@ class _PrimaryWalletPanel extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    'EVM ${_shortWalletAddress(wallet.bscAddress)}  TRX ${_shortWalletAddress(wallet.tronAddress)}',
+                    'EVM ${_shortWalletAddress(wallet.bscAddress)}  SOL ${_shortWalletAddress(wallet.solanaAddress)}  TRX ${_shortWalletAddress(wallet.tronAddress)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -346,7 +346,8 @@ class _PrimaryWalletPanel extends StatelessWidget {
   void _copyWalletAddress(BuildContext context, WalletAccount wallet) {
     Clipboard.setData(
       ClipboardData(
-        text: 'EVM: ${wallet.bscAddress}\nTRX: ${wallet.tronAddress}',
+        text:
+            'EVM: ${wallet.bscAddress}\nSOL: ${wallet.solanaAddress}\nTRX: ${wallet.tronAddress}',
       ),
     );
     Toast.show(S.of(context).copied);
@@ -412,6 +413,7 @@ class _WalletOptionRow extends StatelessWidget {
                     SizedBox(height: 5.h),
                     _WalletAddressLine(
                       bscAddress: wallet.bscAddress,
+                      solanaAddress: wallet.solanaAddress,
                       tronAddress: wallet.tronAddress,
                     ),
                   ],
@@ -524,10 +526,12 @@ class _WalletAvatar extends StatelessWidget {
 class _WalletAddressLine extends StatelessWidget {
   const _WalletAddressLine({
     required this.bscAddress,
+    required this.solanaAddress,
     required this.tronAddress,
   });
 
   final String bscAddress;
+  final String solanaAddress;
   final String tronAddress;
 
   @override
@@ -540,6 +544,14 @@ class _WalletAddressLine extends StatelessWidget {
           child: _WalletAddressText(
             label: 'EVM',
             address: _shortWalletAddress(bscAddress),
+            color: textColor,
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: _WalletAddressText(
+            label: WalletChain.solana.symbol,
+            address: _shortWalletAddress(solanaAddress),
             color: textColor,
           ),
         ),
@@ -591,10 +603,11 @@ class _ChainOverlapTicker extends StatelessWidget {
       WalletChain.bsc,
       WalletChain.ethereum,
       WalletChain.xLayer,
+      WalletChain.solana,
       WalletChain.tron,
     ];
     return SizedBox(
-      width: 100.w,
+      width: 122.w,
       height: 34.w,
       child: Stack(
         children: chains
@@ -648,6 +661,8 @@ class _ChainCircle extends StatelessWidget {
         return const Color(0xFF627EEA);
       case WalletChain.xLayer:
         return const Color(0xFF10B981);
+      case WalletChain.solana:
+        return const Color(0xFF14F195);
       case WalletChain.tron:
         return const Color(0xFFE11D48);
     }
@@ -661,6 +676,8 @@ class _ChainCircle extends StatelessWidget {
         return 'E';
       case WalletChain.xLayer:
         return 'O';
+      case WalletChain.solana:
+        return 'S';
       case WalletChain.tron:
         return 'T';
     }
@@ -784,6 +801,7 @@ class _CurrentWalletPreview extends StatelessWidget {
                 SizedBox(height: 6.h),
                 _WalletAddressLine(
                   bscAddress: wallet.bscAddress,
+                  solanaAddress: wallet.solanaAddress,
                   tronAddress: wallet.tronAddress,
                 ),
               ],

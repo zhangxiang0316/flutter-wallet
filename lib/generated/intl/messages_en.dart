@@ -73,13 +73,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "invalidWalletPassword": MessageLookupByLibrary.simpleMessage(
       "Incorrect wallet password",
     ),
+    "language": MessageLookupByLibrary.simpleMessage("Language"),
     "loading": MessageLookupByLibrary.simpleMessage("Loading..."),
     "login": MessageLookupByLibrary.simpleMessage("login"),
     "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
     "networkFeeAsset": m1,
     "phone": MessageLookupByLibrary.simpleMessage("phone"),
     "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
-      "EVM / TRX multi-chain wallet",
+      "EVM / SOL / TRX multi-chain wallet",
     ),
     "privateKeyHint": MessageLookupByLibrary.simpleMessage(
       "Enter a 64-character hex private key, optionally prefixed with 0x",
@@ -94,7 +95,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.",
     ),
+    "settings": MessageLookupByLibrary.simpleMessage("Settings"),
     "switchWallet": MessageLookupByLibrary.simpleMessage("Switch wallet"),
+    "theme": MessageLookupByLibrary.simpleMessage("Theme"),
+    "themeDark": MessageLookupByLibrary.simpleMessage("Dark"),
+    "themeLight": MessageLookupByLibrary.simpleMessage("Light"),
+    "themeSystem": MessageLookupByLibrary.simpleMessage("System"),
     "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
     "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
     "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
@@ -119,7 +125,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "walletCreated": MessageLookupByLibrary.simpleMessage("Wallet created"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
-      "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.",
+      "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, Solana, and TRON.",
     ),
     "walletEmptyTitle": MessageLookupByLibrary.simpleMessage(
       "Create or import a wallet",
@@ -150,6 +156,21 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "walletSecurityUpgrade": MessageLookupByLibrary.simpleMessage(
       "Upgrade wallet security",
+    ),
+    "walletSolanaAddressUpgrade": MessageLookupByLibrary.simpleMessage(
+      "Complete Solana Address",
+    ),
+    "walletSolanaAddressUpgradeAction": MessageLookupByLibrary.simpleMessage(
+      "Complete Address",
+    ),
+    "walletSolanaAddressUpgradeDetail": MessageLookupByLibrary.simpleMessage(
+      "This wallet was created before Solana support. Enter the wallet password to unlock the local private key and derive the Solana address.",
+    ),
+    "walletSolanaAddressUpgradeFailed": MessageLookupByLibrary.simpleMessage(
+      "Solana address completion failed. Please try again.",
+    ),
+    "walletSolanaAddressUpgraded": MessageLookupByLibrary.simpleMessage(
+      "Solana address completed",
     ),
   };
 }

@@ -65,6 +65,19 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
+      actions: [
+        Semantics(
+          button: true,
+          label: S.of(context!).settings,
+          child: IconButton(
+            tooltip: S.of(context!).settings,
+            icon: const Icon(Icons.tune_rounded),
+            color: colorScheme.onSurface.withValues(alpha: 0.82),
+            iconSize: 20.w,
+            onPressed: () => Get.toNamed(RouteTable.setting),
+          ),
+        ).marginOnly(right: 6.w),
+      ],
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
           1 / MediaQuery.of(context!).devicePixelRatio,
@@ -82,6 +95,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   Widget? getBody() {
     final wallet = controller.wallet;
     _scheduleLegacyMigrationSheet();
+    _scheduleSolanaAddressUpgradeSheet();
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
@@ -246,6 +260,49 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     });
   }
 
+  void _scheduleSolanaAddressUpgradeSheet() {
+    if (controller.needsSecretMigration ||
+        !controller.needsSolanaAddressUpgrade ||
+        _solanaAddressUpgradeSheetVisible) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.needsSecretMigration ||
+          !controller.needsSolanaAddressUpgrade ||
+          _solanaAddressUpgradeSheetVisible ||
+          context == null) {
+        return;
+      }
+      _solanaAddressUpgradeSheetVisible = true;
+      _showPasswordUnlockSheet(
+        title: S.of(context!).walletSolanaAddressUpgrade,
+        detail: S.of(context!).walletSolanaAddressUpgradeDetail,
+        submitLabel: S.of(context!).walletSolanaAddressUpgradeAction,
+        onSubmit: controller.upgradeMissingSolanaAddresses,
+      );
+    });
+  }
+
+  void _showPasswordUnlockSheet({
+    required String title,
+    required String detail,
+    required String submitLabel,
+    required Future<bool> Function(String password) onSubmit,
+  }) {
+    showModalBottomSheet(
+      context: context!,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _PasswordUnlockSheet(
+        title: title,
+        detail: detail,
+        submitLabel: submitLabel,
+        onSubmit: onSubmit,
+      ),
+    ).whenComplete(() => _solanaAddressUpgradeSheetVisible = false);
+  }
+
   bool _validatePassword(String password, String confirmPassword) {
     if (password.isEmpty) {
       Toast.show(S.current.walletPasswordRequired);
@@ -279,6 +336,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   }
 
   bool _legacyMigrationSheetVisible = false;
+  bool _solanaAddressUpgradeSheetVisible = false;
 }
 
 class _HomeBackground extends StatelessWidget {
@@ -546,6 +604,88 @@ class _PasswordSetupSheetState extends State<_PasswordSetupSheet> {
       password,
       _confirmPasswordController.text.trim(),
     )) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final ok = await widget.onSubmit(password);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _isSubmitting = false);
+  }
+}
+
+class _PasswordUnlockSheet extends StatefulWidget {
+  const _PasswordUnlockSheet({
+    required this.title,
+    required this.detail,
+    required this.submitLabel,
+    required this.onSubmit,
+  });
+
+  final String title;
+  final String detail;
+  final String submitLabel;
+  final Future<bool> Function(String password) onSubmit;
+
+  @override
+  State<_PasswordUnlockSheet> createState() => _PasswordUnlockSheetState();
+}
+
+class _PasswordUnlockSheetState extends State<_PasswordUnlockSheet> {
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _VantSheet(
+      bottomInset: MediaQuery.of(context).viewInsets.bottom,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _VantSheetTitle(title: widget.title),
+          Text(
+            widget.detail,
+            style: TextStyle(
+              fontSize: 12.sp,
+              height: 1.35,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.62),
+            ),
+          ).marginOnly(bottom: 14.h),
+          _PasswordTextField(
+            controller: _passwordController,
+            label: S.of(context).walletPassword,
+          ).marginOnly(bottom: 14.h),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: _vantFilledButtonStyle(context),
+              onPressed: _isSubmitting ? null : _submit,
+              child: Text(widget.submitLabel),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final password = _passwordController.text.trim();
+    if (password.isEmpty) {
+      Toast.show(S.current.walletPasswordRequired);
       return;
     }
 

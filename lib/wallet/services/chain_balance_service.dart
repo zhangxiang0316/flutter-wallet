@@ -20,6 +20,8 @@ class ChainBalanceService {
 
   final Dio _dio;
   static const Duration _requestTimeout = Duration(seconds: 12);
+  static const Duration _solanaRequestTimeout = Duration(seconds: 3);
+  static const Duration _solanaChainTimeout = Duration(seconds: 5);
   static const Map<WalletChain, List<String>> _evmRpcFallbacks = {
     WalletChain.bsc: [
       'https://bsc-dataseed.bnbchain.org',
@@ -38,10 +40,15 @@ class ChainBalanceService {
     'https://api.trongrid.io',
     'https://tron-rpc.publicnode.com',
   ];
+  static const List<String> _solanaRpcFallbacks = [
+    'https://api.mainnet-beta.solana.com',
+    'https://solana-rpc.publicnode.com',
+  ];
 
   Future<List<ChainBalance>> loadBalances({
     required String bscAddress,
     required String tronAddress,
+    required String solanaAddress,
   }) async {
     final results = await Future.wait([
       _loadEvmBalances(
@@ -58,6 +65,16 @@ class ChainBalanceService {
         chain: WalletChain.xLayer,
         assets: WalletAssetRegistry.xLayerAssets,
         address: bscAddress,
+      ),
+      _loadSolanaBalances(solanaAddress).timeout(
+        _solanaChainTimeout,
+        onTimeout: () {
+          developer.log(
+            'Solana balance lookup timed out; using zero fallback balances',
+            name: 'ChainBalanceService',
+          );
+          return _fallbackSolanaBalances(solanaAddress);
+        },
       ),
       _loadTronBalances(tronAddress),
     ]);
@@ -132,6 +149,42 @@ class ChainBalanceService {
     }
     throw StateError(
       'TRON account request failed: ${lastError ?? 'unknown error'}',
+    );
+  }
+
+  Future<Map<dynamic, dynamic>> _postSolanaRpc({
+    required Map<String, dynamic> data,
+  }) async {
+    Object? lastError;
+    for (final rpcUrl in _solanaRpcFallbacks) {
+      try {
+        final response = await _dio.post(
+          rpcUrl,
+          data: data,
+          options: Options(
+            headers: {'content-type': 'application/json'},
+            sendTimeout: _solanaRequestTimeout,
+            receiveTimeout: _solanaRequestTimeout,
+          ),
+        );
+        final responseData = response.data;
+        if (responseData is Map && responseData['result'] != null) {
+          return responseData;
+        }
+        if (responseData is Map && responseData['error'] != null) {
+          throw StateError('Solana RPC error: ${responseData['error']}');
+        }
+        throw StateError('Invalid Solana RPC response');
+      } catch (error) {
+        lastError = error;
+        developer.log(
+          'Solana RPC request failed at $rpcUrl: $error',
+          name: 'ChainBalanceService',
+        );
+      }
+    }
+    throw StateError(
+      'Solana RPC request failed: ${lastError ?? 'unknown error'}',
     );
   }
 
@@ -294,6 +347,155 @@ class ChainBalanceService {
           WalletAssetRegistry.findTronAsset(contractAddress) == null;
     });
     return [nativeBalance, ...knownTokens, ...unknownTokens];
+  }
+
+  Future<List<ChainBalance>> _loadSolanaBalances(String address) async {
+    if (address.trim().isEmpty) {
+      return _fallbackSolanaBalances(address);
+    }
+
+    final results = await Future.wait([
+      _loadSolanaNativeBalance(address),
+      ...WalletAssetRegistry.solanaAssets
+          .where((asset) => !asset.isNative)
+          .map((asset) => _loadSolanaTokenBalance(address, asset)),
+    ]);
+    return results;
+  }
+
+  List<ChainBalance> _fallbackSolanaBalances(String address) {
+    return WalletAssetRegistry.solanaAssets
+        .map(
+          (asset) => ChainBalance(
+            chain: WalletChain.solana,
+            symbol: asset.symbol,
+            name: asset.name,
+            amount: '0',
+            address: address,
+            contractAddress: asset.contractAddress,
+            decimals: asset.decimals,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<ChainBalance> _loadSolanaNativeBalance(String address) async {
+    final asset = WalletAssetRegistry.solanaAssets.first;
+    try {
+      final data = await _postSolanaRpc(
+        data: {
+          'jsonrpc': '2.0',
+          'id': 1,
+          'method': 'getBalance',
+          'params': [address],
+        },
+      );
+      final result = data['result'];
+      final value = result is Map ? result['value'] : null;
+      final lamports = value is int
+          ? BigInt.from(value)
+          : BigInt.tryParse(value?.toString() ?? '0') ?? BigInt.zero;
+      return ChainBalance(
+        chain: WalletChain.solana,
+        symbol: asset.symbol,
+        name: asset.name,
+        amount: _formatUnits(lamports, asset.decimals),
+        address: address,
+        decimals: asset.decimals,
+      );
+    } catch (e) {
+      developer.log(
+        'Solana native balance failed; using zero fallback: $e',
+        name: 'ChainBalanceService',
+      );
+      return ChainBalance(
+        chain: WalletChain.solana,
+        symbol: asset.symbol,
+        name: asset.name,
+        amount: '0',
+        address: address,
+        decimals: asset.decimals,
+      );
+    }
+  }
+
+  Future<ChainBalance> _loadSolanaTokenBalance(
+    String address,
+    WalletAsset asset,
+  ) async {
+    try {
+      final data = await _postSolanaRpc(
+        data: {
+          'jsonrpc': '2.0',
+          'id': 1,
+          'method': 'getTokenAccountsByOwner',
+          'params': [
+            address,
+            {'mint': asset.contractAddress},
+            {'encoding': 'jsonParsed'},
+          ],
+        },
+      );
+      final result = data['result'];
+      final values = result is Map ? result['value'] : null;
+      if (values is! List) {
+        return ChainBalance(
+          chain: WalletChain.solana,
+          symbol: asset.symbol,
+          name: asset.name,
+          amount: '0',
+          address: address,
+          contractAddress: asset.contractAddress,
+          decimals: asset.decimals,
+        );
+      }
+
+      var rawAmountTotal = BigInt.zero;
+      var decimals = asset.decimals;
+      for (final item in values) {
+        final account = item is Map ? item['account'] : null;
+        final accountData = account is Map ? account['data'] : null;
+        final parsed = accountData is Map ? accountData['parsed'] : null;
+        final info = parsed is Map ? parsed['info'] : null;
+        if (info is! Map) continue;
+
+        final mint = info['mint']?.toString();
+        if (mint != asset.contractAddress) continue;
+
+        final tokenAmount = info['tokenAmount'];
+        final decimalsValue = tokenAmount is Map ? tokenAmount['decimals'] : 0;
+        decimals = decimalsValue is int
+            ? decimalsValue
+            : int.tryParse(decimalsValue?.toString() ?? '') ?? asset.decimals;
+        final rawAmount = tokenAmount is Map
+            ? tokenAmount['amount']?.toString()
+            : null;
+        rawAmountTotal += BigInt.tryParse(rawAmount ?? '0') ?? BigInt.zero;
+      }
+      return ChainBalance(
+        chain: WalletChain.solana,
+        symbol: asset.symbol,
+        name: asset.name,
+        amount: _formatUnits(rawAmountTotal, decimals),
+        address: address,
+        contractAddress: asset.contractAddress,
+        decimals: decimals,
+      );
+    } catch (e) {
+      developer.log(
+        'Solana ${asset.symbol} balance failed; using zero fallback: $e',
+        name: 'ChainBalanceService',
+      );
+      return ChainBalance(
+        chain: WalletChain.solana,
+        symbol: asset.symbol,
+        name: asset.name,
+        amount: '0',
+        address: address,
+        contractAddress: asset.contractAddress,
+        decimals: asset.decimals,
+      );
+    }
   }
 
   Future<ChainBalance> _loadTronNativeBalance(String address) async {

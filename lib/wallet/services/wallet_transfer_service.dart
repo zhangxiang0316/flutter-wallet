@@ -64,6 +64,8 @@ class WalletTransferService {
           toAddress: toAddress,
           amount: amount,
         );
+      case WalletChain.solana:
+        throw UnsupportedError('Solana transfer is not supported yet');
     }
   }
 
@@ -87,6 +89,8 @@ class WalletTransferService {
           toAddress: toAddress,
           amount: amount,
         );
+      case WalletChain.solana:
+        throw UnsupportedError('Solana fee estimate is not supported yet');
     }
   }
 
@@ -580,6 +584,15 @@ class WalletTransferService {
     return hex.encode(payload);
   }
 
+  static String normalizeSolanaAddress(String input) {
+    final address = input.trim();
+    final decoded = _base58Decode(address);
+    if (decoded.length != 32) {
+      throw const FormatException('Invalid Solana address');
+    }
+    return address;
+  }
+
   static Uint8List hexToBytes(String value) {
     return Uint8List.fromList(hex.decode(value.replaceFirst('0x', '')));
   }
@@ -645,6 +658,20 @@ class WalletTransferService {
   }
 
   static Uint8List _base58CheckDecode(String input) {
+    final decoded = _base58Decode(input);
+    if (decoded.length < 5) {
+      throw const FormatException('Invalid Base58Check payload');
+    }
+    final payload = decoded.sublist(0, decoded.length - 4);
+    final checksum = decoded.sublist(decoded.length - 4);
+    final expected = _sha256(_sha256(payload)).sublist(0, 4);
+    if (!_bytesEqual(checksum, expected)) {
+      throw const FormatException('Invalid Base58Check checksum');
+    }
+    return payload;
+  }
+
+  static Uint8List _base58Decode(String input) {
     var value = BigInt.zero;
     for (final codeUnit in input.codeUnits) {
       final digit = _base58Alphabet.indexOf(String.fromCharCode(codeUnit));
@@ -663,20 +690,7 @@ class WalletTransferService {
         break;
       }
     }
-    final decoded = Uint8List.fromList([
-      ...List<int>.filled(leadingZeros, 0),
-      ...bytes,
-    ]);
-    if (decoded.length < 5) {
-      throw const FormatException('Invalid Base58Check payload');
-    }
-    final payload = decoded.sublist(0, decoded.length - 4);
-    final checksum = decoded.sublist(decoded.length - 4);
-    final expected = _sha256(_sha256(payload)).sublist(0, 4);
-    if (!_bytesEqual(checksum, expected)) {
-      throw const FormatException('Invalid Base58Check checksum');
-    }
-    return payload;
+    return Uint8List.fromList([...List<int>.filled(leadingZeros, 0), ...bytes]);
   }
 
   static Uint8List _bigIntToBytes(BigInt value, {int? length}) {

@@ -53,13 +53,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "importWallet": MessageLookupByLibrary.simpleMessage("导入钱包"),
     "invalidPrivateKey": MessageLookupByLibrary.simpleMessage("私钥格式不正确"),
     "invalidWalletPassword": MessageLookupByLibrary.simpleMessage("钱包密码不正确"),
+    "language": MessageLookupByLibrary.simpleMessage("语言"),
     "loading": MessageLookupByLibrary.simpleMessage("加载中..."),
     "login": MessageLookupByLibrary.simpleMessage("登录"),
     "networkFee": MessageLookupByLibrary.simpleMessage("网络手续费"),
     "networkFeeAsset": m1,
     "phone": MessageLookupByLibrary.simpleMessage("手机"),
     "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
-      "EVM / TRX 多链主钱包",
+      "EVM / SOL / TRX 多链主钱包",
     ),
     "privateKeyHint": MessageLookupByLibrary.simpleMessage(
       "请输入 64 位十六进制私钥，可带 0x 前缀",
@@ -72,7 +73,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。",
     ),
+    "settings": MessageLookupByLibrary.simpleMessage("设置"),
     "switchWallet": MessageLookupByLibrary.simpleMessage("切换钱包"),
+    "theme": MessageLookupByLibrary.simpleMessage("主题"),
+    "themeDark": MessageLookupByLibrary.simpleMessage("深色主题"),
+    "themeLight": MessageLookupByLibrary.simpleMessage("浅色主题"),
+    "themeSystem": MessageLookupByLibrary.simpleMessage("跟随系统"),
     "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
     "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
     "transfer": MessageLookupByLibrary.simpleMessage("转账"),
@@ -93,7 +99,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "walletCreated": MessageLookupByLibrary.simpleMessage("钱包已创建"),
     "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
-      "当前支持 BNB Smart Chain、Ethereum、X Layer 和 TRON 的地址管理与多资产链上余额查询。",
+      "当前支持 BNB Smart Chain、Ethereum、X Layer、Solana 和 TRON 的地址管理与多资产链上余额查询。",
     ),
     "walletEmptyTitle": MessageLookupByLibrary.simpleMessage("创建或导入钱包"),
     "walletImported": MessageLookupByLibrary.simpleMessage("导入成功"),
@@ -115,5 +121,20 @@ class MessageLookup extends MessageLookupByLibrary {
       "钱包私钥加密失败，请重试",
     ),
     "walletSecurityUpgrade": MessageLookupByLibrary.simpleMessage("升级钱包安全"),
+    "walletSolanaAddressUpgrade": MessageLookupByLibrary.simpleMessage(
+      "补全 Solana 地址",
+    ),
+    "walletSolanaAddressUpgradeAction": MessageLookupByLibrary.simpleMessage(
+      "补全地址",
+    ),
+    "walletSolanaAddressUpgradeDetail": MessageLookupByLibrary.simpleMessage(
+      "当前钱包创建于支持 Solana 之前，需要输入钱包密码解锁本机私钥并派生 Solana 地址。",
+    ),
+    "walletSolanaAddressUpgradeFailed": MessageLookupByLibrary.simpleMessage(
+      "Solana 地址补全失败，请重试",
+    ),
+    "walletSolanaAddressUpgraded": MessageLookupByLibrary.simpleMessage(
+      "Solana 地址已补全",
+    ),
   };
 }

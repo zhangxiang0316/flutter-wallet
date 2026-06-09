@@ -75,6 +75,36 @@ class S {
     return Intl.message('沐晨钱包', name: 'appName', desc: '', args: []);
   }
 
+  /// `Settings`
+  String get settings {
+    return Intl.message('Settings', name: 'settings', desc: '', args: []);
+  }
+
+  /// `Language`
+  String get language {
+    return Intl.message('Language', name: 'language', desc: '', args: []);
+  }
+
+  /// `Theme`
+  String get theme {
+    return Intl.message('Theme', name: 'theme', desc: '', args: []);
+  }
+
+  /// `System`
+  String get themeSystem {
+    return Intl.message('System', name: 'themeSystem', desc: '', args: []);
+  }
+
+  /// `Light`
+  String get themeLight {
+    return Intl.message('Light', name: 'themeLight', desc: '', args: []);
+  }
+
+  /// `Dark`
+  String get themeDark {
+    return Intl.message('Dark', name: 'themeDark', desc: '', args: []);
+  }
+
   /// `Create or import a wallet`
   String get walletEmptyTitle {
     return Intl.message(
@@ -85,10 +115,10 @@ class S {
     );
   }
 
-  /// `Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.`
+  /// `Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, Solana, and TRON.`
   String get walletEmptySubtitle {
     return Intl.message(
-      'Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, and TRON.',
+      'Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, Solana, and TRON.',
       name: 'walletEmptySubtitle',
       desc: '',
       args: [],
@@ -130,10 +160,10 @@ class S {
     );
   }
 
-  /// `EVM / TRX multi-chain wallet`
+  /// `EVM / SOL / TRX multi-chain wallet`
   String get primaryMultiChainWallet {
     return Intl.message(
-      'EVM / TRX multi-chain wallet',
+      'EVM / SOL / TRX multi-chain wallet',
       name: 'primaryMultiChainWallet',
       desc: '',
       args: [],
@@ -385,6 +415,56 @@ class S {
     return Intl.message(
       'Failed to encrypt wallet private key. Try again.',
       name: 'walletSecurityMigrationFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Complete Solana Address`
+  String get walletSolanaAddressUpgrade {
+    return Intl.message(
+      'Complete Solana Address',
+      name: 'walletSolanaAddressUpgrade',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This wallet was created before Solana support. Enter the wallet password to unlock the local private key and derive the Solana address.`
+  String get walletSolanaAddressUpgradeDetail {
+    return Intl.message(
+      'This wallet was created before Solana support. Enter the wallet password to unlock the local private key and derive the Solana address.',
+      name: 'walletSolanaAddressUpgradeDetail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Complete Address`
+  String get walletSolanaAddressUpgradeAction {
+    return Intl.message(
+      'Complete Address',
+      name: 'walletSolanaAddressUpgradeAction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Solana address completed`
+  String get walletSolanaAddressUpgraded {
+    return Intl.message(
+      'Solana address completed',
+      name: 'walletSolanaAddressUpgraded',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Solana address completion failed. Please try again.`
+  String get walletSolanaAddressUpgradeFailed {
+    return Intl.message(
+      'Solana address completion failed. Please try again.',
+      name: 'walletSolanaAddressUpgradeFailed',
       desc: '',
       args: [],
     );

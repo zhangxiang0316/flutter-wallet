@@ -45,67 +45,52 @@ class ChainSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 按链分组后分别渲染，EVM 链共用钱包的 EVM 地址，TRON 使用独立地址。
-    final bscBalances = balances
-        .where((balance) => balance.chain == WalletChain.bsc)
-        .toList();
-    final ethereumBalances = balances
-        .where((balance) => balance.chain == WalletChain.ethereum)
-        .toList();
-    final xLayerBalances = balances
-        .where((balance) => balance.chain == WalletChain.xLayer)
-        .toList();
-    final tronBalances = balances
-        .where((balance) => balance.chain == WalletChain.tron)
-        .toList();
+    // 按链枚举动态渲染，EVM 链共用 EVM 地址，非 EVM 链使用各自地址。
+    final chainCards = WalletChain.values
+        .map((chain) {
+          final chainBalances = balances
+              .where((balance) => balance.chain == chain)
+              .toList();
+          return _ChainCard(
+            chain: chain,
+            address: _addressForChain(chain),
+            balances: chainBalances,
+            isLoading: isLoading,
+            stableValueTextFor: stableValueTextFor,
+            usdValueText: chainUsdValueTextFor(chain),
+            isExpanded: isChainExpanded(chain),
+            onToggle: onChainToggle,
+            onTransferPressed: onTransferPressed,
+          );
+        })
+        .toList(growable: false);
     return Column(
-      children: [
-        _ChainCard(
-          chain: WalletChain.bsc,
-          address: wallet.bscAddress,
-          balances: bscBalances,
-          isLoading: isLoading,
-          stableValueTextFor: stableValueTextFor,
-          usdValueText: chainUsdValueTextFor(WalletChain.bsc),
-          isExpanded: isChainExpanded(WalletChain.bsc),
-          onToggle: onChainToggle,
-          onTransferPressed: onTransferPressed,
-        ).marginOnly(bottom: 12.h),
-        _ChainCard(
-          chain: WalletChain.ethereum,
-          address: wallet.bscAddress,
-          balances: ethereumBalances,
-          isLoading: isLoading,
-          stableValueTextFor: stableValueTextFor,
-          usdValueText: chainUsdValueTextFor(WalletChain.ethereum),
-          isExpanded: isChainExpanded(WalletChain.ethereum),
-          onToggle: onChainToggle,
-          onTransferPressed: onTransferPressed,
-        ).marginOnly(bottom: 12.h),
-        _ChainCard(
-          chain: WalletChain.xLayer,
-          address: wallet.bscAddress,
-          balances: xLayerBalances,
-          isLoading: isLoading,
-          stableValueTextFor: stableValueTextFor,
-          usdValueText: chainUsdValueTextFor(WalletChain.xLayer),
-          isExpanded: isChainExpanded(WalletChain.xLayer),
-          onToggle: onChainToggle,
-          onTransferPressed: onTransferPressed,
-        ).marginOnly(bottom: 12.h),
-        _ChainCard(
-          chain: WalletChain.tron,
-          address: wallet.tronAddress,
-          balances: tronBalances,
-          isLoading: isLoading,
-          stableValueTextFor: stableValueTextFor,
-          usdValueText: chainUsdValueTextFor(WalletChain.tron),
-          isExpanded: isChainExpanded(WalletChain.tron),
-          onToggle: onChainToggle,
-          onTransferPressed: onTransferPressed,
-        ),
-      ],
+      children: chainCards
+          .asMap()
+          .entries
+          .map(
+            (entry) => entry.key == chainCards.length - 1
+                ? entry.value
+                : entry.value.marginOnly(bottom: 12.h),
+          )
+          .toList(growable: false),
     );
+  }
+
+  String _addressForChain(WalletChain chain) {
+    if (chain.isEvm) {
+      return wallet.bscAddress;
+    }
+    switch (chain) {
+      case WalletChain.bsc:
+      case WalletChain.ethereum:
+      case WalletChain.xLayer:
+        return wallet.bscAddress;
+      case WalletChain.solana:
+        return wallet.solanaAddress;
+      case WalletChain.tron:
+        return wallet.tronAddress;
+    }
   }
 }
 
@@ -401,6 +386,7 @@ class _AssetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final assetColor = homeAssetColor(context, balance.symbol);
+    final transferEnabled = balance.chain != WalletChain.solana;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h),
       child: Row(
@@ -487,24 +473,30 @@ class _AssetRow extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: BoxConstraints.tight(Size(40.w, 40.w)),
-                  onPressed: () => onTransferPressed(balance),
+                  onPressed: transferEnabled
+                      ? () => onTransferPressed(balance)
+                      : null,
                   icon: Container(
                     width: 30.w,
                     height: 30.w,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(
+                        alpha: transferEnabled ? 0.1 : 0.04,
+                      ),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Icon(
                       Icons.near_me_rounded,
                       size: 18.w,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: transferEnabled
+                          ? Theme.of(context).colorScheme.primary
+                          : homeSubTextColor(context),
                     ),
                   ),
-                  tooltip: S.of(context).transfer,
+                  tooltip: transferEnabled
+                      ? S.of(context).transfer
+                      : S.of(context).transferUnavailable,
                 ),
               ),
             ],
