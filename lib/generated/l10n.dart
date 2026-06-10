@@ -28,10 +28,9 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name =
-        (locale.countryCode?.isEmpty ?? false)
-            ? locale.languageCode
-            : locale.toString();
+    final name = (locale.countryCode?.isEmpty ?? false)
+        ? locale.languageCode
+        : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -995,6 +994,36 @@ class S {
     return Intl.message(
       'Available balance',
       name: 'availableBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transfer network`
+  String get selectTransferChain {
+    return Intl.message(
+      'Transfer network',
+      name: 'selectTransferChain',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transfer asset`
+  String get selectTransferAsset {
+    return Intl.message(
+      'Transfer asset',
+      name: 'selectTransferAsset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `From address`
+  String get transferFromAddress {
+    return Intl.message(
+      'From address',
+      name: 'transferFromAddress',
       desc: '',
       args: [],
     );

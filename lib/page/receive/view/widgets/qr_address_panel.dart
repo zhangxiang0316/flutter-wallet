@@ -43,7 +43,7 @@ class ReceiveQrAddressPanel extends StatelessWidget {
               padding: EdgeInsets.all(13.w),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(20.w),
                 border: Border.all(color: color.withValues(alpha: 0.2)),
                 boxShadow: [
                   BoxShadow(
@@ -59,11 +59,11 @@ class ReceiveQrAddressPanel extends StatelessWidget {
                       version: QrVersions.auto,
                       backgroundColor: Colors.white,
                       eyeStyle: QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
+                        eyeShape: QrEyeShape.circle,
                         color: color,
                       ),
                       dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.square,
+                        dataModuleShape: QrDataModuleShape.circle,
                         color: Color(0xFF111827),
                       ),
                     )

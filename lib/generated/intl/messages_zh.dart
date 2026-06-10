@@ -123,6 +123,8 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "selectReceiveAsset": MessageLookupByLibrary.simpleMessage("选择收款币种"),
     "selectReceiveChain": MessageLookupByLibrary.simpleMessage("选择收款网络"),
+    "selectTransferAsset": MessageLookupByLibrary.simpleMessage("转账币种"),
+    "selectTransferChain": MessageLookupByLibrary.simpleMessage("转账网络"),
     "settings": MessageLookupByLibrary.simpleMessage("设置"),
     "switchWallet": MessageLookupByLibrary.simpleMessage("切换钱包"),
     "theme": MessageLookupByLibrary.simpleMessage("主题"),
@@ -138,6 +140,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "转账失败，请检查地址、数量和链上余额",
     ),
+    "transferFromAddress": MessageLookupByLibrary.simpleMessage("发起地址"),
     "transferInputInvalid": MessageLookupByLibrary.simpleMessage(
       "请输入有效的收款地址和转账数量",
     ),

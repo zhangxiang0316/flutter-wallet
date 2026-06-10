@@ -8,6 +8,7 @@ import '../controller/transfer_controller.dart';
 import 'widgets/transfer_fee_panel.dart';
 import 'widgets/transfer_form_panel.dart';
 import 'widgets/transfer_hero.dart';
+import 'widgets/transfer_selector_row.dart';
 import 'widgets/transfer_submitted_panel.dart';
 import 'widgets/transfer_unavailable_panel.dart';
 
@@ -37,26 +38,40 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
   @override
   Widget? getBody() {
     final args = controller.arguments;
-    if (args == null) {
+    final asset = controller.currentAsset;
+    if (args == null || asset == null) {
       return const TransferUnavailablePanel();
     }
 
-    final asset = args.asset;
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TransferHero(asset: asset),
-          SizedBox(height: 16.h),
-          TransferFormPanel(asset: asset, controller: controller),
-          SizedBox(height: 16.h),
-          TransferFeePanel(asset: asset, controller: controller),
-          if (controller.transactionHash.isNotEmpty) ...[
+    return ColoredBox(
+      color: Theme.of(context!).brightness == Brightness.dark
+          ? Theme.of(context!).scaffoldBackgroundColor
+          : const Color(0xFFF7F8FA),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TransferHero(asset: asset),
             SizedBox(height: 16.h),
-            TransferSubmittedPanel(controller: controller),
+            TransferSelectorRow(
+              chains: controller.availableChains,
+              selectedAsset: asset,
+              assets: controller.assetsForSelectedChain(),
+              isEnabled: !controller.isSubmitting,
+              onChainSelected: controller.selectChain,
+              onAssetSelected: controller.selectAsset,
+            ),
+            SizedBox(height: 16.h),
+            TransferFormPanel(asset: asset, controller: controller),
+            SizedBox(height: 16.h),
+            TransferFeePanel(asset: asset, controller: controller),
+            if (controller.transactionHash.isNotEmpty) ...[
+              SizedBox(height: 16.h),
+              TransferSubmittedPanel(controller: controller),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

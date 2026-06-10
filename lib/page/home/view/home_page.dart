@@ -326,6 +326,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       arguments: TransferPageArguments(
         walletId: currentWallet.id,
         asset: balance,
+        assets: controller.visibleBalances,
       ),
     );
     if (submitted == true) {

@@ -8,10 +8,9 @@ import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../controller/receive_controller.dart';
-import 'widgets/asset_selector.dart';
-import 'widgets/chain_selector.dart';
 import 'widgets/qr_address_panel.dart';
 import 'widgets/receive_hero.dart';
+import 'widgets/receive_selector_row.dart';
 
 @GetXRoutePage('/receive')
 /// 收款页面。
@@ -86,16 +85,13 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
         children: [
           ReceiveHero(asset: asset, chain: controller.selectedChain),
           SizedBox(height: 12.h),
-          ReceiveChainSelector(
+          ReceiveSelectorRow(
             selectedChain: controller.selectedChain,
-            onSelected: controller.selectChain,
-          ),
-          SizedBox(height: 12.h),
-          ReceiveAssetSelector(
             assets: controller.assetsForSelectedChain(),
             selectedAsset: asset,
             isLoading: controller.isLoadingAssets,
-            onSelected: controller.selectAsset,
+            onChainSelected: controller.selectChain,
+            onAssetSelected: controller.selectAsset,
           ),
           SizedBox(height: 12.h),
           ReceiveQrAddressPanel(

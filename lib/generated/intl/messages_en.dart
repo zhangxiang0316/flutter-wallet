@@ -160,6 +160,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "selectReceiveChain": MessageLookupByLibrary.simpleMessage(
       "Select network",
     ),
+    "selectTransferAsset": MessageLookupByLibrary.simpleMessage(
+      "Transfer asset",
+    ),
+    "selectTransferChain": MessageLookupByLibrary.simpleMessage(
+      "Transfer network",
+    ),
     "settings": MessageLookupByLibrary.simpleMessage("Settings"),
     "switchWallet": MessageLookupByLibrary.simpleMessage("Switch wallet"),
     "theme": MessageLookupByLibrary.simpleMessage("Theme"),
@@ -175,6 +181,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "Transfer failed. Check the address, amount, and on-chain balance.",
     ),
+    "transferFromAddress": MessageLookupByLibrary.simpleMessage("From address"),
     "transferInputInvalid": MessageLookupByLibrary.simpleMessage(
       "Enter a valid recipient address and transfer amount",
     ),
