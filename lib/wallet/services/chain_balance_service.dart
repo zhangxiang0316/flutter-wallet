@@ -69,6 +69,10 @@ class ChainBalanceService {
       'https://rpc.xlayer.tech',
       'https://xlayerrpc.okx.com',
     ],
+    WalletChain.arbitrum: [
+      'https://arb1.arbitrum.io/rpc',
+      'https://arbitrum-one-rpc.publicnode.com',
+    ],
   };
 
   /// TRON 账号查询备用节点。
@@ -122,6 +126,14 @@ class ChainBalanceService {
         chain: WalletChain.xLayer,
         assets: WalletAssetRegistry.mergeCustomAssets(
           WalletChain.xLayer,
+          customAssets,
+        ),
+        address: bscAddress,
+      ),
+      _loadEvmBalances(
+        chain: WalletChain.arbitrum,
+        assets: WalletAssetRegistry.mergeCustomAssets(
+          WalletChain.arbitrum,
           customAssets,
         ),
         address: bscAddress,

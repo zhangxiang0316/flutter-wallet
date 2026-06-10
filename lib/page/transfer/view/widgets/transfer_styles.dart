@@ -89,6 +89,8 @@ Color transferChainColor(WalletChain chain) {
       return const Color(0xFF627EEA);
     case WalletChain.xLayer:
       return const Color(0xFF111827);
+    case WalletChain.arbitrum:
+      return const Color(0xFF28A0F0);
     case WalletChain.solana:
       return const Color(0xFF14F195);
     case WalletChain.tron:
@@ -114,6 +116,8 @@ Color transferAssetColor(BuildContext context, String symbol) {
       return const Color(0xFFE50914);
     case 'OKB':
       return const Color(0xFF111827);
+    case 'ARB':
+      return const Color(0xFF28A0F0);
     case 'SOL':
       return const Color(0xFF14F195);
     default:

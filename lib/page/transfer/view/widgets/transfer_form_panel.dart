@@ -243,6 +243,7 @@ class TransferFormPanel extends StatelessWidget {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
+      case WalletChain.arbitrum:
         return '0x...';
       case WalletChain.tron:
         return 'T...';

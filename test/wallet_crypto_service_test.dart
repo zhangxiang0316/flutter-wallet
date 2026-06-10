@@ -514,8 +514,9 @@ void main() {
           {'symbol': 'BTCUSDT', 'price': '65000'},
           {'symbol': 'OKBUSDT', 'price': '52.25'},
           {'symbol': 'SOLUSDT', 'price': '150.75'},
+          {'symbol': 'ARBUSDT', 'price': '1.23'},
         ],
-        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
       );
 
       expect(prices['BNB']?.toStringAsFixed(2), '300.50');
@@ -524,6 +525,7 @@ void main() {
       expect(prices['WBTC']?.toString(), '65000');
       expect(prices['OKB']?.toString(), '52.25');
       expect(prices['SOL']?.toString(), '150.75');
+      expect(prices['ARB']?.toString(), '1.23');
     });
 
     test('parses single Binance ticker response', () {
@@ -545,9 +547,10 @@ void main() {
             {'instId': 'BTC-USDT', 'last': '65100'},
             {'instId': 'OKB-USDT', 'last': '52.4'},
             {'instId': 'SOL-USDT', 'last': '151.2'},
+            {'instId': 'ARB-USDT', 'last': '1.24'},
           ],
         },
-        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
       );
 
       expect(prices['BNB']?.toString(), '302.1');
@@ -556,6 +559,7 @@ void main() {
       expect(prices['WBTC']?.toString(), '65100');
       expect(prices['OKB']?.toString(), '52.4');
       expect(prices['SOL']?.toString(), '151.2');
+      expect(prices['ARB']?.toString(), '1.24');
     });
 
     test('parses requested prices from OKX full spot ticker response', () {
@@ -587,8 +591,9 @@ void main() {
           'bitcoin': {'usd': 64999.99},
           'okb': {'usd': 52.3},
           'solana': {'usd': 150.8},
+          'arbitrum': {'usd': 1.25},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
       );
 
       expect(prices['BNB']?.toString(), '301.25');
@@ -598,6 +603,7 @@ void main() {
       expect(prices['WBTC']?.toString(), '64999.99');
       expect(prices['OKB']?.toString(), '52.3');
       expect(prices['SOL']?.toString(), '150.8');
+      expect(prices['ARB']?.toString(), '1.25');
     });
 
     test('parses DeFiLlama prices by CoinGecko ids', () {
@@ -608,9 +614,10 @@ void main() {
             'coingecko:bitcoin': {'price': '62722.09'},
             'coingecko:ethereum': {'price': 1671.12},
             'coingecko:solana': {'price': 66.16},
+            'coingecko:arbitrum': {'price': 1.26},
           },
         },
-        ['BNB', 'BTCB', 'WBTC', 'ETH', 'SOL'],
+        ['BNB', 'BTCB', 'WBTC', 'ETH', 'SOL', 'ARB'],
       );
 
       expect(prices['BNB']?.toString(), '600.21');
@@ -618,6 +625,7 @@ void main() {
       expect(prices['WBTC']?.toString(), '62722.09');
       expect(prices['ETH']?.toString(), '1671.12');
       expect(prices['SOL']?.toString(), '66.16');
+      expect(prices['ARB']?.toString(), '1.26');
     });
 
     test('parses CoinPaprika fallback prices by wallet symbol', () {
@@ -641,14 +649,21 @@ void main() {
               'USD': {'price': 66.14},
             },
           },
+          {
+            'id': 'arb-arbitrum',
+            'quotes': {
+              'USD': {'price': 1.27},
+            },
+          },
         ],
-        ['BNB', 'BTCB', 'WBTC', 'SOL'],
+        ['BNB', 'BTCB', 'WBTC', 'SOL', 'ARB'],
       );
 
       expect(prices['BNB']?.toString(), '599.93');
       expect(prices['BTCB']?.toString(), '62643.07');
       expect(prices['WBTC']?.toString(), '62643.07');
       expect(prices['SOL']?.toString(), '66.14');
+      expect(prices['ARB']?.toString(), '1.27');
     });
 
     test('parses CryptoCompare fallback prices by wallet symbol', () {
@@ -660,8 +675,9 @@ void main() {
           'BTC': {'USD': 60913.71},
           'OKB': {'USD': 69.12},
           'SOL': {'USD': 151.4},
+          'ARB': {'USD': 1.28},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
       );
 
       expect(prices['BNB']?.toString(), '574.65');
@@ -671,6 +687,7 @@ void main() {
       expect(prices['WBTC']?.toString(), '60913.71');
       expect(prices['OKB']?.toString(), '69.12');
       expect(prices['SOL']?.toString(), '151.4');
+      expect(prices['ARB']?.toString(), '1.28');
     });
 
     test('uses stable coin prices without external price data', () {
@@ -743,11 +760,13 @@ void main() {
       );
     });
 
-    test('defines Ethereum and X Layer as EVM chains', () {
+    test('defines Ethereum, X Layer, and Arbitrum as EVM chains', () {
       expect(WalletChain.ethereum.evmChainId, 1);
       expect(WalletChain.ethereum.symbol, 'ETH');
       expect(WalletChain.xLayer.evmChainId, 196);
       expect(WalletChain.xLayer.symbol, 'OKB');
+      expect(WalletChain.arbitrum.evmChainId, 42161);
+      expect(WalletChain.arbitrum.symbol, 'ETH');
       expect(WalletChain.solana.evmChainId, isNull);
       expect(WalletChain.solana.symbol, 'SOL');
       expect(
@@ -899,7 +918,8 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     }
 
     if (origin == 'https://ethereum-rpc.publicnode.com' ||
-        origin == 'https://rpc.xlayer.tech') {
+        origin == 'https://rpc.xlayer.tech' ||
+        origin == 'https://arb1.arbitrum.io') {
       return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x0'});
     }
 

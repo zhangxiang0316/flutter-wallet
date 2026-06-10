@@ -20,6 +20,13 @@ enum WalletChain {
     rpcUrl: 'https://rpc.xlayer.tech',
     evmChainId: 196,
   ),
+  arbitrum(
+    id: 'arbitrum',
+    name: 'Arbitrum',
+    symbol: 'ETH',
+    rpcUrl: 'https://arb1.arbitrum.io/rpc',
+    evmChainId: 42161,
+  ),
   solana(
     id: 'solana',
     name: 'Solana',

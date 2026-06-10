@@ -88,6 +88,7 @@ class WalletTransferService {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
+      case WalletChain.arbitrum:
         return _transferEvm(
           privateKeyHex: privateKeyHex,
           asset: asset,
@@ -127,6 +128,7 @@ class WalletTransferService {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
+      case WalletChain.arbitrum:
         return _estimateEvmFee(
           asset: asset,
           toAddress: toAddress,

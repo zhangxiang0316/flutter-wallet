@@ -188,6 +188,43 @@ class WalletAssetRegistry {
     ),
   ];
 
+  static const arbitrumAssets = [
+    WalletAsset(
+      chain: WalletChain.arbitrum,
+      symbol: 'ETH',
+      name: 'Ethereum',
+      decimals: 18,
+    ),
+    WalletAsset(
+      chain: WalletChain.arbitrum,
+      symbol: 'USDT',
+      name: 'Tether USD',
+      decimals: 6,
+      contractAddress: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+    ),
+    WalletAsset(
+      chain: WalletChain.arbitrum,
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 6,
+      contractAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    ),
+    WalletAsset(
+      chain: WalletChain.arbitrum,
+      symbol: 'ARB',
+      name: 'Arbitrum',
+      decimals: 18,
+      contractAddress: '0x912CE59144191C1204E64559FE8253a0e49E6548',
+    ),
+    WalletAsset(
+      chain: WalletChain.arbitrum,
+      symbol: 'WBTC',
+      name: 'Wrapped BTC',
+      decimals: 8,
+      contractAddress: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+    ),
+  ];
+
   static const solanaAssets = [
     WalletAsset(
       chain: WalletChain.solana,
@@ -216,6 +253,7 @@ class WalletAssetRegistry {
     ...ethereumAssets,
     ...tronAssets,
     ...xLayerAssets,
+    ...arbitrumAssets,
     ...solanaAssets,
   ];
 
@@ -229,6 +267,8 @@ class WalletAssetRegistry {
         return tronAssets;
       case WalletChain.xLayer:
         return xLayerAssets;
+      case WalletChain.arbitrum:
+        return arbitrumAssets;
       case WalletChain.solana:
         return solanaAssets;
     }

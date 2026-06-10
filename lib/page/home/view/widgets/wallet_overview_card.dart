@@ -642,7 +642,7 @@ class _WalletAddressLine extends StatelessWidget {
     required this.tronAddress,
   });
 
-  /// EVM 兼容链地址，当前 BSC、ETH、X Layer 共用该地址。
+  /// EVM 兼容链地址，当前 BSC、ETH、X Layer、Arbitrum 共用该地址。
   final String bscAddress;
 
   /// Solana 链地址。
@@ -730,11 +730,12 @@ class _ChainOverlapTicker extends StatelessWidget {
       WalletChain.bsc,
       WalletChain.ethereum,
       WalletChain.xLayer,
+      WalletChain.arbitrum,
       WalletChain.solana,
       WalletChain.tron,
     ];
     return SizedBox(
-      width: 122.w,
+      width: 144.w,
       height: 34.w,
       child: Stack(
         children: chains
@@ -790,6 +791,8 @@ class _ChainCircle extends StatelessWidget {
         return const Color(0xFF627EEA);
       case WalletChain.xLayer:
         return const Color(0xFF10B981);
+      case WalletChain.arbitrum:
+        return const Color(0xFF28A0F0);
       case WalletChain.solana:
         return const Color(0xFF14F195);
       case WalletChain.tron:
@@ -805,6 +808,8 @@ class _ChainCircle extends StatelessWidget {
         return 'E';
       case WalletChain.xLayer:
         return 'O';
+      case WalletChain.arbitrum:
+        return 'A';
       case WalletChain.solana:
         return 'S';
       case WalletChain.tron:

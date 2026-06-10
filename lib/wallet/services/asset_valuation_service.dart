@@ -88,6 +88,7 @@ class AssetValuationService {
     'WBTC': 'BTCUSDT',
     'OKB': 'OKBUSDT',
     'SOL': 'SOLUSDT',
+    'ARB': 'ARBUSDT',
   };
 
   /// OKX 现货接口使用的交易对映射。
@@ -99,6 +100,7 @@ class AssetValuationService {
     'WBTC': 'BTC-USDT',
     'OKB': 'OKB-USDT',
     'SOL': 'SOL-USDT',
+    'ARB': 'ARB-USDT',
   };
 
   /// CoinGecko/DeFiLlama 使用的币种 ID 映射。
@@ -112,6 +114,7 @@ class AssetValuationService {
     'WBTC': 'bitcoin',
     'OKB': 'okb',
     'SOL': 'solana',
+    'ARB': 'arbitrum',
   };
 
   /// CoinPaprika 使用的币种 ID 映射。
@@ -123,6 +126,7 @@ class AssetValuationService {
     'WBTC': 'btc-bitcoin',
     'OKB': 'okb-okb',
     'SOL': 'sol-solana',
+    'ARB': 'arb-arbitrum',
   };
 
   /// CryptoCompare 接口使用的币种符号映射。
@@ -134,6 +138,7 @@ class AssetValuationService {
     'WBTC': 'BTC',
     'OKB': 'OKB',
     'SOL': 'SOL',
+    'ARB': 'ARB',
   };
 
   /// 当前服务可以尝试获取实时价格的非稳定币集合。

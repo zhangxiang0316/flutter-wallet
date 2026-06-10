@@ -63,6 +63,10 @@ class WalletCustomAssetService {
       'https://rpc.xlayer.tech',
       'https://xlayerrpc.okx.com',
     ],
+    WalletChain.arbitrum: [
+      'https://arb1.arbitrum.io/rpc',
+      'https://arbitrum-one-rpc.publicnode.com',
+    ],
   };
 
   /// 读取用户已添加的自定义资产。

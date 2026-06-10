@@ -249,6 +249,7 @@ class TransferController extends BaseController {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
+      case WalletChain.arbitrum:
         WalletTransferService.normalizeEvmAddress(address);
         break;
       case WalletChain.tron:
@@ -407,6 +408,7 @@ class TransferController extends BaseController {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
+      case WalletChain.arbitrum:
         return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
       case WalletChain.tron:
         return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
