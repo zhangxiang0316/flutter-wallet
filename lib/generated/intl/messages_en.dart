@@ -91,6 +91,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "customAssetName": MessageLookupByLibrary.simpleMessage("Name"),
     "customAssetSymbol": MessageLookupByLibrary.simpleMessage("Symbol"),
+    "editNetwork": MessageLookupByLibrary.simpleMessage("Edit network"),
     "editWalletName": MessageLookupByLibrary.simpleMessage("Edit wallet name"),
     "email": MessageLookupByLibrary.simpleMessage("email"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("Encrypt wallet"),
@@ -152,6 +153,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "One RPC URL per line, or separate them with commas",
     ),
     "networkSymbol": MessageLookupByLibrary.simpleMessage("Native symbol"),
+    "networkUpdated": MessageLookupByLibrary.simpleMessage("Network updated"),
     "phone": MessageLookupByLibrary.simpleMessage("phone"),
     "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
       "EVM / SOL / TRX multi-chain wallet",
@@ -182,6 +184,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "removeNetworkConfirm": m4,
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
     "removeWalletConfirmMessage": m5,
+    "saveNetwork": MessageLookupByLibrary.simpleMessage("Save network"),
     "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
     "scanCameraError": MessageLookupByLibrary.simpleMessage(
       "Camera is unavailable. Check camera permission and try again.",

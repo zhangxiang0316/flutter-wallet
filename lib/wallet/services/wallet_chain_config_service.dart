@@ -155,6 +155,47 @@ class WalletChainConfigService {
     return nextChain;
   }
 
+  /// 更新用户添加的 EVM 链。
+  ///
+  /// 链 ID 由首次添加时的 evmChainId 生成，不能编辑，否则已有自定义资产的 chainId
+  /// 关联会失效。这里只允许更新名称、原生币简称和 RPC 列表。
+  Future<WalletChainConfig> updateCustomEvmChain({
+    required String chainId,
+    required String name,
+    required String symbol,
+    required List<String> rpcUrls,
+  }) async {
+    final customChains = [...await loadCustomChains()];
+    final index = customChains.indexWhere((chain) => chain.id == chainId);
+    if (index < 0) {
+      throw const WalletChainConfigInvalidException();
+    }
+    final currentChain = customChains[index];
+    final evmChainId = currentChain.evmChainId;
+    final normalizedName = name.trim();
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    final normalizedRpcUrls = _normalizeRpcUrls(rpcUrls);
+    if (normalizedName.isEmpty ||
+        normalizedSymbol.isEmpty ||
+        evmChainId == null ||
+        normalizedRpcUrls.isEmpty) {
+      throw const WalletChainConfigInvalidException();
+    }
+
+    final workingRpcUrls = await _validateEvmRpcUrls(
+      rpcUrls: normalizedRpcUrls,
+      evmChainId: evmChainId,
+    );
+    final nextChain = currentChain.copyWith(
+      name: normalizedName,
+      symbol: normalizedSymbol,
+      rpcUrls: workingRpcUrls,
+    );
+    customChains[index] = nextChain;
+    await saveCustomChains(customChains);
+    return nextChain;
+  }
+
   /// 校验用户输入的多条 EVM RPC。
   ///
   /// 公共 RPC 经常下线、限流或需要 API Key。这里逐条请求 `eth_chainId`，只要有一条

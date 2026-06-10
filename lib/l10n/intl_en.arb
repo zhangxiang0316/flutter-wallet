@@ -11,6 +11,8 @@
   "networkManagement": "Networks",
   "networkManagementTip": "Add EVM-compatible networks only. Custom networks reuse the wallet EVM address and support native coin and token balance lookup.",
   "addNetwork": "Add network",
+  "editNetwork": "Edit network",
+  "saveNetwork": "Save network",
   "removeNetwork": "Remove network",
   "removeNetworkConfirm": "Remove \"{name}\"? Assets on this custom network will no longer be queried.",
   "@removeNetworkConfirm": {
@@ -24,6 +26,7 @@
   "networkRpcUrl": "RPC URL",
   "networkRpcUrlHelper": "One RPC URL per line, or separate them with commas",
   "networkAdded": "Network added",
+  "networkUpdated": "Network updated",
   "networkRemoved": "Network removed",
   "networkDuplicate": "This network already exists",
   "networkInvalid": "Check the network name, symbol, chain ID, and RPC URL",

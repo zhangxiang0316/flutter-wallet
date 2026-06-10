@@ -28,10 +28,9 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name =
-        (locale.countryCode?.isEmpty ?? false)
-            ? locale.languageCode
-            : locale.toString();
+    final name = (locale.countryCode?.isEmpty ?? false)
+        ? locale.languageCode
+        : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -125,6 +124,26 @@ class S {
     return Intl.message('Add network', name: 'addNetwork', desc: '', args: []);
   }
 
+  /// `Edit network`
+  String get editNetwork {
+    return Intl.message(
+      'Edit network',
+      name: 'editNetwork',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Save network`
+  String get saveNetwork {
+    return Intl.message(
+      'Save network',
+      name: 'saveNetwork',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Remove network`
   String get removeNetwork {
     return Intl.message(
@@ -190,6 +209,16 @@ class S {
     return Intl.message(
       'Network added',
       name: 'networkAdded',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network updated`
+  String get networkUpdated {
+    return Intl.message(
+      'Network updated',
+      name: 'networkUpdated',
       desc: '',
       args: [],
     );

@@ -75,6 +75,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "customAssetName": MessageLookupByLibrary.simpleMessage("币种名称"),
     "customAssetSymbol": MessageLookupByLibrary.simpleMessage("币种简称"),
+    "editNetwork": MessageLookupByLibrary.simpleMessage("编辑网络"),
     "editWalletName": MessageLookupByLibrary.simpleMessage("修改钱包名称"),
     "email": MessageLookupByLibrary.simpleMessage("注册"),
     "encryptWallet": MessageLookupByLibrary.simpleMessage("加密钱包"),
@@ -120,6 +121,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "每行一个 RPC 地址，也可以用逗号分隔",
     ),
     "networkSymbol": MessageLookupByLibrary.simpleMessage("原生币简称"),
+    "networkUpdated": MessageLookupByLibrary.simpleMessage("网络已更新"),
     "phone": MessageLookupByLibrary.simpleMessage("手机"),
     "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
       "EVM / SOL / TRX 多链主钱包",
@@ -142,6 +144,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "removeNetworkConfirm": m4,
     "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
     "removeWalletConfirmMessage": m5,
+    "saveNetwork": MessageLookupByLibrary.simpleMessage("保存网络"),
     "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
     "scanCameraError": MessageLookupByLibrary.simpleMessage(
       "相机不可用，请检查相机权限后重试。",

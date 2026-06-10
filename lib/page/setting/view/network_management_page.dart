@@ -68,6 +68,9 @@ class NetworkManagementPage
               onEnabledChanged: chain.isBuiltin
                   ? null
                   : (enabled) => controller.setEnabled(chain, enabled),
+              onEditPressed: chain.isBuiltin
+                  ? null
+                  : () => _showEditNetworkSheet(chain),
               onRemovePressed: chain.isBuiltin
                   ? null
                   : () => _confirmRemoveChain(chain),
@@ -84,7 +87,33 @@ class NetworkManagementPage
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AddNetworkSheet(onSubmit: controller.addEvmChain),
+      builder: (_) => _NetworkFormSheet(onSubmit: controller.addEvmChain),
+    );
+  }
+
+  void _showEditNetworkSheet(WalletChainConfig chain) {
+    showModalBottomSheet(
+      context: context!,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NetworkFormSheet(
+        initialChain: chain,
+        onSubmit:
+            ({
+              required name,
+              required symbol,
+              required chainId,
+              required rpcUrls,
+            }) {
+              return controller.updateEvmChain(
+                chain: chain,
+                name: name,
+                symbol: symbol,
+                rpcUrls: rpcUrls,
+              );
+            },
+      ),
     );
   }
 
@@ -179,6 +208,40 @@ class NetworkManagementController extends BaseController {
     await loadChains();
   }
 
+  Future<bool> updateEvmChain({
+    required WalletChainConfig chain,
+    required String name,
+    required String symbol,
+    required List<String> rpcUrls,
+  }) async {
+    if (isSubmitting) return false;
+    try {
+      isSubmitting = true;
+      update();
+      await _service.updateCustomEvmChain(
+        chainId: chain.id,
+        name: name,
+        symbol: symbol,
+        rpcUrls: rpcUrls,
+      );
+      Toast.show(S.current.networkUpdated);
+      await loadChains();
+      return true;
+    } on WalletChainConfigRpcMismatchException {
+      Toast.show(S.current.networkRpcMismatch);
+      return false;
+    } on WalletChainConfigRpcUnavailableException {
+      Toast.show(S.current.networkRpcUnavailable);
+      return false;
+    } catch (_) {
+      Toast.show(S.current.networkInvalid);
+      return false;
+    } finally {
+      isSubmitting = false;
+      update();
+    }
+  }
+
   Future<void> removeChain(WalletChainConfig chain) async {
     final assets = await _customAssetService.loadCustomAssets();
     await _customAssetService.saveCustomAssets(
@@ -237,11 +300,13 @@ class _NetworkTile extends StatelessWidget {
   const _NetworkTile({
     required this.chain,
     required this.onEnabledChanged,
+    required this.onEditPressed,
     required this.onRemovePressed,
   });
 
   final WalletChainConfig chain;
   final ValueChanged<bool>? onEnabledChanged;
+  final VoidCallback? onEditPressed;
   final VoidCallback? onRemovePressed;
 
   @override
@@ -301,6 +366,16 @@ class _NetworkTile extends StatelessWidget {
             ),
           ),
           Switch(value: chain.isEnabled, onChanged: onEnabledChanged),
+          if (onEditPressed != null)
+            IconButton(
+              tooltip: S.of(context).editNetwork,
+              onPressed: onEditPressed,
+              icon: Icon(
+                Icons.edit_outlined,
+                size: 19.w,
+                color: colorScheme.primary,
+              ),
+            ),
           if (onRemovePressed != null)
             IconButton(
               tooltip: S.of(context).removeNetwork,
@@ -317,8 +392,10 @@ class _NetworkTile extends StatelessWidget {
   }
 }
 
-class _AddNetworkSheet extends StatefulWidget {
-  const _AddNetworkSheet({required this.onSubmit});
+class _NetworkFormSheet extends StatefulWidget {
+  const _NetworkFormSheet({required this.onSubmit, this.initialChain});
+
+  final WalletChainConfig? initialChain;
 
   final Future<bool> Function({
     required String name,
@@ -329,16 +406,29 @@ class _AddNetworkSheet extends StatefulWidget {
   onSubmit;
 
   @override
-  State<_AddNetworkSheet> createState() => _AddNetworkSheetState();
+  State<_NetworkFormSheet> createState() => _NetworkFormSheetState();
 }
 
-class _AddNetworkSheetState extends State<_AddNetworkSheet> {
+class _NetworkFormSheetState extends State<_NetworkFormSheet> {
   final _nameController = TextEditingController();
   final _symbolController = TextEditingController();
   final _chainIdController = TextEditingController();
   final _rpcController = TextEditingController();
 
   bool _isSubmitting = false;
+
+  bool get _isEditing => widget.initialChain != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final chain = widget.initialChain;
+    if (chain == null) return;
+    _nameController.text = chain.name;
+    _symbolController.text = chain.symbol;
+    _chainIdController.text = chain.evmChainId?.toString() ?? '';
+    _rpcController.text = chain.rpcUrls.join('\n');
+  }
 
   @override
   void dispose() {
@@ -383,7 +473,9 @@ class _AddNetworkSheetState extends State<_AddNetworkSheet> {
                 ),
                 SizedBox(height: 14.h),
                 Text(
-                  S.of(context).addNetwork,
+                  _isEditing
+                      ? S.of(context).editNetwork
+                      : S.of(context).addNetwork,
                   style: TextStyle(
                     fontSize: 17.sp,
                     fontWeight: FontWeight.w900,
@@ -410,6 +502,7 @@ class _AddNetworkSheetState extends State<_AddNetworkSheet> {
                   label: S.of(context).networkChainId,
                   hint: '137',
                   keyboardType: TextInputType.number,
+                  readOnly: _isEditing,
                   textInputAction: TextInputAction.next,
                 ),
                 SizedBox(height: 12.h),
@@ -441,7 +534,11 @@ class _AddNetworkSheetState extends State<_AddNetworkSheet> {
                             ),
                           )
                         : Icon(Icons.add_rounded, size: 18.w),
-                    label: Text(S.of(context).addNetwork),
+                    label: Text(
+                      _isEditing
+                          ? S.of(context).saveNetwork
+                          : S.of(context).addNetwork,
+                    ),
                   ),
                 ),
               ],
@@ -493,6 +590,7 @@ class _NetworkTextField extends StatelessWidget {
     this.helperText,
     this.minLines = 1,
     this.maxLines = 1,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
@@ -504,6 +602,7 @@ class _NetworkTextField extends StatelessWidget {
   final String? helperText;
   final int minLines;
   final int maxLines;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -515,6 +614,7 @@ class _NetworkTextField extends StatelessWidget {
       textCapitalization: textCapitalization,
       minLines: minLines,
       maxLines: maxLines,
+      readOnly: readOnly,
       style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
       decoration: InputDecoration(
         labelText: label,

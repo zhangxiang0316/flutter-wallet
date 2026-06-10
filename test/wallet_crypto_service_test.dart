@@ -239,6 +239,35 @@ void main() {
         expect(chain.rpcUrls, contains('https://polygon-rpc-disabled.example'));
       },
     );
+
+    test('updates custom EVM chain metadata and RPC list', () async {
+      SharedPreferences.setMockInitialValues({});
+      final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+      final service = WalletChainConfigService(dio: dio);
+
+      final chain = await service.addCustomEvmChain(
+        name: 'Polygon',
+        symbol: 'matic',
+        evmChainId: 137,
+        rpcUrls: const ['https://polygon-rpc.com'],
+      );
+      final updated = await service.updateCustomEvmChain(
+        chainId: chain.id,
+        name: 'Polygon PoS',
+        symbol: 'pol',
+        rpcUrls: const [
+          'https://polygon-rpc-disabled.example',
+          'https://polygon-bor-rpc.publicnode.com',
+        ],
+      );
+
+      expect(updated.id, chain.id);
+      expect(updated.evmChainId, 137);
+      expect(updated.name, 'Polygon PoS');
+      expect(updated.symbol, 'POL');
+      expect(updated.rpcUrls.first, 'https://polygon-bor-rpc.publicnode.com');
+      expect((await service.loadCustomChains()).single.name, 'Polygon PoS');
+    });
   });
 
   group('WalletSecretStore', () {
