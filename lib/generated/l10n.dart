@@ -1029,6 +1029,66 @@ class S {
     );
   }
 
+  /// `Scan address`
+  String get scanRecipientAddress {
+    return Intl.message(
+      'Scan address',
+      name: 'scanRecipientAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Align the QR code inside the frame to fill the recipient address.`
+  String get scanRecipientAddressTip {
+    return Intl.message(
+      'Align the QR code inside the frame to fill the recipient address.',
+      name: 'scanRecipientAddressTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No wallet address found in this QR code`
+  String get scanNoAddressFound {
+    return Intl.message(
+      'No wallet address found in this QR code',
+      name: 'scanNoAddressFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Camera is unavailable. Check camera permission and try again.`
+  String get scanCameraError {
+    return Intl.message(
+      'Camera is unavailable. Check camera permission and try again.',
+      name: 'scanCameraError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Toggle flash`
+  String get scanToggleFlash {
+    return Intl.message(
+      'Toggle flash',
+      name: 'scanToggleFlash',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Switch camera`
+  String get scanSwitchCamera {
+    return Intl.message(
+      'Switch camera',
+      name: 'scanSwitchCamera',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Transfer details`
   String get transferDetails {
     return Intl.message(

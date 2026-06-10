@@ -152,6 +152,20 @@ class MessageLookup extends MessageLookupByLibrary {
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
     "removeWalletConfirmMessage": m4,
     "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
+    "scanCameraError": MessageLookupByLibrary.simpleMessage(
+      "Camera is unavailable. Check camera permission and try again.",
+    ),
+    "scanNoAddressFound": MessageLookupByLibrary.simpleMessage(
+      "No wallet address found in this QR code",
+    ),
+    "scanRecipientAddress": MessageLookupByLibrary.simpleMessage(
+      "Scan address",
+    ),
+    "scanRecipientAddressTip": MessageLookupByLibrary.simpleMessage(
+      "Align the QR code inside the frame to fill the recipient address.",
+    ),
+    "scanSwitchCamera": MessageLookupByLibrary.simpleMessage("Switch camera"),
+    "scanToggleFlash": MessageLookupByLibrary.simpleMessage("Toggle flash"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("Security notice"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.",

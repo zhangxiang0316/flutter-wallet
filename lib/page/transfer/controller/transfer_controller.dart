@@ -153,6 +153,26 @@ class TransferController extends BaseController {
     _scheduleFeeEstimate();
   }
 
+  /// 将扫码结果写入收款地址输入框。
+  ///
+  /// 二维码可能只包含纯地址，也可能包含 `ethereum:0x...`、`tron:T...` 或
+  /// `solana:<address>?amount=...` 这类 URI。这里会优先按当前链格式提取地址，
+  /// 找不到时再退回到 URI/path/query 中的地址片段。
+  void fillRecipientAddressFromScan(String rawValue) {
+    final address = _extractAddressFromScan(rawValue);
+    if (address == null || address.isEmpty) {
+      Toast.show(S.current.scanNoAddressFound);
+      return;
+    }
+    addressController.text = address;
+    addressController.selection = TextSelection.collapsed(
+      offset: address.length,
+    );
+    transactionHash = '';
+    update();
+    _scheduleFeeEstimate();
+  }
+
   /// 校验当前地址和金额输入是否能进入提交流程。
   ///
   /// 金额会按资产精度转换为链上最小单位，地址会根据链类型分别使用
@@ -359,6 +379,69 @@ class TransferController extends BaseController {
       normalizedContract.isEmpty ? 'native' : normalizedContract,
       asset.symbol.toUpperCase(),
     ].join(':');
+  }
+
+  /// 从扫码内容中提取当前链可用的钱包地址。
+  String? _extractAddressFromScan(String rawValue) {
+    final value = rawValue.trim();
+    if (value.isEmpty) return null;
+
+    final chain = currentAsset?.chain;
+    final chainMatchedAddress = _extractAddressByChain(value, chain);
+    if (chainMatchedAddress != null) return chainMatchedAddress;
+
+    final uri = Uri.tryParse(value);
+    final queryAddress = _extractAddressFromQuery(uri, chain);
+    if (queryAddress != null) return queryAddress;
+
+    final pathAddress = _normalizeScannedAddressCandidate(
+      uri == null || uri.scheme.isEmpty ? value : uri.path,
+    );
+    if (pathAddress == null) return null;
+    return _extractAddressByChain(pathAddress, chain) ?? pathAddress;
+  }
+
+  /// 按当前链地址格式从任意文本中提取地址。
+  String? _extractAddressByChain(String value, WalletChain? chain) {
+    switch (chain) {
+      case WalletChain.bsc:
+      case WalletChain.ethereum:
+      case WalletChain.xLayer:
+        return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
+      case WalletChain.tron:
+        return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
+      case WalletChain.solana:
+        return RegExp(
+          r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
+        ).firstMatch(value)?.group(0);
+      case null:
+        return null;
+    }
+  }
+
+  /// 从 URI query 参数中提取常见地址字段。
+  String? _extractAddressFromQuery(Uri? uri, WalletChain? chain) {
+    if (uri == null) return null;
+    const keys = ['address', 'to', 'recipient'];
+    for (final key in keys) {
+      final candidate = _normalizeScannedAddressCandidate(
+        uri.queryParameters[key],
+      );
+      if (candidate == null) continue;
+      return _extractAddressByChain(candidate, chain) ?? candidate;
+    }
+    return null;
+  }
+
+  /// 清理扫码候选文本。
+  String? _normalizeScannedAddressCandidate(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    final firstLine = trimmed.split(RegExp(r'\s+')).first.trim();
+    final withoutNetwork = firstLine.split('@').first;
+    final withoutPath = withoutNetwork.split('/').first;
+    final withoutQuery = withoutPath.split('?').first;
+    return withoutQuery.isEmpty ? null : withoutQuery;
   }
 
   @override

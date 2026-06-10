@@ -117,6 +117,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
     "removeWalletConfirmMessage": m4,
     "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
+    "scanCameraError": MessageLookupByLibrary.simpleMessage(
+      "相机不可用，请检查相机权限后重试。",
+    ),
+    "scanNoAddressFound": MessageLookupByLibrary.simpleMessage("未在二维码中识别到钱包地址"),
+    "scanRecipientAddress": MessageLookupByLibrary.simpleMessage("扫码地址"),
+    "scanRecipientAddressTip": MessageLookupByLibrary.simpleMessage(
+      "将二维码对准取景框，识别后会自动填写收款地址。",
+    ),
+    "scanSwitchCamera": MessageLookupByLibrary.simpleMessage("切换摄像头"),
+    "scanToggleFlash": MessageLookupByLibrary.simpleMessage("切换闪光灯"),
     "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
     "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
       "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。",

@@ -6,6 +6,7 @@ import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
 import '../controller/transfer_controller.dart';
 import 'widgets/transfer_fee_panel.dart';
+import 'widgets/transfer_address_scanner_page.dart';
 import 'widgets/transfer_form_panel.dart';
 import 'widgets/transfer_hero.dart';
 import 'widgets/transfer_selector_row.dart';
@@ -25,10 +26,19 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
     return TransferController();
   }
 
-  /// 顶部 AppBar，仅提供页面标题和默认返回能力。
+  /// 顶部 AppBar，提供页面标题、默认返回和扫码填地址能力。
   @override
   PreferredSizeWidget? getAppBar() {
-    return AppBar(title: Text(S.of(context!).transfer));
+    return AppBar(
+      title: Text(S.of(context!).transfer),
+      actions: [
+        IconButton(
+          tooltip: S.of(context!).scanRecipientAddress,
+          onPressed: controller.isSubmitting ? null : _scanRecipientAddress,
+          icon: Icon(Icons.qr_code_scanner_rounded, size: 21.w),
+        ),
+      ],
+    );
   }
 
   /// 页面主体。
@@ -74,5 +84,17 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
         ),
       ),
     );
+  }
+
+  /// 打开扫码页面，并把扫码结果写入收款地址输入框。
+  Future<void> _scanRecipientAddress() async {
+    final result = await Navigator.of(context!).push<String>(
+      MaterialPageRoute(
+        builder: (_) => const TransferAddressScannerPage(),
+        fullscreenDialog: true,
+      ),
+    );
+    if (result == null || result.trim().isEmpty) return;
+    controller.fillRecipientAddressFromScan(result);
   }
 }
