@@ -57,7 +57,7 @@ class TransferFeePanel extends StatelessWidget {
                 Text(
                   S.of(context).estimatedNetworkFee,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 12.5.sp,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -81,7 +81,7 @@ class TransferFeePanel extends StatelessWidget {
                         ? S.of(context).feeFallback(estimate.displayText)
                         : estimate.displayText,
                     style: TextStyle(
-                      fontSize: 15.sp,
+                      fontSize: 13.sp,
                       height: 1.25,
                       fontWeight: FontWeight.w900,
                       color: Theme.of(context).colorScheme.onSurface,
@@ -105,7 +105,7 @@ class TransferFeePanel extends StatelessWidget {
   /// 构建手续费说明文本的统一样式。
   TextStyle _feeTextStyle(BuildContext context) {
     return TextStyle(
-      fontSize: 12.sp,
+      fontSize: 11.5.sp,
       height: 1.25,
       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64),
     );

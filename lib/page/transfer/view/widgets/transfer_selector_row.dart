@@ -237,7 +237,7 @@ class _ChainOption extends StatelessWidget {
             chain.symbol.characters.first,
             style: TextStyle(
               color: color,
-              fontSize: 10.sp,
+              fontSize: 9.5.sp,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -248,7 +248,7 @@ class _ChainOption extends StatelessWidget {
             chain.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w800),
+            style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w800),
           ),
         ),
       ],
@@ -280,7 +280,7 @@ class _AssetOption extends StatelessWidget {
             asset.symbol.characters.first.toUpperCase(),
             style: TextStyle(
               color: color,
-              fontSize: 10.sp,
+              fontSize: 9.5.sp,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -291,7 +291,7 @@ class _AssetOption extends StatelessWidget {
             asset.symbol,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -356,7 +356,7 @@ class _FromAddressBox extends StatelessWidget {
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.54),
-                    fontSize: 10.5.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -367,7 +367,7 @@ class _FromAddressBox extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 12.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -407,7 +407,7 @@ InputDecoration _dropdownDecoration(
     fillColor: colorScheme.onSurface.withValues(alpha: 0.035),
     labelStyle: TextStyle(
       color: colorScheme.onSurface.withValues(alpha: 0.56),
-      fontSize: 11.sp,
+      fontSize: 10.5.sp,
       fontWeight: FontWeight.w700,
     ),
     enabledBorder: OutlineInputBorder(

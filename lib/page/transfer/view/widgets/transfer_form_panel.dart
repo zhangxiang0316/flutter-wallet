@@ -54,13 +54,17 @@ class TransferFormPanel extends StatelessWidget {
               ).marginOnly(right: 10.w),
               Text(
                 S.of(context).transferDetails,
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  fontSize: 13.5.sp,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ).marginOnly(bottom: 16.h),
           TextField(
             controller: controller.addressController,
             enabled: !controller.isSubmitting,
+            style: transferInputTextStyle(context),
             decoration: transferInputDecoration(
               context,
               label: S.of(context).recipientAddress,
@@ -71,6 +75,7 @@ class TransferFormPanel extends StatelessWidget {
           TextField(
             controller: controller.amountController,
             enabled: !controller.isSubmitting,
+            style: transferInputTextStyle(context),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: transferInputDecoration(
               context,
@@ -103,7 +108,7 @@ class TransferFormPanel extends StatelessWidget {
                   : const Icon(Icons.outbound_rounded),
               label: Text(
                 S.of(context).confirmTransfer,
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -160,7 +165,7 @@ class TransferFormPanel extends StatelessWidget {
                     child: Text(
                       S.of(sheetContext).unlockWallet,
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -170,7 +175,7 @@ class TransferFormPanel extends StatelessWidget {
               Text(
                 S.of(sheetContext).unlockWalletForTransfer,
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: 11.5.sp,
                   height: 1.35,
                   color: colorScheme.onSurface.withValues(alpha: 0.62),
                 ),
@@ -179,6 +184,7 @@ class TransferFormPanel extends StatelessWidget {
                 controller: passwordController,
                 obscureText: true,
                 autofocus: true,
+                style: transferInputTextStyle(sheetContext),
                 decoration: transferInputDecoration(
                   sheetContext,
                   label: S.of(sheetContext).walletPassword,
@@ -203,7 +209,13 @@ class TransferFormPanel extends StatelessWidget {
                     passwordController.text.trim(),
                   ),
                   icon: const Icon(Icons.verified_user_outlined),
-                  label: Text(S.of(sheetContext).confirmTransfer),
+                  label: Text(
+                    S.of(sheetContext).confirmTransfer,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
             ],

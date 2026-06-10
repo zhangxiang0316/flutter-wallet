@@ -40,6 +40,16 @@ InputDecoration transferInputDecoration(
     hintText: hint,
     suffixText: suffix,
     prefixIcon: Icon(icon),
+    labelStyle: TextStyle(fontSize: 12.sp),
+    hintStyle: TextStyle(
+      fontSize: 12.sp,
+      color: colorScheme.onSurface.withValues(alpha: 0.42),
+    ),
+    suffixStyle: TextStyle(
+      fontSize: 12.sp,
+      fontWeight: FontWeight.w700,
+      color: colorScheme.onSurface.withValues(alpha: 0.62),
+    ),
     filled: true,
     fillColor: colorScheme.onSurface.withValues(alpha: 0.035),
     border: OutlineInputBorder(
@@ -58,6 +68,15 @@ InputDecoration transferInputDecoration(
       borderRadius: BorderRadius.circular(8.r),
       borderSide: BorderSide(color: colorScheme.primary, width: 1.4),
     ),
+  );
+}
+
+/// 转账页面输入文字统一样式。
+TextStyle transferInputTextStyle(BuildContext context) {
+  return TextStyle(
+    fontSize: 13.sp,
+    fontWeight: FontWeight.w600,
+    color: Theme.of(context).colorScheme.onSurface,
   );
 }
 

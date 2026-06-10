@@ -41,7 +41,7 @@ class _TransferAddressScannerPageState
         elevation: 0,
         title: Text(
           S.of(context).scanRecipientAddress,
-          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
+          style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w800),
         ),
         actions: [
           ValueListenableBuilder<MobileScannerState>(
@@ -102,7 +102,7 @@ class _TransferAddressScannerPageState
                       S.of(context).scanRecipientAddressTip,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 12.sp,
+                        fontSize: 11.5.sp,
                         fontWeight: FontWeight.w700,
                         height: 1.35,
                       ),
@@ -269,7 +269,7 @@ class _ScannerError extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.82),
-              fontSize: 13.sp,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w700,
               height: 1.4,
             ),

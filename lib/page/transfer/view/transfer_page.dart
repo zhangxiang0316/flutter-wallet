@@ -30,7 +30,10 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
   @override
   PreferredSizeWidget? getAppBar() {
     return AppBar(
-      title: Text(S.of(context!).transfer),
+      title: Text(
+        S.of(context!).transfer,
+        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
+      ),
       actions: [
         IconButton(
           tooltip: S.of(context!).scanRecipientAddress,

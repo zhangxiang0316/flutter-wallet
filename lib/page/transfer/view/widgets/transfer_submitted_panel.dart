@@ -51,7 +51,7 @@ class TransferSubmittedPanel extends StatelessWidget {
                 child: Text(
                   S.of(context).transferSubmitted,
                   style: TextStyle(
-                    fontSize: 15.sp,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -61,7 +61,7 @@ class TransferSubmittedPanel extends StatelessWidget {
           Text(
             S.of(context).transactionHash,
             style: TextStyle(
-              fontSize: 12.sp,
+              fontSize: 11.sp,
               color: Theme.of(
                 context,
               ).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -80,7 +80,7 @@ class TransferSubmittedPanel extends StatelessWidget {
             child: SelectableText(
               controller.transactionHash,
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w700,
                 height: 1.25,
               ),
@@ -98,7 +98,13 @@ class TransferSubmittedPanel extends StatelessWidget {
                   ),
                   onPressed: controller.copyTransactionHash,
                   icon: const Icon(Icons.copy_rounded),
-                  label: Text(S.of(context).copyHash),
+                  label: Text(
+                    S.of(context).copyHash,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
               SizedBox(width: 10.w),
@@ -111,7 +117,13 @@ class TransferSubmittedPanel extends StatelessWidget {
                     ),
                   ),
                   onPressed: controller.backToWallet,
-                  child: Text(S.of(context).backToWallet),
+                  child: Text(
+                    S.of(context).backToWallet,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
             ],

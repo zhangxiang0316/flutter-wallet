@@ -19,7 +19,7 @@ class TransferUnavailablePanel extends StatelessWidget {
         decoration: transferPanelDecoration(context),
         child: Text(
           S.of(context).transferUnavailable,
-          style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
+          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
         ),
       ),
     );

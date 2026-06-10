@@ -68,7 +68,7 @@ class TransferHero extends StatelessWidget {
                       asset.symbol.characters.first,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -82,7 +82,7 @@ class TransferHero extends StatelessWidget {
                           S.of(context).transferAsset(asset.symbol),
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 22.sp,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -92,7 +92,7 @@ class TransferHero extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.76),
-                            fontSize: 13.sp,
+                            fontSize: 11.5.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -112,7 +112,7 @@ class TransferHero extends StatelessWidget {
                       asset.chain.symbol,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 11.sp,
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -137,7 +137,7 @@ class TransferHero extends StatelessWidget {
                           S.of(context).availableBalance,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.72),
-                            fontSize: 12.sp,
+                            fontSize: 10.5.sp,
                           ),
                         ),
                         Text(
@@ -146,7 +146,7 @@ class TransferHero extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 26.sp,
+                            fontSize: 21.sp,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
