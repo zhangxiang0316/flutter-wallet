@@ -100,6 +100,7 @@ class VantSegmentedControl extends StatelessWidget {
     required this.rightLabel,
     required this.leftSelected,
     required this.onChanged,
+    this.enabled = true,
   });
 
   /// 左侧选项文案。
@@ -113,6 +114,9 @@ class VantSegmentedControl extends StatelessWidget {
 
   /// 选中项变化回调，参数含义同 [leftSelected]。
   final ValueChanged<bool> onChanged;
+
+  /// 是否允许切换选项。
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -129,11 +133,13 @@ class VantSegmentedControl extends StatelessWidget {
           _SegmentItem(
             label: leftLabel,
             selected: leftSelected,
+            enabled: enabled,
             onTap: () => onChanged(true),
           ),
           _SegmentItem(
             label: rightLabel,
             selected: !leftSelected,
+            enabled: enabled,
             onTap: () => onChanged(false),
           ),
         ],
@@ -147,6 +153,7 @@ class _SegmentItem extends StatelessWidget {
   const _SegmentItem({
     required this.label,
     required this.selected,
+    required this.enabled,
     required this.onTap,
   });
 
@@ -155,6 +162,9 @@ class _SegmentItem extends StatelessWidget {
 
   /// 当前选项是否处于选中态。
   final bool selected;
+
+  /// 当前选项是否允许点击。
+  final bool enabled;
 
   /// 点击选项后的切换回调。
   final VoidCallback onTap;
@@ -165,7 +175,7 @@ class _SegmentItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: InkWell(
-        onTap: onTap,
+        onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(6.r),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
@@ -211,6 +221,7 @@ class PasswordTextField extends StatelessWidget {
     required this.controller,
     required this.label,
     this.hint,
+    this.enabled = true,
   });
 
   /// 外部持有的输入控制器，便于表单统一读取和释放。
@@ -222,10 +233,14 @@ class PasswordTextField extends StatelessWidget {
   /// 可选占位提示。
   final String? hint;
 
+  /// 是否允许输入。
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      enabled: enabled,
       obscureText: true,
       decoration: vantInputDecoration(
         context,
@@ -302,6 +317,50 @@ InputDecoration vantInputDecoration(
       borderSide: BorderSide(color: colorScheme.primary, width: 1.2),
     ),
   );
+}
+
+/// 首页钱包弹窗按钮里的 loading 文案。
+///
+/// 创建和导入钱包提交时复用该组件，保持按钮高度不变，只在文案左侧增加进度圈。
+class VantButtonLoadingLabel extends StatelessWidget {
+  const VantButtonLoadingLabel({
+    super.key,
+    required this.label,
+    required this.loading,
+  });
+
+  /// 按钮文案。
+  final String label;
+
+  /// true 时展示进度圈。
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!loading) {
+      return Text(label);
+    }
+
+    final color = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 16.w,
+          height: 16.w,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ],
+    );
+  }
 }
 
 /// 首页钱包弹窗里的主按钮样式。

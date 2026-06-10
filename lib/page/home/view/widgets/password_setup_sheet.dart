@@ -63,7 +63,7 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: widget.isDismissible,
+      canPop: widget.isDismissible && !_isSubmitting,
       child: VantSheet(
         showHandle: widget.isDismissible,
         bottomInset: MediaQuery.of(context).viewInsets.bottom,
@@ -96,10 +96,12 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
         ).marginOnly(bottom: 14.h),
         PasswordTextField(
           controller: _passwordController,
+          enabled: !_isSubmitting,
           label: S.of(context).walletPassword,
         ).marginOnly(bottom: 12.h),
         PasswordTextField(
           controller: _confirmPasswordController,
+          enabled: !_isSubmitting,
           label: S.of(context).confirmWalletPassword,
         ).marginOnly(bottom: 14.h),
         SizedBox(
@@ -107,7 +109,10 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
           child: FilledButton(
             style: vantFilledButtonStyle(context),
             onPressed: _isSubmitting ? null : _submit,
-            child: Text(widget.submitLabel),
+            child: VantButtonLoadingLabel(
+              label: widget.submitLabel,
+              loading: _isSubmitting,
+            ),
           ),
         ),
       ],
@@ -145,6 +150,8 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     // 密码两端都去掉首尾空格，避免创建后用户无法用预期密码解锁。
     final password = _passwordController.text.trim();
     if (!widget.validatePassword(
@@ -155,6 +162,8 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     }
 
     setState(() => _isSubmitting = true);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
 
     // 创建钱包可能返回助记词备份信息，迁移流程通常返回 bool。
     final result = await widget.onSubmit(password);

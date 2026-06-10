@@ -59,64 +59,76 @@ class _ImportWalletSheetState extends State<ImportWalletSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return VantSheet(
-      bottomInset: MediaQuery.of(context).viewInsets.bottom,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          VantSheetTitle(title: S.of(context).importWallet),
-          VantSegmentedControl(
-            leftLabel: S.of(context).importMnemonic,
-            rightLabel: S.of(context).importPrivateKey,
-            leftSelected: _useMnemonic,
-            onChanged: (value) {
-              setState(() {
-                _useMnemonic = value;
-                _secretController.clear();
-              });
-            },
-          ).marginOnly(bottom: 14.h),
-          TextField(
-            controller: _secretController,
-            minLines: _useMnemonic ? 3 : 2,
-            maxLines: _useMnemonic ? 5 : 4,
-            decoration: vantInputDecoration(
-              context,
-              label: _useMnemonic
-                  ? S.of(context).mnemonic
-                  : S.of(context).importPrivateKey,
-              hintText: _useMnemonic
-                  ? S.of(context).mnemonicHint
-                  : S.of(context).privateKeyHint,
-              prefixIcon: _useMnemonic
-                  ? Icons.password_rounded
-                  : Icons.key_rounded,
+    return PopScope(
+      canPop: !_isSubmitting,
+      child: VantSheet(
+        bottomInset: MediaQuery.of(context).viewInsets.bottom,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            VantSheetTitle(title: S.of(context).importWallet),
+            VantSegmentedControl(
+              leftLabel: S.of(context).importMnemonic,
+              rightLabel: S.of(context).importPrivateKey,
+              leftSelected: _useMnemonic,
+              enabled: !_isSubmitting,
+              onChanged: (value) {
+                setState(() {
+                  _useMnemonic = value;
+                  _secretController.clear();
+                });
+              },
+            ).marginOnly(bottom: 14.h),
+            TextField(
+              controller: _secretController,
+              enabled: !_isSubmitting,
+              minLines: _useMnemonic ? 3 : 2,
+              maxLines: _useMnemonic ? 5 : 4,
+              decoration: vantInputDecoration(
+                context,
+                label: _useMnemonic
+                    ? S.of(context).mnemonic
+                    : S.of(context).importPrivateKey,
+                hintText: _useMnemonic
+                    ? S.of(context).mnemonicHint
+                    : S.of(context).privateKeyHint,
+                prefixIcon: _useMnemonic
+                    ? Icons.password_rounded
+                    : Icons.key_rounded,
+              ),
+            ).marginOnly(bottom: 14.h),
+            PasswordTextField(
+              controller: _passwordController,
+              enabled: !_isSubmitting,
+              label: S.of(context).walletPassword,
+              hint: S.of(context).walletPasswordHint,
+            ).marginOnly(bottom: 12.h),
+            PasswordTextField(
+              controller: _confirmPasswordController,
+              enabled: !_isSubmitting,
+              label: S.of(context).confirmWalletPassword,
+            ).marginOnly(bottom: 14.h),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: vantFilledButtonStyle(context),
+                onPressed: _isSubmitting ? null : _submit,
+                child: VantButtonLoadingLabel(
+                  label: S.of(context).confirmImport,
+                  loading: _isSubmitting,
+                ),
+              ),
             ),
-          ).marginOnly(bottom: 14.h),
-          PasswordTextField(
-            controller: _passwordController,
-            label: S.of(context).walletPassword,
-            hint: S.of(context).walletPasswordHint,
-          ).marginOnly(bottom: 12.h),
-          PasswordTextField(
-            controller: _confirmPasswordController,
-            label: S.of(context).confirmWalletPassword,
-          ).marginOnly(bottom: 14.h),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: vantFilledButtonStyle(context),
-              onPressed: _isSubmitting ? null : _submit,
-              child: Text(S.of(context).confirmImport),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     // 密码两端都去掉首尾空格，避免用户误输入空格导致无法解锁。
     final password = _passwordController.text.trim();
     if (!widget.validatePassword(
@@ -127,6 +139,8 @@ class _ImportWalletSheetState extends State<ImportWalletSheet> {
     }
 
     setState(() => _isSubmitting = true);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
 
     // 根据当前导入模式调用对应控制器方法。
     final ok = _useMnemonic
