@@ -40,7 +40,7 @@ class NetworkManagementPage
       centerTitle: true,
       title: Text(
         S.of(context!).networkManagement,
-        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
+        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
         IconButton(
@@ -292,7 +292,7 @@ class _NetworkIntroCard extends StatelessWidget {
               S.of(context).networkManagementTip,
               style: TextStyle(
                 color: colorScheme.onSurface.withValues(alpha: 0.68),
-                fontSize: 12.sp,
+                fontSize: 11.sp,
                 height: 1.35,
                 fontWeight: FontWeight.w700,
               ),
@@ -338,7 +338,7 @@ class _NetworkTile extends StatelessWidget {
               chain.symbol.characters.first,
               style: TextStyle(
                 color: color,
-                fontSize: 13.sp,
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -353,7 +353,7 @@ class _NetworkTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -366,7 +366,7 @@ class _NetworkTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: colorScheme.onSurface.withValues(alpha: 0.52),
-                    fontSize: 11.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -488,7 +488,7 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
                       ? S.of(context).editNetwork
                       : S.of(context).addNetwork,
                   style: TextStyle(
-                    fontSize: 17.sp,
+                    fontSize: 15.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -536,6 +536,12 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
                   width: double.infinity,
                   height: 44.h,
                   child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      textStyle: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     onPressed: _isSubmitting ? null : _submit,
                     icon: _isSubmitting
                         ? SizedBox(
@@ -633,11 +639,32 @@ class _NetworkTextField extends StatelessWidget {
       minLines: minLines,
       maxLines: maxLines,
       readOnly: readOnly,
-      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
+      style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         helperText: helperText,
+        labelStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.64),
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w700,
+        ),
+        floatingLabelStyle: TextStyle(
+          color: colorScheme.primary,
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w800,
+        ),
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.36),
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w600,
+        ),
+        helperStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.5),
+          fontSize: 10.sp,
+          height: 1.25,
+          fontWeight: FontWeight.w600,
+        ),
         isDense: true,
         filled: true,
         fillColor: colorScheme.onSurface.withValues(alpha: 0.035),
