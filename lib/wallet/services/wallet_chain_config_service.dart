@@ -25,6 +25,8 @@ class WalletChainConfigService {
   final Dio _dio;
 
   static const String _customChainsKey = 'wallet_custom_evm_chains';
+  static const String _builtinChainOverridesKey =
+      'wallet_builtin_chain_overrides';
   static const Duration _requestTimeout = Duration(seconds: 10);
 
   /// 内置链列表。
@@ -36,15 +38,42 @@ class WalletChainConfigService {
         .toList(growable: false);
   }
 
+  /// 读取应用内置链，并合并用户保存的覆盖配置。
+  ///
+  /// 内置链不能删除，也不能修改 id/type/chainId；这里仅允许覆盖名称、简称和 RPC。
+  Future<List<WalletChainConfig>> loadBuiltinChains() async {
+    final overrides = await _loadBuiltinChainOverrides();
+    return WalletChain.values
+        .map((chain) {
+          final base = chain.config;
+          final override = overrides[chain.id];
+          if (override == null) {
+            return base;
+          }
+          return base.copyWith(
+            name: override.name.trim().isEmpty
+                ? base.name
+                : override.name.trim(),
+            symbol: override.symbol.trim().isEmpty
+                ? base.symbol
+                : override.symbol.trim().toUpperCase(),
+            rpcUrls: override.rpcUrls.isEmpty ? base.rpcUrls : override.rpcUrls,
+            colorValue: override.colorValue,
+            isEnabled: true,
+          );
+        })
+        .toList(growable: false);
+  }
+
   /// 读取所有启用链，包括内置链和用户添加的 EVM 链。
   Future<List<WalletChainConfig>> loadEnabledChains() async {
-    final chains = [...builtinChains(), ...await loadCustomChains()];
+    final chains = [...await loadBuiltinChains(), ...await loadCustomChains()];
     return chains.where((chain) => chain.isEnabled).toList(growable: false);
   }
 
   /// 读取设置页需要展示的所有链。
   Future<List<WalletChainConfig>> loadAllChains() async {
-    return [...builtinChains(), ...await loadCustomChains()];
+    return [...await loadBuiltinChains(), ...await loadCustomChains()];
   }
 
   /// 读取用户添加的 EVM 链。
@@ -69,6 +98,38 @@ class WalletChainConfigService {
         .map((chain) => chain.toJson())
         .toList(growable: false);
     return _storage.setStorage(_customChainsKey, values);
+  }
+
+  /// 读取内置链覆盖配置。
+  Future<Map<String, WalletChainConfig>> _loadBuiltinChainOverrides() async {
+    final value = await _storage.getStorage(_builtinChainOverridesKey);
+    if (value is! List) {
+      return {};
+    }
+    final builtinIds = WalletChain.values.map((chain) => chain.id).toSet();
+    final overrides = <String, WalletChainConfig>{};
+    for (final item in value.whereType<Map>()) {
+      final config = WalletChainConfig.fromJson(
+        Map<String, dynamic>.from(item),
+      );
+      if (builtinIds.contains(config.id) && config.rpcUrls.isNotEmpty) {
+        overrides[config.id] = config;
+      }
+    }
+    return overrides;
+  }
+
+  /// 保存内置链覆盖配置。
+  Future<void> _saveBuiltinChainOverrides(
+    Map<String, WalletChainConfig> overrides,
+  ) {
+    final builtinIds = WalletChain.values.map((chain) => chain.id).toSet();
+    final values = [
+      for (final chain in overrides.values)
+        if (builtinIds.contains(chain.id) && chain.rpcUrls.isNotEmpty)
+          chain.toJson(),
+    ];
+    return _storage.setStorage(_builtinChainOverridesKey, values);
   }
 
   /// 根据 ID 查找链配置。
@@ -193,6 +254,51 @@ class WalletChainConfigService {
     );
     customChains[index] = nextChain;
     await saveCustomChains(customChains);
+    return nextChain;
+  }
+
+  /// 更新内置链的覆盖配置。
+  ///
+  /// 内置链的 id、type 和 evmChainId 固定不变。EVM 内置链会校验 RPC 返回的 chainId；
+  /// Solana/TRON 暂只校验 URL 格式和非空，余额查询会优先使用这里保存的 RPC。
+  Future<WalletChainConfig> updateBuiltinChain({
+    required String chainId,
+    required String name,
+    required String symbol,
+    required List<String> rpcUrls,
+  }) async {
+    final builtin = WalletChain.values.cast<WalletChain?>().firstWhere(
+      (chain) => chain?.id == chainId,
+      orElse: () => null,
+    );
+    if (builtin == null) {
+      throw const WalletChainConfigInvalidException();
+    }
+    final base = builtin.config;
+    final normalizedName = name.trim();
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    final normalizedRpcUrls = _normalizeRpcUrls(rpcUrls);
+    if (normalizedName.isEmpty ||
+        normalizedSymbol.isEmpty ||
+        normalizedRpcUrls.isEmpty) {
+      throw const WalletChainConfigInvalidException();
+    }
+
+    final workingRpcUrls = base.isEvm
+        ? await _validateEvmRpcUrls(
+            rpcUrls: normalizedRpcUrls,
+            evmChainId: base.evmChainId!,
+          )
+        : normalizedRpcUrls;
+    final nextChain = base.copyWith(
+      name: normalizedName,
+      symbol: normalizedSymbol,
+      rpcUrls: workingRpcUrls,
+      isEnabled: true,
+    );
+    final overrides = await _loadBuiltinChainOverrides();
+    overrides[chainId] = nextChain;
+    await _saveBuiltinChainOverrides(overrides);
     return nextChain;
   }
 

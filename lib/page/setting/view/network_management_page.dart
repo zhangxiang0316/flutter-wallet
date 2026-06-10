@@ -14,7 +14,8 @@ import '../../../wallet/services/wallet_custom_asset_service.dart';
 @GetXRoutePage('/networkManagement')
 /// 网络管理页面。
 ///
-/// 第一版只允许用户新增 EVM 网络。内置链不可删除；用户添加的链可以隐藏或删除。
+/// 第一版只允许用户新增 EVM 网络。内置链不可删除，但可以编辑名称、简称和 RPC；
+/// 用户添加的链可以隐藏、编辑或删除。
 // ignore: use_key_in_widget_constructors, must_be_immutable
 class NetworkManagementPage
     extends BaseScaffoldPage<NetworkManagementController> {
@@ -68,9 +69,7 @@ class NetworkManagementPage
               onEnabledChanged: chain.isBuiltin
                   ? null
                   : (enabled) => controller.setEnabled(chain, enabled),
-              onEditPressed: chain.isBuiltin
-                  ? null
-                  : () => _showEditNetworkSheet(chain),
+              onEditPressed: () => _showEditNetworkSheet(chain),
               onRemovePressed: chain.isBuiltin
                   ? null
                   : () => _confirmRemoveChain(chain),
@@ -106,7 +105,7 @@ class NetworkManagementPage
               required chainId,
               required rpcUrls,
             }) {
-              return controller.updateEvmChain(
+              return controller.updateNetwork(
                 chain: chain,
                 name: name,
                 symbol: symbol,
@@ -208,7 +207,7 @@ class NetworkManagementController extends BaseController {
     await loadChains();
   }
 
-  Future<bool> updateEvmChain({
+  Future<bool> updateNetwork({
     required WalletChainConfig chain,
     required String name,
     required String symbol,
@@ -218,12 +217,21 @@ class NetworkManagementController extends BaseController {
     try {
       isSubmitting = true;
       update();
-      await _service.updateCustomEvmChain(
-        chainId: chain.id,
-        name: name,
-        symbol: symbol,
-        rpcUrls: rpcUrls,
-      );
+      if (chain.isBuiltin) {
+        await _service.updateBuiltinChain(
+          chainId: chain.id,
+          name: name,
+          symbol: symbol,
+          rpcUrls: rpcUrls,
+        );
+      } else {
+        await _service.updateCustomEvmChain(
+          chainId: chain.id,
+          name: name,
+          symbol: symbol,
+          rpcUrls: rpcUrls,
+        );
+      }
       Toast.show(S.current.networkUpdated);
       await loadChains();
       return true;
@@ -419,6 +427,9 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
 
   bool get _isEditing => widget.initialChain != null;
 
+  bool get _requiresChainId =>
+      !_isEditing || (widget.initialChain?.isEvm ?? true);
+
   @override
   void initState() {
     super.initState();
@@ -497,15 +508,17 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
                   textInputAction: TextInputAction.next,
                 ),
                 SizedBox(height: 12.h),
-                _NetworkTextField(
-                  controller: _chainIdController,
-                  label: S.of(context).networkChainId,
-                  hint: '137',
-                  keyboardType: TextInputType.number,
-                  readOnly: _isEditing,
-                  textInputAction: TextInputAction.next,
-                ),
-                SizedBox(height: 12.h),
+                if (_requiresChainId) ...[
+                  _NetworkTextField(
+                    controller: _chainIdController,
+                    label: S.of(context).networkChainId,
+                    hint: widget.initialChain?.evmChainId?.toString() ?? '137',
+                    keyboardType: TextInputType.number,
+                    readOnly: _isEditing,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  SizedBox(height: 12.h),
+                ],
                 _NetworkTextField(
                   controller: _rpcController,
                   label: S.of(context).networkRpcUrl,
@@ -533,7 +546,12 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
                               color: colorScheme.onPrimary,
                             ),
                           )
-                        : Icon(Icons.add_rounded, size: 18.w),
+                        : Icon(
+                            _isEditing
+                                ? Icons.save_outlined
+                                : Icons.add_rounded,
+                            size: 18.w,
+                          ),
                     label: Text(
                       _isEditing
                           ? S.of(context).saveNetwork
@@ -556,7 +574,7 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
         .map((url) => url.trim())
         .where((url) => url.isNotEmpty)
         .toList(growable: false);
-    if (chainId == null || rpcUrls.isEmpty) {
+    if ((_requiresChainId && chainId == null) || rpcUrls.isEmpty) {
       Toast.show(S.current.networkInvalid);
       return;
     }
@@ -566,7 +584,7 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
     final success = await widget.onSubmit(
       name: _nameController.text,
       symbol: _symbolController.text,
-      chainId: chainId,
+      chainId: chainId ?? widget.initialChain?.evmChainId ?? 0,
       rpcUrls: rpcUrls,
     );
     if (!mounted) return;

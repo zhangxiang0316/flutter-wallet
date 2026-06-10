@@ -115,6 +115,8 @@ class ChainBalanceService {
     final customAssets = await _customAssetService.loadCustomAssets();
     final enabledChains = await _chainConfigService.loadEnabledChains();
     final evmChains = enabledChains.where((chain) => chain.isEvm);
+    final solanaChain = _builtinChainConfig(enabledChains, WalletChain.solana);
+    final tronChain = _builtinChainConfig(enabledChains, WalletChain.tron);
     final results = await Future.wait([
       ...evmChains.map(
         (chain) => _loadEvmBalances(
@@ -126,7 +128,11 @@ class ChainBalanceService {
           address: bscAddress,
         ),
       ),
-      _loadSolanaBalances(solanaAddress, customAssets).timeout(
+      _loadSolanaBalances(
+        chain: solanaChain,
+        address: solanaAddress,
+        customAssets: customAssets,
+      ).timeout(
         _solanaChainTimeout,
         onTimeout: () {
           const error = 'Solana balance lookup timed out';
@@ -135,13 +141,18 @@ class ChainBalanceService {
             name: 'ChainBalanceService',
           );
           return _fallbackSolanaBalances(
-            solanaAddress,
-            customAssets,
+            chain: solanaChain,
+            address: solanaAddress,
+            customAssets: customAssets,
             error: error,
           );
         },
       ),
-      _loadTronBalances(tronAddress, customAssets),
+      _loadTronBalances(
+        chain: tronChain,
+        address: tronAddress,
+        customAssets: customAssets,
+      ),
     ]);
     final balances = results.expand((items) => items).toList();
     _printLoadedBalances(results, balances);
@@ -194,17 +205,63 @@ class ChainBalanceService {
       return _evmRpcFallbacks[chain]!;
     }
     if (chain is WalletChainConfig && chain.builtinChain != null) {
-      return _evmRpcFallbacks[chain.builtinChain] ?? chain.rpcUrls;
+      return _rpcUrlsWithFallbacks(
+        chain.rpcUrls,
+        _evmRpcFallbacks[chain.builtinChain] ?? const [],
+      );
     }
     return [chain.rpcUrl];
+  }
+
+  /// 从启用链列表中取内置链配置。
+  ///
+  /// 正常情况下内置链一定存在；兜底返回 enum 默认配置，避免本地配置异常时中断余额刷新。
+  WalletChainConfig _builtinChainConfig(
+    List<WalletChainConfig> chains,
+    WalletChain builtin,
+  ) {
+    for (final chain in chains) {
+      if (chain.builtinChain == builtin || chain.id == builtin.id) {
+        return chain;
+      }
+    }
+    return builtin.config;
+  }
+
+  /// 合并用户配置 RPC 与内置备用 RPC，并保持顺序去重。
+  List<String> _rpcUrlsWithFallbacks(
+    List<String> rpcUrls,
+    List<String> fallbackRpcUrls,
+  ) {
+    final values = <String>{};
+    for (final url in [...rpcUrls, ...fallbackRpcUrls]) {
+      final normalized = url.trim();
+      if (normalized.isNotEmpty) {
+        values.add(normalized);
+      }
+    }
+    return values.isEmpty ? const [] : values.toList(growable: false);
+  }
+
+  /// 返回 TRON 链可尝试的 HTTP/RPC 地址。
+  List<String> _tronRpcUrls(WalletChainConfig chain) {
+    return _rpcUrlsWithFallbacks(chain.rpcUrls, _tronRpcFallbacks);
+  }
+
+  /// 返回 Solana 链可尝试的 JSON-RPC 地址。
+  List<String> _solanaRpcUrls(WalletChainConfig chain) {
+    return _rpcUrlsWithFallbacks(chain.rpcUrls, _solanaRpcFallbacks);
   }
 
   /// 查询 TRON 账号基础信息。
   ///
   /// 返回数据里包含 TRX 原生余额。TRC20 列表使用另一个 HTTP API 查询。
-  Future<Map<dynamic, dynamic>> _postTronAccount(String address) async {
+  Future<Map<dynamic, dynamic>> _postTronAccount(
+    WalletChainConfig chain,
+    String address,
+  ) async {
     Object? lastError;
-    for (final rpcUrl in _tronRpcFallbacks) {
+    for (final rpcUrl in _tronRpcUrls(chain)) {
       try {
         final response = await _dio.post(
           '$rpcUrl/wallet/getaccount',
@@ -238,11 +295,12 @@ class ChainBalanceService {
   ///
   /// Solana 使用更短的单请求超时，并在多个公共节点之间 fallback。
   Future<Map<dynamic, dynamic>> _postSolanaRpc({
+    required WalletChainConfig chain,
     required Map<String, dynamic> data,
     bool Function(Object? error)? returnErrorWhen,
   }) async {
     Object? lastError;
-    for (final rpcUrl in _solanaRpcFallbacks) {
+    for (final rpcUrl in _solanaRpcUrls(chain)) {
       try {
         final response = await _dio.post(
           rpcUrl,
@@ -428,41 +486,52 @@ class ChainBalanceService {
   ///
   /// TRX 原生余额和 TRC20 余额走不同接口。返回时会保证已知代币都在列表中：
   /// 没查到的已知代币补 0，接口返回但资产表未知的 TRC20 也保留展示。
-  Future<List<ChainBalance>> _loadTronBalances(
-    String address,
-    List<WalletAsset> customAssets,
-  ) async {
-    final nativeBalance = await _loadTronNativeBalance(address);
-    final tokenBalances = await _loadTronTokenBalances(address, customAssets);
+  Future<List<ChainBalance>> _loadTronBalances({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> customAssets,
+  }) async {
+    final nativeBalance = await _loadTronNativeBalance(
+      chain: chain,
+      address: address,
+    );
+    final tokenBalances = await _loadTronTokenBalances(
+      chain: chain,
+      address: address,
+      customAssets: customAssets,
+    );
     final tokenMap = {
       for (final balance in tokenBalances)
         if (balance.contractAddress != null) balance.contractAddress!: balance,
     };
-    final knownTokens =
-        WalletAssetRegistry.mergeCustomAssets(
-          WalletChain.tron,
+    final configuredAssets =
+        WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+          chain,
           customAssets,
-        ).where((asset) => !asset.isNative).map((asset) {
-          return tokenMap[asset.contractAddress] ??
-              ChainBalance(
-                chain: WalletChain.tron,
-                symbol: asset.symbol,
-                name: asset.name,
-                amount: '0',
-                address: address,
-                contractAddress: asset.contractAddress,
-                decimals: asset.decimals,
-              );
-        });
+        );
+    final knownTokens = configuredAssets.where((asset) => !asset.isNative).map((
+      asset,
+    ) {
+      return tokenMap[asset.contractAddress] ??
+          ChainBalance.config(
+            chainConfig: chain,
+            symbol: asset.symbol,
+            name: asset.name,
+            amount: '0',
+            address: address,
+            contractAddress: asset.contractAddress,
+            decimals: asset.decimals,
+          );
+    });
+    final knownContracts = configuredAssets
+        .where((asset) => !asset.isNative)
+        .map((asset) => asset.contractAddress)
+        .whereType<String>()
+        .toSet();
     final unknownTokens = tokenBalances.where((balance) {
       final contractAddress = balance.contractAddress;
       return contractAddress != null &&
-          WalletAssetRegistry.findAssetByContract(
-                WalletChain.tron,
-                contractAddress,
-                customAssets: customAssets,
-              ) ==
-              null;
+          !knownContracts.contains(contractAddress);
     });
     return [nativeBalance, ...knownTokens, ...unknownTokens];
   }
@@ -471,23 +540,35 @@ class ChainBalanceService {
   ///
   /// 空地址直接返回 0 余额兜底。正常情况下会并发查询 SOL 原生余额和当前配置的
   /// SPL Token 余额。
-  Future<List<ChainBalance>> _loadSolanaBalances(
-    String address,
-    List<WalletAsset> customAssets,
-  ) async {
+  Future<List<ChainBalance>> _loadSolanaBalances({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> customAssets,
+  }) async {
     if (address.trim().isEmpty) {
-      return _fallbackSolanaBalances(address, customAssets);
+      return _fallbackSolanaBalances(
+        chain: chain,
+        address: address,
+        customAssets: customAssets,
+      );
     }
 
-    final solanaAssets = WalletAssetRegistry.mergeCustomAssets(
-      WalletChain.solana,
+    final solanaAssets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+      chain,
       customAssets,
     );
     final tokenAssets = solanaAssets
         .where((asset) => !asset.isNative)
         .toList(growable: false);
-    final nativeBalanceFuture = _loadSolanaNativeBalance(address);
-    final tokenBalancesFuture = _loadSolanaTokenBalances(address, tokenAssets);
+    final nativeBalanceFuture = _loadSolanaNativeBalance(
+      chain: chain,
+      address: address,
+    );
+    final tokenBalancesFuture = _loadSolanaTokenBalances(
+      chain: chain,
+      address: address,
+      assets: tokenAssets,
+    );
     final nativeBalance = await nativeBalanceFuture;
     final tokenBalances = await tokenBalancesFuture;
     return [nativeBalance, ...tokenBalances];
@@ -496,18 +577,19 @@ class ChainBalanceService {
   /// 构造 Solana 资产的 0 余额兜底列表。
   ///
   /// 用于 Solana 地址缺失、RPC 超时或整链查询不可用时，保证 UI 仍有稳定结构。
-  List<ChainBalance> _fallbackSolanaBalances(
-    String address,
-    List<WalletAsset> customAssets, {
+  List<ChainBalance> _fallbackSolanaBalances({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> customAssets,
     String? error,
   }) {
-    return WalletAssetRegistry.mergeCustomAssets(
-          WalletChain.solana,
+    return WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+          chain,
           customAssets,
         )
         .map(
-          (asset) => ChainBalance(
-            chain: WalletChain.solana,
+          (asset) => ChainBalance.config(
+            chainConfig: chain,
             symbol: asset.symbol,
             name: asset.name,
             amount: '0',
@@ -523,10 +605,14 @@ class ChainBalanceService {
   /// 查询 SOL 原生余额。
   ///
   /// Solana 节点返回 lamports，需要按 SOL 的 decimals 转换成人类可读数量。
-  Future<ChainBalance> _loadSolanaNativeBalance(String address) async {
+  Future<ChainBalance> _loadSolanaNativeBalance({
+    required WalletChainConfig chain,
+    required String address,
+  }) async {
     final asset = WalletAssetRegistry.solanaAssets.first;
     try {
       final data = await _postSolanaRpc(
+        chain: chain,
         data: {
           'jsonrpc': '2.0',
           'id': 1,
@@ -539,8 +625,8 @@ class ChainBalanceService {
       final lamports = value is int
           ? BigInt.from(value)
           : BigInt.tryParse(value?.toString() ?? '0') ?? BigInt.zero;
-      return ChainBalance(
-        chain: WalletChain.solana,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: _formatUnits(lamports, asset.decimals),
@@ -552,8 +638,8 @@ class ChainBalanceService {
         'Solana native balance failed; using zero fallback: $e',
         name: 'ChainBalanceService',
       );
-      return ChainBalance(
-        chain: WalletChain.solana,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',
@@ -569,17 +655,18 @@ class ChainBalanceService {
   /// 默认优先计算 ATA 并调用 `getTokenAccountBalance` 直查余额。这个接口不需要
   /// 扫描 owner 下的账户，公共节点兼容性比 `getTokenAccountsByOwner` 更好。
   Future<ChainBalance> _loadSolanaTokenBalance(
+    WalletChainConfig chain,
     String address,
     WalletAsset asset,
   ) async {
     try {
-      return await _loadSolanaAssociatedTokenBalance(address, asset);
+      return await _loadSolanaAssociatedTokenBalance(chain, address, asset);
     } catch (e) {
       developer.log(
         'Solana ${asset.symbol} ATA balance failed; falling back to owner lookup: $e',
         name: 'ChainBalanceService',
       );
-      return _loadSolanaTokenBalanceByOwner(address, asset);
+      return _loadSolanaTokenBalanceByOwner(chain, address, asset);
     }
   }
 
@@ -588,12 +675,13 @@ class ChainBalanceService {
   /// ATA 未创建时，链上会返回 account not found，这代表该币种余额为 0，不应当标记
   /// 为查询失败。
   Future<ChainBalance> _loadSolanaAssociatedTokenBalance(
+    WalletChainConfig chain,
     String address,
     WalletAsset asset,
   ) async {
     final contractAddress = asset.contractAddress;
     if (contractAddress == null || contractAddress.trim().isEmpty) {
-      return _zeroSolanaTokenBalance(address, asset);
+      return _zeroSolanaTokenBalance(chain, address, asset);
     }
 
     final owner = Ed25519HDPublicKey.fromBase58(address);
@@ -603,6 +691,7 @@ class ChainBalanceService {
       mint: mint,
     );
     final data = await _postSolanaRpc(
+      chain: chain,
       data: {
         'jsonrpc': '2.0',
         'id': 1,
@@ -612,7 +701,7 @@ class ChainBalanceService {
       returnErrorWhen: _isSolanaTokenAccountNotFoundError,
     );
     if (data['error'] != null) {
-      return _zeroSolanaTokenBalance(address, asset);
+      return _zeroSolanaTokenBalance(chain, address, asset);
     }
 
     final result = data['result'];
@@ -628,8 +717,8 @@ class ChainBalanceService {
     final decimals = decimalsValue is int
         ? decimalsValue
         : int.tryParse(decimalsValue?.toString() ?? '') ?? asset.decimals;
-    return ChainBalance(
-      chain: WalletChain.solana,
+    return ChainBalance.config(
+      chainConfig: chain,
       symbol: asset.symbol,
       name: asset.name,
       amount: _formatUnits(rawAmount, decimals),
@@ -644,11 +733,13 @@ class ChainBalanceService {
   /// 该路径只作为 ATA 直查失败后的兜底。接口返回的是最小单位字符串，需要按
   /// decimals 格式化。
   Future<ChainBalance> _loadSolanaTokenBalanceByOwner(
+    WalletChainConfig chain,
     String address,
     WalletAsset asset,
   ) async {
     try {
       final data = await _postSolanaRpc(
+        chain: chain,
         data: {
           'jsonrpc': '2.0',
           'id': 1,
@@ -688,8 +779,8 @@ class ChainBalanceService {
             : null;
         rawAmountTotal += BigInt.tryParse(rawAmount ?? '0') ?? BigInt.zero;
       }
-      return ChainBalance(
-        chain: WalletChain.solana,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: _formatUnits(rawAmountTotal, decimals),
@@ -702,8 +793,8 @@ class ChainBalanceService {
         'Solana ${asset.symbol} balance failed; using zero fallback: $e',
         name: 'ChainBalanceService',
       );
-      return ChainBalance(
-        chain: WalletChain.solana,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',
@@ -716,9 +807,13 @@ class ChainBalanceService {
   }
 
   /// 构造 Solana token 的 0 余额记录。
-  ChainBalance _zeroSolanaTokenBalance(String address, WalletAsset asset) {
-    return ChainBalance(
-      chain: WalletChain.solana,
+  ChainBalance _zeroSolanaTokenBalance(
+    WalletChainConfig chain,
+    String address,
+    WalletAsset asset,
+  ) {
+    return ChainBalance.config(
+      chainConfig: chain,
       symbol: asset.symbol,
       name: asset.name,
       amount: '0',
@@ -744,16 +839,17 @@ class ChainBalanceService {
   /// 默认先按 mint 分别查询 USDT、USDC 等已配置资产，这是 Solana 公共节点最轻量
   /// 且兼容性最好的路径。只有某些 mint 查询失败时，才按 Token Program 拉取当前
   /// owner 的全部 token account 作为兜底，再按 mint 本地汇总。
-  Future<List<ChainBalance>> _loadSolanaTokenBalances(
-    String address,
-    List<WalletAsset> assets,
-  ) async {
+  Future<List<ChainBalance>> _loadSolanaTokenBalances({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+  }) async {
     if (assets.isEmpty) {
       return [];
     }
 
     final perMintBalances = await Future.wait(
-      assets.map((asset) => _loadSolanaTokenBalance(address, asset)),
+      assets.map((asset) => _loadSolanaTokenBalance(chain, address, asset)),
     );
     final failedIndexes = <int>[];
     for (var index = 0; index < perMintBalances.length; index++) {
@@ -766,11 +862,15 @@ class ChainBalanceService {
     }
 
     try {
-      final tokenAccounts = await _loadSolanaTokenAccountsByOwner(address);
+      final tokenAccounts = await _loadSolanaTokenAccountsByOwner(
+        chain: chain,
+        address: address,
+      );
       final nextBalances = [...perMintBalances];
       for (final index in failedIndexes) {
         final asset = assets[index];
         nextBalances[index] = _buildSolanaTokenBalance(
+          chain,
           address,
           asset,
           tokenAccounts,
@@ -787,10 +887,12 @@ class ChainBalanceService {
   }
 
   /// 拉取当前 Solana 地址持有的全部 SPL Token account，并按 mint 汇总。
-  Future<Map<String, _SolanaTokenBalance>> _loadSolanaTokenAccountsByOwner(
-    String address,
-  ) async {
+  Future<Map<String, _SolanaTokenBalance>> _loadSolanaTokenAccountsByOwner({
+    required WalletChainConfig chain,
+    required String address,
+  }) async {
     final data = await _postSolanaRpc(
+      chain: chain,
       data: {
         'jsonrpc': '2.0',
         'id': 1,
@@ -838,14 +940,15 @@ class ChainBalanceService {
 
   /// 根据已汇总的 Solana token account 余额构造单个资产余额。
   ChainBalance _buildSolanaTokenBalance(
+    WalletChainConfig chain,
     String address,
     WalletAsset asset,
     Map<String, _SolanaTokenBalance> tokenAccounts,
   ) {
     final tokenBalance = tokenAccounts[asset.contractAddress];
     final decimals = tokenBalance?.decimals ?? asset.decimals;
-    return ChainBalance(
-      chain: WalletChain.solana,
+    return ChainBalance.config(
+      chainConfig: chain,
       symbol: asset.symbol,
       name: asset.name,
       amount: _formatUnits(tokenBalance?.rawAmount ?? BigInt.zero, decimals),
@@ -866,16 +969,19 @@ class ChainBalanceService {
   /// 查询 TRX 原生余额。
   ///
   /// TRON 账号接口返回的 balance 单位是 sun，需要按 TRX decimals 转换。
-  Future<ChainBalance> _loadTronNativeBalance(String address) async {
+  Future<ChainBalance> _loadTronNativeBalance({
+    required WalletChainConfig chain,
+    required String address,
+  }) async {
     final asset = WalletAssetRegistry.tronAssets.first;
     try {
-      final data = await _postTronAccount(address);
+      final data = await _postTronAccount(chain, address);
       final balance = data['balance'];
       final sun = balance is int
           ? BigInt.from(balance)
           : BigInt.tryParse(balance?.toString() ?? '0') ?? BigInt.zero;
-      return ChainBalance(
-        chain: WalletChain.tron,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: _formatUnits(sun, asset.decimals),
@@ -883,8 +989,8 @@ class ChainBalanceService {
         decimals: asset.decimals,
       );
     } catch (e) {
-      return ChainBalance(
-        chain: WalletChain.tron,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',
@@ -899,72 +1005,88 @@ class ChainBalanceService {
   ///
   /// TRONGrid 账号接口会返回账号持有的 TRC20 合约和原始余额。已知合约会映射成
   /// 资产名称和 decimals；未知合约保留为 `TRC20`，方便后续用户添加自定义资产。
-  Future<List<ChainBalance>> _loadTronTokenBalances(
-    String address,
-    List<WalletAsset> customAssets,
-  ) async {
-    try {
-      final response = await _dio.get(
-        '${WalletChain.tron.rpcUrl}/v1/accounts/$address',
-        options: Options(headers: {'content-type': 'application/json'}),
-      );
-      final data = response.data;
-      if (data is! Map ||
-          data['data'] is! List ||
-          (data['data'] as List).isEmpty) {
-        return [];
-      }
-      final account = (data['data'] as List).first;
-      if (account is! Map || account['trc20'] is! List) {
-        return [];
-      }
-      final balances = <ChainBalance>[];
-      for (final item in account['trc20'] as List) {
-        if (item is! Map || item.isEmpty) continue;
-        final contractAddress = item.keys.first.toString();
-        final rawValue = item.values.first.toString();
-        final asset = WalletAssetRegistry.findAssetByContract(
-          WalletChain.tron,
-          contractAddress,
-          customAssets: customAssets,
+  Future<List<ChainBalance>> _loadTronTokenBalances({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> customAssets,
+  }) async {
+    Object? lastError;
+    for (final rpcUrl in _tronRpcUrls(chain)) {
+      try {
+        final response = await _dio.get(
+          '$rpcUrl/v1/accounts/$address',
+          options: Options(headers: {'content-type': 'application/json'}),
         );
-        final decimals = asset?.decimals ?? 6;
-        balances.add(
-          ChainBalance(
-            chain: WalletChain.tron,
-            symbol: asset?.symbol ?? 'TRC20',
-            name: asset?.name ?? contractAddress,
-            amount: _formatUnits(
-              BigInt.tryParse(rawValue) ?? BigInt.zero,
-              decimals,
-            ),
-            address: address,
-            contractAddress: contractAddress,
-            decimals: decimals,
-          ),
-        );
-      }
-      return balances;
-    } catch (_) {
-      return WalletAssetRegistry.mergeCustomAssets(
-            WalletChain.tron,
-            customAssets,
-          )
-          .where((asset) => !asset.isNative)
-          .map(
-            (asset) => ChainBalance(
-              chain: WalletChain.tron,
-              symbol: asset.symbol,
-              name: asset.name,
-              amount: '0',
+        final data = response.data;
+        if (data is! Map ||
+            data['data'] is! List ||
+            (data['data'] as List).isEmpty) {
+          return [];
+        }
+        final account = (data['data'] as List).first;
+        if (account is! Map || account['trc20'] is! List) {
+          return [];
+        }
+        final configuredAssets =
+            WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+              chain,
+              customAssets,
+            );
+        final assetsByContract = {
+          for (final asset in configuredAssets)
+            if (asset.contractAddress != null) asset.contractAddress!: asset,
+        };
+        final balances = <ChainBalance>[];
+        for (final item in account['trc20'] as List) {
+          if (item is! Map || item.isEmpty) continue;
+          final contractAddress = item.keys.first.toString();
+          final rawValue = item.values.first.toString();
+          final asset = assetsByContract[contractAddress];
+          final decimals = asset?.decimals ?? 6;
+          balances.add(
+            ChainBalance.config(
+              chainConfig: chain,
+              symbol: asset?.symbol ?? 'TRC20',
+              name: asset?.name ?? contractAddress,
+              amount: _formatUnits(
+                BigInt.tryParse(rawValue) ?? BigInt.zero,
+                decimals,
+              ),
               address: address,
-              contractAddress: asset.contractAddress,
-              decimals: asset.decimals,
-              error: 'TRC20 balance lookup failed',
+              contractAddress: contractAddress,
+              decimals: decimals,
             ),
-          )
-          .toList();
+          );
+        }
+        return balances;
+      } catch (error) {
+        lastError = error;
+        developer.log(
+          'TRON token request failed at $rpcUrl: $error',
+          name: 'ChainBalanceService',
+        );
+      }
     }
+    final errorMessage =
+        'TRC20 balance lookup failed: ${lastError ?? 'unknown error'}';
+    return WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+          chain,
+          customAssets,
+        )
+        .where((asset) => !asset.isNative)
+        .map(
+          (asset) => ChainBalance.config(
+            chainConfig: chain,
+            symbol: asset.symbol,
+            name: asset.name,
+            amount: '0',
+            address: address,
+            contractAddress: asset.contractAddress,
+            decimals: asset.decimals,
+            error: errorMessage,
+          ),
+        )
+        .toList();
   }
 
   /// 生成 ERC20 `balanceOf(address)` 调用数据。

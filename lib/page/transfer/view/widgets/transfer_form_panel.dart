@@ -242,18 +242,15 @@ class TransferFormPanel extends StatelessWidget {
     if (asset.chainRef.isEvm) {
       return '0x...';
     }
-    switch (asset.chain) {
-      case WalletChain.bsc:
-      case WalletChain.ethereum:
-      case WalletChain.xLayer:
-      case WalletChain.arbitrum:
-        return '0x...';
-      case WalletChain.tron:
-        return 'T...';
-      case WalletChain.solana:
-        return 'Solana address';
-      case null:
-        return '0x...';
+    final chain = asset.chainRef;
+    if (chain.id == WalletChain.tron.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.tron)) {
+      return 'T...';
     }
+    if (chain.id == WalletChain.solana.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.solana)) {
+      return 'Solana address';
+    }
+    return '0x...';
   }
 }

@@ -216,7 +216,7 @@ class TransferController extends BaseController {
         walletId: args.walletId,
         password: password,
       );
-      final solanaPrivateKey = asset.chain == WalletChain.solana
+      final solanaPrivateKey = _isSolanaChain(asset.chainRef)
           ? await _repository.readWalletSolanaPrivateKey(
               walletId: args.walletId,
               password: password,
@@ -249,22 +249,27 @@ class TransferController extends BaseController {
       WalletTransferService.normalizeEvmAddress(address);
       return;
     }
-    switch (asset.chain) {
-      case WalletChain.bsc:
-      case WalletChain.ethereum:
-      case WalletChain.xLayer:
-      case WalletChain.arbitrum:
-        WalletTransferService.normalizeEvmAddress(address);
-        break;
-      case WalletChain.tron:
-        WalletTransferService.tronAddressToHex(address);
-        break;
-      case WalletChain.solana:
-        WalletTransferService.normalizeSolanaAddress(address);
-        break;
-      case null:
-        throw FormatException('Unsupported chain ${asset.chainId}');
+    if (_isTronChain(asset.chainRef)) {
+      WalletTransferService.tronAddressToHex(address);
+      return;
     }
+    if (_isSolanaChain(asset.chainRef)) {
+      WalletTransferService.normalizeSolanaAddress(address);
+      return;
+    }
+    throw FormatException('Unsupported chain ${asset.chainId}');
+  }
+
+  /// 判断当前资产是否属于 TRON 链。
+  bool _isTronChain(WalletChainRef chain) {
+    return chain.id == WalletChain.tron.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.tron);
+  }
+
+  /// 判断当前资产是否属于 Solana 链。
+  bool _isSolanaChain(WalletChainRef chain) {
+    return chain.id == WalletChain.solana.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.solana);
   }
 
   /// 延迟触发手续费估算，减少用户输入时的 RPC 请求量。

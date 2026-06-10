@@ -92,37 +92,26 @@ class WalletTransferService {
         amount: amount,
       );
     }
-    switch (asset.chain) {
-      case WalletChain.bsc:
-      case WalletChain.ethereum:
-      case WalletChain.xLayer:
-      case WalletChain.arbitrum:
-        return _transferEvm(
-          privateKeyHex: privateKeyHex,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      case WalletChain.tron:
-        return _transferTron(
-          privateKeyHex: privateKeyHex,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      case WalletChain.solana:
-        if (solanaPrivateKey == null) {
-          throw StateError('Missing Solana private key');
-        }
-        return _transferSolana(
-          solanaPrivateKey: solanaPrivateKey,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      case null:
-        throw StateError('Unsupported chain ${asset.chainId}');
+    if (_isTronChain(asset.chainRef)) {
+      return _transferTron(
+        privateKeyHex: privateKeyHex,
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
     }
+    if (_isSolanaChain(asset.chainRef)) {
+      if (solanaPrivateKey == null) {
+        throw StateError('Missing Solana private key');
+      }
+      return _transferSolana(
+        solanaPrivateKey: solanaPrivateKey,
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
+    throw StateError('Unsupported chain ${asset.chainId}');
   }
 
   /// 实时估算转账手续费。
@@ -141,31 +130,33 @@ class WalletTransferService {
         amount: amount,
       );
     }
-    switch (asset.chain) {
-      case WalletChain.bsc:
-      case WalletChain.ethereum:
-      case WalletChain.xLayer:
-      case WalletChain.arbitrum:
-        return _estimateEvmFee(
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      case WalletChain.tron:
-        return _estimateTronFee(
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      case WalletChain.solana:
-        return _estimateSolanaFee(
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      case null:
-        throw StateError('Unsupported chain ${asset.chainId}');
+    if (_isTronChain(asset.chainRef)) {
+      return _estimateTronFee(
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
     }
+    if (_isSolanaChain(asset.chainRef)) {
+      return _estimateSolanaFee(
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
+    throw StateError('Unsupported chain ${asset.chainId}');
+  }
+
+  /// 判断资产是否属于 TRON 链。
+  bool _isTronChain(WalletChainRef chain) {
+    return chain.id == WalletChain.tron.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.tron);
+  }
+
+  /// 判断资产是否属于 Solana 链。
+  bool _isSolanaChain(WalletChainRef chain) {
+    return chain.id == WalletChain.solana.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.solana);
   }
 
   /// 估算 EVM 转账手续费。
@@ -221,12 +212,13 @@ class WalletTransferService {
     required String amount,
   }) async {
     final value = amountToRawUnits(amount, asset.decimals);
-    final chainParameters = await _loadTronChainParameters();
+    final chainParameters = await _loadTronChainParameters(asset.chainRef);
     final transactionFee = chainParameters['getTransactionFee'] ?? BigInt.one;
     final energyFee = chainParameters['getEnergyFee'] ?? BigInt.from(420);
 
     if (asset.isNative) {
       final transaction = await _createTronNativeTransaction(
+        chain: asset.chainRef,
         fromAddress: asset.address,
         toAddress: toAddress,
         amount: value,
@@ -236,13 +228,14 @@ class WalletTransferService {
       final feeSun = bandwidthBytes * transactionFee;
       return TransferFeeEstimate(
         amount: rawUnitsToAmount(feeSun, 6),
-        symbol: WalletChain.tron.symbol,
+        symbol: asset.chainRef.symbol,
         rawAmount: feeSun,
         isFallback: false,
       );
     }
 
     final energy = await _estimateTronEnergy(
+      chain: asset.chainRef,
       fromAddress: asset.address,
       toAddress: toAddress,
       contractAddress: asset.contractAddress!,
@@ -250,6 +243,7 @@ class WalletTransferService {
     );
     if (energy != null) {
       final transaction = await _createTronTokenTransaction(
+        chain: asset.chainRef,
         fromAddress: asset.address,
         toAddress: toAddress,
         contractAddress: asset.contractAddress!,
@@ -260,7 +254,7 @@ class WalletTransferService {
       final feeSun = energy * energyFee + bandwidthFee;
       return TransferFeeEstimate(
         amount: rawUnitsToAmount(feeSun, 6),
-        symbol: WalletChain.tron.symbol,
+        symbol: asset.chainRef.symbol,
         rawAmount: feeSun,
         isFallback: false,
       );
@@ -269,7 +263,7 @@ class WalletTransferService {
     final fallbackFee = BigInt.from(_tronTokenFeeLimit);
     return TransferFeeEstimate(
       amount: rawUnitsToAmount(fallbackFee, 6),
-      symbol: WalletChain.tron.symbol,
+      symbol: asset.chainRef.symbol,
       rawAmount: fallbackFee,
       isFallback: true,
     );
@@ -292,7 +286,7 @@ class WalletTransferService {
         BigInt.from(_solanaLamportsPerSignature * signatureCount),
         9,
       ),
-      symbol: WalletChain.solana.symbol,
+      symbol: asset.chainRef.symbol,
       rawAmount: BigInt.from(_solanaLamportsPerSignature * signatureCount),
       isFallback: true,
     );
@@ -365,11 +359,13 @@ class WalletTransferService {
     final value = amountToRawUnits(amount, asset.decimals);
     final transaction = asset.isNative
         ? await _createTronNativeTransaction(
+            chain: asset.chainRef,
             fromAddress: asset.address,
             toAddress: toAddress,
             amount: value,
           )
         : await _createTronTokenTransaction(
+            chain: asset.chainRef,
             fromAddress: asset.address,
             toAddress: toAddress,
             contractAddress: asset.contractAddress!,
@@ -381,7 +377,7 @@ class WalletTransferService {
       transaction: transaction,
     );
     final response = await _dio.post(
-      '${WalletChain.tron.rpcUrl}/wallet/broadcasttransaction',
+      '${asset.chainRef.rpcUrl}/wallet/broadcasttransaction',
       data: signedTransaction,
       options: Options(headers: {'content-type': 'application/json'}),
     );
@@ -415,7 +411,7 @@ class WalletTransferService {
     final recipientPublicKey = Ed25519HDPublicKey.fromBase58(
       normalizeSolanaAddress(toAddress),
     );
-    final blockhash = await _getLatestSolanaBlockhash();
+    final blockhash = await _getLatestSolanaBlockhash(asset.chainRef);
     final message = asset.isNative
         ? _buildSolanaNativeTransferMessage(
             fromPublicKey: signer.publicKey,
@@ -423,6 +419,7 @@ class WalletTransferService {
             lamports: rawAmount,
           )
         : await _buildSolanaTokenTransferMessage(
+            chain: asset.chainRef,
             ownerPublicKey: signer.publicKey,
             recipientPublicKey: recipientPublicKey,
             asset: asset,
@@ -432,7 +429,7 @@ class WalletTransferService {
       message: message,
       recentBlockhash: blockhash,
     );
-    final response = await _solanaRpc('sendTransaction', [
+    final response = await _solanaRpc(asset.chainRef, 'sendTransaction', [
       transaction.encode(),
       {'encoding': 'base64', 'preflightCommitment': 'confirmed'},
     ]);
@@ -446,12 +443,13 @@ class WalletTransferService {
   ///
   /// 返回的是节点构造好的未签名交易，后续还需要本地签名和广播。
   Future<Map<String, dynamic>> _createTronNativeTransaction({
+    required WalletChainRef chain,
     required String fromAddress,
     required String toAddress,
     required BigInt amount,
   }) async {
     final response = await _dio.post(
-      '${WalletChain.tron.rpcUrl}/wallet/createtransaction',
+      '${chain.rpcUrl}/wallet/createtransaction',
       data: {
         'owner_address': fromAddress,
         'to_address': toAddress,
@@ -472,13 +470,14 @@ class WalletTransferService {
   /// 使用 `triggersmartcontract` 调用 `transfer(address,uint256)`，参数由
   /// [trc20TransferParameter] 按 ABI 格式编码。
   Future<Map<String, dynamic>> _createTronTokenTransaction({
+    required WalletChainRef chain,
     required String fromAddress,
     required String toAddress,
     required String contractAddress,
     required BigInt amount,
   }) async {
     final response = await _dio.post(
-      '${WalletChain.tron.rpcUrl}/wallet/triggersmartcontract',
+      '${chain.rpcUrl}/wallet/triggersmartcontract',
       data: {
         'owner_address': fromAddress,
         'contract_address': contractAddress,
@@ -531,9 +530,13 @@ class WalletTransferService {
   }
 
   /// 发送 Solana JSON-RPC 请求并返回 result。
-  Future<dynamic> _solanaRpc(String method, List<dynamic> params) async {
+  Future<dynamic> _solanaRpc(
+    WalletChainRef chain,
+    String method,
+    List<dynamic> params,
+  ) async {
     final response = await _dio.post(
-      WalletChain.solana.rpcUrl,
+      chain.rpcUrl,
       data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
       options: Options(headers: {'content-type': 'application/json'}),
     );
@@ -547,8 +550,8 @@ class WalletTransferService {
   /// 获取 Solana 最新 blockhash。
   ///
   /// Solana 交易必须带 recentBlockhash，过期后交易会被节点拒绝。
-  Future<String> _getLatestSolanaBlockhash() async {
-    final result = await _solanaRpc('getLatestBlockhash', [
+  Future<String> _getLatestSolanaBlockhash(WalletChainRef chain) async {
+    final result = await _solanaRpc(chain, 'getLatestBlockhash', [
       {'commitment': 'confirmed'},
     ]);
     if (result is Map) {
@@ -563,10 +566,12 @@ class WalletTransferService {
   /// 读取 TRON 链手续费参数。
   ///
   /// 返回 key 为链参数名，value 为链上整数值。请求失败时返回空 map，由调用方使用默认值。
-  Future<Map<String, BigInt>> _loadTronChainParameters() async {
+  Future<Map<String, BigInt>> _loadTronChainParameters(
+    WalletChainRef chain,
+  ) async {
     try {
       final response = await _dio.get(
-        '${WalletChain.tron.rpcUrl}/wallet/getchainparameters',
+        '${chain.rpcUrl}/wallet/getchainparameters',
         options: Options(headers: {'content-type': 'application/json'}),
       );
       final data = response.data;
@@ -592,6 +597,7 @@ class WalletTransferService {
   ///
   /// 公共节点可能不支持该接口，所以失败时返回 null，并由调用方使用 fee_limit 兜底。
   Future<BigInt?> _estimateTronEnergy({
+    required WalletChainRef chain,
     required String fromAddress,
     required String toAddress,
     required String contractAddress,
@@ -599,7 +605,7 @@ class WalletTransferService {
   }) async {
     try {
       final response = await _dio.post(
-        '${WalletChain.tron.rpcUrl}/wallet/estimateenergy',
+        '${chain.rpcUrl}/wallet/estimateenergy',
         data: {
           'owner_address': fromAddress,
           'contract_address': contractAddress,
@@ -708,6 +714,7 @@ class WalletTransferService {
   /// 发送方需要已有该 mint 的 token account；接收方的 ATA 使用 idempotent 创建指令，
   /// 如果已存在不会失败。随后使用 `transferChecked` 携带 decimals 做安全转账。
   Future<Message> _buildSolanaTokenTransferMessage({
+    required WalletChainRef chain,
     required Ed25519HDPublicKey ownerPublicKey,
     required Ed25519HDPublicKey recipientPublicKey,
     required ChainBalance asset,
@@ -721,6 +728,7 @@ class WalletTransferService {
       normalizeSolanaAddress(mintAddress),
     );
     final sourceTokenAccount = await _findSolanaTokenAccount(
+      chain: chain,
       ownerAddress: ownerPublicKey.toBase58(),
       mintAddress: mintPublicKey.toBase58(),
       minimumAmount: amount,
@@ -763,11 +771,12 @@ class WalletTransferService {
   /// 如果能解析余额，会优先返回余额足够的账户；如果所有账户余额都不足则抛错。
   /// 如果节点没有返回可解析余额，则返回第一个账户作为兜底。
   Future<String?> _findSolanaTokenAccount({
+    required WalletChainRef chain,
     required String ownerAddress,
     required String mintAddress,
     required BigInt minimumAmount,
   }) async {
-    final data = await _solanaRpc('getTokenAccountsByOwner', [
+    final data = await _solanaRpc(chain, 'getTokenAccountsByOwner', [
       ownerAddress,
       {'mint': mintAddress},
       {'encoding': 'jsonParsed'},

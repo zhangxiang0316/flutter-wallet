@@ -325,11 +325,11 @@ class WalletCustomAssetService {
     if (chain.isEvm) {
       return WalletTransferService.normalizeEvmAddress(value);
     }
-    if (chain is WalletChain && chain == WalletChain.tron) {
+    if (_isTronChain(chain)) {
       WalletTransferService.tronAddressToHex(value);
       return value;
     }
-    if (chain is WalletChain && chain == WalletChain.solana) {
+    if (_isSolanaChain(chain)) {
       WalletTransferService.normalizeSolanaAddress(value);
       return value;
     }
@@ -359,6 +359,18 @@ class WalletCustomAssetService {
     return chain.isEvm ? value.toLowerCase() : value;
   }
 
+  /// 判断当前链是否为 TRON。
+  bool _isTronChain(WalletChainRef chain) {
+    return chain.id == WalletChain.tron.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.tron);
+  }
+
+  /// 判断当前链是否为 Solana。
+  bool _isSolanaChain(WalletChainRef chain) {
+    return chain.id == WalletChain.solana.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.solana);
+  }
+
   List<String> _evmRpcUrls(WalletChainRef chain) {
     if (chain is WalletChainConfig && !chain.isBuiltin) {
       return chain.rpcUrls;
@@ -367,9 +379,27 @@ class WalletCustomAssetService {
       return _evmRpcFallbacks[chain]!;
     }
     if (chain is WalletChainConfig && chain.builtinChain != null) {
-      return _evmRpcFallbacks[chain.builtinChain] ?? chain.rpcUrls;
+      return _rpcUrlsWithFallbacks(
+        chain.rpcUrls,
+        _evmRpcFallbacks[chain.builtinChain] ?? const [],
+      );
     }
     return [chain.rpcUrl];
+  }
+
+  /// 合并用户配置 RPC 和内置备用 RPC，按顺序去重。
+  List<String> _rpcUrlsWithFallbacks(
+    List<String> rpcUrls,
+    List<String> fallbackRpcUrls,
+  ) {
+    final values = <String>{};
+    for (final url in [...rpcUrls, ...fallbackRpcUrls]) {
+      final normalized = url.trim();
+      if (normalized.isNotEmpty) {
+        values.add(normalized);
+      }
+    }
+    return values.isEmpty ? const [] : values.toList(growable: false);
   }
 }
 

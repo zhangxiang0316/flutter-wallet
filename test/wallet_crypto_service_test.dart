@@ -268,6 +268,60 @@ void main() {
       expect(updated.rpcUrls.first, 'https://polygon-bor-rpc.publicnode.com');
       expect((await service.loadCustomChains()).single.name, 'Polygon PoS');
     });
+
+    test('updates built-in EVM chain metadata and RPC list', () async {
+      SharedPreferences.setMockInitialValues({});
+      final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+      final service = WalletChainConfigService(dio: dio);
+
+      final updated = await service.updateBuiltinChain(
+        chainId: WalletChain.bsc.id,
+        name: 'BNB Custom',
+        symbol: 'bnbx',
+        rpcUrls: const ['https://bsc-rpc.publicnode.com'],
+      );
+
+      expect(updated.id, WalletChain.bsc.id);
+      expect(updated.isBuiltin, isTrue);
+      expect(updated.evmChainId, WalletChain.bsc.evmChainId);
+      expect(updated.name, 'BNB Custom');
+      expect(updated.symbol, 'BNBX');
+      expect(updated.rpcUrls, ['https://bsc-rpc.publicnode.com']);
+
+      final loaded = (await service.loadBuiltinChains()).firstWhere(
+        (chain) => chain.id == WalletChain.bsc.id,
+      );
+      expect(loaded.isBuiltin, isTrue);
+      expect(loaded.name, 'BNB Custom');
+      expect(loaded.symbol, 'BNBX');
+      expect(loaded.rpcUrls, ['https://bsc-rpc.publicnode.com']);
+    });
+
+    test('updates built-in Solana metadata and RPC list', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = WalletChainConfigService();
+
+      final updated = await service.updateBuiltinChain(
+        chainId: WalletChain.solana.id,
+        name: 'Solana Main',
+        symbol: 'sol',
+        rpcUrls: const ['https://solana-rpc.publicnode.com'],
+      );
+
+      expect(updated.id, WalletChain.solana.id);
+      expect(updated.isBuiltin, isTrue);
+      expect(updated.type, WalletChainType.solana);
+      expect(updated.name, 'Solana Main');
+      expect(updated.symbol, 'SOL');
+      expect(updated.rpcUrls, ['https://solana-rpc.publicnode.com']);
+
+      final loaded = (await service.loadEnabledChains()).firstWhere(
+        (chain) => chain.id == WalletChain.solana.id,
+      );
+      expect(loaded.isBuiltin, isTrue);
+      expect(loaded.name, 'Solana Main');
+      expect(loaded.rpcUrls, ['https://solana-rpc.publicnode.com']);
+    });
   });
 
   group('WalletSecretStore', () {
@@ -315,6 +369,10 @@ void main() {
   });
 
   group('ChainBalanceService', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
     test('encodes ERC20 balanceOf calls', () {
       expect(
         ChainBalanceService.erc20BalanceOfData(
@@ -344,7 +402,7 @@ void main() {
       expect(bnb.error, isNull);
       final sol = balances.firstWhere(
         (balance) =>
-            balance.chain == WalletChain.solana && balance.symbol == 'SOL',
+            balance.chainId == WalletChain.solana.id && balance.symbol == 'SOL',
       );
       expect(sol.amount, '1');
       expect(sol.error, isNull);
@@ -366,7 +424,7 @@ void main() {
 
       final trx = balances.firstWhere(
         (balance) =>
-            balance.chain == WalletChain.tron && balance.symbol == 'TRX',
+            balance.chainId == WalletChain.tron.id && balance.symbol == 'TRX',
       );
       expect(trx.amount, '1');
       expect(trx.error, isNull);
@@ -388,7 +446,7 @@ void main() {
 
       final sol = balances.firstWhere(
         (balance) =>
-            balance.chain == WalletChain.solana && balance.symbol == 'SOL',
+            balance.chainId == WalletChain.solana.id && balance.symbol == 'SOL',
       );
       expect(sol.amount, '0');
       expect(sol.error, contains('timed out'));
@@ -433,11 +491,13 @@ void main() {
 
         final usdt = balances.firstWhere(
           (balance) =>
-              balance.chain == WalletChain.solana && balance.symbol == 'USDT',
+              balance.chainId == WalletChain.solana.id &&
+              balance.symbol == 'USDT',
         );
         final usdc = balances.firstWhere(
           (balance) =>
-              balance.chain == WalletChain.solana && balance.symbol == 'USDC',
+              balance.chainId == WalletChain.solana.id &&
+              balance.symbol == 'USDC',
         );
 
         expect(usdt.amount, '1.234567');
@@ -1004,7 +1064,9 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
       return _jsonResponse({
         'jsonrpc': '2.0',
         'id': 1,
-        'result': _isEvmNativeRequest(options.data)
+        'result': _isEvmChainIdRequest(options.data)
+            ? '0x38'
+            : _isEvmNativeRequest(options.data)
             ? '0x0de0b6b3a7640000'
             : '0x0',
       });
