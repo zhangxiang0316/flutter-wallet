@@ -15,7 +15,19 @@ import 'package:solana/solana.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 
+/// 钱包转账服务。
+///
+/// 该服务负责把用户输入的转账信息转换成各链可广播的交易：
+/// - EVM 链：构造 legacy transaction，RLP 编码后用 secp256k1 私钥签名；
+/// - TRON：先由节点创建交易，再对 raw_data 做 secp256k1 签名并广播；
+/// - Solana：使用 solana Dart 包构造 Message，并用 Ed25519 私钥签名发送。
+///
+/// 这里不负责读取私钥和密码校验。调用方需要先从 [WalletRepository] 读取对应私钥，
+/// 再把私钥传入 [transfer]。
 class WalletTransferService {
+  /// 创建转账服务。
+  ///
+  /// 测试时可注入 [Dio]；业务场景使用独立 Dio，避免受业务接口 baseUrl 或拦截器影响。
   WalletTransferService({Dio? dio})
     : _dio =
           dio ??
@@ -28,21 +40,43 @@ class WalletTransferService {
           ),
       _domain = ECCurve_secp256k1();
 
+  /// RPC/HTTP 请求客户端。
   final Dio _dio;
+
+  /// secp256k1 曲线参数，EVM 和 TRON 签名共用。
   final ECDomainParameters _domain;
 
+  /// 转账相关请求的整体超时时间。
   static const Duration _requestTimeout = Duration(seconds: 20);
+
+  /// EVM 原生币转账固定 gas limit。
   static const int _evmNativeGasLimit = 21000;
+
+  /// EVM ERC20 转账兜底 gas limit。
   static const int _evmTokenGasLimit = 100000;
+
+  /// TRC20 转账 fee_limit，单位 sun。
   static const int _tronTokenFeeLimit = 30 * 1000 * 1000;
+
+  /// Solana 单签名基础费用，单位 lamports。
   static const int _solanaLamportsPerSignature = 5000;
+
+  /// Base58 字母表，TRON/Solana 地址解析会用到。
   static const String _base58Alphabet =
       '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+  /// secp256k1 素数域 p。
+  ///
+  /// 恢复 ECDSA public key 时需要判断 x 坐标是否仍在曲线有限域内。
   static final BigInt _secp256k1P = BigInt.parse(
     'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
     radix: 16,
   );
 
+  /// 发起转账。
+  ///
+  /// [asset] 决定链类型、资产精度、合约地址和发送方地址；[amount] 是用户输入的人类
+  /// 可读数量，会按 decimals 转成链上最小单位。Solana 必须额外传入 Ed25519 私钥 seed。
   Future<String> transfer({
     required String privateKeyHex,
     required ChainBalance asset,
@@ -80,6 +114,10 @@ class WalletTransferService {
     }
   }
 
+  /// 实时估算转账手续费。
+  ///
+  /// 返回值使用链原生币作为手续费单位，例如 EVM 链返回 BNB/ETH/OKB，TRON 返回 TRX，
+  /// Solana 返回 SOL。估算失败时部分链会返回 fallback 标记。
   Future<TransferFeeEstimate> estimateFee({
     required ChainBalance asset,
     required String toAddress,
@@ -109,6 +147,10 @@ class WalletTransferService {
     }
   }
 
+  /// 估算 EVM 转账手续费。
+  ///
+  /// 优先调用 `eth_estimateGas`，失败时使用固定兜底 gasLimit。手续费计算公式为
+  /// `gasLimit * gasPrice`，最终按 18 位精度转为链原生币数量。
   Future<TransferFeeEstimate> _estimateEvmFee({
     required ChainBalance asset,
     required String toAddress,
@@ -144,6 +186,10 @@ class WalletTransferService {
     );
   }
 
+  /// 估算 TRON 转账手续费。
+  ///
+  /// TRX 原生转账主要消耗带宽，TRC20 转账还需要能量。这里会读取链参数里的
+  /// `getTransactionFee` 和 `getEnergyFee`，再按交易字节数和能量估算 sun。
   Future<TransferFeeEstimate> _estimateTronFee({
     required ChainBalance asset,
     required String toAddress,
@@ -204,6 +250,10 @@ class WalletTransferService {
     );
   }
 
+  /// 估算 Solana 转账手续费。
+  ///
+  /// 当前使用单签名固定费用估算。SPL Token 实际交易会额外包含创建 ATA 的指令，
+  /// 这里先返回基础 fallback 费用，避免 UI 阻塞在复杂模拟请求上。
   Future<TransferFeeEstimate> _estimateSolanaFee({
     required ChainBalance asset,
     required String toAddress,
@@ -223,6 +273,10 @@ class WalletTransferService {
     );
   }
 
+  /// 发送 EVM 链交易。
+  ///
+  /// 原生币交易把金额放在 value；ERC20 交易把 value 设为 0，并把 transfer 调用编码
+  /// 放进 data。签名使用 EIP-155 的 chainId 防重放规则。
   Future<String> _transferEvm({
     required String privateKeyHex,
     required ChainBalance asset,
@@ -268,6 +322,10 @@ class WalletTransferService {
     throw StateError('${asset.chain.name} transfer failed');
   }
 
+  /// 发送 TRON 链交易。
+  ///
+  /// 先通过节点创建未签名交易，再对 `raw_data_hex` 做 SHA-256 后 secp256k1 签名，
+  /// 最后调用 `broadcasttransaction` 广播。
   Future<String> _transferTron({
     required String privateKeyHex,
     required ChainBalance asset,
@@ -306,6 +364,10 @@ class WalletTransferService {
     throw StateError(data is Map ? data.toString() : 'TRON transfer failed');
   }
 
+  /// 发送 Solana 交易。
+  ///
+  /// 先根据私钥恢复 signer，并校验 signer 地址必须等于资产发送方地址，防止拿错钱包
+  /// 私钥后签出错误交易。原生 SOL 和 SPL Token 使用不同 message 构造逻辑。
   Future<String> _transferSolana({
     required List<int> solanaPrivateKey,
     required ChainBalance asset,
@@ -350,6 +412,9 @@ class WalletTransferService {
     throw StateError('Solana transfer failed');
   }
 
+  /// 创建 TRX 原生转账交易。
+  ///
+  /// 返回的是节点构造好的未签名交易，后续还需要本地签名和广播。
   Future<Map<String, dynamic>> _createTronNativeTransaction({
     required String fromAddress,
     required String toAddress,
@@ -372,6 +437,10 @@ class WalletTransferService {
     throw StateError('Invalid TRON transaction response');
   }
 
+  /// 创建 TRC20 转账交易。
+  ///
+  /// 使用 `triggersmartcontract` 调用 `transfer(address,uint256)`，参数由
+  /// [trc20TransferParameter] 按 ABI 格式编码。
   Future<Map<String, dynamic>> _createTronTokenTransaction({
     required String fromAddress,
     required String toAddress,
@@ -398,6 +467,7 @@ class WalletTransferService {
     throw StateError('Invalid TRC20 transaction response');
   }
 
+  /// 发送 EVM JSON-RPC 请求并返回 result。
   Future<dynamic> _evmRpc(
     WalletChain chain,
     String method,
@@ -417,6 +487,7 @@ class WalletTransferService {
     );
   }
 
+  /// 发送 EVM JSON-RPC 请求并把十六进制数量解析成 [BigInt]。
   Future<BigInt> _evmRpcBigInt(
     WalletChain chain,
     String method,
@@ -429,6 +500,7 @@ class WalletTransferService {
     return BigInt.parse(result.replaceFirst('0x', ''), radix: 16);
   }
 
+  /// 发送 Solana JSON-RPC 请求并返回 result。
   Future<dynamic> _solanaRpc(String method, List<dynamic> params) async {
     final response = await _dio.post(
       WalletChain.solana.rpcUrl,
@@ -442,6 +514,9 @@ class WalletTransferService {
     throw StateError(data is Map ? data.toString() : 'Invalid Solana response');
   }
 
+  /// 获取 Solana 最新 blockhash。
+  ///
+  /// Solana 交易必须带 recentBlockhash，过期后交易会被节点拒绝。
   Future<String> _getLatestSolanaBlockhash() async {
     final result = await _solanaRpc('getLatestBlockhash', [
       {'commitment': 'confirmed'},
@@ -455,6 +530,9 @@ class WalletTransferService {
     throw StateError('Invalid Solana blockhash response');
   }
 
+  /// 读取 TRON 链手续费参数。
+  ///
+  /// 返回 key 为链参数名，value 为链上整数值。请求失败时返回空 map，由调用方使用默认值。
   Future<Map<String, BigInt>> _loadTronChainParameters() async {
     try {
       final response = await _dio.get(
@@ -480,6 +558,9 @@ class WalletTransferService {
     }
   }
 
+  /// 估算 TRC20 转账所需能量。
+  ///
+  /// 公共节点可能不支持该接口，所以失败时返回 null，并由调用方使用 fee_limit 兜底。
   Future<BigInt?> _estimateTronEnergy({
     required String fromAddress,
     required String toAddress,
@@ -507,6 +588,10 @@ class WalletTransferService {
     }
   }
 
+  /// 签名 EVM legacy transaction。
+  ///
+  /// 先对包含 chainId 的 payload 做 RLP 编码并 Keccak，然后 ECDSA 签名；最终把
+  /// `v/r/s` 回填到交易 payload，返回可直接广播的十六进制裸交易。
   String _signEvmTransaction({
     required String privateKeyHex,
     required BigInt nonce,
@@ -547,6 +632,10 @@ class WalletTransferService {
     return hex.encode(rawPayload);
   }
 
+  /// 签名 TRON 未签名交易。
+  ///
+  /// TRON 使用 `sha256(raw_data_hex)` 作为签名哈希，签名结果需要拼接 recoveryId，
+  /// 并放入 transaction 的 `signature` 数组。
   Map<String, dynamic> _signTronTransaction({
     required String privateKeyHex,
     required Map<String, dynamic> transaction,
@@ -569,6 +658,7 @@ class WalletTransferService {
     return signed;
   }
 
+  /// 构造 SOL 原生转账 message。
   Message _buildSolanaNativeTransferMessage({
     required Ed25519HDPublicKey fromPublicKey,
     required Ed25519HDPublicKey toPublicKey,
@@ -583,6 +673,10 @@ class WalletTransferService {
     );
   }
 
+  /// 构造 SPL Token 转账 message。
+  ///
+  /// 发送方需要已有该 mint 的 token account；接收方的 ATA 使用 idempotent 创建指令，
+  /// 如果已存在不会失败。随后使用 `transferChecked` 携带 decimals 做安全转账。
   Future<Message> _buildSolanaTokenTransferMessage({
     required Ed25519HDPublicKey ownerPublicKey,
     required Ed25519HDPublicKey recipientPublicKey,
@@ -634,6 +728,10 @@ class WalletTransferService {
     );
   }
 
+  /// 查找发送方可用的 Solana token account。
+  ///
+  /// 如果能解析余额，会优先返回余额足够的账户；如果所有账户余额都不足则抛错。
+  /// 如果节点没有返回可解析余额，则返回第一个账户作为兜底。
   Future<String?> _findSolanaTokenAccount({
     required String ownerAddress,
     required String mintAddress,
@@ -681,6 +779,9 @@ class WalletTransferService {
     return fallbackAccount;
   }
 
+  /// 对 32 字节哈希做 secp256k1 ECDSA 签名。
+  ///
+  /// 签名结果会 normalize 到 low-s，避免高 s 签名在部分节点或工具中被拒绝。
   ECSignature _signHash(String privateKeyHex, Uint8List hash) {
     final privateKey = BigInt.parse(
       privateKeyHex.replaceFirst(RegExp('^0x'), ''),
@@ -694,6 +795,10 @@ class WalletTransferService {
     return (signer.generateSignature(hash) as ECSignature).normalize(_domain);
   }
 
+  /// 查找 ECDSA recovery id。
+  ///
+  /// EVM 和 TRON 都需要 recovery id。这里尝试 0..3，恢复公钥后和私钥推导出的公钥
+  /// 做字节比较，匹配的 index 即 recovery id。
   int _findRecoveryId(
     String privateKeyHex,
     Uint8List hash,
@@ -715,6 +820,9 @@ class WalletTransferService {
     throw StateError('Failed to recover signature id');
   }
 
+  /// 根据签名和 recovery id 恢复 secp256k1 公钥。
+  ///
+  /// 实现标准 ECDSA 公钥恢复公式，用于从签名中验证 recovery id 是否正确。
   ECPoint? _recoverPublicKey(
     int recoveryId,
     ECSignature signature,
@@ -736,6 +844,10 @@ class WalletTransferService {
     return (_domain.G * eInvRInv)! + (r * srInv);
   }
 
+  /// 将用户输入金额转换为链上最小单位整数。
+  ///
+  /// 例如 1.23 USDT（6 decimals）会转成 1230000。输入必须大于 0，且小数位不能
+  /// 超过资产 decimals。
   static BigInt amountToRawUnits(String amount, int decimals) {
     final normalized = amount.trim();
     final value = Decimal.tryParse(normalized);
@@ -749,6 +861,9 @@ class WalletTransferService {
     return shifted.toBigInt();
   }
 
+  /// 将链上最小单位整数格式化为人类可读数量。
+  ///
+  /// 展示时最多保留 8 位小数，避免手续费或余额文本过长。
   static String rawUnitsToAmount(BigInt value, int decimals) {
     final base = BigInt.from(10).pow(decimals);
     final whole = value ~/ base;
@@ -763,10 +878,14 @@ class WalletTransferService {
     return '$whole.$displayFraction';
   }
 
+  /// 将整数编码成 JSON-RPC hex quantity。
   static String _hexQuantity(BigInt value) {
     return '0x${value.toRadixString(16)}';
   }
 
+  /// 编码 ERC20 `transfer(address,uint256)` calldata。
+  ///
+  /// `0xa9059cbb` 是 transfer 的方法选择器，后面依次拼接 32 字节地址和 32 字节金额。
   static String erc20TransferData(String toAddress, BigInt amount) {
     final address = normalizeEvmAddress(toAddress);
     return '0xa9059cbb'
@@ -774,16 +893,24 @@ class WalletTransferService {
         '${amount.toRadixString(16).padLeft(64, '0')}';
   }
 
+  /// 编码 TRC20 transfer 参数。
+  ///
+  /// TRON 节点的 `triggersmartcontract` 已单独传入 function_selector，这里只返回
+  /// ABI 参数部分。
   static String trc20TransferParameter(String toAddress, BigInt amount) {
     final tronHex = tronAddressToHex(toAddress);
     return '000000000000000000000000${tronHex.substring(2)}'
         '${amount.toRadixString(16).padLeft(64, '0')}';
   }
 
+  /// 兼容旧命名的 BSC 地址标准化方法。
   static String normalizeBscAddress(String input) {
     return normalizeEvmAddress(input);
   }
 
+  /// 校验并标准化 EVM 地址。
+  ///
+  /// 返回小写 `0x` 地址；checksum 不是转账签名必需条件，所以这里不做 checksum 校验。
   static String normalizeEvmAddress(String input) {
     final address = input.trim();
     if (!RegExp(r'^0x[0-9a-fA-F]{40}$').hasMatch(address)) {
@@ -792,6 +919,9 @@ class WalletTransferService {
     return '0x${address.substring(2).toLowerCase()}';
   }
 
+  /// 将 TRON Base58Check 地址转为十六进制 payload。
+  ///
+  /// 有效 TRON 地址 payload 长度为 21 字节，首字节固定为 `0x41`。
   static String tronAddressToHex(String address) {
     final payload = _base58CheckDecode(address.trim());
     if (payload.length != 21 || payload.first != 0x41) {
@@ -800,6 +930,9 @@ class WalletTransferService {
     return hex.encode(payload);
   }
 
+  /// 校验并标准化 Solana 地址。
+  ///
+  /// Solana 地址必须能 Base58 解码为 32 字节公钥。返回值保留原始文本。
   static String normalizeSolanaAddress(String input) {
     final address = input.trim();
     final decoded = _base58Decode(address);
@@ -809,6 +942,9 @@ class WalletTransferService {
     return address;
   }
 
+  /// 将 Solana 转账金额转为 u64 可接受的 int。
+  ///
+  /// solana Dart 指令 API 使用 int，超出安全范围或非正数时直接拒绝。
   static int _solanaU64Amount(BigInt value, String label) {
     if (value <= BigInt.zero || value > BigInt.from(0x7fffffffffffffff)) {
       throw FormatException('Invalid $label');
@@ -816,10 +952,15 @@ class WalletTransferService {
     return value.toInt();
   }
 
+  /// 将十六进制字符串转为字节数组。
   static Uint8List hexToBytes(String value) {
     return Uint8List.fromList(hex.decode(value.replaceFirst('0x', '')));
   }
 
+  /// RLP 编码入口。
+  ///
+  /// EVM legacy transaction 使用 RLP 编码。这里支持本文件需要的 BigInt、int、
+  /// Uint8List、List<int> 和嵌套 List。
   static Uint8List _rlpEncode(dynamic value) {
     if (value is BigInt) {
       if (value == BigInt.zero) {
@@ -851,6 +992,7 @@ class WalletTransferService {
     throw ArgumentError('Unsupported RLP value');
   }
 
+  /// RLP 字节串编码。
   static Uint8List _rlpEncodeBytes(Uint8List bytes) {
     if (bytes.length == 1 && bytes.first < 0x80) {
       return bytes;
@@ -866,6 +1008,7 @@ class WalletTransferService {
     ]);
   }
 
+  /// Keccak-256 哈希。
   static Uint8List _keccak(Uint8List input) {
     final digest = KeccakDigest(256)..update(input, 0, input.length);
     final output = Uint8List(32);
@@ -873,6 +1016,7 @@ class WalletTransferService {
     return output;
   }
 
+  /// SHA-256 哈希。
   static Uint8List _sha256(Uint8List input) {
     final digest = SHA256Digest()..update(input, 0, input.length);
     final output = Uint8List(32);
@@ -880,6 +1024,9 @@ class WalletTransferService {
     return output;
   }
 
+  /// Base58Check 解码并校验 checksum。
+  ///
+  /// TRON 地址使用双 SHA-256 前 4 字节作为校验和。
   static Uint8List _base58CheckDecode(String input) {
     final decoded = _base58Decode(input);
     if (decoded.length < 5) {
@@ -894,6 +1041,9 @@ class WalletTransferService {
     return payload;
   }
 
+  /// Base58 解码。
+  ///
+  /// 解码时需要恢复开头的 `1` 对应的 0 字节。
   static Uint8List _base58Decode(String input) {
     var value = BigInt.zero;
     for (final codeUnit in input.codeUnits) {
@@ -916,6 +1066,9 @@ class WalletTransferService {
     return Uint8List.fromList([...List<int>.filled(leadingZeros, 0), ...bytes]);
   }
 
+  /// 将整数转为大端字节数组。
+  ///
+  /// [length] 不为空时会左侧补 0 到固定长度，并在数值放不下时抛错。
   static Uint8List _bigIntToBytes(BigInt value, {int? length}) {
     if (value == BigInt.zero) {
       return Uint8List(length ?? 0);
@@ -939,6 +1092,7 @@ class WalletTransferService {
     return Uint8List.fromList(result);
   }
 
+  /// 将大端字节数组转为整数。
   static BigInt _bytesToBigInt(Uint8List bytes) {
     var result = BigInt.zero;
     for (final byte in bytes) {
@@ -947,6 +1101,9 @@ class WalletTransferService {
     return result;
   }
 
+  /// 常量时间风格的字节数组比较。
+  ///
+  /// 用于签名恢复时比较公钥字节，避免提前返回带来的分支差异。
   static bool _bytesEqual(List<int> a, List<int> b) {
     if (a.length != b.length) return false;
     var diff = 0;
@@ -957,6 +1114,7 @@ class WalletTransferService {
   }
 }
 
+/// 转账手续费估算结果。
 class TransferFeeEstimate {
   const TransferFeeEstimate({
     required this.amount,
@@ -965,10 +1123,18 @@ class TransferFeeEstimate {
     this.isFallback = false,
   });
 
+  /// 人类可读手续费数量。
   final String amount;
+
+  /// 手续费单位，一般是链原生币符号。
   final String symbol;
+
+  /// 手续费最小单位数量。
   final BigInt rawAmount;
+
+  /// true 表示使用兜底估算值，而不是节点实时估算结果。
   final bool isFallback;
 
+  /// UI 展示文案。
   String get displayText => '$amount $symbol';
 }

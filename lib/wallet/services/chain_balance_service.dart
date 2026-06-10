@@ -7,7 +7,20 @@ import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
 import 'wallet_custom_asset_service.dart';
 
+/// 多链余额查询服务。
+///
+/// 首页资产列表依赖该服务一次性查询所有支持链的余额。当前支持：
+/// - BNB Smart Chain / Ethereum / X Layer：通过 EVM JSON-RPC 查询原生币和 ERC20；
+/// - Solana：通过 Solana JSON-RPC 查询 SOL 和 SPL Token；
+/// - TRON：通过 TRON 节点接口查询 TRX 和 TRC20。
+///
+/// 该服务尽量不向 UI 抛出单个资产查询异常。某个资产查询失败时，会返回 amount=0
+/// 且带上 error 字段，保证首页仍能展示其它链和其它币种的余额。
 class ChainBalanceService {
+  /// 创建余额查询服务。
+  ///
+  /// 测试时可以传入自定义 [Dio] 或 [WalletCustomAssetService]；业务场景默认使用
+  /// 内置 Dio 和用户自定义资产服务。
   ChainBalanceService({Dio? dio, WalletCustomAssetService? customAssetService})
     : _dio =
           dio ??
@@ -20,11 +33,28 @@ class ChainBalanceService {
           ),
       _customAssetService = customAssetService ?? WalletCustomAssetService();
 
+  /// RPC/HTTP 请求客户端。
   final Dio _dio;
+
+  /// 用户自定义资产服务，用于把用户添加的代币合并进默认查询列表。
   final WalletCustomAssetService _customAssetService;
+
+  /// 常规链 RPC 请求超时时间。
   static const Duration _requestTimeout = Duration(seconds: 12);
+
+  /// Solana 单次 RPC 请求超时时间。
+  ///
+  /// Solana 公共节点偶尔响应较慢，单次请求设置得更短，避免拖慢整个首页刷新。
   static const Duration _solanaRequestTimeout = Duration(seconds: 3);
+
+  /// Solana 整条链余额查询的总超时时间。
+  ///
+  /// 超时后会返回 Solana 资产的 0 余额兜底列表，避免页面一直 loading。
   static const Duration _solanaChainTimeout = Duration(seconds: 5);
+
+  /// EVM 链 RPC 备用节点。
+  ///
+  /// 每条 EVM 链按顺序尝试节点，前一个失败后自动切到下一个。
   static const Map<WalletChain, List<String>> _evmRpcFallbacks = {
     WalletChain.bsc: [
       'https://bsc-dataseed.bnbchain.org',
@@ -39,15 +69,24 @@ class ChainBalanceService {
       'https://xlayerrpc.okx.com',
     ],
   };
+
+  /// TRON 账号查询备用节点。
   static const List<String> _tronRpcFallbacks = [
     'https://api.trongrid.io',
     'https://tron-rpc.publicnode.com',
   ];
+
+  /// Solana JSON-RPC 备用节点。
   static const List<String> _solanaRpcFallbacks = [
     'https://api.mainnet-beta.solana.com',
     'https://solana-rpc.publicnode.com',
   ];
 
+  /// 查询当前钱包在所有支持链上的资产余额。
+  ///
+  /// [bscAddress] 实际代表 EVM 地址，BSC、Ethereum、X Layer 共用它；
+  /// [tronAddress] 和 [solanaAddress] 分别用于 TRON 和 Solana。
+  /// 各链并发查询，最终把多链结果拍平成一个 [ChainBalance] 列表。
   Future<List<ChainBalance>> loadBalances({
     required String bscAddress,
     required String tronAddress,
@@ -96,6 +135,10 @@ class ChainBalanceService {
     return balances;
   }
 
+  /// 向 EVM 链发送 JSON-RPC 请求。
+  ///
+  /// 该方法统一处理多 RPC fallback、错误响应识别和日志记录。只有响应中存在
+  ///字符串类型的 `result` 时才视为成功。
   Future<Map<dynamic, dynamic>> _postEvmRpc({
     required WalletChain chain,
     required Map<String, dynamic> data,
@@ -129,10 +172,14 @@ class ChainBalanceService {
     );
   }
 
+  /// 返回某条 EVM 链可用的 RPC 地址列表。
   List<String> _evmRpcUrls(WalletChain chain) {
     return _evmRpcFallbacks[chain] ?? [chain.rpcUrl];
   }
 
+  /// 查询 TRON 账号基础信息。
+  ///
+  /// 返回数据里包含 TRX 原生余额。TRC20 列表使用另一个 HTTP API 查询。
   Future<Map<dynamic, dynamic>> _postTronAccount(String address) async {
     Object? lastError;
     for (final rpcUrl in _tronRpcFallbacks) {
@@ -165,6 +212,9 @@ class ChainBalanceService {
     );
   }
 
+  /// 向 Solana 节点发送 JSON-RPC 请求。
+  ///
+  /// Solana 使用更短的单请求超时，并在多个公共节点之间 fallback。
   Future<Map<dynamic, dynamic>> _postSolanaRpc({
     required Map<String, dynamic> data,
   }) async {
@@ -201,6 +251,10 @@ class ChainBalanceService {
     );
   }
 
+  /// 打印本次余额加载的详细日志。
+  ///
+  /// 用于排查“某条链一直 loading”或“某个币种余额不对”的问题，会输出每条链、
+  /// 每个币种的数量、精度、合约地址和错误信息。
   void _printLoadedBalances(
     List<List<ChainBalance>> chainResults,
     List<ChainBalance> balances,
@@ -227,6 +281,7 @@ class ChainBalanceService {
     developer.log(buffer.toString(), name: 'ChainBalanceService');
   }
 
+  /// 查询某条 EVM 链下所有默认资产和自定义资产余额。
   Future<List<ChainBalance>> _loadEvmBalances({
     required WalletChain chain,
     required List<WalletAsset> assets,
@@ -239,6 +294,7 @@ class ChainBalanceService {
     );
   }
 
+  /// 根据资产类型分发到原生币或 ERC20 查询逻辑。
   Future<ChainBalance> _loadEvmAsset({
     required WalletChain chain,
     required WalletAsset asset,
@@ -254,6 +310,9 @@ class ChainBalanceService {
     return _loadEvmTokenBalance(chain: chain, asset: asset, address: address);
   }
 
+  /// 查询 EVM 原生币余额。
+  ///
+  /// 使用 `eth_getBalance` 获取最小单位数量（wei），再按资产 decimals 格式化。
   Future<ChainBalance> _loadEvmNativeBalance({
     required WalletChain chain,
     required WalletAsset asset,
@@ -291,6 +350,9 @@ class ChainBalanceService {
     }
   }
 
+  /// 查询 EVM ERC20 代币余额。
+  ///
+  /// 使用 `eth_call` 调用 ERC20 `balanceOf(address)`，不需要发交易或消耗 gas。
   Future<ChainBalance> _loadEvmTokenBalance({
     required WalletChain chain,
     required WalletAsset asset,
@@ -333,6 +395,10 @@ class ChainBalanceService {
     }
   }
 
+  /// 查询 TRON 链余额。
+  ///
+  /// TRX 原生余额和 TRC20 余额走不同接口。返回时会保证已知代币都在列表中：
+  /// 没查到的已知代币补 0，接口返回但资产表未知的 TRC20 也保留展示。
   Future<List<ChainBalance>> _loadTronBalances(
     String address,
     List<WalletAsset> customAssets,
@@ -372,6 +438,10 @@ class ChainBalanceService {
     return [nativeBalance, ...knownTokens, ...unknownTokens];
   }
 
+  /// 查询 Solana 链余额。
+  ///
+  /// 空地址直接返回 0 余额兜底。正常情况下会并发查询 SOL 原生余额和当前配置的
+  /// SPL Token 余额。
   Future<List<ChainBalance>> _loadSolanaBalances(
     String address,
     List<WalletAsset> customAssets,
@@ -393,6 +463,9 @@ class ChainBalanceService {
     return results;
   }
 
+  /// 构造 Solana 资产的 0 余额兜底列表。
+  ///
+  /// 用于 Solana 地址缺失、RPC 超时或整链查询不可用时，保证 UI 仍有稳定结构。
   List<ChainBalance> _fallbackSolanaBalances(
     String address,
     List<WalletAsset> customAssets,
@@ -415,6 +488,9 @@ class ChainBalanceService {
         .toList(growable: false);
   }
 
+  /// 查询 SOL 原生余额。
+  ///
+  /// Solana 节点返回 lamports，需要按 SOL 的 decimals 转换成人类可读数量。
   Future<ChainBalance> _loadSolanaNativeBalance(String address) async {
     final asset = WalletAssetRegistry.solanaAssets.first;
     try {
@@ -455,6 +531,10 @@ class ChainBalanceService {
     }
   }
 
+  /// 查询单个 Solana SPL Token 余额。
+  ///
+  /// 使用 `getTokenAccountsByOwner` 按 mint 查找用户所有 token account，并把同一
+  /// mint 的多个账户余额累加。接口返回的是最小单位字符串，需要按 decimals 格式化。
   Future<ChainBalance> _loadSolanaTokenBalance(
     String address,
     WalletAsset asset,
@@ -534,6 +614,9 @@ class ChainBalanceService {
     }
   }
 
+  /// 查询 TRX 原生余额。
+  ///
+  /// TRON 账号接口返回的 balance 单位是 sun，需要按 TRX decimals 转换。
   Future<ChainBalance> _loadTronNativeBalance(String address) async {
     final asset = WalletAssetRegistry.tronAssets.first;
     try {
@@ -563,6 +646,10 @@ class ChainBalanceService {
     }
   }
 
+  /// 查询 TRON TRC20 余额列表。
+  ///
+  /// TRONGrid 账号接口会返回账号持有的 TRC20 合约和原始余额。已知合约会映射成
+  /// 资产名称和 decimals；未知合约保留为 `TRC20`，方便后续用户添加自定义资产。
   Future<List<ChainBalance>> _loadTronTokenBalances(
     String address,
     List<WalletAsset> customAssets,
@@ -631,11 +718,16 @@ class ChainBalanceService {
     }
   }
 
+  /// 生成 ERC20 `balanceOf(address)` 调用数据。
+  ///
+  /// `0x70a08231` 是 `balanceOf(address)` 的 4 字节方法选择器，后面拼接 32 字节
+  /// 左侧补零的地址参数。
   static String erc20BalanceOfData(String address) {
     final cleanAddress = address.replaceFirst('0x', '').toLowerCase();
     return '0x70a08231${cleanAddress.padLeft(64, '0')}';
   }
 
+  /// 解析 EVM JSON-RPC 返回的十六进制数量。
   BigInt _parseHexQuantity(String value) {
     final cleanValue = value.replaceFirst('0x', '');
     if (cleanValue.isEmpty) {
@@ -644,6 +736,10 @@ class ChainBalanceService {
     return BigInt.parse(cleanValue, radix: 16);
   }
 
+  /// 将链上最小单位整数格式化为十进制资产数量。
+  ///
+  /// 例如 wei/sun/lamports/token raw amount 都会通过该方法按 decimals 转成人类可读
+  /// 字符串，并去掉末尾多余的 0。
   String _formatUnits(BigInt value, int decimals) {
     final base = BigInt.from(10).pow(decimals);
     final whole = value ~/ base;

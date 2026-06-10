@@ -8,7 +8,20 @@ import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
 import 'wallet_transfer_service.dart';
 
+/// 用户自定义资产服务。
+///
+/// 设置页“添加显示币种”依赖该服务。它负责：
+/// - 读取和保存用户手动添加的代币列表；
+/// - 防止重复添加默认资产或已添加资产；
+/// - 对 EVM 合约自动读取 symbol/name/decimals；
+/// - 对 EVM/TRON/Solana 合约地址做基础格式校验。
+///
+/// 该服务只维护资产配置，不查询余额。余额查询由 [ChainBalanceService] 根据
+/// 默认资产和这里保存的自定义资产合并后执行。
 class WalletCustomAssetService {
+  /// 创建自定义资产服务。
+  ///
+  /// 测试时可以注入 [Storage] 和 [Dio]，业务代码默认使用项目本地存储和独立 Dio。
   WalletCustomAssetService({Storage? storage, Dio? dio})
     : _storage = storage ?? Storage(),
       _dio =
@@ -21,10 +34,22 @@ class WalletCustomAssetService {
             ),
           );
 
+  /// 自定义资产持久化存储。
   final Storage _storage;
+
+  /// EVM 合约元数据查询使用的 HTTP/RPC 客户端。
   final Dio _dio;
+
+  /// 本地存储中保存自定义资产列表的字段名。
   static const String _customAssetsKey = 'wallet_custom_assets';
+
+  /// 查询代币元数据时的请求超时时间。
   static const Duration _requestTimeout = Duration(seconds: 10);
+
+  /// EVM 链元数据查询备用 RPC 节点。
+  ///
+  /// 添加自定义 EVM 资产时需要调用合约的 symbol/name/decimals。公共节点不稳定时，
+  /// 按顺序切换到备用节点，提高添加成功率。
   static const Map<WalletChain, List<String>> _evmRpcFallbacks = {
     WalletChain.bsc: [
       'https://bsc-dataseed.bnbchain.org',
@@ -40,6 +65,10 @@ class WalletCustomAssetService {
     ],
   };
 
+  /// 读取用户已添加的自定义资产。
+  ///
+  /// 存储异常或旧数据结构异常时返回空列表，避免设置页/首页因为脏数据崩溃。
+  /// 只保留带合约地址的资产，原生币不允许作为自定义资产重复添加。
   Future<List<WalletAsset>> loadCustomAssets() async {
     try {
       final value = await _storage.getStorage(_customAssetsKey);
@@ -58,6 +87,9 @@ class WalletCustomAssetService {
     return [];
   }
 
+  /// 保存自定义资产列表。
+  ///
+  /// 资产会转换成 JSON 兼容结构写入本地存储。
   Future<void> saveCustomAssets(List<WalletAsset> assets) {
     return _storage.setStorage(
       _customAssetsKey,
@@ -65,6 +97,10 @@ class WalletCustomAssetService {
     );
   }
 
+  /// 添加一个自定义资产。
+  ///
+  /// 添加前会先标准化资产信息，再检查是否和默认资产或已有自定义资产重复。
+  /// 重复判断以“链 + 合约地址”为准，而不是 symbol/name。
   Future<WalletAsset> addCustomAsset(WalletAsset asset) async {
     final normalizedAsset = _normalizeAsset(asset);
     final assets = [...await loadCustomAssets()];
@@ -78,6 +114,9 @@ class WalletCustomAssetService {
     return normalizedAsset;
   }
 
+  /// 移除一个自定义资产。
+  ///
+  /// 同样使用标准化后的“链 + 合约地址”匹配，避免大小写差异导致 EVM 资产删不掉。
   Future<void> removeCustomAsset(WalletAsset asset) async {
     final normalizedAsset = _normalizeAsset(asset);
     final assets = [...await loadCustomAssets()]
@@ -85,6 +124,14 @@ class WalletCustomAssetService {
     await saveCustomAssets(assets);
   }
 
+  /// 从 EVM 合约自动读取代币元数据。
+  ///
+  /// 仅支持 EVM 链。方法选择器：
+  /// - `0x95d89b41`: symbol()
+  /// - `0x06fdde03`: name()
+  /// - `0x313ce567`: decimals()
+  ///
+  /// symbol 为空或 decimals 不在合理范围内时，认为合约元数据无效。
   Future<WalletAsset> fetchEvmTokenMetadata({
     required WalletChain chain,
     required String contractAddress,
@@ -114,6 +161,10 @@ class WalletCustomAssetService {
     );
   }
 
+  /// 根据用户手动输入构造自定义资产。
+  ///
+  /// 用于非 EVM 链，或者 EVM 自动读取失败后用户手动填写 symbol/name/decimals 的场景。
+  /// 这里会统一校验地址、非空文案和 decimals 范围。
   WalletAsset buildManualAsset({
     required WalletChain chain,
     required String contractAddress,
@@ -138,6 +189,10 @@ class WalletCustomAssetService {
     );
   }
 
+  /// 执行一次 EVM `eth_call`。
+  ///
+  /// 添加代币时所有元数据读取都走该方法。它会遍历当前链的 RPC fallback 列表，
+  /// 直到拿到字符串类型的 result。
   Future<String> _evmCall({
     required WalletChain chain,
     required String to,
@@ -171,6 +226,11 @@ class WalletCustomAssetService {
     throw StateError(lastError?.toString() ?? 'EVM metadata lookup failed');
   }
 
+  /// 解析 ABI string 返回值。
+  ///
+  /// 大多数 ERC20 合约返回动态 string，少数老合约返回 bytes32。这里兼容两种：
+  /// - 动态 string：offset + length + utf8 bytes；
+  /// - bytes32：固定 32 字节，去掉尾部 0 后按 UTF-8 解码。
   String _decodeAbiString(String value) {
     final clean = value.replaceFirst('0x', '');
     if (clean.isEmpty || clean == '0' || clean.length.isOdd) {
@@ -216,6 +276,9 @@ class WalletCustomAssetService {
     return '';
   }
 
+  /// 解析 ABI uint 返回值。
+  ///
+  /// decimals() 返回 uint8/uint256 时都可以按十六进制整数解析。
   BigInt _decodeAbiUint(String value) {
     final clean = value.replaceFirst('0x', '');
     if (clean.isEmpty) {
@@ -224,6 +287,9 @@ class WalletCustomAssetService {
     return BigInt.parse(clean, radix: 16);
   }
 
+  /// 标准化自定义资产对象。
+  ///
+  /// symbol 统一大写，name 去掉首尾空白，合约地址按链类型标准化，并强制标记为自定义资产。
   WalletAsset _normalizeAsset(WalletAsset asset) {
     return WalletAsset(
       chain: asset.chain,
@@ -235,6 +301,9 @@ class WalletCustomAssetService {
     );
   }
 
+  /// 按链类型校验和标准化合约地址。
+  ///
+  /// EVM 地址会被标准化为 checksum 地址；TRON/Solana 地址只做合法性校验并保留用户输入。
   String _normalizeAddress(WalletChain chain, String? address) {
     final value = address?.trim() ?? '';
     if (value.isEmpty) {
@@ -254,16 +323,21 @@ class WalletCustomAssetService {
     return value;
   }
 
+  /// 判断资产列表中是否已存在目标资产。
   bool _containsAsset(List<WalletAsset> assets, WalletAsset target) {
     return assets.any((asset) => _sameContractAsset(asset, target));
   }
 
+  /// 判断两个资产是否代表同一链上的同一合约。
   bool _sameContractAsset(WalletAsset asset, WalletAsset target) {
     return asset.chain == target.chain &&
         _contractKey(asset.chain, asset.contractAddress) ==
             _contractKey(target.chain, target.contractAddress);
   }
 
+  /// 生成合约比较 key。
+  ///
+  /// EVM 合约地址大小写不敏感，比较时统一转小写；非 EVM 地址按原值比较。
   String _contractKey(WalletChain chain, String? contractAddress) {
     final value = contractAddress?.trim() ?? '';
     if (value.isEmpty) {
@@ -273,22 +347,27 @@ class WalletCustomAssetService {
   }
 }
 
+/// 自定义资产相关异常基类。
 class CustomAssetException implements Exception {
   const CustomAssetException();
 }
 
+/// 添加的资产已存在。
 class CustomAssetDuplicateException extends CustomAssetException {
   const CustomAssetDuplicateException();
 }
 
+/// 用户输入的合约、符号、名称或精度不合法。
 class CustomAssetInvalidInputException extends CustomAssetException {
   const CustomAssetInvalidInputException();
 }
 
+/// 自动读取到的链上合约元数据不完整或不可信。
 class CustomAssetInvalidMetadataException extends CustomAssetException {
   const CustomAssetInvalidMetadataException();
 }
 
+/// 当前链不支持自动读取资产元数据。
 class CustomAssetUnsupportedChainException extends CustomAssetException {
   const CustomAssetUnsupportedChainException();
 }
