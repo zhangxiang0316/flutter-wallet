@@ -18,6 +18,7 @@ import 'package:omnicast/wallet/services/wallet_secret_store.dart';
 import 'package:omnicast/wallet/services/wallet_transfer_service.dart';
 import 'package:omnicast/wallet/utils/asset_amount_formatter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:solana/solana.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -297,7 +298,7 @@ void main() {
             balance.chain == WalletChain.solana && balance.symbol == 'SOL',
       );
       expect(sol.amount, '0');
-      expect(sol.error, isNull);
+      expect(sol.error, contains('timed out'));
       expect(
         balances.any(
           (balance) =>
@@ -306,6 +307,58 @@ void main() {
         isTrue,
       );
     });
+
+    test(
+      'loads Solana stable token balances from associated token accounts',
+      () async {
+        const solanaAddress = 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8';
+        const usdtMint = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
+        const usdcMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+        final usdtAta = await _solanaAssociatedTokenAddress(
+          ownerAddress: solanaAddress,
+          mintAddress: usdtMint,
+        );
+        final usdcAta = await _solanaAssociatedTokenAddress(
+          ownerAddress: solanaAddress,
+          mintAddress: usdcMint,
+        );
+        final dio = Dio();
+        final adapter = _FallbackRpcAdapter(
+          solanaTokenAccountBalances: {
+            usdtAta: _solanaTokenBalance(amount: '1234567', decimals: 6),
+            usdcAta: _solanaTokenBalance(amount: '2500000', decimals: 6),
+          },
+        );
+        dio.httpClientAdapter = adapter;
+        final service = ChainBalanceService(dio: dio);
+
+        final balances = await service.loadBalances(
+          bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+          tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+          solanaAddress: solanaAddress,
+        );
+
+        final usdt = balances.firstWhere(
+          (balance) =>
+              balance.chain == WalletChain.solana && balance.symbol == 'USDT',
+        );
+        final usdc = balances.firstWhere(
+          (balance) =>
+              balance.chain == WalletChain.solana && balance.symbol == 'USDC',
+        );
+
+        expect(usdt.amount, '1.234567');
+        expect(usdc.amount, '2.5');
+        expect(usdt.error, isNull);
+        expect(usdc.error, isNull);
+        expect(
+          adapter.solanaMethods.where(
+            (method) => method == 'getTokenAccountBalance',
+          ),
+          hasLength(2),
+        );
+      },
+    );
   });
 
   group('AssetValuationService', () {
@@ -807,11 +860,13 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     this.failTronGridAccount = false,
     this.hangSolana = false,
     this.solanaTokenAccountPubkey,
+    this.solanaTokenAccountBalances = const {},
   });
 
   final bool failTronGridAccount;
   final bool hangSolana;
   final String? solanaTokenAccountPubkey;
+  final Map<String, Map<String, dynamic>> solanaTokenAccountBalances;
   final calls = <String>[];
   final solanaMethods = <String>[];
   String? lastSolanaTransactionBase64;
@@ -861,6 +916,22 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
           'jsonrpc': '2.0',
           'id': 1,
           'result': {'value': 1000000000},
+        });
+      }
+      if (_isSolanaMethod(options.data, 'getTokenAccountBalance')) {
+        final account = _firstSolanaParam(options.data);
+        final tokenBalance = solanaTokenAccountBalances[account];
+        if (tokenBalance == null) {
+          return _jsonResponse({
+            'jsonrpc': '2.0',
+            'id': 1,
+            'error': {'code': -32602, 'message': 'could not find account'},
+          });
+        }
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': {'value': tokenBalance},
         });
       }
       if (_isSolanaMethod(options.data, 'getTokenAccountsByOwner')) {
@@ -938,6 +1009,14 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     return data is Map ? data['method']?.toString() : null;
   }
 
+  String? _firstSolanaParam(dynamic data) {
+    final params = data is Map ? data['params'] : null;
+    if (params is! List || params.isEmpty) {
+      return null;
+    }
+    return params.first?.toString();
+  }
+
   ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {
     return ResponseBody.fromString(
       jsonEncode(data),
@@ -950,4 +1029,21 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
 
   @override
   void close({bool force = false}) {}
+}
+
+Future<String> _solanaAssociatedTokenAddress({
+  required String ownerAddress,
+  required String mintAddress,
+}) async {
+  final owner = Ed25519HDPublicKey.fromBase58(ownerAddress);
+  final mint = Ed25519HDPublicKey.fromBase58(mintAddress);
+  final ata = await findAssociatedTokenAddress(owner: owner, mint: mint);
+  return ata.toBase58();
+}
+
+Map<String, dynamic> _solanaTokenBalance({
+  required String amount,
+  required int decimals,
+}) {
+  return {'amount': amount, 'decimals': decimals};
 }

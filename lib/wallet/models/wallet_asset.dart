@@ -200,7 +200,7 @@ class WalletAssetRegistry {
       symbol: 'USDT',
       name: 'Tether USD',
       decimals: 6,
-      contractAddress: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkYWHU4x8LcYYB7Q',
+      contractAddress: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
     ),
     WalletAsset(
       chain: WalletChain.solana,
