@@ -23,7 +23,6 @@ class ChainSection extends StatelessWidget {
     required this.chainUsdValueTextFor,
     required this.isChainExpanded,
     required this.onChainToggle,
-    required this.onTransferPressed,
   });
 
   /// 当前钱包账户，用于读取 EVM、Solana、TRON 等链地址。
@@ -49,9 +48,6 @@ class ChainSection extends StatelessWidget {
   /// 点击链卡片头部后的展开/收起回调。
   final ValueChanged<WalletChain> onChainToggle;
 
-  /// 点击单个币种转账按钮后的回调。
-  final ValueChanged<ChainBalance> onTransferPressed;
-
   @override
   Widget build(BuildContext context) {
     // 按链枚举动态渲染，EVM 链共用 EVM 地址，非 EVM 链使用各自地址。
@@ -70,7 +66,6 @@ class ChainSection extends StatelessWidget {
             usdValueText: chainUsdValueTextFor(chain),
             isExpanded: isChainExpanded(chain),
             onToggle: onChainToggle,
-            onTransferPressed: onTransferPressed,
           );
         })
         .toList(growable: false);
@@ -119,7 +114,6 @@ class _ChainCard extends StatelessWidget {
     required this.usdValueText,
     required this.isExpanded,
     required this.onToggle,
-    required this.onTransferPressed,
   });
 
   /// 当前卡片对应的链。
@@ -145,9 +139,6 @@ class _ChainCard extends StatelessWidget {
 
   /// 点击链头部后的展开状态切换回调。
   final ValueChanged<WalletChain> onToggle;
-
-  /// 点击资产行转账按钮后的回调。
-  final ValueChanged<ChainBalance> onTransferPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +278,6 @@ class _ChainCard extends StatelessWidget {
                             balance: balance,
                             // 非稳定币会展示按当前价格换算的稳定币估值。
                             stableValueText: stableValueTextFor(balance),
-                            onTransferPressed: onTransferPressed,
                           ),
                         ),
                         if (balances.isEmpty)
@@ -410,22 +400,15 @@ class _EmptyBalancePlaceholder extends StatelessWidget {
 
 /// 单个币种的资产行。
 ///
-/// 左侧展示币种标识和名称，右侧展示余额、非稳定币估值和转账按钮。
+/// 左侧展示币种标识和名称，右侧展示余额和非稳定币估值。
 class _AssetRow extends StatelessWidget {
-  const _AssetRow({
-    required this.balance,
-    required this.stableValueText,
-    required this.onTransferPressed,
-  });
+  const _AssetRow({required this.balance, required this.stableValueText});
 
   /// 当前资产余额数据。
   final ChainBalance balance;
 
   /// 非稳定币换算成稳定币后的展示文本；稳定币为 null。
   final String? stableValueText;
-
-  /// 点击转账按钮后的回调。
-  final ValueChanged<ChainBalance> onTransferPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -477,68 +460,36 @@ class _AssetRow extends StatelessWidget {
             ),
           ),
           SizedBox(width: 10.w),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 118.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      formatAssetAmount(balance.amount),
-                      textAlign: TextAlign.right,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (stableValueText != null)
-                      Text(
-                        stableValueText!,
-                        textAlign: TextAlign.right,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: homeSubTextColor(context),
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ).marginOnly(top: 3.h),
-                  ],
-                ),
-              ),
-              Semantics(
-                button: true,
-                label: S.of(context).transfer,
-                child: IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints.tight(Size(40.w, 40.w)),
-                  onPressed: () => onTransferPressed(balance),
-                  icon: Container(
-                    width: 30.w,
-                    height: 30.w,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Icon(
-                      Icons.near_me_rounded,
-                      size: 18.w,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 124.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  formatAssetAmount(balance.amount),
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
                   ),
-                  tooltip: S.of(context).transfer,
                 ),
-              ),
-            ],
+                if (stableValueText != null)
+                  Text(
+                    stableValueText!,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: homeSubTextColor(context),
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ).marginOnly(top: 3.h),
+              ],
+            ),
           ),
         ],
       ),

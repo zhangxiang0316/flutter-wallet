@@ -137,6 +137,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   onWalletRemoved: controller.removeWallet,
                   onAddWallet: _showAddWalletSheet,
                   onReceivePressed: _openReceivePage,
+                  onTransferPressed: _openTransferPage,
                 ),
                 SizedBox(height: 16.h),
                 ChainSection(
@@ -147,7 +148,6 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   chainUsdValueTextFor: controller.chainUsdValueTextFor,
                   isChainExpanded: controller.isChainExpanded,
                   onChainToggle: controller.toggleChainExpanded,
-                  onTransferPressed: _openTransferPage,
                 ),
                 SizedBox(height: 16.h),
                 const PrivateKeyNotice(),
@@ -318,15 +318,22 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   }
 
   /// 打开转账页面；页面返回成功结果后刷新首页余额。
-  Future<void> _openTransferPage(ChainBalance balance) async {
+  Future<void> _openTransferPage([ChainBalance? balance]) async {
     final currentWallet = controller.wallet;
     if (currentWallet == null) return;
+    final availableAssets = controller.visibleBalances;
+    final selectedAsset =
+        balance ?? (availableAssets.isEmpty ? null : availableAssets.first);
+    if (selectedAsset == null) {
+      Toast.show(S.current.transferUnavailable);
+      return;
+    }
     final submitted = await Get.toNamed(
       RouteTable.transfer,
       arguments: TransferPageArguments(
         walletId: currentWallet.id,
-        asset: balance,
-        assets: controller.visibleBalances,
+        asset: selectedAsset,
+        assets: availableAssets,
       ),
     );
     if (submitted == true) {

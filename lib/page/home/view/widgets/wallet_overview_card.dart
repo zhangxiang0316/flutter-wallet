@@ -21,6 +21,7 @@ class WalletOverviewCard extends StatelessWidget {
     required this.onWalletRemoved,
     required this.onAddWallet,
     required this.onReceivePressed,
+    required this.onTransferPressed,
   });
 
   /// 当前选中的钱包。
@@ -44,6 +45,9 @@ class WalletOverviewCard extends StatelessWidget {
   /// 打开收款页面。
   final VoidCallback onReceivePressed;
 
+  /// 打开转账页面。
+  final VoidCallback onTransferPressed;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -56,6 +60,7 @@ class WalletOverviewCard extends StatelessWidget {
           onWalletRemoved: onWalletRemoved,
           onAddWallet: onAddWallet,
           onReceivePressed: onReceivePressed,
+          onTransferPressed: onTransferPressed,
         ).marginOnly(bottom: 12.h),
         const _PrimaryWalletPanel(),
       ],
@@ -75,6 +80,7 @@ class _BalanceHeroCard extends StatelessWidget {
     required this.onWalletRemoved,
     required this.onAddWallet,
     required this.onReceivePressed,
+    required this.onTransferPressed,
   });
 
   /// 当前选中的钱包。
@@ -97,6 +103,9 @@ class _BalanceHeroCard extends StatelessWidget {
 
   /// 打开收款页面。
   final VoidCallback onReceivePressed;
+
+  /// 打开转账页面。
+  final VoidCallback onTransferPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +196,22 @@ class _BalanceHeroCard extends StatelessWidget {
               SizedBox(height: 18.h),
               Align(
                 alignment: Alignment.center,
-                child: _HeroReceiveButton(onPressed: onReceivePressed),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _HeroActionButton(
+                      icon: Icons.qr_code_2_rounded,
+                      label: S.of(context).receive,
+                      onPressed: onReceivePressed,
+                    ),
+                    SizedBox(width: 10.w),
+                    _HeroActionButton(
+                      icon: Icons.near_me_rounded,
+                      label: S.of(context).transfer,
+                      onPressed: onTransferPressed,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -311,18 +335,28 @@ class _WalletNamePill extends StatelessWidget {
   }
 }
 
-/// Hero 卡片上的收款快捷入口。
-class _HeroReceiveButton extends StatelessWidget {
-  const _HeroReceiveButton({required this.onPressed});
+/// Hero 卡片上的快捷操作按钮。
+class _HeroActionButton extends StatelessWidget {
+  const _HeroActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
 
-  /// 点击后打开收款页面。
+  /// 按钮图标。
+  final IconData icon;
+
+  /// 按钮文案。
+  final String label;
+
+  /// 点击后的业务回调。
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: S.of(context).receive,
+      label: label,
       child: Material(
         color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999.r),
@@ -339,10 +373,10 @@ class _HeroReceiveButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 17.w),
+                Icon(icon, color: Colors.white, size: 17.w),
                 SizedBox(width: 7.w),
                 Text(
-                  S.of(context).receive,
+                  label,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 12.5.sp,
