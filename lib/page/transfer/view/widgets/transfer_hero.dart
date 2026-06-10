@@ -20,7 +20,7 @@ class TransferHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final assetColor = transferAssetColor(context, asset.symbol);
-    final chainColor = transferChainColor(asset.chain);
+    final chainColor = transferChainColor(asset.chainRef);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(18.w),
@@ -87,7 +87,7 @@ class TransferHero extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          asset.chain.name,
+                          asset.chainRef.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -109,7 +109,7 @@ class TransferHero extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Text(
-                      asset.chain.symbol,
+                      asset.chainRef.symbol,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 10.sp,

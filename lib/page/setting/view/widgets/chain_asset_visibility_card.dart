@@ -22,7 +22,7 @@ class ChainAssetVisibilityCard extends StatelessWidget {
   });
 
   /// 当前卡片对应的链。
-  final WalletChain chain;
+  final WalletChainConfig chain;
 
   /// 当前链下默认资产和自定义资产合并后的列表。
   final List<WalletAsset> assets;
@@ -114,8 +114,11 @@ class ChainAssetVisibilityCard extends StatelessWidget {
   }
 
   /// 获取当前链在设置页中的品牌色。
-  Color _chainColor(WalletChain chain) {
-    switch (chain) {
+  Color _chainColor(WalletChainConfig chain) {
+    if (chain.colorValue != null) {
+      return Color(chain.colorValue!);
+    }
+    switch (chain.builtinChain) {
       case WalletChain.bsc:
         return const Color(0xFFF0B90B);
       case WalletChain.ethereum:
@@ -128,6 +131,8 @@ class ChainAssetVisibilityCard extends StatelessWidget {
         return const Color(0xFF14F195);
       case WalletChain.tron:
         return const Color(0xFFE50914);
+      case null:
+        return const Color(0xFF2563EB);
     }
   }
 }

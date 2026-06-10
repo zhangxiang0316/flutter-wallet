@@ -6,6 +6,7 @@ import 'package:omnicast/page/receive/view/receive_page.dart';
 import 'package:omnicast/page/wallet/view/wallet_detail_page.dart';
 import 'package:omnicast/page/setting/view/language_page.dart';
 import 'package:omnicast/page/setting/view/asset_visibility_page.dart';
+import 'package:omnicast/page/setting/view/network_management_page.dart';
 import 'package:omnicast/page/setting/view/setting_page.dart';
 import 'package:omnicast/page/setting/view/theme_page.dart';
 import 'package:omnicast/page/main/view/main_page.dart';
@@ -17,6 +18,7 @@ class RouteTable {
   static const String walletDetail = '/walletDetail';
   static const String language = '/language';
   static const String assetVisibility = '/assetVisibility';
+  static const String networkManagement = '/networkManagement';
   static const String setting = '/setting';
   static const String theme = '/theme';
   static const String main = '/main';
@@ -45,6 +47,10 @@ class RouteTable {
     GetPage(
       name: '/assetVisibility',
       page: () => AssetVisibilityPage(),
+    ),
+    GetPage(
+      name: '/networkManagement',
+      page: () => NetworkManagementPage(),
     ),
     GetPage(
       name: '/setting',

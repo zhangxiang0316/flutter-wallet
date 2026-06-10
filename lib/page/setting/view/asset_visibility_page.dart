@@ -10,6 +10,7 @@ import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_asset.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/wallet_asset_visibility_service.dart';
+import '../../../wallet/services/wallet_chain_config_service.dart';
 import '../../../wallet/services/wallet_custom_asset_service.dart';
 import 'widgets/add_custom_asset_sheet.dart';
 import 'widgets/chain_asset_visibility_card.dart';
@@ -65,7 +66,7 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
 
   /// 页面主体内容。
   ///
-  /// 顶部展示说明卡片，下方按 [WalletChain.values] 渲染每条链的资产显示设置。
+  /// 顶部展示说明卡片，下方按当前链配置渲染每条链的资产显示设置。
   @override
   Widget? getBody() {
     return ColoredBox(
@@ -77,7 +78,7 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
         children: [
           const VisibilityIntroCard(),
           SizedBox(height: 12.h),
-          ...WalletChain.values.map(
+          ...controller.chains.map(
             (chain) => ChainAssetVisibilityCard(
               chain: chain,
               assets: controller.assetsForChain(chain),
@@ -93,7 +94,7 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
   }
 
   /// 打开指定链的自定义资产添加弹窗。
-  void _showAddAssetSheet(WalletChain chain) {
+  void _showAddAssetSheet(WalletChainConfig chain) {
     showModalBottomSheet(
       context: context!,
       isScrollControlled: true,
@@ -115,8 +116,10 @@ class AssetVisibilityController extends BaseController {
   AssetVisibilityController({
     WalletAssetVisibilityService? service,
     WalletCustomAssetService? customAssetService,
+    WalletChainConfigService? chainConfigService,
   }) : _service = service ?? WalletAssetVisibilityService(),
-       _customAssetService = customAssetService ?? WalletCustomAssetService();
+       _customAssetService = customAssetService ?? WalletCustomAssetService(),
+       _chainConfigService = chainConfigService ?? WalletChainConfigService();
 
   /// 资产显示/隐藏配置服务。
   final WalletAssetVisibilityService _service;
@@ -124,11 +127,17 @@ class AssetVisibilityController extends BaseController {
   /// 用户自定义资产服务。
   final WalletCustomAssetService _customAssetService;
 
+  /// 动态链配置服务。
+  final WalletChainConfigService _chainConfigService;
+
   /// 当前被隐藏的资产 key 集合。
   Set<String> hiddenAssetKeys = {};
 
   /// 用户手动添加的自定义资产列表。
   List<WalletAsset> customAssets = [];
+
+  /// 设置页当前展示的链列表。
+  List<WalletChainConfig> chains = [];
 
   /// 初始化时加载本地资产显示配置。
   @override
@@ -140,6 +149,7 @@ class AssetVisibilityController extends BaseController {
   /// 重新读取隐藏资产和自定义资产配置，并刷新页面。
   Future<void> loadVisibility() async {
     hiddenAssetKeys = await _service.loadHiddenAssetKeys();
+    chains = await _chainConfigService.loadAllChains();
     customAssets = await _customAssetService.loadCustomAssets();
     update();
   }
@@ -147,8 +157,11 @@ class AssetVisibilityController extends BaseController {
   /// 获取指定链下最终展示在设置页中的资产列表。
   ///
   /// 默认资产和用户自定义资产在这里合并，避免 UI 层关心资产来源。
-  List<WalletAsset> assetsForChain(WalletChain chain) {
-    return WalletAssetRegistry.mergeCustomAssets(chain, customAssets);
+  List<WalletAsset> assetsForChain(WalletChainConfig chain) {
+    return WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+      chain,
+      customAssets,
+    );
   }
 
   /// 判断某个资产当前是否允许在首页展示。
@@ -167,7 +180,7 @@ class AssetVisibilityController extends BaseController {
   ///
   /// 查询失败时返回 null，由弹窗展示“无法获取”的提示。
   Future<WalletAsset?> fetchEvmTokenMetadata({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required String contractAddress,
   }) async {
     try {
@@ -184,7 +197,7 @@ class AssetVisibilityController extends BaseController {
   ///
   /// 添加成功后会自动设置为可见，并重新加载页面数据。
   Future<bool> addCustomAsset({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required String contractAddress,
     required String symbol,
     required String name,

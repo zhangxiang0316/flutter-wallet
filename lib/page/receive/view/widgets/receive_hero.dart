@@ -16,7 +16,7 @@ class ReceiveHero extends StatelessWidget {
   final WalletAsset asset;
 
   /// 当前收款网络。
-  final WalletChain chain;
+  final WalletChainConfig chain;
 
   @override
   Widget build(BuildContext context) {

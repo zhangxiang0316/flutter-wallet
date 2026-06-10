@@ -142,6 +142,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 SizedBox(height: 16.h),
                 ChainSection(
                   wallet: wallet,
+                  chains: controller.chains,
                   balances: controller.visibleBalances,
                   isLoading: controller.isLoading,
                   stableValueTextFor: controller.stableValueTextFor,

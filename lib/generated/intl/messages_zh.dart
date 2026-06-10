@@ -28,13 +28,16 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m3(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
 
-  static String m4(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+  static String m4(name) => "确定要移除「${name}」吗？移除后不再查询该自定义网络资产。";
 
-  static String m5(symbol) => "转账 ${symbol}";
+  static String m5(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+
+  static String m6(symbol) => "转账 ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "addCustomAsset": MessageLookupByLibrary.simpleMessage("添加币种"),
+    "addNetwork": MessageLookupByLibrary.simpleMessage("添加网络"),
     "addWallet": MessageLookupByLibrary.simpleMessage("添加钱包"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "assetVisibility": MessageLookupByLibrary.simpleMessage("资产显示"),
@@ -94,8 +97,29 @@ class MessageLookup extends MessageLookupByLibrary {
     "mnemonicHint": MessageLookupByLibrary.simpleMessage(
       "请输入 12 个英文助记词，使用空格分隔",
     ),
+    "networkAdded": MessageLookupByLibrary.simpleMessage("网络已添加"),
+    "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
+    "networkDuplicate": MessageLookupByLibrary.simpleMessage("该网络已存在"),
     "networkFee": MessageLookupByLibrary.simpleMessage("网络手续费"),
     "networkFeeAsset": m1,
+    "networkInvalid": MessageLookupByLibrary.simpleMessage(
+      "请检查网络名称、币种简称、Chain ID 和 RPC 地址",
+    ),
+    "networkManagement": MessageLookupByLibrary.simpleMessage("网络管理"),
+    "networkManagementTip": MessageLookupByLibrary.simpleMessage(
+      "当前仅支持添加 EVM 兼容网络。自定义网络复用钱包 EVM 地址，支持原生币和代币余额查询。",
+    ),
+    "networkName": MessageLookupByLibrary.simpleMessage("网络名称"),
+    "networkRemoved": MessageLookupByLibrary.simpleMessage("网络已移除"),
+    "networkRpcMismatch": MessageLookupByLibrary.simpleMessage(
+      "RPC 返回的 Chain ID 不一致",
+    ),
+    "networkRpcUnavailable": MessageLookupByLibrary.simpleMessage("RPC 暂时不可用"),
+    "networkRpcUrl": MessageLookupByLibrary.simpleMessage("RPC 地址"),
+    "networkRpcUrlHelper": MessageLookupByLibrary.simpleMessage(
+      "每行一个 RPC 地址，也可以用逗号分隔",
+    ),
+    "networkSymbol": MessageLookupByLibrary.simpleMessage("原生币简称"),
     "phone": MessageLookupByLibrary.simpleMessage("手机"),
     "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
       "EVM / SOL / TRX 多链主钱包",
@@ -114,8 +138,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
     "removeCustomAsset": MessageLookupByLibrary.simpleMessage("移除币种"),
     "removeCustomAssetConfirmMessage": m3,
+    "removeNetwork": MessageLookupByLibrary.simpleMessage("移除网络"),
+    "removeNetworkConfirm": m4,
     "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
-    "removeWalletConfirmMessage": m4,
+    "removeWalletConfirmMessage": m5,
     "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
     "scanCameraError": MessageLookupByLibrary.simpleMessage(
       "相机不可用，请检查相机权限后重试。",
@@ -145,7 +171,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
     "transfer": MessageLookupByLibrary.simpleMessage("转账"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-    "transferAsset": m5,
+    "transferAsset": m6,
     "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "转账失败，请检查地址、数量和链上余额",

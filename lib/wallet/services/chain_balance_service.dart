@@ -6,6 +6,7 @@ import 'package:solana/solana.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
+import 'wallet_chain_config_service.dart';
 import 'wallet_custom_asset_service.dart';
 
 /// 多链余额查询服务。
@@ -22,23 +23,30 @@ class ChainBalanceService {
   ///
   /// 测试时可以传入自定义 [Dio] 或 [WalletCustomAssetService]；业务场景默认使用
   /// 内置 Dio 和用户自定义资产服务。
-  ChainBalanceService({Dio? dio, WalletCustomAssetService? customAssetService})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              connectTimeout: _requestTimeout,
-              receiveTimeout: _requestTimeout,
-              sendTimeout: _requestTimeout,
-            ),
-          ),
-      _customAssetService = customAssetService ?? WalletCustomAssetService();
+  ChainBalanceService({
+    Dio? dio,
+    WalletCustomAssetService? customAssetService,
+    WalletChainConfigService? chainConfigService,
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: _requestTimeout,
+               receiveTimeout: _requestTimeout,
+               sendTimeout: _requestTimeout,
+             ),
+           ),
+       _customAssetService = customAssetService ?? WalletCustomAssetService(),
+       _chainConfigService = chainConfigService ?? WalletChainConfigService();
 
   /// RPC/HTTP 请求客户端。
   final Dio _dio;
 
   /// 用户自定义资产服务，用于把用户添加的代币合并进默认查询列表。
   final WalletCustomAssetService _customAssetService;
+
+  /// 动态链配置服务，用于把用户添加的 EVM 网络纳入余额查询。
+  final WalletChainConfigService _chainConfigService;
 
   /// 常规链 RPC 请求超时时间。
   static const Duration _requestTimeout = Duration(seconds: 12);
@@ -105,38 +113,18 @@ class ChainBalanceService {
     required String solanaAddress,
   }) async {
     final customAssets = await _customAssetService.loadCustomAssets();
+    final enabledChains = await _chainConfigService.loadEnabledChains();
+    final evmChains = enabledChains.where((chain) => chain.isEvm);
     final results = await Future.wait([
-      _loadEvmBalances(
-        chain: WalletChain.bsc,
-        assets: WalletAssetRegistry.mergeCustomAssets(
-          WalletChain.bsc,
-          customAssets,
+      ...evmChains.map(
+        (chain) => _loadEvmBalances(
+          chain: chain,
+          assets: WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+            chain,
+            customAssets,
+          ),
+          address: bscAddress,
         ),
-        address: bscAddress,
-      ),
-      _loadEvmBalances(
-        chain: WalletChain.ethereum,
-        assets: WalletAssetRegistry.mergeCustomAssets(
-          WalletChain.ethereum,
-          customAssets,
-        ),
-        address: bscAddress,
-      ),
-      _loadEvmBalances(
-        chain: WalletChain.xLayer,
-        assets: WalletAssetRegistry.mergeCustomAssets(
-          WalletChain.xLayer,
-          customAssets,
-        ),
-        address: bscAddress,
-      ),
-      _loadEvmBalances(
-        chain: WalletChain.arbitrum,
-        assets: WalletAssetRegistry.mergeCustomAssets(
-          WalletChain.arbitrum,
-          customAssets,
-        ),
-        address: bscAddress,
       ),
       _loadSolanaBalances(solanaAddress, customAssets).timeout(
         _solanaChainTimeout,
@@ -165,7 +153,7 @@ class ChainBalanceService {
   /// 该方法统一处理多 RPC fallback、错误响应识别和日志记录。只有响应中存在
   ///字符串类型的 `result` 时才视为成功。
   Future<Map<dynamic, dynamic>> _postEvmRpc({
-    required WalletChain chain,
+    required WalletChainRef chain,
     required Map<String, dynamic> data,
   }) async {
     Object? lastError;
@@ -198,8 +186,17 @@ class ChainBalanceService {
   }
 
   /// 返回某条 EVM 链可用的 RPC 地址列表。
-  List<String> _evmRpcUrls(WalletChain chain) {
-    return _evmRpcFallbacks[chain] ?? [chain.rpcUrl];
+  List<String> _evmRpcUrls(WalletChainRef chain) {
+    if (chain is WalletChainConfig && !chain.isBuiltin) {
+      return chain.rpcUrls;
+    }
+    if (chain is WalletChain && _evmRpcFallbacks.containsKey(chain)) {
+      return _evmRpcFallbacks[chain]!;
+    }
+    if (chain is WalletChainConfig && chain.builtinChain != null) {
+      return _evmRpcFallbacks[chain.builtinChain] ?? chain.rpcUrls;
+    }
+    return [chain.rpcUrl];
   }
 
   /// 查询 TRON 账号基础信息。
@@ -298,7 +295,7 @@ class ChainBalanceService {
     for (final chainBalances in chainResults) {
       final chainName = chainBalances.isEmpty
           ? 'empty'
-          : chainBalances.first.chain.name;
+          : chainBalances.first.chainRef.name;
       buffer.writeln('[$chainName] count=${chainBalances.length}');
       for (final balance in chainBalances) {
         buffer.writeln(
@@ -315,7 +312,7 @@ class ChainBalanceService {
 
   /// 查询某条 EVM 链下所有默认资产和自定义资产余额。
   Future<List<ChainBalance>> _loadEvmBalances({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required List<WalletAsset> assets,
     required String address,
   }) async {
@@ -328,7 +325,7 @@ class ChainBalanceService {
 
   /// 根据资产类型分发到原生币或 ERC20 查询逻辑。
   Future<ChainBalance> _loadEvmAsset({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required WalletAsset asset,
     required String address,
   }) async {
@@ -346,7 +343,7 @@ class ChainBalanceService {
   ///
   /// 使用 `eth_getBalance` 获取最小单位数量（wei），再按资产 decimals 格式化。
   Future<ChainBalance> _loadEvmNativeBalance({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required WalletAsset asset,
     required String address,
   }) async {
@@ -361,8 +358,8 @@ class ChainBalanceService {
         },
       );
       final wei = _parseHexQuantity(data['result'] as String);
-      return ChainBalance(
-        chain: chain,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: _formatUnits(wei, asset.decimals),
@@ -370,8 +367,8 @@ class ChainBalanceService {
         decimals: asset.decimals,
       );
     } catch (e) {
-      return ChainBalance(
-        chain: chain,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',
@@ -386,7 +383,7 @@ class ChainBalanceService {
   ///
   /// 使用 `eth_call` 调用 ERC20 `balanceOf(address)`，不需要发交易或消耗 gas。
   Future<ChainBalance> _loadEvmTokenBalance({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required WalletAsset asset,
     required String address,
   }) async {
@@ -404,8 +401,8 @@ class ChainBalanceService {
         },
       );
       final value = _parseHexQuantity(data['result'] as String);
-      return ChainBalance(
-        chain: chain,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: _formatUnits(value, asset.decimals),
@@ -414,8 +411,8 @@ class ChainBalanceService {
         decimals: asset.decimals,
       );
     } catch (e) {
-      return ChainBalance(
-        chain: chain,
+      return ChainBalance.config(
+        chainConfig: chain,
         symbol: asset.symbol,
         name: asset.name,
         amount: '0',

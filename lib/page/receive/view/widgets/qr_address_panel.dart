@@ -19,7 +19,7 @@ class ReceiveQrAddressPanel extends StatelessWidget {
   });
 
   /// 当前二维码对应的链。
-  final WalletChain chain;
+  final WalletChainConfig chain;
 
   /// 当前链的钱包地址。
   final String address;

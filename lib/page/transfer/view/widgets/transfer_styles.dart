@@ -81,7 +81,11 @@ TextStyle transferInputTextStyle(BuildContext context) {
 }
 
 /// 获取链在转账页面中的强调色。
-Color transferChainColor(WalletChain chain) {
+Color transferChainColor(WalletChainRef chain) {
+  final configColor = chain is WalletChainConfig ? chain.colorValue : null;
+  if (configColor != null) {
+    return Color(configColor);
+  }
   switch (chain) {
     case WalletChain.bsc:
       return const Color(0xFFF0B90B);
@@ -95,6 +99,8 @@ Color transferChainColor(WalletChain chain) {
       return const Color(0xFF14F195);
     case WalletChain.tron:
       return const Color(0xFFE50914);
+    default:
+      return const Color(0xFF2563EB);
   }
 }
 

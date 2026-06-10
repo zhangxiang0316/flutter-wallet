@@ -118,6 +118,21 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                     controller.update();
                   },
                 ),
+                Divider(
+                  height: 1.h,
+                  thickness: 1,
+                  indent: 44.w,
+                  color: colorScheme.outline.withValues(alpha: 0.08),
+                ),
+                _SettingActionTile(
+                  icon: Icons.hub_outlined,
+                  title: S.of(context!).networkManagement,
+                  value: '',
+                  onTap: () async {
+                    await Get.toNamed(RouteTable.networkManagement);
+                    controller.update();
+                  },
+                ),
               ],
             ),
           ),

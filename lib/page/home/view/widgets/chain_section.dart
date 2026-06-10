@@ -17,6 +17,7 @@ class ChainSection extends StatelessWidget {
   const ChainSection({
     super.key,
     required this.wallet,
+    required this.chains,
     required this.balances,
     required this.isLoading,
     required this.stableValueTextFor,
@@ -27,6 +28,9 @@ class ChainSection extends StatelessWidget {
 
   /// 当前钱包账户，用于读取 EVM、Solana、TRON 等链地址。
   final WalletAccount wallet;
+
+  /// 当前启用的链配置，包含内置链和用户添加的 EVM 链。
+  final List<WalletChainConfig> chains;
 
   /// 控制器加载到的全部可见资产余额，组件内部会按链过滤展示。
   final List<ChainBalance> balances;
@@ -40,22 +44,22 @@ class ChainSection extends StatelessWidget {
   final String? Function(ChainBalance balance) stableValueTextFor;
 
   /// 单条链下所有已定价资产汇总后的 USD 估值文本。
-  final String Function(WalletChain chain) chainUsdValueTextFor;
+  final String Function(WalletChainConfig chain) chainUsdValueTextFor;
 
   /// 由控制器保存展开状态，避免刷新余额时丢失用户当前展开的链。
-  final bool Function(WalletChain chain) isChainExpanded;
+  final bool Function(WalletChainConfig chain) isChainExpanded;
 
   /// 点击链卡片头部后的展开/收起回调。
-  final ValueChanged<WalletChain> onChainToggle;
+  final ValueChanged<WalletChainConfig> onChainToggle;
 
   @override
   Widget build(BuildContext context) {
     // 按链枚举动态渲染，EVM 链共用 EVM 地址，非 EVM 链使用各自地址。
-    final chainCards = WalletChain.values
+    final chainCards = chains
         .map((chain) {
           // 当前链下需要展示的资产余额列表。
           final chainBalances = balances
-              .where((balance) => balance.chain == chain)
+              .where((balance) => balance.chainId == chain.id)
               .toList();
           return _ChainCard(
             chain: chain,
@@ -83,11 +87,11 @@ class ChainSection extends StatelessWidget {
   }
 
   /// 获取指定链在当前钱包里的展示地址。
-  String _addressForChain(WalletChain chain) {
+  String _addressForChain(WalletChainConfig chain) {
     if (chain.isEvm) {
       return wallet.bscAddress;
     }
-    switch (chain) {
+    switch (chain.builtinChain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
@@ -97,6 +101,8 @@ class ChainSection extends StatelessWidget {
         return wallet.solanaAddress;
       case WalletChain.tron:
         return wallet.tronAddress;
+      case null:
+        return wallet.bscAddress;
     }
   }
 }
@@ -118,7 +124,7 @@ class _ChainCard extends StatelessWidget {
   });
 
   /// 当前卡片对应的链。
-  final WalletChain chain;
+  final WalletChainConfig chain;
 
   /// 当前链在钱包中的展示地址。
   final String address;
@@ -139,7 +145,7 @@ class _ChainCard extends StatelessWidget {
   final bool isExpanded;
 
   /// 点击链头部后的展开状态切换回调。
-  final ValueChanged<WalletChain> onToggle;
+  final ValueChanged<WalletChainConfig> onToggle;
 
   @override
   Widget build(BuildContext context) {

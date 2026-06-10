@@ -8,24 +8,40 @@ class WalletAsset {
     required this.decimals,
     this.contractAddress,
     this.isCustom = false,
-  });
+  }) : chainConfig = null;
 
-  final WalletChain chain;
+  const WalletAsset.config({
+    required WalletChainConfig this.chainConfig,
+    required this.symbol,
+    required this.name,
+    required this.decimals,
+    this.contractAddress,
+    this.isCustom = false,
+  }) : chain = null;
+
+  final WalletChain? chain;
+  final WalletChainConfig? chainConfig;
   final String symbol;
   final String name;
   final int decimals;
   final String? contractAddress;
   final bool isCustom;
 
+  WalletChainRef get chainRef => chainConfig ?? chain!;
+  String get chainId => chainRef.id;
+
   bool get isNative => contractAddress == null || contractAddress!.isEmpty;
 
   String get assetKey {
-    return [chain.id, contractAddress ?? 'native', symbol].join(':');
+    return [chainId, contractAddress ?? 'native', symbol].join(':');
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'chainId': chain.id,
+      'chainId': chainId,
+      'chainName': chainRef.name,
+      'chainSymbol': chainRef.symbol,
+      'evmChainId': chainRef.evmChainId,
       'symbol': symbol,
       'name': name,
       'decimals': decimals,
@@ -35,20 +51,42 @@ class WalletAsset {
   }
 
   factory WalletAsset.fromJson(Map<String, dynamic> json) {
-    final chain = WalletChain.values.firstWhere(
-      (item) => item.id == json['chainId'],
-      orElse: () => WalletChain.bsc,
+    final chainId = json['chainId']?.toString() ?? WalletChain.bsc.id;
+    final chain = WalletChain.values.cast<WalletChain?>().firstWhere(
+      (item) => item?.id == chainId,
+      orElse: () => null,
     );
     final decimalsValue = json['decimals'];
-    return WalletAsset(
-      chain: chain,
-      symbol: json['symbol'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      decimals: decimalsValue is int
-          ? decimalsValue
-          : int.tryParse(decimalsValue?.toString() ?? '') ?? 0,
-      contractAddress: json['contractAddress'] as String?,
-      isCustom: json['isCustom'] as bool? ?? true,
+    final symbol = json['symbol'] as String? ?? '';
+    final name = json['name'] as String? ?? '';
+    final decimals = decimalsValue is int
+        ? decimalsValue
+        : int.tryParse(decimalsValue?.toString() ?? '') ?? 0;
+    final contractAddress = json['contractAddress'] as String?;
+    final isCustom = json['isCustom'] as bool? ?? true;
+    if (chain != null) {
+      return WalletAsset(
+        chain: chain,
+        symbol: symbol,
+        name: name,
+        decimals: decimals,
+        contractAddress: contractAddress,
+        isCustom: isCustom,
+      );
+    }
+    return WalletAsset.config(
+      chainConfig: WalletChainConfig.customEvm(
+        id: chainId,
+        name: json['chainName']?.toString() ?? chainId,
+        symbol: json['chainSymbol']?.toString() ?? '',
+        rpcUrls: const ['http://localhost'],
+        evmChainId: int.tryParse(json['evmChainId']?.toString() ?? '') ?? 1,
+      ),
+      symbol: symbol,
+      name: name,
+      decimals: decimals,
+      contractAddress: contractAddress,
+      isCustom: isCustom,
     );
   }
 }
@@ -274,6 +312,21 @@ class WalletAssetRegistry {
     }
   }
 
+  static List<WalletAsset> assetsForChainConfig(WalletChainConfig chain) {
+    final builtinChain = chain.builtinChain;
+    if (builtinChain != null) {
+      return assetsForChain(builtinChain);
+    }
+    return [
+      WalletAsset.config(
+        chainConfig: chain,
+        symbol: chain.symbol,
+        name: chain.name,
+        decimals: 18,
+      ),
+    ];
+  }
+
   static List<WalletAsset> mergeCustomAssets(
     WalletChain chain,
     List<WalletAsset> customAssets,
@@ -281,6 +334,22 @@ class WalletAssetRegistry {
     final assets = [...assetsForChain(chain)];
     final existingKeys = assets.map(_assetContractKey).toSet();
     for (final asset in customAssets.where((asset) => asset.chain == chain)) {
+      if (existingKeys.add(_assetContractKey(asset))) {
+        assets.add(asset);
+      }
+    }
+    return assets;
+  }
+
+  static List<WalletAsset> mergeCustomAssetsForChainConfig(
+    WalletChainConfig chain,
+    List<WalletAsset> customAssets,
+  ) {
+    final assets = [...assetsForChainConfig(chain)];
+    final existingKeys = assets.map(_assetContractKey).toSet();
+    for (final asset in customAssets.where(
+      (asset) => asset.chainId == chain.id,
+    )) {
       if (existingKeys.add(_assetContractKey(asset))) {
         assets.add(asset);
       }
@@ -308,10 +377,10 @@ class WalletAssetRegistry {
   }
 
   static String _assetContractKey(WalletAsset asset) {
-    return '${asset.chain.id}:${_contractKey(asset.chain, asset.contractAddress)}';
+    return '${asset.chainId}:${_contractKey(asset.chainRef, asset.contractAddress)}';
   }
 
-  static String _contractKey(WalletChain chain, String? contractAddress) {
+  static String _contractKey(WalletChainRef chain, String? contractAddress) {
     final value = contractAddress?.trim() ?? '';
     if (value.isEmpty) {
       return 'native';

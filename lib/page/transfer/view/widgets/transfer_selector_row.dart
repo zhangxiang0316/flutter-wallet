@@ -26,7 +26,7 @@ class TransferSelectorRow extends StatelessWidget {
   });
 
   /// 当前可选择的转账网络。
-  final List<WalletChain> chains;
+  final List<WalletChainConfig> chains;
 
   /// 当前选中的转账资产。
   final ChainBalance selectedAsset;
@@ -38,14 +38,14 @@ class TransferSelectorRow extends StatelessWidget {
   final bool isEnabled;
 
   /// 用户切换转账网络后的回调。
-  final ValueChanged<WalletChain> onChainSelected;
+  final ValueChanged<WalletChainConfig> onChainSelected;
 
   /// 用户切换转账币种后的回调。
   final ValueChanged<ChainBalance> onAssetSelected;
 
   @override
   Widget build(BuildContext context) {
-    final chainColor = transferChainColor(selectedAsset.chain);
+    final chainColor = transferChainColor(selectedAsset.chainRef);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
@@ -58,7 +58,8 @@ class TransferSelectorRow extends StatelessWidget {
               Expanded(
                 child: _ChainDropdown(
                   chains: chains,
-                  selectedChain: selectedAsset.chain,
+                  selectedChain:
+                      selectedAsset.chainConfig ?? selectedAsset.chain!.config,
                   isEnabled: isEnabled,
                   onChanged: onChainSelected,
                 ),
@@ -96,20 +97,20 @@ class _ChainDropdown extends StatelessWidget {
   });
 
   /// 可选网络。
-  final List<WalletChain> chains;
+  final List<WalletChainConfig> chains;
 
   /// 当前选中的网络。
-  final WalletChain selectedChain;
+  final WalletChainConfig selectedChain;
 
   /// 是否允许选择。
   final bool isEnabled;
 
   /// 网络切换回调。
-  final ValueChanged<WalletChain> onChanged;
+  final ValueChanged<WalletChainConfig> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<WalletChain>(
+    return DropdownButtonFormField<WalletChainConfig>(
       key: ValueKey(selectedChain.id),
       initialValue: selectedChain,
       isExpanded: true,
@@ -123,11 +124,11 @@ class _ChainDropdown extends StatelessWidget {
       dropdownColor: Theme.of(context).cardColor,
       items: chains
           .map((chain) {
-            return DropdownMenuItem<WalletChain>(
+            return DropdownMenuItem<WalletChainConfig>(
               value: chain,
               child: _ChainOption(
                 chain: chain,
-                selected: chain == selectedChain,
+                selected: chain.id == selectedChain.id,
               ),
             );
           })
@@ -177,14 +178,14 @@ class _AssetDropdown extends StatelessWidget {
         ? _assetKey(selectedAsset)
         : null;
     return DropdownButtonFormField<String>(
-      key: ValueKey('${selectedAsset.chain.id}:$selectedKey'),
+      key: ValueKey('${selectedAsset.chainId}:$selectedKey'),
       initialValue: selectedKey,
       isExpanded: true,
       icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18.w),
       decoration: _dropdownDecoration(
         context,
         label: S.of(context).selectTransferAsset,
-        focusColor: transferChainColor(selectedAsset.chain),
+        focusColor: transferChainColor(selectedAsset.chainRef),
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
@@ -215,7 +216,7 @@ class _ChainOption extends StatelessWidget {
   const _ChainOption({required this.chain, required this.selected});
 
   /// 对应网络。
-  final WalletChain chain;
+  final WalletChainConfig chain;
 
   /// 是否为当前选中项。
   final bool selected;
@@ -432,11 +433,11 @@ InputDecoration _dropdownDecoration(
 /// 构建转账资产唯一 key。
 String _assetKey(ChainBalance asset) {
   final contract = asset.contractAddress?.trim() ?? '';
-  final normalizedContract = asset.chain.isEvm
+  final normalizedContract = asset.chainRef.isEvm
       ? contract.toLowerCase()
       : contract;
   return [
-    asset.chain.id,
+    asset.chainId,
     normalizedContract.isEmpty ? 'native' : normalizedContract,
     asset.symbol.toUpperCase(),
   ].join(':');

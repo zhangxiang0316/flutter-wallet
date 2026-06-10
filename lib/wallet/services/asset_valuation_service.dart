@@ -816,7 +816,7 @@ class AssetValuationService {
       final price = priceForSymbol(balance.symbol, prices);
       final value = amount == null || price == null ? null : amount * price;
       buffer.writeln(
-        '${balance.chain.id}/${balance.symbol} '
+        '${balance.chainId}/${balance.symbol} '
         'amount=${balance.amount} parsedAmount=${amount?.toString() ?? '-'} '
         'price=${price?.toString() ?? '-'} '
         'value=${value?.toStringAsFixed(8) ?? '-'} '

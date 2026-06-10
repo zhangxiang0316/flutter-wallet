@@ -68,7 +68,7 @@ class WalletAssetVisibilityService {
   /// 统一使用 `native`，避免空字符串和 null 造成不同 key。
   String keyForAsset(WalletAsset asset) {
     return [
-      asset.chain.id,
+      asset.chainId,
       asset.contractAddress ?? 'native',
       asset.symbol,
     ].join(':');
@@ -80,7 +80,7 @@ class WalletAssetVisibilityService {
   /// 首页余额列表。
   String keyForBalance(ChainBalance balance) {
     return [
-      balance.chain.id,
+      balance.chainId,
       balance.contractAddress ?? 'native',
       balance.symbol,
     ].join(':');

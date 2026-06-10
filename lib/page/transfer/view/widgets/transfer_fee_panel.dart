@@ -26,7 +26,7 @@ class TransferFeePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chainColor = transferChainColor(asset.chain);
+    final chainColor = transferChainColor(asset.chainRef);
     final estimate = controller.feeEstimate;
     return Container(
       width: double.infinity,
@@ -91,7 +91,7 @@ class TransferFeePanel extends StatelessWidget {
                   Text(
                     controller.feeEstimateUnavailable
                         ? S.of(context).feeUnavailable
-                        : S.of(context).networkFeeAsset(asset.chain.symbol),
+                        : S.of(context).networkFeeAsset(asset.chainRef.symbol),
                     style: _feeTextStyle(context),
                   ),
               ],

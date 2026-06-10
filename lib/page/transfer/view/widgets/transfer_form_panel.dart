@@ -239,6 +239,9 @@ class TransferFormPanel extends StatelessWidget {
 
   /// 根据链类型返回地址输入框占位提示。
   String _addressHint(ChainBalance asset) {
+    if (asset.chainRef.isEvm) {
+      return '0x...';
+    }
     switch (asset.chain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
@@ -249,6 +252,8 @@ class TransferFormPanel extends StatelessWidget {
         return 'T...';
       case WalletChain.solana:
         return 'Solana address';
+      case null:
+        return '0x...';
     }
   }
 }

@@ -86,6 +86,7 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
           ReceiveHero(asset: asset, chain: controller.selectedChain),
           SizedBox(height: 12.h),
           ReceiveSelectorRow(
+            chains: controller.chains,
             selectedChain: controller.selectedChain,
             assets: controller.assetsForSelectedChain(),
             selectedAsset: asset,

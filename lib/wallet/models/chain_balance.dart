@@ -10,9 +10,21 @@ class ChainBalance {
     this.contractAddress,
     this.decimals = 0,
     this.error,
-  });
+  }) : chainConfig = null;
 
-  final WalletChain chain;
+  const ChainBalance.config({
+    required WalletChainConfig this.chainConfig,
+    required this.symbol,
+    required this.name,
+    required this.amount,
+    required this.address,
+    this.contractAddress,
+    this.decimals = 0,
+    this.error,
+  }) : chain = null;
+
+  final WalletChain? chain;
+  final WalletChainConfig? chainConfig;
   final String symbol;
   final String name;
   final String amount;
@@ -23,10 +35,12 @@ class ChainBalance {
 
   bool get hasError => error != null && error!.isNotEmpty;
   bool get isNative => contractAddress == null || contractAddress!.isEmpty;
+  WalletChainRef get chainRef => chainConfig ?? chain!;
+  String get chainId => chainRef.id;
 
   @override
   String toString() {
-    return 'ChainBalance(chain: ${chain.id}, symbol: $symbol, '
+    return 'ChainBalance(chain: $chainId, symbol: $symbol, '
         'amount: $amount, decimals: $decimals, address: $address, '
         'contractAddress: ${contractAddress ?? '-'}, error: ${error ?? '-'})';
   }

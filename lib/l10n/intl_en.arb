@@ -8,6 +8,27 @@
   "language": "Language",
   "theme": "Theme",
   "assetVisibility": "Asset display",
+  "networkManagement": "Networks",
+  "networkManagementTip": "Add EVM-compatible networks only. Custom networks reuse the wallet EVM address and support native coin and token balance lookup.",
+  "addNetwork": "Add network",
+  "removeNetwork": "Remove network",
+  "removeNetworkConfirm": "Remove \"{name}\"? Assets on this custom network will no longer be queried.",
+  "@removeNetworkConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "networkName": "Network name",
+  "networkSymbol": "Native symbol",
+  "networkChainId": "Chain ID",
+  "networkRpcUrl": "RPC URL",
+  "networkRpcUrlHelper": "One RPC URL per line, or separate them with commas",
+  "networkAdded": "Network added",
+  "networkRemoved": "Network removed",
+  "networkDuplicate": "This network already exists",
+  "networkInvalid": "Check the network name, symbol, chain ID, and RPC URL",
+  "networkRpcMismatch": "RPC chain ID does not match",
+  "networkRpcUnavailable": "RPC is unavailable",
   "assetVisibilityTip": "Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.",
   "addCustomAsset": "Add asset",
   "removeCustomAsset": "Remove asset",

@@ -19,18 +19,18 @@ class AddCustomAssetSheet extends StatefulWidget {
   });
 
   /// 当前正在添加资产的链。
-  final WalletChain chain;
+  final WalletChainConfig chain;
 
   /// 根据合约地址查询链上资产元数据。
   final Future<WalletAsset?> Function({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required String contractAddress,
   })
   onFetchMetadata;
 
   /// 提交用户最终确认的自定义资产信息。
   final Future<bool> Function({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required String contractAddress,
     required String symbol,
     required String name,

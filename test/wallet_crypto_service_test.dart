@@ -13,6 +13,7 @@ import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/asset_valuation_service.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
 import 'package:omnicast/wallet/services/wallet_custom_asset_service.dart';
+import 'package:omnicast/wallet/services/wallet_chain_config_service.dart';
 import 'package:omnicast/wallet/services/wallet_crypto_service.dart';
 import 'package:omnicast/wallet/services/wallet_secret_store.dart';
 import 'package:omnicast/wallet/services/wallet_transfer_service.dart';
@@ -155,13 +156,33 @@ void main() {
         hasLength(1),
       );
     });
+
+    test('creates native asset for custom EVM chains', () {
+      final chain = WalletChainConfig.customEvm(
+        id: 'evm-137',
+        name: 'Polygon',
+        symbol: 'MATIC',
+        rpcUrls: const ['https://polygon-rpc.com'],
+        evmChainId: 137,
+      );
+
+      final assets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+        chain,
+        const [],
+      );
+
+      expect(assets, hasLength(1));
+      expect(assets.first.chainId, 'evm-137');
+      expect(assets.first.symbol, 'MATIC');
+      expect(assets.first.isNative, isTrue);
+    });
   });
 
   group('WalletCustomAssetService', () {
     test('builds manually added assets with normalized EVM addresses', () {
       final service = WalletCustomAssetService();
       final asset = service.buildManualAsset(
-        chain: WalletChain.bsc,
+        chain: WalletChain.bsc.config,
         contractAddress: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
         symbol: 'cake',
         name: 'PancakeSwap Token',
@@ -175,6 +196,49 @@ void main() {
       );
       expect(asset.isCustom, isTrue);
     });
+  });
+
+  group('WalletChainConfigService', () {
+    test('validates RPC chain ID before adding custom EVM chain', () async {
+      SharedPreferences.setMockInitialValues({});
+      final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+      final service = WalletChainConfigService(dio: dio);
+
+      final chain = await service.addCustomEvmChain(
+        name: 'Polygon',
+        symbol: 'matic',
+        evmChainId: 137,
+        rpcUrls: const ['https://polygon-rpc.com'],
+      );
+
+      expect(chain.id, 'evm-137');
+      expect(chain.symbol, 'MATIC');
+      expect(chain.rpcUrls, ['https://polygon-rpc.com']);
+      expect(await service.loadCustomChains(), hasLength(1));
+    });
+
+    test(
+      'uses the next RPC when the first custom EVM RPC is unavailable',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+        final service = WalletChainConfigService(dio: dio);
+
+        final chain = await service.addCustomEvmChain(
+          name: 'Polygon',
+          symbol: 'matic',
+          evmChainId: 137,
+          rpcUrls: const [
+            'https://polygon-rpc-disabled.example',
+            'https://polygon-bor-rpc.publicnode.com',
+          ],
+        );
+
+        expect(chain.id, 'evm-137');
+        expect(chain.rpcUrls.first, 'https://polygon-bor-rpc.publicnode.com');
+        expect(chain.rpcUrls, contains('https://polygon-rpc-disabled.example'));
+      },
+    );
   });
 
   group('WalletSecretStore', () {
@@ -245,7 +309,7 @@ void main() {
 
       final bnb = balances.firstWhere(
         (balance) =>
-            balance.chain == WalletChain.bsc && balance.symbol == 'BNB',
+            balance.chainId == WalletChain.bsc.id && balance.symbol == 'BNB',
       );
       expect(bnb.amount, '1');
       expect(bnb.error, isNull);
@@ -302,7 +366,7 @@ void main() {
       expect(
         balances.any(
           (balance) =>
-              balance.chain == WalletChain.bsc && balance.symbol == 'BNB',
+              balance.chainId == WalletChain.bsc.id && balance.symbol == 'BNB',
         ),
         isTrue,
       );
@@ -923,6 +987,30 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
       return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x0'});
     }
 
+    if (origin == 'https://polygon-rpc.com') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'result': _isEvmChainIdRequest(options.data) ? '0x89' : '0x0',
+      });
+    }
+
+    if (origin == 'https://polygon-rpc-disabled.example') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'error': {'code': -32051, 'message': 'API key disabled'},
+      });
+    }
+
+    if (origin == 'https://polygon-bor-rpc.publicnode.com') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'result': _isEvmChainIdRequest(options.data) ? '0x89' : '0x0',
+      });
+    }
+
     if (origin == 'https://api.mainnet-beta.solana.com') {
       if (hangSolana) {
         return Completer<ResponseBody>().future;
@@ -1019,6 +1107,10 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
 
   bool _isEvmNativeRequest(dynamic data) {
     return data is Map && data['method'] == 'eth_getBalance';
+  }
+
+  bool _isEvmChainIdRequest(dynamic data) {
+    return data is Map && data['method'] == 'eth_chainId';
   }
 
   bool _isSolanaMethod(dynamic data, String method) {

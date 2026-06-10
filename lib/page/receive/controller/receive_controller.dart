@@ -4,6 +4,7 @@ import '../../../base/base_controller.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/models/wallet_asset.dart';
 import '../../../wallet/models/wallet_chain.dart';
+import '../../../wallet/services/wallet_chain_config_service.dart';
 import '../../../wallet/services/wallet_custom_asset_service.dart';
 
 /// 收款页面控制器。
@@ -11,10 +12,14 @@ import '../../../wallet/services/wallet_custom_asset_service.dart';
 /// 页面只展示地址和二维码，不需要读取私钥。控制器负责读取路由传入的钱包、
 /// 加载用户自定义资产，并维护当前选择的链和币种。
 class ReceiveController extends BaseController {
-  ReceiveController({WalletCustomAssetService? customAssetService})
-    : _customAssetService = customAssetService ?? WalletCustomAssetService();
+  ReceiveController({
+    WalletCustomAssetService? customAssetService,
+    WalletChainConfigService? chainConfigService,
+  }) : _customAssetService = customAssetService ?? WalletCustomAssetService(),
+       _chainConfigService = chainConfigService ?? WalletChainConfigService();
 
   final WalletCustomAssetService _customAssetService;
+  final WalletChainConfigService _chainConfigService;
 
   /// 首页传入的当前钱包，包含 EVM、Solana 和 TRON 地址。
   WalletAccount? wallet;
@@ -22,8 +27,11 @@ class ReceiveController extends BaseController {
   /// 用户手动添加的自定义资产，用于补充默认资产列表。
   List<WalletAsset> customAssets = [];
 
+  /// 当前启用的收款链配置。
+  List<WalletChainConfig> chains = [];
+
   /// 当前二维码和地址使用的链。
-  WalletChain selectedChain = WalletChain.bsc;
+  WalletChainConfig selectedChain = WalletChain.bsc.config;
 
   /// 当前选择的收款币种。
   WalletAsset? selectedAsset;
@@ -46,6 +54,10 @@ class ReceiveController extends BaseController {
   Future<void> loadAssets() async {
     isLoadingAssets = true;
     update();
+    chains = await _chainConfigService.loadEnabledChains();
+    if (!chains.any((chain) => chain.id == selectedChain.id)) {
+      selectedChain = chains.isEmpty ? WalletChain.bsc.config : chains.first;
+    }
     customAssets = await _customAssetService.loadCustomAssets();
     _selectFirstAvailableAsset();
     isLoadingAssets = false;
@@ -56,12 +68,15 @@ class ReceiveController extends BaseController {
   ///
   /// 默认资产和用户自定义资产在这里合并，页面只关心最终可选列表。
   List<WalletAsset> assetsForSelectedChain() {
-    return WalletAssetRegistry.mergeCustomAssets(selectedChain, customAssets);
+    return WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+      selectedChain,
+      customAssets,
+    );
   }
 
   /// 切换收款链，并自动选择该链第一个可用币种。
-  void selectChain(WalletChain chain) {
-    if (selectedChain == chain) return;
+  void selectChain(WalletChainConfig chain) {
+    if (selectedChain.id == chain.id) return;
     selectedChain = chain;
     _selectFirstAvailableAsset();
     update();
@@ -82,7 +97,7 @@ class ReceiveController extends BaseController {
     if (selectedChain.isEvm) {
       return currentWallet.bscAddress;
     }
-    switch (selectedChain) {
+    switch (selectedChain.builtinChain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
@@ -92,6 +107,8 @@ class ReceiveController extends BaseController {
         return currentWallet.solanaAddress;
       case WalletChain.tron:
         return currentWallet.tronAddress;
+      case null:
+        return currentWallet.bscAddress;
     }
   }
 
@@ -104,7 +121,7 @@ class ReceiveController extends BaseController {
     }
     final currentAsset = selectedAsset;
     if (currentAsset != null &&
-        currentAsset.chain == selectedChain &&
+        currentAsset.chainId == selectedChain.id &&
         assets.any((asset) => asset.assetKey == currentAsset.assetKey)) {
       return;
     }

@@ -28,9 +28,10 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name = (locale.countryCode?.isEmpty ?? false)
-        ? locale.languageCode
-        : locale.toString();
+    final name =
+        (locale.countryCode?.isEmpty ?? false)
+            ? locale.languageCode
+            : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -94,6 +95,151 @@ class S {
     return Intl.message(
       'Asset display',
       name: 'assetVisibility',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Networks`
+  String get networkManagement {
+    return Intl.message(
+      'Networks',
+      name: 'networkManagement',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add EVM-compatible networks only. Custom networks reuse the wallet EVM address and support native coin and token balance lookup.`
+  String get networkManagementTip {
+    return Intl.message(
+      'Add EVM-compatible networks only. Custom networks reuse the wallet EVM address and support native coin and token balance lookup.',
+      name: 'networkManagementTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add network`
+  String get addNetwork {
+    return Intl.message('Add network', name: 'addNetwork', desc: '', args: []);
+  }
+
+  /// `Remove network`
+  String get removeNetwork {
+    return Intl.message(
+      'Remove network',
+      name: 'removeNetwork',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remove "{name}"? Assets on this custom network will no longer be queried.`
+  String removeNetworkConfirm(Object name) {
+    return Intl.message(
+      'Remove "$name"? Assets on this custom network will no longer be queried.',
+      name: 'removeNetworkConfirm',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `Network name`
+  String get networkName {
+    return Intl.message(
+      'Network name',
+      name: 'networkName',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Native symbol`
+  String get networkSymbol {
+    return Intl.message(
+      'Native symbol',
+      name: 'networkSymbol',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Chain ID`
+  String get networkChainId {
+    return Intl.message('Chain ID', name: 'networkChainId', desc: '', args: []);
+  }
+
+  /// `RPC URL`
+  String get networkRpcUrl {
+    return Intl.message('RPC URL', name: 'networkRpcUrl', desc: '', args: []);
+  }
+
+  /// `One RPC URL per line, or separate them with commas`
+  String get networkRpcUrlHelper {
+    return Intl.message(
+      'One RPC URL per line, or separate them with commas',
+      name: 'networkRpcUrlHelper',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network added`
+  String get networkAdded {
+    return Intl.message(
+      'Network added',
+      name: 'networkAdded',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network removed`
+  String get networkRemoved {
+    return Intl.message(
+      'Network removed',
+      name: 'networkRemoved',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This network already exists`
+  String get networkDuplicate {
+    return Intl.message(
+      'This network already exists',
+      name: 'networkDuplicate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Check the network name, symbol, chain ID, and RPC URL`
+  String get networkInvalid {
+    return Intl.message(
+      'Check the network name, symbol, chain ID, and RPC URL',
+      name: 'networkInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `RPC chain ID does not match`
+  String get networkRpcMismatch {
+    return Intl.message(
+      'RPC chain ID does not match',
+      name: 'networkRpcMismatch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `RPC is unavailable`
+  String get networkRpcUnavailable {
+    return Intl.message(
+      'RPC is unavailable',
+      name: 'networkRpcUnavailable',
       desc: '',
       args: [],
     );

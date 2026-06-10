@@ -13,6 +13,7 @@ import 'receive_styles.dart';
 class ReceiveSelectorRow extends StatelessWidget {
   const ReceiveSelectorRow({
     super.key,
+    required this.chains,
     required this.selectedChain,
     required this.assets,
     required this.selectedAsset,
@@ -22,7 +23,10 @@ class ReceiveSelectorRow extends StatelessWidget {
   });
 
   /// 当前选中的收款网络。
-  final WalletChain selectedChain;
+  final WalletChainConfig selectedChain;
+
+  /// 当前可用的收款网络列表。
+  final List<WalletChainConfig> chains;
 
   /// 当前网络下可选的收款币种。
   final List<WalletAsset> assets;
@@ -34,7 +38,7 @@ class ReceiveSelectorRow extends StatelessWidget {
   final bool isLoading;
 
   /// 用户切换网络后的回调。
-  final ValueChanged<WalletChain> onChainSelected;
+  final ValueChanged<WalletChainConfig> onChainSelected;
 
   /// 用户切换币种后的回调。
   final ValueChanged<WalletAsset> onAssetSelected;
@@ -54,6 +58,7 @@ class ReceiveSelectorRow extends StatelessWidget {
         children: [
           Expanded(
             child: _ChainDropdown(
+              chains: chains,
               selectedChain: selectedChain,
               onChanged: onChainSelected,
             ),
@@ -74,17 +79,24 @@ class ReceiveSelectorRow extends StatelessWidget {
 
 /// 网络下拉框。
 class _ChainDropdown extends StatelessWidget {
-  const _ChainDropdown({required this.selectedChain, required this.onChanged});
+  const _ChainDropdown({
+    required this.chains,
+    required this.selectedChain,
+    required this.onChanged,
+  });
 
   /// 当前选中的网络。
-  final WalletChain selectedChain;
+  final WalletChainConfig selectedChain;
+
+  /// 可选网络列表。
+  final List<WalletChainConfig> chains;
 
   /// 网络切换回调。
-  final ValueChanged<WalletChain> onChanged;
+  final ValueChanged<WalletChainConfig> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<WalletChain>(
+    return DropdownButtonFormField<WalletChainConfig>(
       key: ValueKey(selectedChain.id),
       initialValue: selectedChain,
       isExpanded: true,
@@ -96,15 +108,15 @@ class _ChainDropdown extends StatelessWidget {
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
-      items: WalletChain.values
+      items: chains
           .map((chain) {
-            return DropdownMenuItem<WalletChain>(
+            return DropdownMenuItem<WalletChainConfig>(
               value: chain,
               child: Row(
                 children: [
                   ReceiveChainDot(
                     chain: chain,
-                    selected: chain == selectedChain,
+                    selected: chain.id == selectedChain.id,
                   ),
                   SizedBox(width: 7.w),
                   Expanded(
@@ -124,7 +136,7 @@ class _ChainDropdown extends StatelessWidget {
           })
           .toList(growable: false),
       selectedItemBuilder: (context) {
-        return WalletChain.values
+        return chains
             .map((chain) {
               return Row(
                 children: [
@@ -179,20 +191,20 @@ class _AssetDropdown extends StatelessWidget {
         ? selectedAsset.assetKey
         : null;
     return DropdownButtonFormField<String>(
-      key: ValueKey('${selectedAsset.chain.id}:$selectedKey'),
+      key: ValueKey('${selectedAsset.chainId}:$selectedKey'),
       initialValue: selectedKey,
       isExpanded: true,
       icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18.w),
       decoration: _dropdownDecoration(
         context,
         label: S.of(context).selectReceiveAsset,
-        focusColor: receiveChainColor(selectedAsset.chain),
+        focusColor: receiveChainColor(selectedAsset.chainRef),
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
       items: assets
           .map((asset) {
-            final color = receiveChainColor(asset.chain);
+            final color = receiveChainColor(asset.chainRef);
             return DropdownMenuItem<String>(
               value: asset.assetKey,
               child: Row(

@@ -31,13 +31,17 @@ class MessageLookup extends MessageLookupByLibrary {
       "Remove \"${symbol}\"? The home page will no longer query this asset balance.";
 
   static String m4(name) =>
+      "Remove \"${name}\"? Assets on this custom network will no longer be queried.";
+
+  static String m5(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m5(symbol) => "Transfer ${symbol}";
+  static String m6(symbol) => "Transfer ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "addCustomAsset": MessageLookupByLibrary.simpleMessage("Add asset"),
+    "addNetwork": MessageLookupByLibrary.simpleMessage("Add network"),
     "addWallet": MessageLookupByLibrary.simpleMessage("Add wallet"),
     "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
     "assetVisibility": MessageLookupByLibrary.simpleMessage("Asset display"),
@@ -121,8 +125,33 @@ class MessageLookup extends MessageLookupByLibrary {
     "mnemonicHint": MessageLookupByLibrary.simpleMessage(
       "Enter 12 English words separated by spaces",
     ),
+    "networkAdded": MessageLookupByLibrary.simpleMessage("Network added"),
+    "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
+    "networkDuplicate": MessageLookupByLibrary.simpleMessage(
+      "This network already exists",
+    ),
     "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
     "networkFeeAsset": m1,
+    "networkInvalid": MessageLookupByLibrary.simpleMessage(
+      "Check the network name, symbol, chain ID, and RPC URL",
+    ),
+    "networkManagement": MessageLookupByLibrary.simpleMessage("Networks"),
+    "networkManagementTip": MessageLookupByLibrary.simpleMessage(
+      "Add EVM-compatible networks only. Custom networks reuse the wallet EVM address and support native coin and token balance lookup.",
+    ),
+    "networkName": MessageLookupByLibrary.simpleMessage("Network name"),
+    "networkRemoved": MessageLookupByLibrary.simpleMessage("Network removed"),
+    "networkRpcMismatch": MessageLookupByLibrary.simpleMessage(
+      "RPC chain ID does not match",
+    ),
+    "networkRpcUnavailable": MessageLookupByLibrary.simpleMessage(
+      "RPC is unavailable",
+    ),
+    "networkRpcUrl": MessageLookupByLibrary.simpleMessage("RPC URL"),
+    "networkRpcUrlHelper": MessageLookupByLibrary.simpleMessage(
+      "One RPC URL per line, or separate them with commas",
+    ),
+    "networkSymbol": MessageLookupByLibrary.simpleMessage("Native symbol"),
     "phone": MessageLookupByLibrary.simpleMessage("phone"),
     "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
       "EVM / SOL / TRX multi-chain wallet",
@@ -149,8 +178,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
     "removeCustomAsset": MessageLookupByLibrary.simpleMessage("Remove asset"),
     "removeCustomAssetConfirmMessage": m3,
+    "removeNetwork": MessageLookupByLibrary.simpleMessage("Remove network"),
+    "removeNetworkConfirm": m4,
     "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
-    "removeWalletConfirmMessage": m4,
+    "removeWalletConfirmMessage": m5,
     "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
     "scanCameraError": MessageLookupByLibrary.simpleMessage(
       "Camera is unavailable. Check camera permission and try again.",
@@ -190,7 +221,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "transactionHash": MessageLookupByLibrary.simpleMessage("Transaction hash"),
     "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
     "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-    "transferAsset": m5,
+    "transferAsset": m6,
     "transferDetails": MessageLookupByLibrary.simpleMessage("Transfer details"),
     "transferFailed": MessageLookupByLibrary.simpleMessage(
       "Transfer failed. Check the address, amount, and on-chain balance.",

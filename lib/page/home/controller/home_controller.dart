@@ -12,6 +12,7 @@ import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/asset_valuation_service.dart';
 import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/wallet_asset_visibility_service.dart';
+import '../../../wallet/services/wallet_chain_config_service.dart';
 import '../../../wallet/services/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/wallet_secret_store.dart';
@@ -27,18 +28,21 @@ class HomeController extends BaseController {
     ChainBalanceService? balanceService,
     AssetValuationService? valuationService,
     WalletAssetVisibilityService? assetVisibilityService,
+    WalletChainConfigService? chainConfigService,
   }) : _repository = repository ?? WalletRepository(),
        _cryptoService = cryptoService ?? WalletCryptoService(),
        _balanceService = balanceService ?? ChainBalanceService(),
        _valuationService = valuationService ?? AssetValuationService(),
        _assetVisibilityService =
-           assetVisibilityService ?? WalletAssetVisibilityService();
+           assetVisibilityService ?? WalletAssetVisibilityService(),
+       _chainConfigService = chainConfigService ?? WalletChainConfigService();
 
   final WalletRepository _repository;
   final WalletCryptoService _cryptoService;
   final ChainBalanceService _balanceService;
   final AssetValuationService _valuationService;
   final WalletAssetVisibilityService _assetVisibilityService;
+  final WalletChainConfigService _chainConfigService;
 
   /// 本地保存的钱包列表。
   List<WalletAccount> wallets = [];
@@ -48,6 +52,9 @@ class HomeController extends BaseController {
 
   /// 多链资产余额列表，由 [ChainBalanceService] 从链上查询。
   List<ChainBalance> balances = [];
+
+  /// 当前启用的链配置。内置链和用户添加的 EVM 链都会进入这里。
+  List<WalletChainConfig> chains = [];
 
   /// 按用户资产显示设置过滤后的余额列表。
   ///
@@ -102,6 +109,7 @@ class HomeController extends BaseController {
   /// 启动时读取本地钱包；如果存在钱包，立即拉取当前钱包的链上余额。
   Future<void> loadWallet() async {
     hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
+    chains = await _chainConfigService.loadEnabledChains();
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
@@ -119,6 +127,7 @@ class HomeController extends BaseController {
   /// 都用最新本地配置重新渲染。
   Future<void> syncWalletMetadata() async {
     hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
+    chains = await _chainConfigService.loadEnabledChains();
     _applyAssetVisibility();
     final currentWalletId = wallet?.id;
     wallets = await _repository.loadWallets();
@@ -265,6 +274,7 @@ class HomeController extends BaseController {
       }
       balances = nextBalances;
       hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
+      chains = await _chainConfigService.loadEnabledChains();
       _applyAssetVisibility();
       _refreshTotalAssetsFromCachedPrices();
       _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
@@ -328,7 +338,7 @@ class HomeController extends BaseController {
   }
 
   /// 获取单条链的 USD 汇总估值文本。
-  String chainUsdValueTextFor(WalletChain chain) {
+  String chainUsdValueTextFor(WalletChainConfig chain) {
     return chainUsdValueTexts[chain.id] ?? '--';
   }
 
@@ -349,9 +359,9 @@ class HomeController extends BaseController {
   /// 按链汇总当前可见资产的 USD 估值。
   void _refreshChainUsdValueTexts(Map<String, Decimal> prices) {
     chainUsdValueTexts.clear();
-    for (final chain in WalletChain.values) {
+    for (final chain in chains) {
       final chainBalances = visibleBalances
-          .where((balance) => balance.chain == chain)
+          .where((balance) => balance.chainId == chain.id)
           .toList(growable: false);
       final totalValue = _valuationService.calculateTotalUsdValue(
         chainBalances,
@@ -368,7 +378,7 @@ class HomeController extends BaseController {
   /// 同一条链上可能存在相同 symbol 的自定义资产，因此优先纳入合约地址区分。
   String _assetStableValueKey(ChainBalance balance) {
     return [
-      balance.chain.id,
+      balance.chainId,
       balance.contractAddress ?? 'native',
       balance.symbol,
     ].join(':');
@@ -388,7 +398,7 @@ class HomeController extends BaseController {
         continue;
       }
       buffer.writeln(
-        '${balance.chain.id}/${balance.symbol} amount=${balance.amount} '
+        '${balance.chainId}/${balance.symbol} amount=${balance.amount} '
         'text=${stableValueTextFor(balance) ?? '-'}',
       );
     }
@@ -396,7 +406,7 @@ class HomeController extends BaseController {
   }
 
   /// 展开或收起指定链下的币种列表。
-  void toggleChainExpanded(WalletChain chain) {
+  void toggleChainExpanded(WalletChainConfig chain) {
     if (!expandedChainIds.add(chain.id)) {
       expandedChainIds.remove(chain.id);
     }
@@ -404,7 +414,7 @@ class HomeController extends BaseController {
   }
 
   /// 判断指定链是否已展开。
-  bool isChainExpanded(WalletChain chain) {
+  bool isChainExpanded(WalletChainConfig chain) {
     return expandedChainIds.contains(chain.id);
   }
 

@@ -40,7 +40,11 @@ Color homeCellPressColor(BuildContext context) {
 }
 
 /// 首页各条链的品牌识别色。
-Color homeChainColor(WalletChain chain) {
+Color homeChainColor(WalletChainRef chain) {
+  final configColor = chain is WalletChainConfig ? chain.colorValue : null;
+  if (configColor != null) {
+    return Color(configColor);
+  }
   switch (chain) {
     case WalletChain.bsc:
       return const Color(0xFFF0B90B);
@@ -54,6 +58,8 @@ Color homeChainColor(WalletChain chain) {
       return const Color(0xFF14F195);
     case WalletChain.tron:
       return const Color(0xFFE50914);
+    default:
+      return const Color(0xFF2563EB);
   }
 }
 

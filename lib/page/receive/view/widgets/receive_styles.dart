@@ -9,7 +9,11 @@ Color receiveDividerColor(BuildContext context) {
 }
 
 /// 获取收款页中每条链的品牌色。
-Color receiveChainColor(WalletChain chain) {
+Color receiveChainColor(WalletChainRef chain) {
+  final configColor = chain is WalletChainConfig ? chain.colorValue : null;
+  if (configColor != null) {
+    return Color(configColor);
+  }
   switch (chain) {
     case WalletChain.bsc:
       return const Color(0xFFF0B90B);
@@ -23,11 +27,13 @@ Color receiveChainColor(WalletChain chain) {
       return const Color(0xFF7C3AED);
     case WalletChain.tron:
       return const Color(0xFFE11D48);
+    default:
+      return const Color(0xFF2563EB);
   }
 }
 
 /// 获取链在小圆点中的单字母缩写。
-String receiveChainLabel(WalletChain chain) {
+String receiveChainLabel(WalletChainRef chain) {
   switch (chain) {
     case WalletChain.bsc:
       return 'B';
@@ -41,6 +47,10 @@ String receiveChainLabel(WalletChain chain) {
       return 'S';
     case WalletChain.tron:
       return 'T';
+    default:
+      return chain.name.trim().isEmpty
+          ? '?'
+          : chain.name.characters.first.toUpperCase();
   }
 }
 
@@ -153,7 +163,7 @@ class ReceiveChainDot extends StatelessWidget {
   });
 
   /// 对应链。
-  final WalletChain chain;
+  final WalletChainRef chain;
 
   /// 是否为当前选中链。
   final bool selected;

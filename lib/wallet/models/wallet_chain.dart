@@ -1,4 +1,4 @@
-enum WalletChain {
+enum WalletChain implements WalletChainRef {
   bsc(
     id: 'bsc',
     name: 'BNB Smart Chain',
@@ -48,11 +48,204 @@ enum WalletChain {
     this.evmChainId,
   });
 
+  @override
   final String id;
+  @override
   final String name;
+  @override
   final String symbol;
+  @override
   final String rpcUrl;
+  @override
   final int? evmChainId;
 
+  @override
   bool get isEvm => evmChainId != null;
 }
+
+/// 钱包链的通用只读接口。
+///
+/// 内置链使用 [WalletChain]，用户添加的 EVM 链使用 [WalletChainConfig]。业务层尽量依赖
+/// 这组字段，减少继续把新增链写死到 enum switch 中。
+abstract interface class WalletChainRef {
+  String get id;
+  String get name;
+  String get symbol;
+  String get rpcUrl;
+  int? get evmChainId;
+  bool get isEvm;
+}
+
+/// 让内置链也能作为通用链配置使用。
+extension WalletChainRefExtension on WalletChain {
+  WalletChainConfig get config => WalletChainConfig.builtin(this);
+}
+
+/// 可持久化的钱包链配置。
+///
+/// 第一版动态添加链只开放 EVM 网络，因此 [customEvm] 会强制要求 [evmChainId]。
+/// Solana/TRON 等非 EVM 链仍作为内置链存在，不允许用户动态添加。
+class WalletChainConfig implements WalletChainRef {
+  const WalletChainConfig({
+    required this.id,
+    required this.name,
+    required this.symbol,
+    required this.rpcUrls,
+    required this.type,
+    this.evmChainId,
+    this.builtinChain,
+    this.colorValue,
+    this.isEnabled = true,
+  });
+
+  factory WalletChainConfig.builtin(WalletChain chain) {
+    return WalletChainConfig(
+      id: chain.id,
+      name: chain.name,
+      symbol: chain.symbol,
+      rpcUrls: [chain.rpcUrl],
+      type: chain.isEvm
+          ? WalletChainType.evm
+          : chain == WalletChain.solana
+          ? WalletChainType.solana
+          : WalletChainType.tron,
+      evmChainId: chain.evmChainId,
+      builtinChain: chain,
+      colorValue: _builtinColorValue(chain),
+    );
+  }
+
+  factory WalletChainConfig.customEvm({
+    required String id,
+    required String name,
+    required String symbol,
+    required List<String> rpcUrls,
+    required int evmChainId,
+    int? colorValue,
+    bool isEnabled = true,
+  }) {
+    return WalletChainConfig(
+      id: id,
+      name: name,
+      symbol: symbol,
+      rpcUrls: rpcUrls,
+      type: WalletChainType.evm,
+      evmChainId: evmChainId,
+      colorValue: colorValue,
+      isEnabled: isEnabled,
+    );
+  }
+
+  factory WalletChainConfig.fromJson(Map<String, dynamic> json) {
+    final typeName = json['type']?.toString() ?? WalletChainType.evm.name;
+    final type = WalletChainType.values.firstWhere(
+      (item) => item.name == typeName,
+      orElse: () => WalletChainType.evm,
+    );
+    final rpcValue = json['rpcUrls'];
+    final rpcUrls = rpcValue is List
+        ? rpcValue.map((item) => item.toString()).where(_isNotBlank).toList()
+        : <String>[];
+    final evmChainIdValue = json['evmChainId'];
+    return WalletChainConfig(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      symbol: json['symbol']?.toString() ?? '',
+      rpcUrls: rpcUrls,
+      type: type,
+      evmChainId: evmChainIdValue is int
+          ? evmChainIdValue
+          : int.tryParse(evmChainIdValue?.toString() ?? ''),
+      colorValue: json['colorValue'] is int ? json['colorValue'] as int : null,
+      isEnabled: json['isEnabled'] as bool? ?? true,
+    );
+  }
+
+  @override
+  final String id;
+
+  @override
+  final String name;
+
+  @override
+  final String symbol;
+
+  final List<String> rpcUrls;
+
+  final WalletChainType type;
+
+  @override
+  final int? evmChainId;
+
+  final WalletChain? builtinChain;
+
+  final int? colorValue;
+
+  final bool isEnabled;
+
+  @override
+  String get rpcUrl => rpcUrls.first;
+
+  @override
+  bool get isEvm => type == WalletChainType.evm && evmChainId != null;
+
+  bool get isBuiltin => builtinChain != null;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'symbol': symbol,
+      'rpcUrls': rpcUrls,
+      'type': type.name,
+      'evmChainId': evmChainId,
+      'colorValue': colorValue,
+      'isEnabled': isEnabled,
+    };
+  }
+
+  WalletChainConfig copyWith({
+    String? id,
+    String? name,
+    String? symbol,
+    List<String>? rpcUrls,
+    WalletChainType? type,
+    int? evmChainId,
+    WalletChain? builtinChain,
+    int? colorValue,
+    bool? isEnabled,
+  }) {
+    return WalletChainConfig(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      symbol: symbol ?? this.symbol,
+      rpcUrls: rpcUrls ?? this.rpcUrls,
+      type: type ?? this.type,
+      evmChainId: evmChainId ?? this.evmChainId,
+      builtinChain: builtinChain ?? this.builtinChain,
+      colorValue: colorValue ?? this.colorValue,
+      isEnabled: isEnabled ?? this.isEnabled,
+    );
+  }
+
+  static bool _isNotBlank(String value) => value.trim().isNotEmpty;
+
+  static int _builtinColorValue(WalletChain chain) {
+    switch (chain) {
+      case WalletChain.bsc:
+        return 0xFFF0B90B;
+      case WalletChain.ethereum:
+        return 0xFF627EEA;
+      case WalletChain.xLayer:
+        return 0xFF111827;
+      case WalletChain.arbitrum:
+        return 0xFF28A0F0;
+      case WalletChain.solana:
+        return 0xFF14F195;
+      case WalletChain.tron:
+        return 0xFFE50914;
+    }
+  }
+}
+
+enum WalletChainType { evm, solana, tron }

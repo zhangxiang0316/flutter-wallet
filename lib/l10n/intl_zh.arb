@@ -8,6 +8,27 @@
   "language": "语言",
   "theme": "主题",
   "assetVisibility": "资产显示",
+  "networkManagement": "网络管理",
+  "networkManagementTip": "当前仅支持添加 EVM 兼容网络。自定义网络复用钱包 EVM 地址，支持原生币和代币余额查询。",
+  "addNetwork": "添加网络",
+  "removeNetwork": "移除网络",
+  "removeNetworkConfirm": "确定要移除「{name}」吗？移除后不再查询该自定义网络资产。",
+  "@removeNetworkConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "networkName": "网络名称",
+  "networkSymbol": "原生币简称",
+  "networkChainId": "Chain ID",
+  "networkRpcUrl": "RPC 地址",
+  "networkRpcUrlHelper": "每行一个 RPC 地址，也可以用逗号分隔",
+  "networkAdded": "网络已添加",
+  "networkRemoved": "网络已移除",
+  "networkDuplicate": "该网络已存在",
+  "networkInvalid": "请检查网络名称、币种简称、Chain ID 和 RPC 地址",
+  "networkRpcMismatch": "RPC 返回的 Chain ID 不一致",
+  "networkRpcUnavailable": "RPC 暂时不可用",
   "assetVisibilityTip": "关闭后，该币种会从首页资产列表和估值中隐藏；链上余额不会被删除，可随时重新开启。",
   "addCustomAsset": "添加币种",
   "removeCustomAsset": "移除币种",

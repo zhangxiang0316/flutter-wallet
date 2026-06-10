@@ -84,6 +84,14 @@ class WalletTransferService {
     required String amount,
     List<int>? solanaPrivateKey,
   }) {
+    if (asset.chainRef.isEvm) {
+      return _transferEvm(
+        privateKeyHex: privateKeyHex,
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
     switch (asset.chain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
@@ -112,6 +120,8 @@ class WalletTransferService {
           toAddress: toAddress,
           amount: amount,
         );
+      case null:
+        throw StateError('Unsupported chain ${asset.chainId}');
     }
   }
 
@@ -124,6 +134,13 @@ class WalletTransferService {
     required String toAddress,
     required String amount,
   }) {
+    if (asset.chainRef.isEvm) {
+      return _estimateEvmFee(
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
     switch (asset.chain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
@@ -146,6 +163,8 @@ class WalletTransferService {
           toAddress: toAddress,
           amount: amount,
         );
+      case null:
+        throw StateError('Unsupported chain ${asset.chainId}');
     }
   }
 
@@ -164,10 +183,14 @@ class WalletTransferService {
     final txTo = isNative ? normalizedTo : asset.contractAddress!;
     final txValue = isNative ? value : BigInt.zero;
     final data = isNative ? '0x' : erc20TransferData(normalizedTo, value);
-    final gasPrice = await _evmRpcBigInt(asset.chain, 'eth_gasPrice', const []);
+    final gasPrice = await _evmRpcBigInt(
+      asset.chainRef,
+      'eth_gasPrice',
+      const [],
+    );
     BigInt gasLimit;
     try {
-      gasLimit = await _evmRpcBigInt(asset.chain, 'eth_estimateGas', [
+      gasLimit = await _evmRpcBigInt(asset.chainRef, 'eth_estimateGas', [
         {
           'from': asset.address,
           'to': txTo,
@@ -182,7 +205,7 @@ class WalletTransferService {
     final feeWei = gasLimit * gasPrice;
     return TransferFeeEstimate(
       amount: rawUnitsToAmount(feeWei, 18),
-      symbol: asset.chain.symbol,
+      symbol: asset.chainRef.symbol,
       rawAmount: feeWei,
       isFallback: false,
     );
@@ -285,18 +308,23 @@ class WalletTransferService {
     required String toAddress,
     required String amount,
   }) async {
-    final chainId = asset.chain.evmChainId;
+    final chainId = asset.chainRef.evmChainId;
     if (chainId == null) {
-      throw StateError('${asset.chain.name} is not an EVM chain');
+      throw StateError('${asset.chainRef.name} is not an EVM chain');
     }
 
     final normalizedTo = normalizeEvmAddress(toAddress);
     final value = amountToRawUnits(amount, asset.decimals);
-    final gasPrice = await _evmRpcBigInt(asset.chain, 'eth_gasPrice', const []);
-    final nonce = await _evmRpcBigInt(asset.chain, 'eth_getTransactionCount', [
-      asset.address,
-      'latest',
-    ]);
+    final gasPrice = await _evmRpcBigInt(
+      asset.chainRef,
+      'eth_gasPrice',
+      const [],
+    );
+    final nonce = await _evmRpcBigInt(
+      asset.chainRef,
+      'eth_getTransactionCount',
+      [asset.address, 'latest'],
+    );
 
     final isNative = asset.isNative;
     final txTo = isNative ? normalizedTo : asset.contractAddress!;
@@ -315,13 +343,13 @@ class WalletTransferService {
       data: data,
       chainId: chainId,
     );
-    final response = await _evmRpc(asset.chain, 'eth_sendRawTransaction', [
+    final response = await _evmRpc(asset.chainRef, 'eth_sendRawTransaction', [
       '0x$rawTx',
     ]);
     if (response is String && response.isNotEmpty) {
       return response;
     }
-    throw StateError('${asset.chain.name} transfer failed');
+    throw StateError('${asset.chainRef.name} transfer failed');
   }
 
   /// 发送 TRON 链交易。
@@ -471,7 +499,7 @@ class WalletTransferService {
 
   /// 发送 EVM JSON-RPC 请求并返回 result。
   Future<dynamic> _evmRpc(
-    WalletChain chain,
+    WalletChainRef chain,
     String method,
     List<dynamic> params,
   ) async {
@@ -491,7 +519,7 @@ class WalletTransferService {
 
   /// 发送 EVM JSON-RPC 请求并把十六进制数量解析成 [BigInt]。
   Future<BigInt> _evmRpcBigInt(
-    WalletChain chain,
+    WalletChainRef chain,
     String method,
     List<dynamic> params,
   ) async {

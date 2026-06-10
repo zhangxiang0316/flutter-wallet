@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../../utils/storage.dart';
 import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
+import 'wallet_chain_config_service.dart';
 import 'wallet_transfer_service.dart';
 
 /// 用户自定义资产服务。
@@ -22,23 +23,30 @@ class WalletCustomAssetService {
   /// 创建自定义资产服务。
   ///
   /// 测试时可以注入 [Storage] 和 [Dio]，业务代码默认使用项目本地存储和独立 Dio。
-  WalletCustomAssetService({Storage? storage, Dio? dio})
-    : _storage = storage ?? Storage(),
-      _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              connectTimeout: _requestTimeout,
-              receiveTimeout: _requestTimeout,
-              sendTimeout: _requestTimeout,
-            ),
-          );
+  WalletCustomAssetService({
+    Storage? storage,
+    Dio? dio,
+    WalletChainConfigService? chainConfigService,
+  }) : _storage = storage ?? Storage(),
+       _chainConfigService = chainConfigService ?? WalletChainConfigService(),
+       _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: _requestTimeout,
+               receiveTimeout: _requestTimeout,
+               sendTimeout: _requestTimeout,
+             ),
+           );
 
   /// 自定义资产持久化存储。
   final Storage _storage;
 
   /// EVM 合约元数据查询使用的 HTTP/RPC 客户端。
   final Dio _dio;
+
+  /// 动态链配置服务，用于把本地自定义资产重新绑定到最新链 RPC 配置。
+  final WalletChainConfigService _chainConfigService;
 
   /// 本地存储中保存自定义资产列表的字段名。
   static const String _customAssetsKey = 'wallet_custom_assets';
@@ -77,13 +85,14 @@ class WalletCustomAssetService {
     try {
       final value = await _storage.getStorage(_customAssetsKey);
       if (value is List) {
-        return value
+        final assets = value
             .whereType<Map>()
             .map(
               (item) => WalletAsset.fromJson(Map<String, dynamic>.from(item)),
             )
             .where((asset) => asset.contractAddress?.trim().isNotEmpty ?? false)
             .toList(growable: false);
+        return _chainConfigService.bindAssetsToChains(assets);
       }
     } catch (_) {
       return [];
@@ -137,7 +146,7 @@ class WalletCustomAssetService {
   ///
   /// symbol 为空或 decimals 不在合理范围内时，认为合约元数据无效。
   Future<WalletAsset> fetchEvmTokenMetadata({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required String contractAddress,
   }) async {
     if (!chain.isEvm) {
@@ -155,8 +164,8 @@ class WalletCustomAssetService {
     if (symbol.isEmpty || decimals < 0 || decimals > 30) {
       throw const CustomAssetInvalidMetadataException();
     }
-    return WalletAsset(
-      chain: chain,
+    return WalletAsset.config(
+      chainConfig: chain,
       symbol: symbol.toUpperCase(),
       name: name.isEmpty ? symbol.toUpperCase() : name,
       decimals: decimals,
@@ -170,7 +179,7 @@ class WalletCustomAssetService {
   /// 用于非 EVM 链，或者 EVM 自动读取失败后用户手动填写 symbol/name/decimals 的场景。
   /// 这里会统一校验地址、非空文案和 decimals 范围。
   WalletAsset buildManualAsset({
-    required WalletChain chain,
+    required WalletChainConfig chain,
     required String contractAddress,
     required String symbol,
     required String name,
@@ -183,8 +192,8 @@ class WalletCustomAssetService {
     if (decimals < 0 || decimals > 30) {
       throw const CustomAssetInvalidInputException();
     }
-    return WalletAsset(
-      chain: chain,
+    return WalletAsset.config(
+      chainConfig: chain,
       symbol: symbol.trim().toUpperCase(),
       name: name.trim(),
       decimals: decimals,
@@ -198,12 +207,12 @@ class WalletCustomAssetService {
   /// 添加代币时所有元数据读取都走该方法。它会遍历当前链的 RPC fallback 列表，
   /// 直到拿到字符串类型的 result。
   Future<String> _evmCall({
-    required WalletChain chain,
+    required WalletChainRef chain,
     required String to,
     required String data,
   }) async {
     Object? lastError;
-    for (final rpcUrl in _evmRpcFallbacks[chain] ?? [chain.rpcUrl]) {
+    for (final rpcUrl in _evmRpcUrls(chain)) {
       try {
         final response = await _dio.post(
           rpcUrl,
@@ -295,12 +304,12 @@ class WalletCustomAssetService {
   ///
   /// symbol 统一大写，name 去掉首尾空白，合约地址按链类型标准化，并强制标记为自定义资产。
   WalletAsset _normalizeAsset(WalletAsset asset) {
-    return WalletAsset(
-      chain: asset.chain,
+    return WalletAsset.config(
+      chainConfig: asset.chainConfig ?? asset.chain!.config,
       symbol: asset.symbol.trim().toUpperCase(),
       name: asset.name.trim(),
       decimals: asset.decimals,
-      contractAddress: _normalizeAddress(asset.chain, asset.contractAddress),
+      contractAddress: _normalizeAddress(asset.chainRef, asset.contractAddress),
       isCustom: true,
     );
   }
@@ -308,7 +317,7 @@ class WalletCustomAssetService {
   /// 按链类型校验和标准化合约地址。
   ///
   /// EVM 地址会被标准化为 checksum 地址；TRON/Solana 地址只做合法性校验并保留用户输入。
-  String _normalizeAddress(WalletChain chain, String? address) {
+  String _normalizeAddress(WalletChainRef chain, String? address) {
     final value = address?.trim() ?? '';
     if (value.isEmpty) {
       throw const CustomAssetInvalidInputException();
@@ -316,11 +325,11 @@ class WalletCustomAssetService {
     if (chain.isEvm) {
       return WalletTransferService.normalizeEvmAddress(value);
     }
-    if (chain == WalletChain.tron) {
+    if (chain is WalletChain && chain == WalletChain.tron) {
       WalletTransferService.tronAddressToHex(value);
       return value;
     }
-    if (chain == WalletChain.solana) {
+    if (chain is WalletChain && chain == WalletChain.solana) {
       WalletTransferService.normalizeSolanaAddress(value);
       return value;
     }
@@ -334,20 +343,33 @@ class WalletCustomAssetService {
 
   /// 判断两个资产是否代表同一链上的同一合约。
   bool _sameContractAsset(WalletAsset asset, WalletAsset target) {
-    return asset.chain == target.chain &&
-        _contractKey(asset.chain, asset.contractAddress) ==
-            _contractKey(target.chain, target.contractAddress);
+    return asset.chainId == target.chainId &&
+        _contractKey(asset.chainRef, asset.contractAddress) ==
+            _contractKey(target.chainRef, target.contractAddress);
   }
 
   /// 生成合约比较 key。
   ///
   /// EVM 合约地址大小写不敏感，比较时统一转小写；非 EVM 地址按原值比较。
-  String _contractKey(WalletChain chain, String? contractAddress) {
+  String _contractKey(WalletChainRef chain, String? contractAddress) {
     final value = contractAddress?.trim() ?? '';
     if (value.isEmpty) {
       return 'native';
     }
     return chain.isEvm ? value.toLowerCase() : value;
+  }
+
+  List<String> _evmRpcUrls(WalletChainRef chain) {
+    if (chain is WalletChainConfig && !chain.isBuiltin) {
+      return chain.rpcUrls;
+    }
+    if (chain is WalletChain && _evmRpcFallbacks.containsKey(chain)) {
+      return _evmRpcFallbacks[chain]!;
+    }
+    if (chain is WalletChainConfig && chain.builtinChain != null) {
+      return _evmRpcFallbacks[chain.builtinChain] ?? chain.rpcUrls;
+    }
+    return [chain.rpcUrl];
   }
 }
 

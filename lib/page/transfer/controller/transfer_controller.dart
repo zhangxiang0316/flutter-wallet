@@ -105,26 +105,26 @@ class TransferController extends BaseController {
 
   /// 当前可切换的链列表。
   ///
-  /// 按 [WalletChain.values] 的固定顺序输出，避免 UI 顺序因为余额列表顺序变化
-  /// 而跳动。
-  List<WalletChain> get availableChains {
-    final chainSet = availableAssets.map((asset) => asset.chain).toSet();
-    return WalletChain.values
-        .where((chain) => chainSet.contains(chain))
+  /// 按首页传入余额的链顺序输出，避免 UI 顺序因为资产列表去重而跳动。
+  List<WalletChainConfig> get availableChains {
+    final chainIds = availableAssets.map((asset) => asset.chainId).toSet();
+    return availableAssets
+        .map((asset) => asset.chainConfig ?? asset.chain!.config)
+        .where((chain) => chainIds.remove(chain.id))
         .toList(growable: false);
   }
 
   /// 返回当前链下可选的转账资产。
   List<ChainBalance> assetsForSelectedChain() {
-    final chain = currentAsset?.chain;
+    final chain = currentAsset?.chainId;
     if (chain == null) return const [];
     return assetsForChain(chain);
   }
 
   /// 返回指定链下可选的转账资产。
-  List<ChainBalance> assetsForChain(WalletChain chain) {
+  List<ChainBalance> assetsForChain(String chainId) {
     return availableAssets
-        .where((asset) => asset.chain == chain)
+        .where((asset) => asset.chainId == chainId)
         .toList(growable: false);
   }
 
@@ -132,9 +132,9 @@ class TransferController extends BaseController {
   ///
   /// 切链会影响地址格式、手续费币种和余额展示，因此需要清掉旧手续费估算和
   /// 已提交交易哈希，再根据当前输入重新触发估算。
-  void selectChain(WalletChain chain) {
-    if (currentAsset?.chain == chain || isSubmitting) return;
-    final assets = assetsForChain(chain);
+  void selectChain(WalletChainConfig chain) {
+    if (currentAsset?.chainId == chain.id || isSubmitting) return;
+    final assets = assetsForChain(chain.id);
     if (assets.isEmpty) return;
     selectedAsset = assets.first;
     _resetEstimateAndSubmittedState();
@@ -245,6 +245,10 @@ class TransferController extends BaseController {
 
   /// 根据链类型校验收款地址格式。
   void _validateAddress(ChainBalance asset, String address) {
+    if (asset.chainRef.isEvm) {
+      WalletTransferService.normalizeEvmAddress(address);
+      return;
+    }
     switch (asset.chain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
@@ -258,6 +262,8 @@ class TransferController extends BaseController {
       case WalletChain.solana:
         WalletTransferService.normalizeSolanaAddress(address);
         break;
+      case null:
+        throw FormatException('Unsupported chain ${asset.chainId}');
     }
   }
 
@@ -372,11 +378,11 @@ class TransferController extends BaseController {
   /// 构建资产唯一 key。
   String _assetKey(ChainBalance asset) {
     final contract = asset.contractAddress?.trim() ?? '';
-    final normalizedContract = asset.chain.isEvm
+    final normalizedContract = asset.chainRef.isEvm
         ? contract.toLowerCase()
         : contract;
     return [
-      asset.chain.id,
+      asset.chainId,
       normalizedContract.isEmpty ? 'native' : normalizedContract,
       asset.symbol.toUpperCase(),
     ].join(':');
@@ -387,7 +393,7 @@ class TransferController extends BaseController {
     final value = rawValue.trim();
     if (value.isEmpty) return null;
 
-    final chain = currentAsset?.chain;
+    final chain = currentAsset?.chainConfig ?? currentAsset?.chain?.config;
     final chainMatchedAddress = _extractAddressByChain(value, chain);
     if (chainMatchedAddress != null) return chainMatchedAddress;
 
@@ -403,8 +409,11 @@ class TransferController extends BaseController {
   }
 
   /// 按当前链地址格式从任意文本中提取地址。
-  String? _extractAddressByChain(String value, WalletChain? chain) {
-    switch (chain) {
+  String? _extractAddressByChain(String value, WalletChainConfig? chain) {
+    if (chain?.isEvm ?? false) {
+      return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
+    }
+    switch (chain?.builtinChain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
@@ -422,7 +431,7 @@ class TransferController extends BaseController {
   }
 
   /// 从 URI query 参数中提取常见地址字段。
-  String? _extractAddressFromQuery(Uri? uri, WalletChain? chain) {
+  String? _extractAddressFromQuery(Uri? uri, WalletChainConfig? chain) {
     if (uri == null) return null;
     const keys = ['address', 'to', 'recipient'];
     for (final key in keys) {
