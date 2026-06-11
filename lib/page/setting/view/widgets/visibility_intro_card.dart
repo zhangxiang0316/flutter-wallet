@@ -40,7 +40,7 @@ class VisibilityIntroCard extends StatelessWidget {
               S.of(context).assetVisibilityTip,
               style: TextStyle(
                 color: colorScheme.onSurface.withValues(alpha: 0.62),
-                fontSize: 12.sp,
+                fontSize: 11.sp,
                 height: 1.35,
                 fontWeight: FontWeight.w600,
               ),

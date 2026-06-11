@@ -8,8 +8,10 @@ import 'receive_styles.dart';
 
 /// 收款网络和币种的组合选择区。
 ///
-/// 两个下拉框放在同一行，先选择网络，再选择当前网络下的币种。币种下拉值使用
-/// [WalletAsset.assetKey]，避免自定义资产重新加载后因为对象引用变化导致选中项失效。
+/// 两个下拉框放在同一行，先选择网络，再选择当前网络下的币种。
+///
+/// 网络下拉值使用链 id，币种下拉值使用 [WalletAsset.assetKey]，避免配置重新加载后
+/// 因为对象引用变化导致选中项失效。
 class ReceiveSelectorRow extends StatelessWidget {
   const ReceiveSelectorRow({
     super.key,
@@ -96,9 +98,14 @@ class _ChainDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<WalletChainConfig>(
-      key: ValueKey(selectedChain.id),
-      initialValue: selectedChain,
+    final uniqueChains = _uniqueChainsById(chains);
+    final selectedChainId =
+        uniqueChains.any((chain) => chain.id == selectedChain.id)
+        ? selectedChain.id
+        : null;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('chain:$selectedChainId'),
+      initialValue: selectedChainId,
       isExpanded: true,
       icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18.w),
       decoration: _dropdownDecoration(
@@ -108,10 +115,10 @@ class _ChainDropdown extends StatelessWidget {
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
-      items: chains
+      items: uniqueChains
           .map((chain) {
-            return DropdownMenuItem<WalletChainConfig>(
-              value: chain,
+            return DropdownMenuItem<String>(
+              value: chain.id,
               child: Row(
                 children: [
                   ReceiveChainDot(
@@ -136,7 +143,7 @@ class _ChainDropdown extends StatelessWidget {
           })
           .toList(growable: false),
       selectedItemBuilder: (context) {
-        return chains
+        return uniqueChains
             .map((chain) {
               return Row(
                 children: [
@@ -159,9 +166,13 @@ class _ChainDropdown extends StatelessWidget {
             })
             .toList(growable: false);
       },
-      onChanged: (chain) {
-        if (chain == null) return;
-        onChanged(chain);
+      onChanged: (chainId) {
+        if (chainId == null) return;
+        final selected = uniqueChains.firstWhere(
+          (chain) => chain.id == chainId,
+          orElse: () => selectedChain,
+        );
+        onChanged(selected);
       },
     );
   }
@@ -272,4 +283,15 @@ InputDecoration _dropdownDecoration(
       borderSide: BorderSide(color: focusColor.withValues(alpha: 0.48)),
     ),
   );
+}
+
+List<WalletChainConfig> _uniqueChainsById(List<WalletChainConfig> chains) {
+  final seenIds = <String>{};
+  final uniqueChains = <WalletChainConfig>[];
+  for (final chain in chains) {
+    if (seenIds.add(chain.id)) {
+      uniqueChains.add(chain);
+    }
+  }
+  return uniqueChains;
 }

@@ -112,7 +112,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                       child: Text(
                         S.of(context).addCustomAsset,
                         style: TextStyle(
-                          fontSize: 17.sp,
+                          fontSize: 15.sp,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -130,7 +130,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                         widget.chain.name,
                         style: TextStyle(
                           color: colorScheme.primary,
-                          fontSize: 11.sp,
+                          fontSize: 10.sp,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -162,6 +162,10 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                           : Icon(Icons.auto_awesome_rounded, size: 16.w),
                       label: Text(S.of(context).fetchTokenInfo),
                       style: OutlinedButton.styleFrom(
+                        textStyle: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w800,
+                        ),
                         padding: EdgeInsets.symmetric(vertical: 11.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.r),
@@ -211,6 +215,10 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                         : Icon(Icons.add_rounded, size: 18.w),
                     label: Text(S.of(context).addCustomAsset),
                     style: FilledButton.styleFrom(
+                      textStyle: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
                       padding: EdgeInsets.symmetric(vertical: 13.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.r),
@@ -338,10 +346,25 @@ class _CustomAssetTextField extends StatelessWidget {
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
       onSubmitted: onSubmitted,
-      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
+      style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        labelStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.64),
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w700,
+        ),
+        floatingLabelStyle: TextStyle(
+          color: colorScheme.primary,
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w800,
+        ),
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.36),
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w600,
+        ),
         filled: true,
         fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),

@@ -65,7 +65,7 @@ class ChainAssetVisibilityCard extends StatelessWidget {
                   chain.symbol.characters.first,
                   style: TextStyle(
                     color: chainColor,
-                    fontSize: 12.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -78,7 +78,7 @@ class ChainAssetVisibilityCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: colorScheme.onSurface,
-                    fontSize: 14.sp,
+                    fontSize: 12.5.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -180,7 +180,7 @@ class _AssetVisibilityTile extends StatelessWidget {
               asset.symbol.trim().isEmpty ? '?' : asset.symbol.characters.first,
               style: TextStyle(
                 color: colorScheme.primary,
-                fontSize: 11.sp,
+                fontSize: 10.sp,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -195,7 +195,7 @@ class _AssetVisibilityTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12.5.sp,
+                    fontSize: 11.5.sp,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -206,7 +206,7 @@ class _AssetVisibilityTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: colorScheme.onSurface.withValues(alpha: 0.55),
-                    fontSize: 10.5.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

@@ -50,7 +50,7 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
       centerTitle: true,
       title: Text(
         S.of(context!).assetVisibility,
-        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
+        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
       ),
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
