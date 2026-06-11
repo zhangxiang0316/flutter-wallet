@@ -6,6 +6,7 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
 import '../../../generated/route_table.dart';
+import '../../../page/transaction/controller/transaction_history_controller.dart';
 import '../../../page/transfer/controller/transfer_controller.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
@@ -149,6 +150,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   chainUsdValueTextFor: controller.chainUsdValueTextFor,
                   isChainExpanded: controller.isChainExpanded,
                   onChainToggle: controller.toggleChainExpanded,
+                  onAssetTap: _openTransactionHistoryPage,
                 ),
                 SizedBox(height: 16.h),
                 const PrivateKeyNotice(),
@@ -340,6 +342,19 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     if (submitted == true) {
       controller.refreshBalances();
     }
+  }
+
+  /// 打开当前币种交易记录页面。
+  Future<void> _openTransactionHistoryPage(ChainBalance balance) async {
+    final currentWallet = controller.wallet;
+    if (currentWallet == null) return;
+    await Get.toNamed(
+      RouteTable.transactionHistory,
+      arguments: TransactionHistoryPageArguments(
+        walletId: currentWallet.id,
+        asset: balance,
+      ),
+    );
   }
 
   /// 打开钱包详情页面。

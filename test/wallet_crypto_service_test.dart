@@ -10,6 +10,7 @@ import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/wallet_account.dart';
 import 'package:omnicast/wallet/models/wallet_asset.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
+import 'package:omnicast/wallet/models/wallet_transaction_record.dart';
 import 'package:omnicast/wallet/services/asset_valuation_service.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
 import 'package:omnicast/wallet/services/wallet_custom_asset_service.dart';
@@ -17,6 +18,7 @@ import 'package:omnicast/wallet/services/wallet_chain_config_service.dart';
 import 'package:omnicast/wallet/services/wallet_crypto_service.dart';
 import 'package:omnicast/wallet/services/wallet_secret_store.dart';
 import 'package:omnicast/wallet/services/wallet_transfer_service.dart';
+import 'package:omnicast/wallet/services/wallet_transaction_history_service.dart';
 import 'package:omnicast/wallet/utils/asset_amount_formatter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:solana/solana.dart';
@@ -195,6 +197,96 @@ void main() {
         '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
       );
       expect(asset.isCustom, isTrue);
+    });
+  });
+
+  group('WalletTransactionHistoryService', () {
+    test('loads EVM token transactions from explorer API', () async {
+      final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+      final service = WalletTransactionHistoryService(dio: dio);
+      const asset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0x55d398326f99059fF775485246999027B3197955',
+        decimals: 18,
+      );
+
+      final records = await service.loadAssetRecords(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(records, hasLength(1));
+      expect(records.single.txHash, '0xbeef');
+      expect(records.single.amount, '2');
+      expect(records.single.direction, WalletTransactionDirection.outgoing);
+      expect(records.single.source, WalletTransactionSource.remote);
+      expect(records.single.feeAmount, '0.000021');
+    });
+
+    test('loads TRON token transactions from TronGrid API', () async {
+      final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+      final service = WalletTransactionHistoryService(dio: dio);
+      const asset = ChainBalance(
+        chain: WalletChain.tron,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        amount: '10',
+        address: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        contractAddress: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
+        decimals: 6,
+      );
+
+      final records = await service.loadAssetRecords(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(records, hasLength(1));
+      expect(records.single.txHash, 'tronhash1');
+      expect(records.single.amount, '2.5');
+      expect(records.single.direction, WalletTransactionDirection.outgoing);
+      expect(records.single.source, WalletTransactionSource.remote);
+    });
+
+    test('loads native Solana transactions from RPC', () async {
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importPrivateKey(
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
+      );
+      final recipient = cryptoService
+          .importPrivateKey(
+            '0x0000000000000000000000000000000000000000000000000000000000000002',
+          )
+          .solanaAddress;
+      final dio = Dio()
+        ..httpClientAdapter = _FallbackRpcAdapter(
+          solanaHistoryOwner: keyPair.solanaAddress,
+          solanaHistoryRecipient: recipient,
+        );
+      final service = WalletTransactionHistoryService(dio: dio);
+      final asset = ChainBalance(
+        chain: WalletChain.solana,
+        symbol: 'SOL',
+        name: 'Solana',
+        amount: '10',
+        address: keyPair.solanaAddress,
+        decimals: 9,
+      );
+
+      final records = await service.loadAssetRecords(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(records, hasLength(1));
+      expect(records.single.txHash, 'solana-history-signature');
+      expect(records.single.amount, '1.25');
+      expect(records.single.feeAmount, '0.000005');
+      expect(records.single.direction, WalletTransactionDirection.outgoing);
     });
   });
 
@@ -1033,12 +1125,16 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     this.hangSolana = false,
     this.solanaTokenAccountPubkey,
     this.solanaTokenAccountBalances = const {},
+    this.solanaHistoryOwner,
+    this.solanaHistoryRecipient,
   });
 
   final bool failTronGridAccount;
   final bool hangSolana;
   final String? solanaTokenAccountPubkey;
   final Map<String, Map<String, dynamic>> solanaTokenAccountBalances;
+  final String? solanaHistoryOwner;
+  final String? solanaHistoryRecipient;
   final calls = <String>[];
   final solanaMethods = <String>[];
   String? lastSolanaTransactionBase64;
@@ -1069,6 +1165,27 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
             : _isEvmNativeRequest(options.data)
             ? '0x0de0b6b3a7640000'
             : '0x0',
+      });
+    }
+
+    if (origin == 'https://api.bscscan.com' && options.uri.path == '/api') {
+      return _jsonResponse({
+        'status': '1',
+        'message': 'OK',
+        'result': [
+          {
+            'blockNumber': '123',
+            'timeStamp': '1700000000',
+            'hash': '0xbeef',
+            'from': '0x1111111111111111111111111111111111111111',
+            'to': '0x2222222222222222222222222222222222222222',
+            'value': '2000000000000000000',
+            'tokenDecimal': '18',
+            'gasUsed': '21000',
+            'gasPrice': '1000000000',
+            'contractAddress': '0x55d398326f99059fF775485246999027B3197955',
+          },
+        ],
       });
     }
 
@@ -1160,6 +1277,42 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
           },
         });
       }
+      if (_isSolanaMethod(options.data, 'getSignaturesForAddress')) {
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': [
+            {'signature': 'solana-history-signature'},
+          ],
+        });
+      }
+      if (_isSolanaMethod(options.data, 'getParsedTransaction')) {
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': {
+            'blockTime': 1700000000,
+            'meta': {'err': null, 'fee': 5000},
+            'transaction': {
+              'message': {
+                'instructions': [
+                  {
+                    'program': 'system',
+                    'parsed': {
+                      'type': 'transfer',
+                      'info': {
+                        'source': solanaHistoryOwner ?? '',
+                        'destination': solanaHistoryRecipient ?? '',
+                        'lamports': 1250000000,
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        });
+      }
       if (_isSolanaMethod(options.data, 'sendTransaction')) {
         final params = options.data is Map ? options.data['params'] : null;
         if (params is List && params.isNotEmpty && params.first is String) {
@@ -1190,6 +1343,20 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
 
     if (origin == 'https://api.trongrid.io' &&
         options.uri.path.startsWith('/v1/accounts/')) {
+      if (options.uri.path.endsWith('/transactions/trc20')) {
+        return _jsonResponse({
+          'data': [
+            {
+              'transaction_id': 'tronhash1',
+              'from': 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+              'to': 'TKn1ErhSZJD7GBuVxMqowPJ7YxXQwfGKEp',
+              'value': '2500000',
+              'token_info': {'decimals': 6},
+              'block_timestamp': 1700000000000,
+            },
+          ],
+        });
+      }
       return _jsonResponse({'data': []});
     }
 

@@ -95,6 +95,8 @@ class WalletChainConfig implements WalletChainRef {
     this.evmChainId,
     this.builtinChain,
     this.colorValue,
+    this.explorerApiUrl,
+    this.explorerApiKey,
     this.isEnabled = true,
   });
 
@@ -112,6 +114,7 @@ class WalletChainConfig implements WalletChainRef {
       evmChainId: chain.evmChainId,
       builtinChain: chain,
       colorValue: _builtinColorValue(chain),
+      explorerApiUrl: _builtinExplorerApiUrl(chain),
     );
   }
 
@@ -122,6 +125,8 @@ class WalletChainConfig implements WalletChainRef {
     required List<String> rpcUrls,
     required int evmChainId,
     int? colorValue,
+    String? explorerApiUrl,
+    String? explorerApiKey,
     bool isEnabled = true,
   }) {
     return WalletChainConfig(
@@ -132,6 +137,8 @@ class WalletChainConfig implements WalletChainRef {
       type: WalletChainType.evm,
       evmChainId: evmChainId,
       colorValue: colorValue,
+      explorerApiUrl: explorerApiUrl,
+      explorerApiKey: explorerApiKey,
       isEnabled: isEnabled,
     );
   }
@@ -157,6 +164,8 @@ class WalletChainConfig implements WalletChainRef {
           ? evmChainIdValue
           : int.tryParse(evmChainIdValue?.toString() ?? ''),
       colorValue: json['colorValue'] is int ? json['colorValue'] as int : null,
+      explorerApiUrl: json['explorerApiUrl']?.toString(),
+      explorerApiKey: json['explorerApiKey']?.toString(),
       isEnabled: json['isEnabled'] as bool? ?? true,
     );
   }
@@ -181,6 +190,12 @@ class WalletChainConfig implements WalletChainRef {
 
   final int? colorValue;
 
+  /// Etherscan 兼容或链浏览器交易记录 API 地址。
+  final String? explorerApiUrl;
+
+  /// 链浏览器 API Key。为空时按无 key 请求。
+  final String? explorerApiKey;
+
   final bool isEnabled;
 
   @override
@@ -200,6 +215,8 @@ class WalletChainConfig implements WalletChainRef {
       'type': type.name,
       'evmChainId': evmChainId,
       'colorValue': colorValue,
+      'explorerApiUrl': explorerApiUrl,
+      'explorerApiKey': explorerApiKey,
       'isEnabled': isEnabled,
     };
   }
@@ -213,6 +230,8 @@ class WalletChainConfig implements WalletChainRef {
     int? evmChainId,
     WalletChain? builtinChain,
     int? colorValue,
+    String? explorerApiUrl,
+    String? explorerApiKey,
     bool? isEnabled,
   }) {
     return WalletChainConfig(
@@ -224,6 +243,8 @@ class WalletChainConfig implements WalletChainRef {
       evmChainId: evmChainId ?? this.evmChainId,
       builtinChain: builtinChain ?? this.builtinChain,
       colorValue: colorValue ?? this.colorValue,
+      explorerApiUrl: explorerApiUrl ?? this.explorerApiUrl,
+      explorerApiKey: explorerApiKey ?? this.explorerApiKey,
       isEnabled: isEnabled ?? this.isEnabled,
     );
   }
@@ -244,6 +265,21 @@ class WalletChainConfig implements WalletChainRef {
         return 0xFF14F195;
       case WalletChain.tron:
         return 0xFFE50914;
+    }
+  }
+
+  static String? _builtinExplorerApiUrl(WalletChain chain) {
+    switch (chain) {
+      case WalletChain.bsc:
+        return 'https://api.bscscan.com/api';
+      case WalletChain.ethereum:
+        return 'https://api.etherscan.io/api';
+      case WalletChain.arbitrum:
+        return 'https://api.arbiscan.io/api';
+      case WalletChain.xLayer:
+      case WalletChain.solana:
+      case WalletChain.tron:
+        return null;
     }
   }
 }

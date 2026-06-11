@@ -104,12 +104,16 @@ class NetworkManagementPage
               required symbol,
               required chainId,
               required rpcUrls,
+              explorerApiUrl,
+              explorerApiKey,
             }) {
               return controller.updateNetwork(
                 chain: chain,
                 name: name,
                 symbol: symbol,
                 rpcUrls: rpcUrls,
+                explorerApiUrl: explorerApiUrl,
+                explorerApiKey: explorerApiKey,
               );
             },
       ),
@@ -170,6 +174,8 @@ class NetworkManagementController extends BaseController {
     required String symbol,
     required int chainId,
     required List<String> rpcUrls,
+    String? explorerApiUrl,
+    String? explorerApiKey,
   }) async {
     if (isSubmitting) return false;
     try {
@@ -180,6 +186,8 @@ class NetworkManagementController extends BaseController {
         symbol: symbol,
         evmChainId: chainId,
         rpcUrls: rpcUrls,
+        explorerApiUrl: explorerApiUrl,
+        explorerApiKey: explorerApiKey,
       );
       Toast.show(S.current.networkAdded);
       await loadChains();
@@ -212,6 +220,8 @@ class NetworkManagementController extends BaseController {
     required String name,
     required String symbol,
     required List<String> rpcUrls,
+    String? explorerApiUrl,
+    String? explorerApiKey,
   }) async {
     if (isSubmitting) return false;
     try {
@@ -223,6 +233,8 @@ class NetworkManagementController extends BaseController {
           name: name,
           symbol: symbol,
           rpcUrls: rpcUrls,
+          explorerApiUrl: explorerApiUrl,
+          explorerApiKey: explorerApiKey,
         );
       } else {
         await _service.updateCustomEvmChain(
@@ -230,6 +242,8 @@ class NetworkManagementController extends BaseController {
           name: name,
           symbol: symbol,
           rpcUrls: rpcUrls,
+          explorerApiUrl: explorerApiUrl,
+          explorerApiKey: explorerApiKey,
         );
       }
       Toast.show(S.current.networkUpdated);
@@ -410,6 +424,8 @@ class _NetworkFormSheet extends StatefulWidget {
     required String symbol,
     required int chainId,
     required List<String> rpcUrls,
+    String? explorerApiUrl,
+    String? explorerApiKey,
   })
   onSubmit;
 
@@ -422,12 +438,17 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
   final _symbolController = TextEditingController();
   final _chainIdController = TextEditingController();
   final _rpcController = TextEditingController();
+  final _explorerApiController = TextEditingController();
+  final _explorerKeyController = TextEditingController();
 
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.initialChain != null;
 
   bool get _requiresChainId =>
+      !_isEditing || (widget.initialChain?.isEvm ?? true);
+
+  bool get _supportsExplorerApi =>
       !_isEditing || (widget.initialChain?.isEvm ?? true);
 
   @override
@@ -439,6 +460,8 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
     _symbolController.text = chain.symbol;
     _chainIdController.text = chain.evmChainId?.toString() ?? '';
     _rpcController.text = chain.rpcUrls.join('\n');
+    _explorerApiController.text = chain.explorerApiUrl ?? '';
+    _explorerKeyController.text = chain.explorerApiKey ?? '';
   }
 
   @override
@@ -447,6 +470,8 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
     _symbolController.dispose();
     _chainIdController.dispose();
     _rpcController.dispose();
+    _explorerApiController.dispose();
+    _explorerKeyController.dispose();
     super.dispose();
   }
 
@@ -531,6 +556,23 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
                   minLines: 3,
                   maxLines: 5,
                 ),
+                if (_supportsExplorerApi) ...[
+                  SizedBox(height: 12.h),
+                  _NetworkTextField(
+                    controller: _explorerApiController,
+                    label: S.of(context).networkExplorerApiUrl,
+                    hint: 'https://api.etherscan.io/api',
+                    helperText: S.of(context).networkExplorerApiUrlHelper,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  SizedBox(height: 12.h),
+                  _NetworkTextField(
+                    controller: _explorerKeyController,
+                    label: S.of(context).networkExplorerApiKey,
+                    hint: 'API Key',
+                    textInputAction: TextInputAction.done,
+                  ),
+                ],
                 SizedBox(height: 16.h),
                 SizedBox(
                   width: double.infinity,
@@ -592,6 +634,8 @@ class _NetworkFormSheetState extends State<_NetworkFormSheet> {
       symbol: _symbolController.text,
       chainId: chainId ?? widget.initialChain?.evmChainId ?? 0,
       rpcUrls: rpcUrls,
+      explorerApiUrl: _explorerApiController.text,
+      explorerApiKey: _explorerKeyController.text,
     );
     if (!mounted) return;
     setState(() {

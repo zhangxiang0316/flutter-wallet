@@ -24,6 +24,7 @@ class ChainSection extends StatelessWidget {
     required this.chainUsdValueTextFor,
     required this.isChainExpanded,
     required this.onChainToggle,
+    required this.onAssetTap,
   });
 
   /// 当前钱包账户，用于读取 EVM、Solana、TRON 等链地址。
@@ -52,6 +53,9 @@ class ChainSection extends StatelessWidget {
   /// 点击链卡片头部后的展开/收起回调。
   final ValueChanged<WalletChainConfig> onChainToggle;
 
+  /// 点击币种行后的回调，用于进入交易记录等资产详情页面。
+  final ValueChanged<ChainBalance> onAssetTap;
+
   @override
   Widget build(BuildContext context) {
     // 按链枚举动态渲染，EVM 链共用 EVM 地址，非 EVM 链使用各自地址。
@@ -70,6 +74,7 @@ class ChainSection extends StatelessWidget {
             usdValueText: chainUsdValueTextFor(chain),
             isExpanded: isChainExpanded(chain),
             onToggle: onChainToggle,
+            onAssetTap: onAssetTap,
           );
         })
         .toList(growable: false);
@@ -121,6 +126,7 @@ class _ChainCard extends StatelessWidget {
     required this.usdValueText,
     required this.isExpanded,
     required this.onToggle,
+    required this.onAssetTap,
   });
 
   /// 当前卡片对应的链。
@@ -146,6 +152,9 @@ class _ChainCard extends StatelessWidget {
 
   /// 点击链头部后的展开状态切换回调。
   final ValueChanged<WalletChainConfig> onToggle;
+
+  /// 点击币种行后的回调。
+  final ValueChanged<ChainBalance> onAssetTap;
 
   @override
   Widget build(BuildContext context) {
@@ -285,6 +294,7 @@ class _ChainCard extends StatelessWidget {
                             balance: balance,
                             // 非稳定币会展示按当前价格换算的稳定币估值。
                             stableValueText: stableValueTextFor(balance),
+                            onTap: () => onAssetTap(balance),
                           ),
                         ),
                         if (balances.isEmpty)
@@ -409,7 +419,11 @@ class _EmptyBalancePlaceholder extends StatelessWidget {
 ///
 /// 左侧展示币种标识和名称，右侧展示余额和非稳定币估值。
 class _AssetRow extends StatelessWidget {
-  const _AssetRow({required this.balance, required this.stableValueText});
+  const _AssetRow({
+    required this.balance,
+    required this.stableValueText,
+    required this.onTap,
+  });
 
   /// 当前资产余额数据。
   final ChainBalance balance;
@@ -417,88 +431,105 @@ class _AssetRow extends StatelessWidget {
   /// 非稳定币换算成稳定币后的展示文本；稳定币为 null。
   final String? stableValueText;
 
+  /// 点击资产行后的回调。
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     // 当前币种头像和标识使用的颜色。
     final assetColor = homeAssetColor(context, balance.symbol);
 
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Row(
-        children: [
-          Container(
-            width: 32.w,
-            height: 32.w,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: assetColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              balance.symbol.characters.first,
-              style: TextStyle(
-                color: assetColor,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ).marginOnly(right: 10.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  balance.symbol,
-                  style: TextStyle(
-                    fontSize: 12.5.sp,
-                    fontWeight: FontWeight.w800,
-                  ),
+    return Semantics(
+      button: true,
+      label: '${balance.symbol} ${S.of(context).transactionHistory}',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 10.h),
+          child: Row(
+            children: [
+              Container(
+                width: 32.w,
+                height: 32.w,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: assetColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
-                Text(
-                  balance.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Text(
+                  balance.symbol.characters.first,
                   style: TextStyle(
-                    fontSize: 10.5.sp,
-                    color: homeSubTextColor(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 10.w),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 124.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  formatAssetAmount(balance.amount),
-                  textAlign: TextAlign.right,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                    color: assetColor,
                     fontSize: 12.sp,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (stableValueText != null)
-                  Text(
-                    stableValueText!,
-                    textAlign: TextAlign.right,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: homeSubTextColor(context),
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w700,
+              ).marginOnly(right: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      balance.symbol,
+                      style: TextStyle(
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ).marginOnly(top: 3.h),
-              ],
-            ),
+                    Text(
+                      balance.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10.5.sp,
+                        color: homeSubTextColor(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 10.w),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 124.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formatAssetAmount(balance.amount),
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (stableValueText != null)
+                      Text(
+                        stableValueText!,
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: homeSubTextColor(context),
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ).marginOnly(top: 3.h),
+                  ],
+                ),
+              ),
+              SizedBox(width: 4.w),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18.w,
+                color: homeSubTextColor(context),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

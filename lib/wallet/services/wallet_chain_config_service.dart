@@ -59,6 +59,8 @@ class WalletChainConfigService {
                 : override.symbol.trim().toUpperCase(),
             rpcUrls: override.rpcUrls.isEmpty ? base.rpcUrls : override.rpcUrls,
             colorValue: override.colorValue,
+            explorerApiUrl: override.explorerApiUrl,
+            explorerApiKey: override.explorerApiKey,
             isEnabled: true,
           );
         })
@@ -174,10 +176,14 @@ class WalletChainConfigService {
     required String symbol,
     required int evmChainId,
     required List<String> rpcUrls,
+    String? explorerApiUrl,
+    String? explorerApiKey,
   }) async {
     final normalizedName = name.trim();
     final normalizedSymbol = symbol.trim().toUpperCase();
     final normalizedRpcUrls = _normalizeRpcUrls(rpcUrls);
+    final normalizedExplorerApiUrl = _normalizeOptionalUrl(explorerApiUrl);
+    final normalizedExplorerApiKey = _normalizeOptionalText(explorerApiKey);
     if (normalizedName.isEmpty ||
         normalizedSymbol.isEmpty ||
         evmChainId <= 0 ||
@@ -197,6 +203,8 @@ class WalletChainConfigService {
       rpcUrls: workingRpcUrls,
       evmChainId: evmChainId,
       colorValue: _colorForChainId(evmChainId),
+      explorerApiUrl: normalizedExplorerApiUrl,
+      explorerApiKey: normalizedExplorerApiKey,
     );
     final customChains = [...await loadCustomChains()];
     final allChainIds = builtinChains().map((chain) => chain.id).toSet();
@@ -225,6 +233,8 @@ class WalletChainConfigService {
     required String name,
     required String symbol,
     required List<String> rpcUrls,
+    String? explorerApiUrl,
+    String? explorerApiKey,
   }) async {
     final customChains = [...await loadCustomChains()];
     final index = customChains.indexWhere((chain) => chain.id == chainId);
@@ -236,6 +246,8 @@ class WalletChainConfigService {
     final normalizedName = name.trim();
     final normalizedSymbol = symbol.trim().toUpperCase();
     final normalizedRpcUrls = _normalizeRpcUrls(rpcUrls);
+    final normalizedExplorerApiUrl = _normalizeOptionalUrl(explorerApiUrl);
+    final normalizedExplorerApiKey = _normalizeOptionalText(explorerApiKey);
     if (normalizedName.isEmpty ||
         normalizedSymbol.isEmpty ||
         evmChainId == null ||
@@ -251,6 +263,8 @@ class WalletChainConfigService {
       name: normalizedName,
       symbol: normalizedSymbol,
       rpcUrls: workingRpcUrls,
+      explorerApiUrl: normalizedExplorerApiUrl,
+      explorerApiKey: normalizedExplorerApiKey,
     );
     customChains[index] = nextChain;
     await saveCustomChains(customChains);
@@ -266,6 +280,8 @@ class WalletChainConfigService {
     required String name,
     required String symbol,
     required List<String> rpcUrls,
+    String? explorerApiUrl,
+    String? explorerApiKey,
   }) async {
     final builtin = WalletChain.values.cast<WalletChain?>().firstWhere(
       (chain) => chain?.id == chainId,
@@ -278,6 +294,8 @@ class WalletChainConfigService {
     final normalizedName = name.trim();
     final normalizedSymbol = symbol.trim().toUpperCase();
     final normalizedRpcUrls = _normalizeRpcUrls(rpcUrls);
+    final normalizedExplorerApiUrl = _normalizeOptionalUrl(explorerApiUrl);
+    final normalizedExplorerApiKey = _normalizeOptionalText(explorerApiKey);
     if (normalizedName.isEmpty ||
         normalizedSymbol.isEmpty ||
         normalizedRpcUrls.isEmpty) {
@@ -294,6 +312,8 @@ class WalletChainConfigService {
       name: normalizedName,
       symbol: normalizedSymbol,
       rpcUrls: workingRpcUrls,
+      explorerApiUrl: normalizedExplorerApiUrl ?? base.explorerApiUrl,
+      explorerApiKey: normalizedExplorerApiKey,
       isEnabled: true,
     );
     final overrides = await _loadBuiltinChainOverrides();
@@ -377,6 +397,21 @@ class WalletChainConfigService {
         .where((url) => url.startsWith('http://') || url.startsWith('https://'))
         .toSet()
         .toList(growable: false);
+  }
+
+  String? _normalizeOptionalUrl(String? value) {
+    final normalized = value?.trim() ?? '';
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return normalized.startsWith('http://') || normalized.startsWith('https://')
+        ? normalized
+        : null;
+  }
+
+  String? _normalizeOptionalText(String? value) {
+    final normalized = value?.trim() ?? '';
+    return normalized.isEmpty ? null : normalized;
   }
 
   bool _isValidCustomEvmChain(WalletChainConfig chain) {
