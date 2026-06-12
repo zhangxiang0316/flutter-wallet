@@ -6,18 +6,18 @@
 
 以下截图位于 `docs/` 目录，展示当前应用的主要页面和功能流程。
 
-| 截图 1                                           | 截图 2 | 截图 3 |
-|------------------------------------------------| --- | --- |
-| <img src="ocs/1.jpg" width="220" alt="应用截图 1"> | <img src="docs/2.jpg" width="220" alt="应用截图 2"> | <img src="docs/3.jpg" width="220" alt="应用截图 3"> |
-| 截图 4                                           | 截图 5 | 截图 6 |
-| <img src="docs/4.jpg" width="220" alt="应用截图 4"> | <img src="docs/5.jpg" width="220" alt="应用截图 5"> | <img src="docs/6.jpg" width="220" alt="应用截图 6"> |
-| 截图 7                                           | 截图 8 | 截图 9 |
-| <img src="docs/7.jpg" width="220" alt="应用截图 7"> | <img src="docs/8.jpg" width="220" alt="应用截图 8"> | <img src="docs/9.jpg" width="220" alt="应用截图 9"> |
-| 截图 10                                          | 截图 11 | 截图 12 |
+| 截图 1                                              | 截图 2 | 截图 3 |
+|---------------------------------------------------| --- | --- |
+| <img src="docs/1.jpg" width="220" alt="应用截图 1">   | <img src="docs/2.jpg" width="220" alt="应用截图 2"> | <img src="docs/3.jpg" width="220" alt="应用截图 3"> |
+| 截图 4                                              | 截图 5 | 截图 6 |
+| <img src="docs/4.jpg" width="220" alt="应用截图 4">   | <img src="docs/5.jpg" width="220" alt="应用截图 5"> | <img src="docs/6.jpg" width="220" alt="应用截图 6"> |
+| 截图 7                                              | 截图 8 | 截图 9 |
+| <img src="docs/7.jpg" width="220" alt="应用截图 7">   | <img src="docs/8.jpg" width="220" alt="应用截图 8"> | <img src="docs/9.jpg" width="220" alt="应用截图 9"> |
+| 截图 10                                             | 截图 11 | 截图 12 |
 | <img src="docs/10.jpg" width="220" alt="应用截图 10"> | <img src="docs/11.jpg" width="220" alt="应用截图 11"> | <img src="docs/12.jpg" width="220" alt="应用截图 12"> |
-| 截图 13                                          | 截图 14 | 截图 15 |
+| 截图 13                                             | 截图 14 | 截图 15 |
 | <img src="docs/13.jpg" width="220" alt="应用截图 13"> | <img src="docs/14.jpg" width="220" alt="应用截图 14"> | <img src="docs/15.jpg" width="220" alt="应用截图 15"> |
-| 截图 16                                          | 截图 17 |  |
+| 截图 16                                             | 截图 17 |  |
 | <img src="docs/16.jpg" width="220" alt="应用截图 16"> | <img src="docs/17.jpg" width="220" alt="应用截图 17"> |  |
 
 ## 钱包功能详解
