@@ -47,7 +47,7 @@ class WalletTransactionHistoryService {
   static const Map<String, String> _evmExplorerApiUrls = {
     'bsc': 'https://api.bscscan.com/api',
     'ethereum': 'https://api.etherscan.io/api',
-    'arbitrum': 'https://api.arbiscan.io/api',
+    // Arbitrum 已弃用 V1，改用 Blockscout
   };
 
   /// 无需 API Key 的 Blockscout v2 地址交易接口。
@@ -56,7 +56,10 @@ class WalletTransactionHistoryService {
   /// Blockscout 作为内置兜底，避免默认配置下 ETH/Arbitrum 一直返回空记录。
   static const Map<String, List<String>> _evmBlockscoutBaseUrls = {
     'ethereum': ['https://eth.blockscout.com'],
-    'arbitrum': ['https://arbitrum.blockscout.com'],
+    'arbitrum': [
+      'https://arbitrum.blockscout.com',
+      'https://arbitrum-one.blockscout.com', // 备用节点
+    ],
   };
 
   /// EVM 链 RPC 备用节点，用于 token logs 兜底。
