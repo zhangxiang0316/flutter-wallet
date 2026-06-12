@@ -75,6 +75,9 @@ class HomeController extends BaseController {
   /// 每条链按当前价格汇总后的 USD 估值文本。
   final Map<String, String> chainUsdValueTexts = {};
 
+  /// ✅ 缓存的价格数据，用于优化价格计算
+  final Map<String, Decimal> _cachedPrices = {};
+
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
 
@@ -344,16 +347,29 @@ class HomeController extends BaseController {
 
   /// 刷新非稳定币资产换算后的稳定币估值文本。
   void _refreshAssetStableValueTexts(Map<String, Decimal> prices) {
-    assetStableValueTexts.clear();
+    // ✅ 优化：只更新价格变化的资产
     for (final balance in visibleBalances) {
-      final valueText = _valuationService.formatNonStableUsdValue(
-        balance,
-        prices: prices,
-      );
-      if (valueText != null) {
-        assetStableValueTexts[_assetStableValueKey(balance)] = valueText;
+      final symbol = balance.symbol;
+      final newPrice = prices[symbol];
+      final key = _assetStableValueKey(balance);
+
+      // 只在价格变化或新资产时重新计算
+      if (newPrice != null && _cachedPrices[symbol] != newPrice) {
+        final valueText = _valuationService.formatNonStableUsdValue(
+          balance,
+          prices: prices,
+        );
+        if (valueText != null) {
+          assetStableValueTexts[key] = valueText;
+        }
+        _cachedPrices[symbol] = newPrice;
       }
     }
+
+    // 移除不再可见的资产
+    assetStableValueTexts.removeWhere(
+      (key, _) => !visibleBalances.any((b) => _assetStableValueKey(b) == key),
+    );
   }
 
   /// 按链汇总当前可见资产的 USD 估值。
