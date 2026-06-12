@@ -156,49 +156,94 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
   Widget build(BuildContext context) {
     // 使用主题主色参与渐变，保证 Hero 卡片能跟随主题变化。
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(minHeight: 186.h),
-      padding: EdgeInsets.fromLTRB(16.w, 15.h, 16.w, 17.h),
+      constraints: BoxConstraints(minHeight: 200.h),
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 22.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF2EA8F2),
-            Color.lerp(colorScheme.primary, const Color(0xFF0EA5E9), 0.5)!,
-            const Color(0xFF102A43),
-          ],
+          colors: isDark
+              ? [
+                  // 深色主题：深紫-深蓝渐变
+                  const Color(0xFF6366F1), // Indigo
+                  const Color(0xFF8B5CF6), // Purple
+                  const Color(0xFF3B82F6), // Blue
+                ]
+              : [
+                  // 浅色主题：亮紫-蓝-青渐变
+                  const Color(0xFF8B5CF6), // Purple
+                  const Color(0xFF3B82F6), // Blue
+                  const Color(0xFF06B6D4), // Cyan
+                ],
         ),
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6))
+                .withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: Offset(0, 8.h),
+          ),
+        ],
       ),
       child: Stack(
         children: [
+          // 玻璃态效果 - 左上角光斑
           AnimatedBuilder(
             animation: _glowController,
             builder: (context, child) {
               return Positioned(
-                right: -48.w + (_glowController.value * 16.w),
-                top: -42.h,
+                left: -60.w + (_glowController.value * 20.w),
+                top: -60.h + (_glowController.value * 10.h),
                 child: child!,
               );
             },
             child: Container(
-              width: 168.w,
-              height: 168.w,
+              width: 180.w,
+              height: 180.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.08),
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.15),
+                    Colors.white.withValues(alpha: 0.05),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
+          // 玻璃态效果 - 右下角光斑
           Positioned(
-            right: -2.w,
-            top: 8.h,
+            right: -40.w,
+            bottom: -40.h,
+            child: Container(
+              width: 140.w,
+              height: 140.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.1),
+                    Colors.white.withValues(alpha: 0.03),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // 装饰性钱包图标
+          Positioned(
+            right: 10.w,
+            top: 10.h,
             child: Icon(
-              Icons.account_balance_wallet_outlined,
-              size: 112.w,
-              color: Colors.white.withValues(alpha: 0.13),
+              Icons.account_balance_wallet_rounded,
+              size: 100.w,
+              color: Colors.white.withValues(alpha: 0.08),
             ),
           ),
           Column(
@@ -211,7 +256,29 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                 onWalletRemoved: widget.onWalletRemoved,
                 onAddWallet: widget.onAddWallet,
               ),
-              SizedBox(height: 30.h),
+              SizedBox(height: 32.h),
+              // 总资产标签
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    '${S.of(context).totalAssets} (USD)',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12.h),
+              // 总资产金额
               Align(
                 alignment: Alignment.center,
                 child: AnimatedSwitcher(
@@ -229,46 +296,53 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                   child: FittedBox(
                     key: ValueKey(widget.totalAssetsText),
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      widget.totalAssetsText,
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 36.sp,
-                        fontWeight: FontWeight.w900,
-                        height: 1.02,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Text(
+                            '\$',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          widget.totalAssetsText,
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 48.sp,
+                            fontWeight: FontWeight.w900,
+                            height: 1.1,
+                            letterSpacing: -1.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 9.h),
-              Align(
-                alignment: Alignment.center,
-                child: Text(
-                  '${S.of(context).totalAssets} (USD)',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              SizedBox(height: 18.h),
+              SizedBox(height: 24.h),
+              // 收款/转账按钮
               Align(
                 alignment: Alignment.center,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _HeroActionButton(
+                    _ModernActionButton(
                       icon: Icons.qr_code_2_rounded,
                       label: S.of(context).receive,
                       onPressed: widget.onReceivePressed,
                     ),
-                    SizedBox(width: 10.w),
-                    _HeroActionButton(
+                    SizedBox(width: 12.w),
+                    _ModernActionButton(
                       icon: Icons.near_me_rounded,
                       label: S.of(context).transfer,
                       onPressed: widget.onTransferPressed,
@@ -1166,4 +1240,86 @@ Future<bool> _confirmRemoveWallet(
         },
       ) ??
       false;
+}
+
+/// 现代风格的操作按钮（收款/转账）。
+///
+/// 使用玻璃态效果和柔和的阴影，提供更现代的视觉体验。
+class _ModernActionButton extends StatefulWidget {
+  const _ModernActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  State<_ModernActionButton> createState() => _ModernActionButtonState();
+}
+
+class _ModernActionButtonState extends State<_ModernActionButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: widget.label,
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressed = true),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        onPointerUp: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.94 : 1,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: GestureDetector(
+            onTap: widget.onPressed,
+            child: Container(
+              height: 44.h,
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(24.r),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: Offset(0, 2.h),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    widget.icon,
+                    color: Colors.white,
+                    size: 20.w,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
