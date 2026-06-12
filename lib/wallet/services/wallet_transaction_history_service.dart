@@ -507,29 +507,43 @@ class WalletTransactionHistoryService {
 
     for (var toBlock = latest; toBlock >= start; toBlock -= _evmLogChunkSize) {
       final fromBlock = math.max(start, toBlock - _evmLogChunkSize + 1);
-      final outgoing = await _evmGetLogs(asset.chainRef, {
-        'address': asset.contractAddress,
-        'fromBlock': _hexQuantity(BigInt.from(fromBlock)),
-        'toBlock': _hexQuantity(BigInt.from(toBlock)),
-        'topics': [_evmTransferEventTopic, walletTopic],
-      });
-      final incoming = await _evmGetLogs(asset.chainRef, {
-        'address': asset.contractAddress,
-        'fromBlock': _hexQuantity(BigInt.from(fromBlock)),
-        'toBlock': _hexQuantity(BigInt.from(toBlock)),
-        'topics': [_evmTransferEventTopic, null, walletTopic],
-      });
 
-      for (final log in [...outgoing, ...incoming].whereType<Map>()) {
-        final record = await _evmTokenRecordFromLog(
-          walletId: walletId,
-          asset: asset,
-          log: log,
-        );
+      // ✅ 并行获取转出和转入日志
+      final results = await Future.wait([
+        _evmGetLogs(asset.chainRef, {
+          'address': asset.contractAddress,
+          'fromBlock': _hexQuantity(BigInt.from(fromBlock)),
+          'toBlock': _hexQuantity(BigInt.from(toBlock)),
+          'topics': [_evmTransferEventTopic, walletTopic],
+        }),
+        _evmGetLogs(asset.chainRef, {
+          'address': asset.contractAddress,
+          'fromBlock': _hexQuantity(BigInt.from(fromBlock)),
+          'toBlock': _hexQuantity(BigInt.from(toBlock)),
+          'topics': [_evmTransferEventTopic, null, walletTopic],
+        }),
+      ]);
+
+      final outgoing = results[0];
+      final incoming = results[1];
+
+      // ✅ 并行处理所有日志
+      final logFutures = [...outgoing, ...incoming]
+          .whereType<Map>()
+          .map((log) => _evmTokenRecordFromLog(
+                walletId: walletId,
+                asset: asset,
+                log: log,
+              ));
+
+      final processedRecords = await Future.wait(logFutures);
+
+      for (final record in processedRecords) {
         if (record != null && seenIds.add(record.id)) {
           records.add(record);
         }
       }
+
       records.sort(_compareRecordTimeDesc);
       if (records.length >= _historyLimit) {
         break;

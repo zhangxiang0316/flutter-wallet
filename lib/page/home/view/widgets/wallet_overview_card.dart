@@ -112,13 +112,14 @@ class _BalanceHeroCard extends StatefulWidget {
 }
 
 class _BalanceHeroCardState extends State<_BalanceHeroCard>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   /// Hero 卡片背景高光的轻量循环动画。
   late final AnimationController _glowController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2600),
@@ -126,7 +127,27 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // ✅ 根据应用生命周期控制动画
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (!_glowController.isAnimating) {
+          _glowController.repeat(reverse: true);
+        }
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _glowController.stop();
+        break;
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _glowController.dispose();
     super.dispose();
   }
