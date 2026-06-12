@@ -160,8 +160,8 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
 
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(minHeight: 200.h),
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 22.h),
+      constraints: BoxConstraints(minHeight: 180.h),
+      padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 20.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -256,7 +256,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                 onWalletRemoved: widget.onWalletRemoved,
                 onAddWallet: widget.onAddWallet,
               ),
-              SizedBox(height: 32.h),
+              SizedBox(height: 24.h),
               // 总资产标签
               Align(
                 alignment: Alignment.center,
@@ -277,7 +277,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                   ),
                 ),
               ),
-              SizedBox(height: 12.h),
+              SizedBox(height: 10.h),
               // 总资产金额
               Align(
                 alignment: Alignment.center,
@@ -301,7 +301,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                       maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 48.sp,
+                        fontSize: 42.sp,
                         fontWeight: FontWeight.w900,
                         height: 1.1,
                         letterSpacing: -1.5,
@@ -310,7 +310,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                   ),
                 ),
               ),
-              SizedBox(height: 24.h),
+              SizedBox(height: 20.h),
               // 收款/转账按钮
               Align(
                 alignment: Alignment.center,
