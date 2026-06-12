@@ -24,13 +24,32 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
   /// 页面顶部导航栏。
   @override
   PreferredSizeWidget? getAppBar() {
+    final colorScheme = Theme.of(context!).colorScheme;
+    final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
+      backgroundColor: Theme.of(context!).cardColor,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      elevation: 0,
+      toolbarHeight: 50.h,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back),
-        onPressed: () => back(),
+        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18.w),
+        onPressed: back,
       ),
-      title: Text('主题设置', style: TextStyle(fontWeight: FontWeight.w700)),
+      title: Text(
+        '主题设置',
+        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
+      ),
       centerTitle: true,
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(
+          1 / MediaQuery.of(context!).devicePixelRatio,
+        ),
+        child: Container(
+          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          color: dividerColor,
+        ),
+      ),
     );
   }
 
