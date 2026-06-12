@@ -393,7 +393,7 @@ class _ChainSummaryPill extends StatelessWidget {
           ? SizedBox(
               width: 16.w,
               height: 16.w,
-              // child: CircularProgressIndicator(strokeWidth: 2, color: color),
+              child: CircularProgressIndicator(strokeWidth: 2, color: color),
             )
           : Text(
               usdValueText,
