@@ -620,6 +620,10 @@ class HomeController extends BaseController {
   @override
   void onPageVisible() {
     super.onPageVisible();
+    developer.log(
+      'HomePage visible, timer=${_balanceRefreshTimer != null}',
+      name: 'HomeController',
+    );
     // 如果有钱包且定时器未运行，启动定时器
     if (wallet != null && _balanceRefreshTimer == null) {
       _startBalanceRefreshTimer();
@@ -632,12 +636,17 @@ class HomeController extends BaseController {
   @override
   void onPageInVisible() {
     super.onPageInVisible();
+    developer.log(
+      'HomePage invisible, stopping timer',
+      name: 'HomeController',
+    );
     // 页面不可见时停止定时器
     _stopBalanceRefreshTimer();
   }
 
   @override
   void onClose() {
+    developer.log('HomePage closing, stopping timer', name: 'HomeController');
     _stopBalanceRefreshTimer();
     super.onClose();
   }
