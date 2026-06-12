@@ -4,6 +4,7 @@ import 'package:omnicast/page/transaction/view/transaction_history_page.dart';
 import 'package:omnicast/page/home/view/home_page.dart';
 import 'package:omnicast/page/transfer/view/transfer_page.dart';
 import 'package:omnicast/page/receive/view/receive_page.dart';
+import 'package:omnicast/page/browser/view/block_explorer_page.dart';
 import 'package:omnicast/page/wallet/view/wallet_detail_page.dart';
 import 'package:omnicast/page/setting/view/language_page.dart';
 import 'package:omnicast/page/setting/view/asset_visibility_page.dart';
@@ -17,6 +18,7 @@ class RouteTable {
   static const String home = '/home';
   static const String transfer = '/transfer';
   static const String receive = '/receive';
+  static const String blockExplorer = '/blockExplorer';
   static const String walletDetail = '/walletDetail';
   static const String language = '/language';
   static const String assetVisibility = '/assetVisibility';
@@ -41,6 +43,10 @@ class RouteTable {
     GetPage(
       name: '/receive',
       page: () => ReceivePage(),
+    ),
+    GetPage(
+      name: '/blockExplorer',
+      page: () => BlockExplorerPage(),
     ),
     GetPage(
       name: '/walletDetail',

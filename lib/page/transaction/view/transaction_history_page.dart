@@ -89,10 +89,16 @@ class TransactionHistoryPage
             if (controller.isLoading && controller.records.isEmpty)
               TransactionEmptyState.loading(message: S.of(context!).loading)
             else if (controller.errorMessage.isNotEmpty)
-              TransactionEmptyState(message: controller.errorMessage)
+              TransactionEmptyState(
+                message: controller.errorMessage,
+                actionLabel: S.of(context!).openBlockExplorer,
+                onAction: controller.openBlockExplorer,
+              )
             else if (controller.records.isEmpty)
               TransactionEmptyState(
-                message: S.of(context!).transactionHistoryEmpty,
+                message: S.of(context!).transactionHistoryExplorerHint,
+                actionLabel: S.of(context!).openBlockExplorer,
+                onAction: controller.openBlockExplorer,
               )
             else
               ...controller.records.map(

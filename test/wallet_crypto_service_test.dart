@@ -13,6 +13,7 @@ import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/models/wallet_transaction_record.dart';
 import 'package:omnicast/wallet/services/asset_valuation_service.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
+import 'package:omnicast/wallet/services/wallet_block_explorer_service.dart';
 import 'package:omnicast/wallet/services/wallet_custom_asset_service.dart';
 import 'package:omnicast/wallet/services/wallet_chain_config_service.dart';
 import 'package:omnicast/wallet/services/wallet_crypto_service.dart';
@@ -197,6 +198,50 @@ void main() {
         '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
       );
       expect(asset.isCustom, isTrue);
+    });
+  });
+
+  group('WalletBlockExplorerService', () {
+    test('builds default explorer URL for built-in chains', () {
+      const service = WalletBlockExplorerService();
+      const asset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'BNB',
+        name: 'BNB',
+        amount: '1',
+        address: '0x1111111111111111111111111111111111111111',
+        decimals: 18,
+      );
+
+      expect(
+        service.addressUri(asset).toString(),
+        'https://bscscan.com/address/0x1111111111111111111111111111111111111111',
+      );
+    });
+
+    test('builds explorer URL from custom EVM scan API URL', () {
+      const service = WalletBlockExplorerService();
+      final chain = WalletChainConfig.customEvm(
+        id: 'evm-137',
+        name: 'Polygon',
+        symbol: 'MATIC',
+        rpcUrls: const ['https://polygon-rpc.com'],
+        evmChainId: 137,
+        explorerApiUrl: 'https://api.polygonscan.com/api',
+      );
+      final asset = ChainBalance.config(
+        chainConfig: chain,
+        symbol: 'MATIC',
+        name: 'Polygon',
+        amount: '1',
+        address: '0x2222222222222222222222222222222222222222',
+        decimals: 18,
+      );
+
+      expect(
+        service.addressUri(asset).toString(),
+        'https://polygonscan.com/address/0x2222222222222222222222222222222222222222',
+      );
     });
   });
 

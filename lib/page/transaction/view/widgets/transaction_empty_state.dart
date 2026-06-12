@@ -5,11 +5,17 @@ import 'transaction_history_styles.dart';
 
 /// 交易记录页空态/加载态。
 class TransactionEmptyState extends StatelessWidget {
-  const TransactionEmptyState({super.key, required this.message})
-    : isLoading = false;
+  const TransactionEmptyState({
+    super.key,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  }) : isLoading = false;
 
   const TransactionEmptyState.loading({super.key, required this.message})
-    : isLoading = true;
+    : isLoading = true,
+      actionLabel = null,
+      onAction = null;
 
   /// 展示文案。
   final String message;
@@ -17,9 +23,17 @@ class TransactionEmptyState extends StatelessWidget {
   /// true 时展示加载指示器。
   final bool isLoading;
 
+  /// 空态下展示的操作按钮文案。
+  final String? actionLabel;
+
+  /// 空态操作按钮点击回调。
+  final VoidCallback? onAction;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final shouldShowAction =
+        !isLoading && actionLabel != null && onAction != null;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 28.h),
@@ -60,6 +74,29 @@ class TransactionEmptyState extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+          if (shouldShowAction) ...[
+            SizedBox(height: 14.h),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: Icon(Icons.open_in_new_rounded, size: 16.w),
+              label: Text(actionLabel!),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.primary,
+                side: BorderSide(
+                  color: colorScheme.primary.withValues(alpha: 0.28),
+                ),
+                minimumSize: Size(0, 34.h),
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                textStyle: TextStyle(
+                  fontSize: 11.5.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

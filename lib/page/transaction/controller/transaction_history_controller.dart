@@ -3,9 +3,12 @@ import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
+import '../../../generated/route_table.dart';
 import '../../../utils/toast_util.dart';
+import '../../browser/controller/block_explorer_controller.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_transaction_record.dart';
+import '../../../wallet/services/wallet_block_explorer_service.dart';
 import '../../../wallet/services/wallet_transaction_history_service.dart';
 
 /// 交易记录页面参数。
@@ -30,9 +33,13 @@ class TransactionHistoryPageArguments {
 class TransactionHistoryController extends BaseController {
   TransactionHistoryController({
     WalletTransactionHistoryService? historyService,
-  }) : _historyService = historyService ?? WalletTransactionHistoryService();
+    WalletBlockExplorerService? blockExplorerService,
+  }) : _historyService = historyService ?? WalletTransactionHistoryService(),
+       _blockExplorerService =
+           blockExplorerService ?? const WalletBlockExplorerService();
 
   final WalletTransactionHistoryService _historyService;
+  final WalletBlockExplorerService _blockExplorerService;
 
   /// 路由传入的当前钱包和资产参数。
   TransactionHistoryPageArguments? arguments;
@@ -81,5 +88,23 @@ class TransactionHistoryController extends BaseController {
     if (record.txHash.isEmpty) return;
     Clipboard.setData(ClipboardData(text: record.txHash));
     Toast.show(S.current.copied);
+  }
+
+  /// 打开应用内区块浏览器页面。
+  Future<void> openBlockExplorer() async {
+    final asset = arguments?.asset;
+    if (asset == null) return;
+    final uri = _blockExplorerService.addressUri(asset);
+    if (uri == null) {
+      Toast.show(S.current.blockExplorerUnavailable);
+      return;
+    }
+    Get.toNamed(
+      RouteTable.blockExplorer,
+      arguments: BlockExplorerPageArguments(
+        url: uri,
+        title: asset.chainRef.name,
+      ),
+    );
   }
 }
