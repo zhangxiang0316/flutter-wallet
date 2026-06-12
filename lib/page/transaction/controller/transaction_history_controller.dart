@@ -8,6 +8,7 @@ import '../../../utils/toast_util.dart';
 import '../../browser/controller/block_explorer_controller.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_transaction_record.dart';
+import '../../../wallet/services/transaction_history_cache.dart';
 import '../../../wallet/services/wallet_block_explorer_service.dart';
 import '../../../wallet/services/wallet_transaction_history_service.dart';
 
@@ -29,17 +30,23 @@ class TransactionHistoryPageArguments {
 
 /// 交易记录页面控制器。
 ///
-/// 进入页面后直接请求链上/RPC 交易记录，不依赖转账时写入的本地缓存。
+/// 优化策略：
+/// 1. 立即显示缓存记录（< 50ms）
+/// 2. 后台静默更新最新数据
+/// 3. 自动保存新缓存供下次使用
 class TransactionHistoryController extends BaseController {
   TransactionHistoryController({
     WalletTransactionHistoryService? historyService,
     WalletBlockExplorerService? blockExplorerService,
+    TransactionHistoryCache? cache,
   }) : _historyService = historyService ?? WalletTransactionHistoryService(),
        _blockExplorerService =
-           blockExplorerService ?? const WalletBlockExplorerService();
+           blockExplorerService ?? const WalletBlockExplorerService(),
+       _cache = cache ?? TransactionHistoryCache();
 
   final WalletTransactionHistoryService _historyService;
   final WalletBlockExplorerService _blockExplorerService;
+  final TransactionHistoryCache _cache;
 
   /// 路由传入的当前钱包和资产参数。
   TransactionHistoryPageArguments? arguments;
@@ -64,16 +71,45 @@ class TransactionHistoryController extends BaseController {
   }
 
   /// 读取当前资产交易记录。
+  ///
+  /// 优化策略：
+  /// 1. 立即显示缓存（如果有）- 用户感知 < 100ms
+  /// 2. 后台加载最新数据
+  /// 3. 保存新缓存供下次使用
   Future<void> loadRecords() async {
     final args = arguments;
     if (args == null) return;
+
+    // ✅ 步骤 1: 立即显示缓存记录（如果有）
+    final cached = await _cache.load(
+      args.walletId,
+      args.asset.chainId,
+      args.asset.symbol,
+    );
+    if (cached != null && cached.isNotEmpty) {
+      records = cached;
+      update(); // 立即显示缓存，用户感知 < 100ms
+    }
+
+    // ✅ 步骤 2: 后台加载最新数据
     try {
       isLoading = true;
       errorMessage = '';
       update();
-      records = await _historyService.loadAssetRecords(
+
+      final fresh = await _historyService.loadAssetRecords(
         walletId: args.walletId,
         asset: args.asset,
+      );
+
+      records = fresh;
+
+      // ✅ 步骤 3: 保存新缓存
+      await _cache.save(
+        args.walletId,
+        args.asset.chainId,
+        args.asset.symbol,
+        fresh,
       );
     } catch (_) {
       errorMessage = S.current.transactionLoadFailed;

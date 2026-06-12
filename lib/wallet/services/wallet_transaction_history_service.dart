@@ -32,7 +32,7 @@ class WalletTransactionHistoryService {
   /// HTTP/RPC 请求客户端。
   final Dio _dio;
 
-  static const Duration _requestTimeout = Duration(seconds: 14);
+  static const Duration _requestTimeout = Duration(seconds: 6);
   static const int _historyLimit = 30;
   static const int _evmLogChunkSize = 50000;
   static const int _evmLogScanBlockWindow = 5000000;
@@ -104,6 +104,25 @@ class WalletTransactionHistoryService {
       return _loadSolanaRecords(walletId: walletId, asset: asset);
     }
     return const [];
+  }
+
+  /// 带重试机制的请求包装器。
+  ///
+  /// 自动重试临时失败的请求，提高成功率。
+  Future<T> _withRetry<T>(
+    Future<T> Function() fn, {
+    int maxAttempts = 2,
+  }) async {
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (attempt == maxAttempts) rethrow;
+        // 简单的指数退避策略
+        await Future.delayed(Duration(milliseconds: 500 * attempt));
+      }
+    }
+    throw StateError('Retry exhausted');
   }
 
   Future<List<WalletTransactionRecord>> _loadEvmRecords({
