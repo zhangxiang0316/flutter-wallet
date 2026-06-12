@@ -1,8 +1,8 @@
 // ignore_for_file: constant_identifier_names
 import 'package:get/get.dart';
-import 'package:omnicast/page/splash/view/splash_page.dart';
 import 'package:omnicast/page/transaction/view/transaction_history_page.dart';
 import 'package:omnicast/page/home/view/home_page.dart';
+import 'package:omnicast/page/splash/view/splash_page.dart';
 import 'package:omnicast/page/transfer/view/transfer_page.dart';
 import 'package:omnicast/page/receive/view/receive_page.dart';
 import 'package:omnicast/page/browser/view/block_explorer_page.dart';
@@ -15,9 +15,9 @@ import 'package:omnicast/page/setting/view/network_management_page.dart';
 import 'package:omnicast/page/main/view/main_page.dart';
 
 class RouteTable {
-  static const String splash = '/splash';
   static const String transactionHistory = '/transactionHistory';
   static const String home = '/home';
+  static const String splash = '/splash';
   static const String transfer = '/transfer';
   static const String receive = '/receive';
   static const String blockExplorer = '/blockExplorer';
@@ -31,16 +31,16 @@ class RouteTable {
 
   static final List<GetPage> pages = [
     GetPage(
-      name: '/splash',
-      page: () => const SplashPage(),
-    ),
-    GetPage(
       name: '/transactionHistory',
       page: () => TransactionHistoryPage(),
     ),
     GetPage(
       name: '/home',
       page: () => HomePage(),
+    ),
+    GetPage(
+      name: '/splash',
+      page: () => SplashPage(),
     ),
     GetPage(
       name: '/transfer',
