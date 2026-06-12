@@ -633,12 +633,12 @@ class HomeController extends BaseController {
     needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
   }
 
-  /// 启动 30 秒余额定时刷新。
+  /// 启动 60 秒余额定时刷新。
   ///
   /// 每次进入或切换钱包都会先停止旧定时器，避免多个定时器并发刷新。
   void _startBalanceRefreshTimer() {
     _stopBalanceRefreshTimer();
-    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       refreshBalances();
     });
   }
@@ -656,7 +656,10 @@ class HomeController extends BaseController {
     // 如果有钱包且定时器未运行，启动定时器
     if (wallet != null && _balanceRefreshTimer == null) {
       _startBalanceRefreshTimer();
-      // 页面可见时也刷新一次余额，确保数据最新
+      // 页面可见时立即刷新一次余额，确保数据最新
+      refreshBalances();
+    } else if (wallet != null && _balanceRefreshTimer != null) {
+      // 如果定时器已在运行（从其他页面返回），也立即刷新一次
       refreshBalances();
     }
   }
