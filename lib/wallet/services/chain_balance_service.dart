@@ -64,12 +64,17 @@ class ChainBalanceService {
   /// EVM 链 RPC 备用节点。
   ///
   /// 每条 EVM 链按顺序尝试节点，前一个失败后自动切到下一个。
+  /// 优先使用快速稳定的免费节点（Ankr、bloXroute）。
   static const Map<WalletChain, List<String>> _evmRpcFallbacks = {
     WalletChain.bsc: [
+      'https://bsc.rpc.blxrbdn.com', // bloXroute - 快速
+      'https://rpc.ankr.com/bsc', // Ankr - 稳定
       'https://bsc-dataseed.bnbchain.org',
       'https://bsc-rpc.publicnode.com',
     ],
     WalletChain.ethereum: [
+      'https://eth.rpc.blxrbdn.com', // bloXroute - 快速
+      'https://rpc.ankr.com/eth', // Ankr - 稳定
       'https://ethereum-rpc.publicnode.com',
       'https://eth.llamarpc.com',
     ],
@@ -79,6 +84,7 @@ class ChainBalanceService {
     ],
     WalletChain.arbitrum: [
       'https://arb1.arbitrum.io/rpc',
+      'https://rpc.ankr.com/arbitrum', // Ankr - 稳定
       'https://arbitrum-one-rpc.publicnode.com',
     ],
   };
@@ -90,8 +96,12 @@ class ChainBalanceService {
   ];
 
   /// Solana JSON-RPC 备用节点。
+  ///
+  /// 优先使用快速稳定的节点，官方节点作为备用。
   static const List<String> _solanaRpcFallbacks = [
-    'https://api.mainnet-beta.solana.com',
+    'https://solana-mainnet.rpc.extrnode.com', // Extrnode - 快速
+    'https://rpc.ankr.com/solana', // Ankr - 稳定
+    'https://api.mainnet-beta.solana.com', // 官方备用
     'https://solana-rpc.publicnode.com',
   ];
 

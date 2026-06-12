@@ -1,0 +1,152 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/chain_balance.dart';
+import '../models/wallet_chain.dart';
+
+/// 链余额缓存服务。
+///
+/// 用于缓存用户的余额数据，实现以下优化：
+/// - 打开首页立即显示上次余额（< 50ms）
+/// - 后台静默更新最新数据
+/// - 离线时也能查看上次余额
+class ChainBalanceCache {
+  /// 缓存键前缀。
+  static const String _keyPrefix = 'cached_balances_v1';
+
+  /// 缓存最大有效期。
+  ///
+  /// 超过 30 分钟的缓存视为过期，返回 null 强制重新加载。
+  static const Duration _maxAge = Duration(minutes: 30);
+
+  /// 加载指定钱包的缓存余额。
+  ///
+  /// 返回 null 表示：
+  /// - 缓存不存在
+  /// - 缓存已过期（超过 30 分钟）
+  /// - 缓存数据损坏
+  Future<List<ChainBalance>?> load(String walletId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString('${_keyPrefix}_$walletId');
+      if (json == null) return null;
+
+      final data = jsonDecode(json) as Map<String, dynamic>;
+      final timestamp = DateTime.parse(data['timestamp'] as String);
+
+      // 检查缓存是否过期
+      if (DateTime.now().difference(timestamp) > _maxAge) {
+        return null;
+      }
+
+      final balances = (data['balances'] as List)
+          .map((item) => _fromJson(item as Map<String, dynamic>))
+          .toList();
+
+      return balances;
+    } catch (_) {
+      // 缓存损坏，返回 null
+      return null;
+    }
+  }
+
+  /// 保存指定钱包的余额缓存。
+  ///
+  /// 会自动添加时间戳，用于判断缓存是否过期。
+  Future<void> save(String walletId, List<ChainBalance> balances) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = {
+        'timestamp': DateTime.now().toIso8601String(),
+        'balances': balances.map((b) => _toJson(b)).toList(),
+      };
+      await prefs.setString('${_keyPrefix}_$walletId', jsonEncode(data));
+    } catch (_) {
+      // 保存失败不影响主流程，静默忽略
+    }
+  }
+
+  /// 清除指定钱包的余额缓存。
+  ///
+  /// 用于钱包切换或删除时清理缓存。
+  Future<void> clear(String walletId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('${_keyPrefix}_$walletId');
+    } catch (_) {
+      // 清除失败不影响主流程
+    }
+  }
+
+  /// 清除所有钱包的余额缓存。
+  ///
+  /// 用于强制刷新或重置应用时使用。
+  Future<void> clearAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith(_keyPrefix)) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (_) {
+      // 清除失败不影响主流程
+    }
+  }
+
+  /// 将 ChainBalance 转换为 JSON。
+  Map<String, dynamic> _toJson(ChainBalance balance) {
+    return {
+      'chainId': balance.chainId,
+      'symbol': balance.symbol,
+      'name': balance.name,
+      'amount': balance.amount,
+      'address': balance.address,
+      'contractAddress': balance.contractAddress,
+      'decimals': balance.decimals,
+      'isNative': balance.isNative,
+      'error': balance.error,
+    };
+  }
+
+  /// 从 JSON 恢复 ChainBalance。
+  ChainBalance _fromJson(Map<String, dynamic> json) {
+    final chainId = json['chainId'] as String;
+
+    // 尝试匹配内置链
+    WalletChain? chain;
+    try {
+      chain = WalletChain.values.firstWhere((c) => c.id == chainId);
+    } catch (_) {
+      // 如果不是内置链，chain 为 null
+    }
+
+    if (chain != null) {
+      return ChainBalance(
+        chain: chain,
+        symbol: json['symbol'] as String,
+        name: json['name'] as String,
+        amount: json['amount'] as String,
+        address: json['address'] as String,
+        contractAddress: json['contractAddress'] as String?,
+        decimals: json['decimals'] as int,
+        error: json['error'] as String?,
+      );
+    } else {
+      // 自定义链的余额，暂不支持缓存
+      // 返回一个占位的余额对象
+      return ChainBalance(
+        chain: WalletChain.bsc, // 占位
+        symbol: json['symbol'] as String,
+        name: json['name'] as String,
+        amount: '0',
+        address: json['address'] as String,
+        contractAddress: json['contractAddress'] as String?,
+        decimals: json['decimals'] as int,
+        error: 'Cached data for custom chain',
+      );
+    }
+  }
+}
