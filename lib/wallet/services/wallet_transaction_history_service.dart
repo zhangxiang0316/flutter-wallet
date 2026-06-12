@@ -44,22 +44,24 @@ class WalletTransactionHistoryService {
   /// 内置 EVM 链的 Etherscan 兼容接口。
   ///
   /// 自定义 EVM 链暂没有浏览器 API 配置入口；非原生 token 会再尝试 RPC logs 兜底。
+  ///
+  /// Arbitrum 已移除：Arbiscan V1 已弃用，V2 需要 API Key，Blockscout 太慢（>10秒）。
+  /// Token 交易会直接使用 RPC logs 查询（更快），原生 ETH 返回空（大部分用户不用）。
   static const Map<String, String> _evmExplorerApiUrls = {
     'bsc': 'https://api.bscscan.com/api',
     'ethereum': 'https://api.etherscan.io/api',
-    // Arbitrum 已弃用 V1，改用 Blockscout
+    // Arbitrum: 浏览器 API 太慢或需要 Key，直接使用 RPC logs
   };
 
   /// 无需 API Key 的 Blockscout v2 地址交易接口。
   ///
   /// Etherscan 系列接口已逐步切到 v2 且很多链需要 API Key。这里把已验证可用的
-  /// Blockscout 作为内置兜底，避免默认配置下 ETH/Arbitrum 一直返回空记录。
+  /// Blockscout 作为内置兜底，避免默认配置下 ETH 一直返回空记录。
+  ///
+  /// Arbitrum 已移除：两个节点都超时（>6秒），用户体验差。
   static const Map<String, List<String>> _evmBlockscoutBaseUrls = {
     'ethereum': ['https://eth.blockscout.com'],
-    'arbitrum': [
-      'https://arbitrum.blockscout.com',
-      'https://arbitrum-one.blockscout.com', // 备用节点
-    ],
+    // Arbitrum: Blockscout 节点响应太慢，直接使用 RPC logs
   };
 
   /// EVM 链 RPC 备用节点，用于 token logs 兜底。
