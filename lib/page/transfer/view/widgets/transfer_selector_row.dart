@@ -110,14 +110,28 @@ class _ChainDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 确保 selectedChain 在 chains 列表中，否则使用第一个
-    final validSelectedChain = chains.any((c) => c.id == selectedChain.id)
-        ? selectedChain
-        : (chains.isNotEmpty ? chains.first : selectedChain);
+    // 如果 chains 为空，返回禁用的下拉框
+    if (chains.isEmpty) {
+      return DropdownButtonFormField<WalletChainConfig>(
+        decoration: _dropdownDecoration(
+          context,
+          label: S.of(context).selectTransferChain,
+          focusColor: Colors.grey,
+        ),
+        items: const [],
+        onChanged: null,
+      );
+    }
+
+    // 使用对象相等性比较（而不是 ID）来查找 selectedChain
+    final validSelectedChain = chains.firstWhere(
+      (c) => c.id == selectedChain.id,
+      orElse: () => chains.first,
+    );
 
     return DropdownButtonFormField<WalletChainConfig>(
       key: ValueKey(validSelectedChain.id),
-      initialValue: validSelectedChain,
+      value: validSelectedChain,  // 使用 value 而不是 initialValue
       isExpanded: true,
       icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18.w),
       decoration: _dropdownDecoration(
