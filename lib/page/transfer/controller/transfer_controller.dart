@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -299,6 +300,18 @@ class TransferController extends BaseController {
     try {
       WalletTransferService.amountToRawUnits(amount, asset.decimals);
       _validateAddress(asset, address);
+
+      // ✅ 检查余额是否充足（转账前验证）
+      final amountDecimal = Decimal.parse(amount);
+      final balanceDecimal = Decimal.parse(asset.amount);
+      if (amountDecimal > balanceDecimal) {
+        Toast.show(S.current.transferFailed);
+        feeEstimate = null;
+        feeEstimateUnavailable = false;
+        isEstimatingFee = false;
+        update();
+        return;
+      }
     } catch (_) {
       feeEstimate = null;
       feeEstimateUnavailable = false;

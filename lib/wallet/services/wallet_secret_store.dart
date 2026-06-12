@@ -34,6 +34,11 @@ class WalletSecretInvalidPasswordException extends WalletSecretException {
     : super('Wallet password is invalid');
 }
 
+/// 存储数据损坏。
+class WalletSecretCorruptedException extends WalletSecretException {
+  const WalletSecretCorruptedException(super.message);
+}
+
 /// 钱包私钥和助记词加密存储。
 ///
 /// 该服务使用 `flutter_secure_storage` 保存密文 payload。明文私钥/助记词不会直接写入
@@ -181,6 +186,10 @@ class WalletSecretStore {
       final key = _deriveKey(password, salt, iterations: iterations);
       final plainBytes = _aesGcmDecrypt(key, nonce, cipherText);
       return utf8.decode(plainBytes);
+    } on FormatException catch (e) {
+      throw WalletSecretCorruptedException(
+        'Storage data corrupted: ${e.message}',
+      );
     } catch (_) {
       throw const WalletSecretInvalidPasswordException();
     }

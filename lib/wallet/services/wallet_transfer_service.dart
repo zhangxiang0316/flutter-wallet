@@ -805,7 +805,9 @@ class WalletTransferService {
           ? BigInt.tryParse(tokenAmount['amount']?.toString() ?? '')
           : null;
       if (rawAmount == null) {
-        return pubkey;
+        throw StateError(
+          'Unable to parse Solana token account balance for address: $pubkey',
+        );
       }
       parsedAnyAmount = true;
       if (rawAmount >= minimumAmount) {
@@ -949,13 +951,42 @@ class WalletTransferService {
 
   /// 校验并标准化 EVM 地址。
   ///
-  /// 返回小写 `0x` 地址；checksum 不是转账签名必需条件，所以这里不做 checksum 校验。
+  /// 验证 EIP-55 校验和（如果地址包含混合大小写），防止发送到损坏的地址。
+  /// 返回小写 `0x` 地址。
   static String normalizeEvmAddress(String input) {
     final address = input.trim();
     if (!RegExp(r'^0x[0-9a-fA-F]{40}$').hasMatch(address)) {
-      throw const FormatException('Invalid EVM address');
+      throw const FormatException('Invalid EVM address format');
     }
-    return '0x${address.substring(2).toLowerCase()}';
+
+    // 验证 EIP-55 校验和
+    final addr = address.substring(2);
+
+    // 如果地址是混合大小写，验证校验和
+    if (addr != addr.toLowerCase() && addr != addr.toUpperCase()) {
+      final digest = KeccakDigest(256);
+      final hash = digest.process(Uint8List.fromList(addr.toLowerCase().codeUnits));
+      final hashHex = hex.encode(hash);
+
+      for (int i = 0; i < 40; i++) {
+        final hashChar = int.parse(hashHex[i], radix: 16);
+        if (hashChar >= 8) {
+          if (addr[i] != addr[i].toUpperCase()) {
+            throw const FormatException(
+              'Invalid EIP-55 checksum: address may be corrupted',
+            );
+          }
+        } else {
+          if (addr[i] != addr[i].toLowerCase()) {
+            throw const FormatException(
+              'Invalid EIP-55 checksum: address may be corrupted',
+            );
+          }
+        }
+      }
+    }
+
+    return '0x${addr.toLowerCase()}';
   }
 
   /// 将 TRON Base58Check 地址转为十六进制 payload。
