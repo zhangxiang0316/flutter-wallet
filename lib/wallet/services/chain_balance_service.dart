@@ -6,6 +6,7 @@ import 'package:solana/solana.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
+import '../utils/rpc_retry_helper.dart';
 import 'wallet_chain_config_service.dart';
 import 'wallet_custom_asset_service.dart';
 
