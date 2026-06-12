@@ -7,6 +7,7 @@ import '../../../../wallet/models/chain_balance.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 import '../../../../wallet/utils/asset_amount_formatter.dart';
+import 'home_motion.dart';
 import 'home_styles.dart';
 
 /// 首页的多链资产区域。
@@ -84,8 +85,18 @@ class ChainSection extends StatelessWidget {
           .entries
           .map(
             (entry) => entry.key == chainCards.length - 1
-                ? entry.value
-                : entry.value.marginOnly(bottom: 12.h),
+                ? HomeEntranceItem(
+                    key: ValueKey('chain-${chains[entry.key].id}'),
+                    delay: Duration(milliseconds: 45 * entry.key),
+                    initialOffset: const Offset(0, 0.04),
+                    child: entry.value,
+                  )
+                : HomeEntranceItem(
+                    key: ValueKey('chain-${chains[entry.key].id}'),
+                    delay: Duration(milliseconds: 45 * entry.key),
+                    initialOffset: const Offset(0, 0.04),
+                    child: entry.value,
+                  ).marginOnly(bottom: 12.h),
           )
           .toList(growable: false),
     );
@@ -273,7 +284,9 @@ class _ChainCard extends StatelessWidget {
               ),
             ),
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: const Duration(milliseconds: 240),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
               transitionBuilder: (child, animation) {
                 // 展开/收起时只做高度和透明度变化，避免列表内容突然跳动。
                 return SizeTransition(
@@ -289,12 +302,20 @@ class _ChainCard extends StatelessWidget {
                       children: [
                         SizedBox(height: 10.h),
                         Divider(height: 1.h, thickness: 1, color: dividerColor),
-                        ...balances.map(
-                          (balance) => _AssetRow(
-                            balance: balance,
-                            // 非稳定币会展示按当前价格换算的稳定币估值。
-                            stableValueText: stableValueTextFor(balance),
-                            onTap: () => onAssetTap(balance),
+                        ...balances.asMap().entries.map(
+                          (entry) => HomeEntranceItem(
+                            key: ValueKey(
+                              '${chain.id}-${entry.value.symbol}-${entry.key}',
+                            ),
+                            delay: Duration(milliseconds: 26 * entry.key),
+                            duration: const Duration(milliseconds: 260),
+                            initialOffset: const Offset(0.03, 0),
+                            child: _AssetRow(
+                              balance: entry.value,
+                              // 非稳定币会展示按当前价格换算的稳定币估值。
+                              stableValueText: stableValueTextFor(entry.value),
+                              onTap: () => onAssetTap(entry.value),
+                            ),
                           ),
                         ),
                         if (balances.isEmpty)

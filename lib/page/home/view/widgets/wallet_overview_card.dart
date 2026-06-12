@@ -71,7 +71,7 @@ class WalletOverviewCard extends StatelessWidget {
 /// 顶部总资产 Hero 卡片。
 ///
 /// 负责展示当前钱包入口、总资产估值和资产标题；总资产文本变化时使用轻量动画过渡。
-class _BalanceHeroCard extends StatelessWidget {
+class _BalanceHeroCard extends StatefulWidget {
   const _BalanceHeroCard({
     required this.wallet,
     required this.wallets,
@@ -108,6 +108,30 @@ class _BalanceHeroCard extends StatelessWidget {
   final VoidCallback onTransferPressed;
 
   @override
+  State<_BalanceHeroCard> createState() => _BalanceHeroCardState();
+}
+
+class _BalanceHeroCardState extends State<_BalanceHeroCard>
+    with SingleTickerProviderStateMixin {
+  /// Hero 卡片背景高光的轻量循环动画。
+  late final AnimationController _glowController;
+
+  @override
+  void initState() {
+    super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // 使用主题主色参与渐变，保证 Hero 卡片能跟随主题变化。
     final colorScheme = Theme.of(context).colorScheme;
@@ -129,6 +153,24 @@ class _BalanceHeroCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          AnimatedBuilder(
+            animation: _glowController,
+            builder: (context, child) {
+              return Positioned(
+                right: -48.w + (_glowController.value * 16.w),
+                top: -42.h,
+                child: child!,
+              );
+            },
+            child: Container(
+              width: 168.w,
+              height: 168.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
           Positioned(
             right: -2.w,
             top: 8.h,
@@ -142,11 +184,11 @@ class _BalanceHeroCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _WalletNamePill(
-                wallet: wallet,
-                wallets: wallets,
-                onWalletSelected: onWalletSelected,
-                onWalletRemoved: onWalletRemoved,
-                onAddWallet: onAddWallet,
+                wallet: widget.wallet,
+                wallets: widget.wallets,
+                onWalletSelected: widget.onWalletSelected,
+                onWalletRemoved: widget.onWalletRemoved,
+                onAddWallet: widget.onAddWallet,
               ),
               SizedBox(height: 30.h),
               Align(
@@ -164,10 +206,10 @@ class _BalanceHeroCard extends StatelessWidget {
                     ),
                   ),
                   child: FittedBox(
-                    key: ValueKey(totalAssetsText),
+                    key: ValueKey(widget.totalAssetsText),
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      totalAssetsText,
+                      widget.totalAssetsText,
                       maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
@@ -202,13 +244,13 @@ class _BalanceHeroCard extends StatelessWidget {
                     _HeroActionButton(
                       icon: Icons.qr_code_2_rounded,
                       label: S.of(context).receive,
-                      onPressed: onReceivePressed,
+                      onPressed: widget.onReceivePressed,
                     ),
                     SizedBox(width: 10.w),
                     _HeroActionButton(
                       icon: Icons.near_me_rounded,
                       label: S.of(context).transfer,
-                      onPressed: onTransferPressed,
+                      onPressed: widget.onTransferPressed,
                     ),
                   ],
                 ),
@@ -336,7 +378,7 @@ class _WalletNamePill extends StatelessWidget {
 }
 
 /// Hero 卡片上的快捷操作按钮。
-class _HeroActionButton extends StatelessWidget {
+class _HeroActionButton extends StatefulWidget {
   const _HeroActionButton({
     required this.icon,
     required this.label,
@@ -353,37 +395,57 @@ class _HeroActionButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
+  State<_HeroActionButton> createState() => _HeroActionButtonState();
+}
+
+class _HeroActionButtonState extends State<_HeroActionButton> {
+  /// 当前按钮是否处于按压状态。
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: label,
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999.r),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(999.r),
-          child: Container(
-            height: 38.h,
-            padding: EdgeInsets.symmetric(horizontal: 14.w),
-            decoration: BoxDecoration(
+      label: widget.label,
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressed = true),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        onPointerUp: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.96 : 1,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          child: Material(
+            color: Colors.white.withValues(alpha: _pressed ? 0.22 : 0.16),
+            borderRadius: BorderRadius.circular(999.r),
+            child: InkWell(
+              onTap: widget.onPressed,
               borderRadius: BorderRadius.circular(999.r),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: Colors.white, size: 17.w),
-                SizedBox(width: 7.w),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.5.sp,
-                    fontWeight: FontWeight.w900,
+              child: Container(
+                height: 38.h,
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999.r),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
                   ),
                 ),
-              ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(widget.icon, color: Colors.white, size: 17.w),
+                    SizedBox(width: 7.w),
+                    Text(
+                      widget.label,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

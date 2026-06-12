@@ -15,6 +15,7 @@ import 'widgets/add_wallet_sheet.dart';
 import 'widgets/chain_section.dart';
 import 'widgets/empty_wallet_card.dart';
 import 'widgets/home_background.dart';
+import 'widgets/home_motion.dart';
 import 'widgets/import_wallet_sheet.dart';
 import 'widgets/password_setup_sheet.dart';
 import 'widgets/password_unlock_sheet.dart';
@@ -124,36 +125,48 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: wallet == null
             ? [
-                EmptyWalletCard(
-                  onCreateWallet: _showCreateWalletSheet,
-                  onImportWallet: _showImportSheet,
+                HomeEntranceItem(
+                  child: EmptyWalletCard(
+                    onCreateWallet: _showCreateWalletSheet,
+                    onImportWallet: _showImportSheet,
+                  ),
                 ),
               ]
             : [
-                WalletOverviewCard(
-                  wallet: wallet,
-                  wallets: controller.wallets,
-                  totalAssetsText: controller.totalAssetsText,
-                  onWalletSelected: controller.switchWallet,
-                  onWalletRemoved: controller.removeWallet,
-                  onAddWallet: _showAddWalletSheet,
-                  onReceivePressed: _openReceivePage,
-                  onTransferPressed: _openTransferPage,
+                HomeEntranceItem(
+                  child: WalletOverviewCard(
+                    wallet: wallet,
+                    wallets: controller.wallets,
+                    totalAssetsText: controller.totalAssetsText,
+                    onWalletSelected: controller.switchWallet,
+                    onWalletRemoved: controller.removeWallet,
+                    onAddWallet: _showAddWalletSheet,
+                    onReceivePressed: _openReceivePage,
+                    onTransferPressed: _openTransferPage,
+                  ),
                 ),
                 SizedBox(height: 16.h),
-                ChainSection(
-                  wallet: wallet,
-                  chains: controller.chains,
-                  balances: controller.visibleBalances,
-                  isLoading: controller.isLoading,
-                  stableValueTextFor: controller.stableValueTextFor,
-                  chainUsdValueTextFor: controller.chainUsdValueTextFor,
-                  isChainExpanded: controller.isChainExpanded,
-                  onChainToggle: controller.toggleChainExpanded,
-                  onAssetTap: _openTransactionHistoryPage,
+                HomeEntranceItem(
+                  delay: const Duration(milliseconds: 90),
+                  initialOffset: const Offset(0, 0.06),
+                  child: ChainSection(
+                    wallet: wallet,
+                    chains: controller.chains,
+                    balances: controller.visibleBalances,
+                    isLoading: controller.isLoading,
+                    stableValueTextFor: controller.stableValueTextFor,
+                    chainUsdValueTextFor: controller.chainUsdValueTextFor,
+                    isChainExpanded: controller.isChainExpanded,
+                    onChainToggle: controller.toggleChainExpanded,
+                    onAssetTap: _openTransactionHistoryPage,
+                  ),
                 ),
                 SizedBox(height: 16.h),
-                const PrivateKeyNotice(),
+                const HomeEntranceItem(
+                  delay: Duration(milliseconds: 150),
+                  initialOffset: Offset(0, 0.05),
+                  child: PrivateKeyNotice(),
+                ),
               ],
       ),
     );
