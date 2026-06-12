@@ -10,6 +10,7 @@ import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_chain.dart';
+import '../../../wallet/models/wallet_chain_extensions.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/wallet_secret_store.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
@@ -217,7 +218,7 @@ class TransferController extends BaseController {
         walletId: args.walletId,
         password: password,
       );
-      final solanaPrivateKey = _isSolanaChain(asset.chainRef)
+      final solanaPrivateKey = asset.chainRef.isSolana
           ? await _repository.readWalletSolanaPrivateKey(
               walletId: args.walletId,
               password: password,
@@ -250,27 +251,15 @@ class TransferController extends BaseController {
       WalletTransferService.normalizeEvmAddress(address);
       return;
     }
-    if (_isTronChain(asset.chainRef)) {
+    if (asset.chainRef.isTron) {
       WalletTransferService.tronAddressToHex(address);
       return;
     }
-    if (_isSolanaChain(asset.chainRef)) {
+    if (asset.chainRef.isSolana) {
       WalletTransferService.normalizeSolanaAddress(address);
       return;
     }
     throw FormatException('Unsupported chain ${asset.chainId}');
-  }
-
-  /// 判断当前资产是否属于 TRON 链。
-  bool _isTronChain(WalletChainRef chain) {
-    return chain.id == WalletChain.tron.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.tron);
-  }
-
-  /// 判断当前资产是否属于 Solana 链。
-  bool _isSolanaChain(WalletChainRef chain) {
-    return chain.id == WalletChain.solana.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.solana);
   }
 
   /// 延迟触发手续费估算，减少用户输入时的 RPC 请求量。

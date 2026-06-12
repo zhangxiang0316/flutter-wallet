@@ -616,6 +616,26 @@ class HomeController extends BaseController {
     _balanceRefreshTimer = null;
   }
 
+  /// 页面可见时恢复定时刷新。
+  @override
+  void onPageVisible() {
+    super.onPageVisible();
+    // 如果有钱包且定时器未运行，启动定时器
+    if (wallet != null && _balanceRefreshTimer == null) {
+      _startBalanceRefreshTimer();
+      // 页面可见时也刷新一次余额，确保数据最新
+      refreshBalances();
+    }
+  }
+
+  /// 页面不可见时暂停定时刷新，节省资源。
+  @override
+  void onPageInVisible() {
+    super.onPageInVisible();
+    // 页面不可见时停止定时器
+    _stopBalanceRefreshTimer();
+  }
+
   @override
   void onClose() {
     _stopBalanceRefreshTimer();

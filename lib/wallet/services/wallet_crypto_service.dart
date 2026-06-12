@@ -12,6 +12,8 @@ import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/api.dart' as pc;
 
+import '../constants/crypto_constants.dart';
+
 /// 钱包密钥和地址派生服务。
 ///
 /// 该服务负责：
@@ -31,23 +33,9 @@ class WalletCryptoService {
   /// secp256k1 曲线参数。
   final ECDomainParameters _domain;
 
-  /// EVM 默认派生路径。
-  ///
-  /// 遵循常见 Ethereum 路径 `m/44'/60'/0'/0/0`，BSC、Ethereum、X Layer 共用
-  /// 同一 EVM 地址。
-  static const String evmDerivationPath = "m/44'/60'/0'/0/0";
-
-  /// Solana 默认派生路径。
-  ///
-  /// 使用 Solana 常见路径 `m/44'/501'/0'/0'`，并通过 Ed25519 hardened derivation
-  /// 派生 seed。
-  static const String solanaDerivationPath = "m/44'/501'/0'/0'";
-
-  /// Base58 编码字母表。
-  ///
-  /// TRON 地址和 Solana 地址都需要 Base58 相关编码。
-  static const String _base58Alphabet =
-      '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  // 从共享常量中引用派生路径
+  static const String evmDerivationPath = CryptoConstants.evmDerivationPath;
+  static const String solanaDerivationPath = CryptoConstants.solanaDerivationPath;
 
   /// 生成 12 词英文助记词。
   ///
@@ -264,12 +252,12 @@ class WalletCryptoService {
     while (value > BigInt.zero) {
       final mod = value % BigInt.from(58);
       value = value ~/ BigInt.from(58);
-      result.write(_base58Alphabet[mod.toInt()]);
+      result.write(CryptoConstants.base58Alphabet[mod.toInt()]);
     }
 
     for (final byte in bytes) {
       if (byte == 0) {
-        result.write(_base58Alphabet[0]);
+        result.write(CryptoConstants.base58Alphabet[0]);
       } else {
         break;
       }

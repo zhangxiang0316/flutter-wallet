@@ -6,6 +6,7 @@ import 'package:convert/convert.dart';
 import 'package:dio/dio.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
+import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_transaction_record.dart';
@@ -36,10 +37,9 @@ class WalletTransactionHistoryService {
   static const int _evmLogChunkSize = 50000;
   static const int _evmLogScanBlockWindow = 5000000;
   static const int _blockscoutMaxPages = 4;
-  static const String _evmTransferEventTopic =
-      '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-  static const String _base58Alphabet =
-      '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+  /// 使用共享的 EVM Transfer 事件 topic
+  static const String _evmTransferEventTopic = CryptoConstants.evmTransferEventTopic;
 
   /// 内置 EVM 链的 Etherscan 兼容接口。
   ///
@@ -1527,13 +1527,13 @@ class WalletTransactionHistoryService {
     final output = StringBuffer();
     while (value > BigInt.zero) {
       final mod = value % base;
-      output.write(_base58Alphabet[mod.toInt()]);
+      output.write(CryptoConstants.base58Alphabet[mod.toInt()]);
       value ~/= base;
     }
 
     for (final byte in bytes) {
       if (byte == 0) {
-        output.write(_base58Alphabet[0]);
+        output.write(CryptoConstants.base58Alphabet[0]);
       } else {
         break;
       }
