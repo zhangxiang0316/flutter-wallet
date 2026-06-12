@@ -110,15 +110,20 @@ class _ChainDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 确保 selectedChain 在 chains 列表中，否则使用第一个
+    final validSelectedChain = chains.any((c) => c.id == selectedChain.id)
+        ? selectedChain
+        : (chains.isNotEmpty ? chains.first : selectedChain);
+
     return DropdownButtonFormField<WalletChainConfig>(
-      key: ValueKey(selectedChain.id),
-      initialValue: selectedChain,
+      key: ValueKey(validSelectedChain.id),
+      initialValue: validSelectedChain,
       isExpanded: true,
       icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18.w),
       decoration: _dropdownDecoration(
         context,
         label: S.of(context).selectTransferChain,
-        focusColor: transferChainColor(selectedChain),
+        focusColor: transferChainColor(validSelectedChain),
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
@@ -128,7 +133,7 @@ class _ChainDropdown extends StatelessWidget {
               value: chain,
               child: _ChainOption(
                 chain: chain,
-                selected: chain.id == selectedChain.id,
+                selected: chain.id == validSelectedChain.id,
               ),
             );
           })
