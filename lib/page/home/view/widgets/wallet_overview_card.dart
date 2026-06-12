@@ -296,35 +296,16 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                   child: FittedBox(
                     key: ValueKey(widget.totalAssetsText),
                     fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.only(top: 4.h),
-                          child: Text(
-                            '\$',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.w700,
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          widget.totalAssetsText,
-                          maxLines: 1,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 48.sp,
-                            fontWeight: FontWeight.w900,
-                            height: 1.1,
-                            letterSpacing: -1.5,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      widget.totalAssetsText,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 48.sp,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                        letterSpacing: -1.5,
+                      ),
                     ),
                   ),
                 ),
