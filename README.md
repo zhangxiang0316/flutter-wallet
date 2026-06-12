@@ -43,8 +43,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/zhangxiang0316/omnicast.git
-cd omnicast
+git clone https://github.com/zhangxiang0316/flutter-wallet.git
+cd flutter-wallet
 
 # 安装依赖
 flutter pub get
