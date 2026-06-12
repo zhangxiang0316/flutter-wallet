@@ -12,8 +12,10 @@ import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/signers/ecdsa_signer.dart';
 import 'package:solana/solana.dart';
 
+import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
+import '../models/wallet_chain_extensions.dart';
 
 /// 钱包转账服务。
 ///
@@ -49,29 +51,12 @@ class WalletTransferService {
   /// 转账相关请求的整体超时时间。
   static const Duration _requestTimeout = Duration(seconds: 20);
 
-  /// EVM 原生币转账固定 gas limit。
-  static const int _evmNativeGasLimit = 21000;
-
-  /// EVM ERC20 转账兜底 gas limit。
-  static const int _evmTokenGasLimit = 100000;
-
-  /// TRC20 转账 fee_limit，单位 sun。
-  static const int _tronTokenFeeLimit = 30 * 1000 * 1000;
-
-  /// Solana 单签名基础费用，单位 lamports。
-  static const int _solanaLamportsPerSignature = 5000;
-
-  /// Base58 字母表，TRON/Solana 地址解析会用到。
-  static const String _base58Alphabet =
-      '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-  /// secp256k1 素数域 p。
-  ///
-  /// 恢复 ECDSA public key 时需要判断 x 坐标是否仍在曲线有限域内。
-  static final BigInt _secp256k1P = BigInt.parse(
-    'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
-    radix: 16,
-  );
+  /// 使用共享的加密常量
+  static const int _evmNativeGasLimit = CryptoConstants.evmNativeGasLimit;
+  static const int _evmTokenGasLimit = CryptoConstants.evmTokenGasLimit;
+  static const int _tronTokenFeeLimit = CryptoConstants.tronTokenFeeLimit;
+  static const int _solanaLamportsPerSignature = CryptoConstants.solanaLamportsPerSignature;
+  static final BigInt _secp256k1P = CryptoConstants.secp256k1P;
 
   /// 发起转账。
   ///
@@ -92,7 +77,7 @@ class WalletTransferService {
         amount: amount,
       );
     }
-    if (_isTronChain(asset.chainRef)) {
+    if (asset.chainRef.isTron) {
       return _transferTron(
         privateKeyHex: privateKeyHex,
         asset: asset,
@@ -100,7 +85,7 @@ class WalletTransferService {
         amount: amount,
       );
     }
-    if (_isSolanaChain(asset.chainRef)) {
+    if (asset.chainRef.isSolana) {
       if (solanaPrivateKey == null) {
         throw StateError('Missing Solana private key');
       }
@@ -130,14 +115,14 @@ class WalletTransferService {
         amount: amount,
       );
     }
-    if (_isTronChain(asset.chainRef)) {
+    if (asset.chainRef.isTron) {
       return _estimateTronFee(
         asset: asset,
         toAddress: toAddress,
         amount: amount,
       );
     }
-    if (_isSolanaChain(asset.chainRef)) {
+    if (asset.chainRef.isSolana) {
       return _estimateSolanaFee(
         asset: asset,
         toAddress: toAddress,
@@ -145,18 +130,6 @@ class WalletTransferService {
       );
     }
     throw StateError('Unsupported chain ${asset.chainId}');
-  }
-
-  /// 判断资产是否属于 TRON 链。
-  bool _isTronChain(WalletChainRef chain) {
-    return chain.id == WalletChain.tron.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.tron);
-  }
-
-  /// 判断资产是否属于 Solana 链。
-  bool _isSolanaChain(WalletChainRef chain) {
-    return chain.id == WalletChain.solana.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.solana);
   }
 
   /// 估算 EVM 转账手续费。
@@ -1117,7 +1090,7 @@ class WalletTransferService {
   static Uint8List _base58Decode(String input) {
     var value = BigInt.zero;
     for (final codeUnit in input.codeUnits) {
-      final digit = _base58Alphabet.indexOf(String.fromCharCode(codeUnit));
+      final digit = CryptoConstants.base58Alphabet.indexOf(String.fromCharCode(codeUnit));
       if (digit < 0) {
         throw const FormatException('Invalid Base58 character');
       }
@@ -1127,7 +1100,7 @@ class WalletTransferService {
     final bytes = _bigIntToBytes(value).toList();
     var leadingZeros = 0;
     for (final codeUnit in input.codeUnits) {
-      if (String.fromCharCode(codeUnit) == _base58Alphabet[0]) {
+      if (String.fromCharCode(codeUnit) == CryptoConstants.base58Alphabet[0]) {
         leadingZeros++;
       } else {
         break;
