@@ -50,11 +50,6 @@ void main() {
       });
 
       test('tronAddressToHex validates TRON address format', () {
-        // Valid TRON address (this is a real TRON address format)
-        const validAddress = 'TRX9VG2f8fj6FvGVF1cMmvzRj7dWxDXjCj';
-        // Note: This test might fail if the checksum is invalid
-        // We're just testing that the function exists and handles format errors
-
         // Test invalid format
         expect(
           () => WalletTransferService.tronAddressToHex('invalid'),
