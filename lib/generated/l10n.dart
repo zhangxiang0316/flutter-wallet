@@ -75,6 +75,26 @@ class S {
     return Intl.message('沐晨钱包', name: 'appName', desc: '', args: []);
   }
 
+  /// `Secure multi-chain assets`
+  String get splashTagline {
+    return Intl.message(
+      'Secure multi-chain assets',
+      name: 'splashTagline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Opening wallet`
+  String get splashLoading {
+    return Intl.message(
+      'Opening wallet',
+      name: 'splashLoading',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Settings`
   String get settings {
     return Intl.message('Settings', name: 'settings', desc: '', args: []);

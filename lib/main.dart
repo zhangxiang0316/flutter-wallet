@@ -83,21 +83,26 @@ void main() async {
   // 初始化主题控制器
   Get.put(ThemeController());
 
-  // 加载保存的语言设置
-  final savedLanguage = await Storage().getStorage('app_language');
-  Locale? initialLocale;
-  if (savedLanguage != null && savedLanguage.isNotEmpty) {
-    initialLocale = Locale(savedLanguage);
-  }
+  // 先绘制 Flutter 首帧，避免本地存储读取拉长原生白屏时间。
+  runApp(const MyApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _restoreSavedLanguage();
+  });
+}
 
-  runApp(MyApp(initialLocale: initialLocale));
+/// 首帧渲染后再恢复语言设置。
+///
+/// 语言读取依赖 SharedPreferences，冷启动时如果放在 runApp 前会让原生白屏停留更久。
+Future<void> _restoreSavedLanguage() async {
+  final savedLanguage = await Storage().getStorage('app_language');
+  if (savedLanguage is String && savedLanguage.isNotEmpty) {
+    await Get.updateLocale(Locale(savedLanguage));
+  }
 }
 
 // 应用入口 Widget
 class MyApp extends StatelessWidget {
-  final Locale? initialLocale;
-
-  const MyApp({Key? key, this.initialLocale}) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -112,8 +117,7 @@ class MyApp extends StatelessWidget {
         () => GetMaterialApp(
           // 路由表配置
           getPages: RouteTable.pages,
-          // 初始语言
-          locale: initialLocale,
+          // 初始语言跟随系统，保存的语言会在首帧后异步恢复。
           // 本地化代理
           localizationsDelegates: const [
             S.delegate,
@@ -173,9 +177,7 @@ class MyApp extends StatelessWidget {
               elevation: 0,
             ),
             // 自定义主题扩展
-            extensions: <ThemeExtension<dynamic>>[
-              AppThemeExtension.light(),
-            ],
+            extensions: <ThemeExtension<dynamic>>[AppThemeExtension.light()],
           ),
           // 暗色主题
           darkTheme: ThemeData(
@@ -220,14 +222,12 @@ class MyApp extends StatelessWidget {
               elevation: 0,
             ),
             // 自定义主题扩展
-            extensions: <ThemeExtension<dynamic>>[
-              AppThemeExtension.dark(),
-            ],
+            extensions: <ThemeExtension<dynamic>>[AppThemeExtension.dark()],
           ),
           // 主题模式由控制器驱动
           themeMode: themeController.themeMode.value,
           // 初始路由
-          initialRoute: RouteTable.main,
+          initialRoute: RouteTable.splash,
           // 路由回调
           routingCallback: (routing) {},
           // 弹窗初始化

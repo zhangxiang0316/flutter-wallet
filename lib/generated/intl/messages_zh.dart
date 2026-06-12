@@ -185,6 +185,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "selectTransferAsset": MessageLookupByLibrary.simpleMessage("转账币种"),
     "selectTransferChain": MessageLookupByLibrary.simpleMessage("转账网络"),
     "settings": MessageLookupByLibrary.simpleMessage("设置"),
+    "splashLoading": MessageLookupByLibrary.simpleMessage("正在进入钱包"),
+    "splashTagline": MessageLookupByLibrary.simpleMessage("安全管理多链资产"),
     "switchWallet": MessageLookupByLibrary.simpleMessage("切换钱包"),
     "theme": MessageLookupByLibrary.simpleMessage("主题"),
     "themeDark": MessageLookupByLibrary.simpleMessage("深色主题"),

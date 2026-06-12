@@ -239,6 +239,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Transfer network",
     ),
     "settings": MessageLookupByLibrary.simpleMessage("Settings"),
+    "splashLoading": MessageLookupByLibrary.simpleMessage("Opening wallet"),
+    "splashTagline": MessageLookupByLibrary.simpleMessage(
+      "Secure multi-chain assets",
+    ),
     "switchWallet": MessageLookupByLibrary.simpleMessage("Switch wallet"),
     "theme": MessageLookupByLibrary.simpleMessage("Theme"),
     "themeDark": MessageLookupByLibrary.simpleMessage("Dark"),

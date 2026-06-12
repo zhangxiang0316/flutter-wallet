@@ -4,6 +4,8 @@
   "email": "注册",
   "phone": "手机",
   "appName": "沐晨钱包",
+  "splashTagline": "安全管理多链资产",
+  "splashLoading": "正在进入钱包",
   "settings": "设置",
   "language": "语言",
   "theme": "主题",

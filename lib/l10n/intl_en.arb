@@ -4,6 +4,8 @@
   "email": "email",
   "login": "login",
   "appName": "沐晨钱包",
+  "splashTagline": "Secure multi-chain assets",
+  "splashLoading": "Opening wallet",
   "settings": "Settings",
   "language": "Language",
   "theme": "Theme",
