@@ -34,7 +34,8 @@ class WalletTransactionHistoryService {
   static const Duration _requestTimeout = Duration(seconds: 14);
   static const int _historyLimit = 30;
   static const int _evmLogChunkSize = 50000;
-  static const int _evmLogScanBlockWindow = 250000;
+  static const int _evmLogScanBlockWindow = 5000000;
+  static const int _blockscoutMaxPages = 4;
   static const String _evmTransferEventTopic =
       '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
   static const String _base58Alphabet =
@@ -47,6 +48,15 @@ class WalletTransactionHistoryService {
     'bsc': 'https://api.bscscan.com/api',
     'ethereum': 'https://api.etherscan.io/api',
     'arbitrum': 'https://api.arbiscan.io/api',
+  };
+
+  /// 无需 API Key 的 Blockscout v2 地址交易接口。
+  ///
+  /// Etherscan 系列接口已逐步切到 v2 且很多链需要 API Key。这里把已验证可用的
+  /// Blockscout 作为内置兜底，避免默认配置下 ETH/Arbitrum 一直返回空记录。
+  static const Map<String, List<String>> _evmBlockscoutBaseUrls = {
+    'ethereum': ['https://eth.blockscout.com'],
+    'arbitrum': ['https://arbitrum.blockscout.com'],
   };
 
   /// EVM 链 RPC 备用节点，用于 token logs 兜底。
@@ -100,33 +110,55 @@ class WalletTransactionHistoryService {
     required String walletId,
     required ChainBalance asset,
   }) async {
-    final explorerApi = _evmExplorerApiUrl(asset.chainRef);
-    if (explorerApi != null) {
+    Object? lastExplorerError;
+    var hasSuccessfulExplorer = false;
+
+    for (final provider in _evmHistoryProviders(asset.chainRef)) {
       try {
-        final records = await _loadEvmExplorerRecords(
-          apiUrl: explorerApi,
-          apiKey: _evmExplorerApiKey(asset.chainRef),
-          walletId: walletId,
-          asset: asset,
-        );
-        if (records.isNotEmpty || asset.isNative) {
+        final records = switch (provider.type) {
+          _EvmHistoryProviderType.etherscanCompatible =>
+            await _loadEvmExplorerRecords(
+              apiUrl: provider.url,
+              apiKey: provider.apiKey,
+              walletId: walletId,
+              asset: asset,
+            ),
+          _EvmHistoryProviderType.blockscoutV2 => await _loadBlockscoutRecords(
+            baseUrl: provider.url,
+            walletId: walletId,
+            asset: asset,
+          ),
+        };
+        hasSuccessfulExplorer = true;
+        if (records.isNotEmpty) {
           return records;
         }
+        if (asset.isNative) return const [];
       } catch (error) {
+        lastExplorerError = error;
         developer.log(
-          '${asset.chainRef.name} explorer history failed: $error',
+          '${asset.chainRef.name} explorer history failed at '
+          '${provider.url}: $error',
           name: 'WalletTransactionHistoryService',
         );
-        if (asset.isNative) {
-          rethrow;
-        }
       }
     }
 
     if (asset.isNative) {
-      throw StateError('${asset.chainRef.name} native history is unsupported');
+      throw StateError(
+        '${asset.chainRef.name} native history failed: '
+        '${lastExplorerError ?? 'no explorer provider'}',
+      );
     }
-    return _loadEvmTokenLogs(walletId: walletId, asset: asset);
+
+    try {
+      return await _loadEvmTokenLogs(walletId: walletId, asset: asset);
+    } catch (error) {
+      if (hasSuccessfulExplorer) {
+        return const [];
+      }
+      rethrow;
+    }
   }
 
   Future<List<WalletTransactionRecord>> _loadEvmExplorerRecords({
@@ -146,6 +178,8 @@ class WalletTransactionHistoryService {
         'page': 1,
         'offset': _historyLimit,
         'sort': 'desc',
+        if (_isEtherscanV2Api(apiUrl) && asset.chainRef.evmChainId != null)
+          'chainid': asset.chainRef.evmChainId,
         if (normalizedApiKey.isNotEmpty) 'apikey': normalizedApiKey,
       },
     );
@@ -187,6 +221,69 @@ class WalletTransactionHistoryService {
           data['message']?.toString() ??
           'Explorer request failed',
     );
+  }
+
+  Future<List<WalletTransactionRecord>> _loadBlockscoutRecords({
+    required String baseUrl,
+    required String walletId,
+    required ChainBalance asset,
+  }) async {
+    final apiBase = _blockscoutApiBase(baseUrl);
+    final path = asset.isNative ? 'transactions' : 'token-transfers';
+    var queryParameters = asset.isNative
+        ? <String, dynamic>{}
+        : <String, dynamic>{'type': 'ERC-20'};
+    final records = <WalletTransactionRecord>[];
+    final seenIds = <String>{};
+
+    for (var page = 0; page < _blockscoutMaxPages; page++) {
+      final response = await _dio.get(
+        '$apiBase/addresses/${Uri.encodeComponent(asset.address)}/$path',
+        queryParameters: queryParameters.isEmpty ? null : queryParameters,
+      );
+      final data = response.data;
+      if (data is! Map) {
+        throw StateError('Invalid ${asset.chainRef.name} Blockscout response');
+      }
+
+      final items = data['items'];
+      if (items is! List) {
+        throw StateError('Invalid ${asset.chainRef.name} Blockscout items');
+      }
+      for (final item in items.whereType<Map>()) {
+        final record = asset.isNative
+            ? _evmNativeRecordFromBlockscout(
+                walletId: walletId,
+                asset: asset,
+                item: item,
+              )
+            : _evmTokenRecordFromBlockscout(
+                walletId: walletId,
+                asset: asset,
+                item: item,
+              );
+        if (record != null && seenIds.add(record.id)) {
+          records.add(record);
+        }
+      }
+      records.sort(_compareRecordTimeDesc);
+      if (records.length >= _historyLimit) {
+        break;
+      }
+
+      final nextPageParams = data['next_page_params'];
+      if (nextPageParams is! Map || nextPageParams.isEmpty) {
+        break;
+      }
+      queryParameters = {
+        for (final entry in nextPageParams.entries)
+          entry.key.toString(): entry.value,
+        if (!asset.isNative) 'type': 'ERC-20',
+      };
+    }
+
+    records.sort(_compareRecordTimeDesc);
+    return records.take(_historyLimit).toList(growable: false);
   }
 
   WalletTransactionRecord? _evmNativeRecordFromExplorer({
@@ -243,6 +340,10 @@ class WalletTransactionHistoryService {
   }) {
     final txHash = item['hash']?.toString() ?? '';
     if (txHash.isEmpty) return null;
+    final contractAddress = item['contractAddress']?.toString() ?? '';
+    if (!_sameEvmAddress(contractAddress, asset.contractAddress ?? '')) {
+      return null;
+    }
 
     final decimals =
         int.tryParse(item['tokenDecimal']?.toString() ?? '') ?? asset.decimals;
@@ -283,6 +384,109 @@ class WalletTransactionHistoryService {
       feeSymbol: asset.chainRef.symbol,
       blockNumber: int.tryParse(item['blockNumber']?.toString() ?? ''),
       timestamp: _dateTimeFromSeconds(item['timeStamp']),
+    );
+  }
+
+  WalletTransactionRecord? _evmNativeRecordFromBlockscout({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> item,
+  }) {
+    final txHash = item['hash']?.toString() ?? '';
+    if (txHash.isEmpty) return null;
+
+    final from = _normalizeEvmDisplayAddress(_blockscoutAddress(item['from']));
+    final to = _normalizeEvmDisplayAddress(_blockscoutAddress(item['to']));
+    final rawValue =
+        BigInt.tryParse(item['value']?.toString() ?? '') ?? BigInt.zero;
+    final feeValue = _blockscoutFeeValue(item);
+
+    return WalletTransactionRecord(
+      id: _recordId(walletId, asset, txHash),
+      walletId: walletId,
+      chainId: asset.chainId,
+      chainName: asset.chainRef.name,
+      symbol: asset.symbol,
+      assetName: asset.name,
+      walletAddress: asset.address,
+      txHash: txHash,
+      fromAddress: from,
+      toAddress: to,
+      amount: WalletTransferService.rawUnitsToAmount(rawValue, asset.decimals),
+      decimals: asset.decimals,
+      direction: _directionForAddress(
+        walletAddress: asset.address,
+        fromAddress: from,
+        toAddress: to,
+        normalize: _normalizeEvmCompareAddress,
+      ),
+      status: _blockscoutStatus(item),
+      source: WalletTransactionSource.remote,
+      feeAmount: feeValue > BigInt.zero
+          ? WalletTransferService.rawUnitsToAmount(feeValue, 18)
+          : null,
+      feeSymbol: asset.chainRef.symbol,
+      blockNumber: _intFromObject(item['block_number']),
+      timestamp: _dateTimeFromIso(item['timestamp']),
+    );
+  }
+
+  WalletTransactionRecord? _evmTokenRecordFromBlockscout({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> item,
+  }) {
+    final txHash = item['transaction_hash']?.toString() ?? '';
+    if (txHash.isEmpty) return null;
+
+    final token = item['token'];
+    final contractAddress = token is Map
+        ? token['address_hash']?.toString() ?? ''
+        : '';
+    if (!_sameEvmAddress(contractAddress, asset.contractAddress ?? '')) {
+      return null;
+    }
+
+    final total = item['total'];
+    final decimals = total is Map
+        ? int.tryParse(total['decimals']?.toString() ?? '') ?? asset.decimals
+        : token is Map
+        ? int.tryParse(token['decimals']?.toString() ?? '') ?? asset.decimals
+        : asset.decimals;
+    final rawValue = total is Map
+        ? BigInt.tryParse(total['value']?.toString() ?? '')
+        : null;
+    if (rawValue == null) return null;
+
+    final from = _normalizeEvmDisplayAddress(_blockscoutAddress(item['from']));
+    final to = _normalizeEvmDisplayAddress(_blockscoutAddress(item['to']));
+    final logIndex = item['log_index']?.toString() ?? '';
+
+    return WalletTransactionRecord(
+      id: _recordId(walletId, asset, '$txHash:$logIndex'),
+      walletId: walletId,
+      chainId: asset.chainId,
+      chainName: asset.chainRef.name,
+      symbol: asset.symbol,
+      assetName: asset.name,
+      walletAddress: asset.address,
+      txHash: txHash,
+      fromAddress: from,
+      toAddress: to,
+      amount: WalletTransferService.rawUnitsToAmount(rawValue, decimals),
+      decimals: decimals,
+      direction: _directionForAddress(
+        walletAddress: asset.address,
+        fromAddress: from,
+        toAddress: to,
+        normalize: _normalizeEvmCompareAddress,
+      ),
+      status: WalletTransactionStatus.success,
+      source: WalletTransactionSource.remote,
+      contractAddress: asset.contractAddress,
+      feeSymbol: asset.chainRef.symbol,
+      blockNumber: _intFromObject(item['block_number']),
+      timestamp: _dateTimeFromIso(item['timestamp']),
     );
   }
 
@@ -936,6 +1140,42 @@ class WalletTransactionHistoryService {
     return WalletTransactionStatus.unknown;
   }
 
+  WalletTransactionStatus _blockscoutStatus(Map<dynamic, dynamic> item) {
+    final status = item['status']?.toString().toLowerCase() ?? '';
+    final result = item['result']?.toString().toLowerCase() ?? '';
+    if (status == 'error' ||
+        result.contains('error') ||
+        result.contains('fail') ||
+        result.contains('out of gas')) {
+      return WalletTransactionStatus.failed;
+    }
+    if (status == 'ok' || result == 'success') {
+      return WalletTransactionStatus.success;
+    }
+    return WalletTransactionStatus.unknown;
+  }
+
+  String _blockscoutAddress(Object? value) {
+    if (value is Map) {
+      return value['hash']?.toString() ?? '';
+    }
+    return value?.toString() ?? '';
+  }
+
+  BigInt _blockscoutFeeValue(Map<dynamic, dynamic> item) {
+    final fee = item['fee'];
+    if (fee is Map) {
+      return BigInt.tryParse(fee['value']?.toString() ?? '') ?? BigInt.zero;
+    }
+    return BigInt.tryParse(fee?.toString() ?? '') ?? BigInt.zero;
+  }
+
+  bool _sameEvmAddress(String left, String right) {
+    final normalizedLeft = _normalizeEvmCompareAddress(left);
+    final normalizedRight = _normalizeEvmCompareAddress(right);
+    return normalizedLeft.isNotEmpty && normalizedLeft == normalizedRight;
+  }
+
   WalletTransactionStatus _tronStatus(Map<dynamic, dynamic> item) {
     final ret = item['ret'];
     if (ret is List && ret.isNotEmpty && ret.first is Map) {
@@ -984,17 +1224,65 @@ class WalletTransactionHistoryService {
     return _mergeUrls([chain.rpcUrl], fallback);
   }
 
-  String? _evmExplorerApiUrl(WalletChainRef chain) {
+  List<_EvmHistoryProvider> _evmHistoryProviders(WalletChainRef chain) {
+    final providers = <_EvmHistoryProvider>[];
+    final apiKey = _configuredExplorerApiKey(chain);
+    final configuredApiUrl = _configuredExplorerApiUrl(chain);
+    if (configuredApiUrl != null) {
+      providers.add(_evmProviderFromUrl(configuredApiUrl, apiKey: apiKey));
+    }
+
+    for (final baseUrl in _evmBlockscoutBaseUrls[chain.id] ?? const []) {
+      providers.add(
+        _EvmHistoryProvider(
+          url: baseUrl,
+          type: _EvmHistoryProviderType.blockscoutV2,
+        ),
+      );
+    }
+
+    final legacyApiUrl = _evmExplorerApiUrls[chain.id];
+    if (legacyApiUrl != null) {
+      providers.add(
+        _EvmHistoryProvider(
+          url: legacyApiUrl,
+          apiKey: apiKey,
+          type: _EvmHistoryProviderType.etherscanCompatible,
+        ),
+      );
+    }
+
+    final seen = <String>{};
+    return providers
+        .where((provider) {
+          final key = [
+            provider.type.name,
+            _normalizeExplorerUrl(provider.url),
+            provider.apiKey ?? '',
+          ].join(':');
+          return seen.add(key);
+        })
+        .toList(growable: false);
+  }
+
+  _EvmHistoryProvider _evmProviderFromUrl(String apiUrl, {String? apiKey}) {
+    final type = _looksLikeBlockscoutUrl(apiUrl)
+        ? _EvmHistoryProviderType.blockscoutV2
+        : _EvmHistoryProviderType.etherscanCompatible;
+    return _EvmHistoryProvider(url: apiUrl, apiKey: apiKey, type: type);
+  }
+
+  String? _configuredExplorerApiUrl(WalletChainRef chain) {
     if (chain is WalletChainConfig) {
       final value = chain.explorerApiUrl?.trim() ?? '';
       if (value.isNotEmpty) {
         return value;
       }
     }
-    return _evmExplorerApiUrls[chain.id];
+    return null;
   }
 
-  String? _evmExplorerApiKey(WalletChainRef chain) {
+  String? _configuredExplorerApiKey(WalletChainRef chain) {
     if (chain is WalletChainConfig) {
       final value = chain.explorerApiKey?.trim() ?? '';
       if (value.isNotEmpty) {
@@ -1002,6 +1290,33 @@ class WalletTransactionHistoryService {
       }
     }
     return null;
+  }
+
+  bool _looksLikeBlockscoutUrl(String value) {
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null) return false;
+    return uri.host.toLowerCase().contains('blockscout') ||
+        uri.path.toLowerCase().contains('/api/v2');
+  }
+
+  String _blockscoutApiBase(String value) {
+    final normalized = _normalizeExplorerUrl(value);
+    const marker = '/api/v2';
+    final markerIndex = normalized.toLowerCase().indexOf(marker);
+    if (markerIndex >= 0) {
+      return normalized.substring(0, markerIndex + marker.length);
+    }
+    return '$normalized$marker';
+  }
+
+  bool _isEtherscanV2Api(String value) {
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null) return false;
+    return uri.path.toLowerCase().contains('/v2/api');
+  }
+
+  String _normalizeExplorerUrl(String value) {
+    return value.trim().replaceAll(RegExp(r'/+$'), '');
   }
 
   List<String> _tronApiUrls(WalletChainRef chain) {
@@ -1156,6 +1471,16 @@ class WalletTransactionHistoryService {
     return DateTime.fromMillisecondsSinceEpoch(milliseconds);
   }
 
+  DateTime? _dateTimeFromIso(Object? value) {
+    final text = value?.toString() ?? '';
+    if (text.isEmpty) return null;
+    return DateTime.tryParse(text);
+  }
+
+  int? _intFromObject(Object? value) {
+    return int.tryParse(value?.toString() ?? '');
+  }
+
   BigInt _parseHexQuantity(String value) {
     final normalized = value.trim().replaceFirst('0x', '');
     if (normalized.isEmpty) return BigInt.zero;
@@ -1201,4 +1526,18 @@ class WalletTransactionHistoryService {
     }
     return output.toString().split('').reversed.join();
   }
+}
+
+enum _EvmHistoryProviderType { etherscanCompatible, blockscoutV2 }
+
+class _EvmHistoryProvider {
+  const _EvmHistoryProvider({
+    required this.url,
+    required this.type,
+    this.apiKey,
+  });
+
+  final String url;
+  final _EvmHistoryProviderType type;
+  final String? apiKey;
 }

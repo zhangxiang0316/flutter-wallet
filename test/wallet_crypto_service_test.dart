@@ -227,6 +227,59 @@ void main() {
       expect(records.single.feeAmount, '0.000021');
     });
 
+    test(
+      'falls back to Blockscout v2 for builtin EVM native history',
+      () async {
+        final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+        final service = WalletTransactionHistoryService(dio: dio);
+        final asset = ChainBalance.config(
+          chainConfig: WalletChain.ethereum.config,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '10',
+          address: '0x1111111111111111111111111111111111111111',
+          decimals: 18,
+        );
+
+        final records = await service.loadAssetRecords(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(records, hasLength(1));
+        expect(records.single.txHash, '0xblocknative');
+        expect(records.single.amount, '0.1');
+        expect(records.single.direction, WalletTransactionDirection.incoming);
+        expect(records.single.status, WalletTransactionStatus.success);
+        expect(records.single.feeAmount, '0.000021');
+      },
+    );
+
+    test('loads EVM token transactions from Blockscout v2', () async {
+      final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
+      final service = WalletTransactionHistoryService(dio: dio);
+      final asset = ChainBalance.config(
+        chainConfig: WalletChain.ethereum.config,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+        decimals: 6,
+      );
+
+      final records = await service.loadAssetRecords(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(records, hasLength(1));
+      expect(records.single.txHash, '0xblocktoken');
+      expect(records.single.amount, '2.5');
+      expect(records.single.direction, WalletTransactionDirection.outgoing);
+      expect(records.single.contractAddress, asset.contractAddress);
+    });
+
     test('loads TRON token transactions from TronGrid API', () async {
       final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
       final service = WalletTransactionHistoryService(dio: dio);
@@ -1186,6 +1239,69 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
             'contractAddress': '0x55d398326f99059fF775485246999027B3197955',
           },
         ],
+      });
+    }
+
+    if (origin == 'https://api.etherscan.io' && options.uri.path == '/api') {
+      return _jsonResponse({
+        'status': '0',
+        'message': 'NOTOK',
+        'result': 'Missing/Invalid API Key',
+      });
+    }
+
+    if (origin == 'https://eth.blockscout.com' &&
+        options.uri.path.endsWith('/transactions')) {
+      return _jsonResponse({
+        'items': [
+          {
+            'hash': '0xblocknative',
+            'from': {'hash': '0x2222222222222222222222222222222222222222'},
+            'to': {'hash': '0x1111111111111111111111111111111111111111'},
+            'value': '100000000000000000',
+            'fee': {'value': '21000000000000'},
+            'status': 'ok',
+            'result': 'success',
+            'block_number': 123,
+            'timestamp': '2026-06-01T12:00:00.000000Z',
+          },
+        ],
+        'next_page_params': null,
+      });
+    }
+
+    if (origin == 'https://eth.blockscout.com' &&
+        options.uri.path.endsWith('/token-transfers')) {
+      return _jsonResponse({
+        'items': [
+          {
+            'transaction_hash': '0xwrongtoken',
+            'from': {'hash': '0x2222222222222222222222222222222222222222'},
+            'to': {'hash': '0x1111111111111111111111111111111111111111'},
+            'token': {
+              'address_hash': '0x0000000000000000000000000000000000000000',
+              'decimals': '18',
+            },
+            'total': {'decimals': '18', 'value': '1'},
+            'log_index': 1,
+            'block_number': 122,
+            'timestamp': '2026-06-01T11:00:00.000000Z',
+          },
+          {
+            'transaction_hash': '0xblocktoken',
+            'from': {'hash': '0x1111111111111111111111111111111111111111'},
+            'to': {'hash': '0x2222222222222222222222222222222222222222'},
+            'token': {
+              'address_hash': '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+              'decimals': '6',
+            },
+            'total': {'decimals': '6', 'value': '2500000'},
+            'log_index': 2,
+            'block_number': 124,
+            'timestamp': '2026-06-01T12:30:00.000000Z',
+          },
+        ],
+        'next_page_params': null,
       });
     }
 
