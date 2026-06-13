@@ -68,7 +68,7 @@ class BiometricAuth {
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false,
-          sensitiveTransaction: true,
+          sensitiveTransaction: false,
         ),
       );
       developer.log('Authentication result: $authenticated');
