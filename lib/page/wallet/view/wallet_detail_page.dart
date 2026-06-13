@@ -5,6 +5,7 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
+import '../../../widget/secure_screen.dart';
 import '../controller/wallet_detail_controller.dart';
 import 'widgets/rename_wallet_sheet.dart';
 import 'widgets/wallet_address_section.dart';
@@ -60,6 +61,7 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
   /// 页面主体内容。
   ///
   /// 钱包不存在时展示兜底提示；正常情况下分为钱包头部、地址列表和密钥查看区域。
+  /// 整个页面包裹在 SecureScreen 中，防止截屏泄露私钥和助记词。
   @override
   Widget? getBody() {
     final wallet = controller.wallet;
@@ -72,7 +74,8 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
       );
     }
 
-    return ColoredBox(
+    return SecureScreen(
+      child: ColoredBox(
       color: Theme.of(context!).brightness == Brightness.dark
           ? Theme.of(context!).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
@@ -103,6 +106,7 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
