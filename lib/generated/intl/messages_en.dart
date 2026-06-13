@@ -199,6 +199,10 @@ class MessageLookup extends MessageLookupByLibrary {
         "scanSwitchCamera":
             MessageLookupByLibrary.simpleMessage("Switch camera"),
         "scanToggleFlash": MessageLookupByLibrary.simpleMessage("Toggle flash"),
+        "screenshotNotAllowed": MessageLookupByLibrary.simpleMessage(
+            "Screenshots are not allowed on this page for your security"),
+        "screenshotProtectionEnabled": MessageLookupByLibrary.simpleMessage(
+            "🔒 Screenshot protection enabled for your security"),
         "securityNotice":
             MessageLookupByLibrary.simpleMessage("Security notice"),
         "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(

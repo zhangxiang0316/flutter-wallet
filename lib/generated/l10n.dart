@@ -1819,6 +1819,26 @@ class S {
       args: [],
     );
   }
+
+  /// `🔒 Screenshot protection enabled for your security`
+  String get screenshotProtectionEnabled {
+    return Intl.message(
+      '🔒 Screenshot protection enabled for your security',
+      name: 'screenshotProtectionEnabled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Screenshots are not allowed on this page for your security`
+  String get screenshotNotAllowed {
+    return Intl.message(
+      'Screenshots are not allowed on this page for your security',
+      name: 'screenshotNotAllowed',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

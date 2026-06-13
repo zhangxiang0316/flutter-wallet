@@ -211,5 +211,7 @@
   "copyHash": "复制哈希",
   "backToWallet": "返回钱包",
   "transferInputInvalid": "请输入有效的收款地址和转账数量",
-  "copied": "已复制"
+  "copied": "已复制",
+  "screenshotProtectionEnabled": "🔒 为保护您的资产安全，此页面已启用截屏保护",
+  "screenshotNotAllowed": "为了您的安全，此页面不允许截屏"
 }

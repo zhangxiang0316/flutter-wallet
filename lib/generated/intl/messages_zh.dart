@@ -168,6 +168,10 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("将二维码对准取景框，识别后会自动填写收款地址。"),
         "scanSwitchCamera": MessageLookupByLibrary.simpleMessage("切换摄像头"),
         "scanToggleFlash": MessageLookupByLibrary.simpleMessage("切换闪光灯"),
+        "screenshotNotAllowed":
+            MessageLookupByLibrary.simpleMessage("为了您的安全，此页面不允许截屏"),
+        "screenshotProtectionEnabled":
+            MessageLookupByLibrary.simpleMessage("🔒 为保护您的资产安全，此页面已启用截屏保护"),
         "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
         "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
             "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。"),

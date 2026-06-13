@@ -211,5 +211,7 @@
   "copyHash": "Copy hash",
   "backToWallet": "Back to wallet",
   "transferInputInvalid": "Enter a valid recipient address and transfer amount",
-  "copied": "Copied"
+  "copied": "Copied",
+  "screenshotProtectionEnabled": "🔒 Screenshot protection enabled for your security",
+  "screenshotNotAllowed": "Screenshots are not allowed on this page for your security"
 }
