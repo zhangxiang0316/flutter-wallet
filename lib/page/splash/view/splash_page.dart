@@ -73,11 +73,33 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
   /// 动画播放完成后进入主页面。
   ///
-  /// 这里使用 `offAllNamed` 清理欢迎页，避免用户返回键回到启动页。
+  /// 首次启动显示引导页，非首次直接进入主页。
   Future<void> _openHomeAfterAnimation() async {
     await Future<void>.delayed(const Duration(milliseconds: 1350));
     if (!mounted) return;
-    Get.offAllNamed(RouteTable.main);
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+
+    if (!hasSeenOnboarding) {
+      // 首次启动，显示引导页
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => OnboardingPage(
+            onComplete: () async {
+              await prefs.setBool('hasSeenOnboarding', true);
+              if (context.mounted) {
+                Get.offAllNamed(RouteTable.main);
+              }
+            },
+          ),
+        ),
+      );
+    } else {
+      // 非首次启动，直接进入主页
+      Get.offAllNamed(RouteTable.main);
+    }
   }
 
   @override
