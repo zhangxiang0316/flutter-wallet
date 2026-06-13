@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../models/wallet_transaction_record.dart';
 import '../../models/chain_balance.dart';
 import '../../models/wallet_transaction_record.dart';
 import '../chain_transaction_provider.dart';

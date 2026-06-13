@@ -1,5 +1,5 @@
-import '../models/chain_balance.dart';
-import '../models/wallet_transaction_record.dart';
+import '../../models/chain_balance.dart';
+import '../../models/wallet_transaction_record.dart';
 
 /// 链交易记录提供者抽象接口。
 ///

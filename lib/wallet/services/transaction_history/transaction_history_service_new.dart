@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 
-import '../models/chain_balance.dart';
-import '../models/wallet_transaction_record.dart';
-import 'transaction_history/chain_transaction_provider.dart';
-import 'transaction_history/providers/evm_transaction_provider.dart';
-import 'transaction_history/providers/solana_transaction_provider.dart';
-import 'transaction_history/providers/tron_transaction_provider.dart';
+import '../../models/chain_balance.dart';
+import '../../models/wallet_transaction_record.dart';
+import 'chain_transaction_provider.dart';
+import 'providers/evm_transaction_provider.dart';
+import 'providers/solana_transaction_provider.dart';
+import 'providers/tron_transaction_provider.dart';
 
 /// 钱包交易历史服务。
 ///
