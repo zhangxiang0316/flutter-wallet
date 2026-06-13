@@ -5,6 +5,7 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
+import '../../../utils/password_cache_service.dart';
 import '../../../widget/secure_screen.dart';
 import '../controller/wallet_detail_controller.dart';
 import 'widgets/rename_wallet_sheet.dart';
@@ -137,8 +138,11 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) =>
-          WalletPasswordUnlockSheet(title: title, onSubmit: onSubmit),
+      builder: (sheetContext) => WalletPasswordUnlockSheet(
+        title: title,
+        onSubmit: onSubmit,
+        cachedPassword: PasswordCacheService.getCachedPassword(),
+      ),
     );
   }
 }

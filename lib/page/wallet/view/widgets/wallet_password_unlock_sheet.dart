@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../utils/biometric_auth.dart';
+import '../../../../utils/password_cache_service.dart';
 import '../../../../utils/toast_util.dart';
 
 /// 密码解锁底部弹窗。
@@ -230,6 +231,8 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
     final ok = await widget.onSubmit(password);
     if (!mounted) return;
     if (ok) {
+      // 密码验证成功，缓存密码以便下次生物识别后自动使用
+      PasswordCacheService.cachePassword(password);
       Navigator.of(context).pop();
       return;
     }
