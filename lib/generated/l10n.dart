@@ -1999,6 +1999,106 @@ class S {
       args: [],
     );
   }
+
+  /// `Security Settings`
+  String get securitySettings {
+    return Intl.message(
+      'Security Settings',
+      name: 'securitySettings',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password Cache`
+  String get passwordCache {
+    return Intl.message(
+      'Password Cache',
+      name: 'passwordCache',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Auto-use cached password after biometric authentication`
+  String get passwordCacheDesc {
+    return Intl.message(
+      'Auto-use cached password after biometric authentication',
+      name: 'passwordCacheDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cache Expiry Time`
+  String get passwordCacheExpiry {
+    return Intl.message(
+      'Cache Expiry Time',
+      name: 'passwordCacheExpiry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `1 minute`
+  String get passwordCacheExpiry1 {
+    return Intl.message(
+      '1 minute',
+      name: 'passwordCacheExpiry1',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `5 minutes (Recommended)`
+  String get passwordCacheExpiry5 {
+    return Intl.message(
+      '5 minutes (Recommended)',
+      name: 'passwordCacheExpiry5',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `10 minutes`
+  String get passwordCacheExpiry10 {
+    return Intl.message(
+      '10 minutes',
+      name: 'passwordCacheExpiry10',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `30 minutes`
+  String get passwordCacheExpiry30 {
+    return Intl.message(
+      '30 minutes',
+      name: 'passwordCacheExpiry30',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password cache disabled`
+  String get passwordCacheDisabled {
+    return Intl.message(
+      'Password cache disabled',
+      name: 'passwordCacheDisabled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password cache enabled`
+  String get passwordCacheEnabled {
+    return Intl.message(
+      'Password cache enabled',
+      name: 'passwordCacheEnabled',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

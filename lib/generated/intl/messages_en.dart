@@ -185,6 +185,23 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Open externally"),
         "orUsePassword":
             MessageLookupByLibrary.simpleMessage("Or use password"),
+        "passwordCache": MessageLookupByLibrary.simpleMessage("Password Cache"),
+        "passwordCacheDesc": MessageLookupByLibrary.simpleMessage(
+            "Auto-use cached password after biometric authentication"),
+        "passwordCacheDisabled":
+            MessageLookupByLibrary.simpleMessage("Password cache disabled"),
+        "passwordCacheEnabled":
+            MessageLookupByLibrary.simpleMessage("Password cache enabled"),
+        "passwordCacheExpiry":
+            MessageLookupByLibrary.simpleMessage("Cache Expiry Time"),
+        "passwordCacheExpiry1":
+            MessageLookupByLibrary.simpleMessage("1 minute"),
+        "passwordCacheExpiry10":
+            MessageLookupByLibrary.simpleMessage("10 minutes"),
+        "passwordCacheExpiry30":
+            MessageLookupByLibrary.simpleMessage("30 minutes"),
+        "passwordCacheExpiry5":
+            MessageLookupByLibrary.simpleMessage("5 minutes (Recommended)"),
         "phone": MessageLookupByLibrary.simpleMessage("phone"),
         "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
             "EVM / SOL / TRX multi-chain wallet"),
@@ -233,6 +250,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Security notice"),
         "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
             "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security."),
+        "securitySettings":
+            MessageLookupByLibrary.simpleMessage("Security Settings"),
         "selectReceiveAsset":
             MessageLookupByLibrary.simpleMessage("Select asset"),
         "selectReceiveChain":

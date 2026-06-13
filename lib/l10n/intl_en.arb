@@ -229,5 +229,15 @@
   "onboardingDesc4": "Clean interface design and smooth user experience make digital asset management easier",
   "skip": "Skip",
   "getStarted": "Get Started",
-  "next": "Next"
+  "next": "Next",
+  "securitySettings": "Security Settings",
+  "passwordCache": "Password Cache",
+  "passwordCacheDesc": "Auto-use cached password after biometric authentication",
+  "passwordCacheExpiry": "Cache Expiry Time",
+  "passwordCacheExpiry1": "1 minute",
+  "passwordCacheExpiry5": "5 minutes (Recommended)",
+  "passwordCacheExpiry10": "10 minutes",
+  "passwordCacheExpiry30": "30 minutes",
+  "passwordCacheDisabled": "Password cache disabled",
+  "passwordCacheEnabled": "Password cache enabled"
 }

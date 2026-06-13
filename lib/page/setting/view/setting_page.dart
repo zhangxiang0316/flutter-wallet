@@ -10,6 +10,7 @@ import '../../../generated/route_table.dart';
 import '../../../main.dart';
 import '../../../utils/global_extension.dart';
 import '../../../utils/storage.dart';
+import 'password_cache_settings_page.dart';
 
 @GetXRoutePage('/setting')
 /// 设置首页。

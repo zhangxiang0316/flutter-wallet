@@ -132,7 +132,7 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
   void _showPasswordUnlockSheet({
     required String title,
     required Future<bool> Function(String password) onSubmit,
-  }) {
+  }) async {
     showModalBottomSheet(
       context: context!,
       isScrollControlled: true,
@@ -141,7 +141,7 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
       builder: (sheetContext) => WalletPasswordUnlockSheet(
         title: title,
         onSubmit: onSubmit,
-        cachedPassword: PasswordCacheService.getCachedPassword(),
+        cachedPassword: await PasswordCacheService.getCachedPassword(),
       ),
     );
   }
