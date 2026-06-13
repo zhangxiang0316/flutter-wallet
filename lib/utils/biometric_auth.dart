@@ -1,4 +1,7 @@
+import 'dart:developer' as developer;
+
 import 'package:local_auth/local_auth.dart';
+import 'package:local_auth/error_codes.dart' as auth_error;
 
 /// 生物识别认证服务。
 ///
@@ -13,6 +16,7 @@ class BiometricAuth {
     try {
       return await _auth.canCheckBiometrics;
     } catch (e) {
+      developer.log('canCheckBiometrics error: $e');
       return false;
     }
   }
@@ -23,11 +27,16 @@ class BiometricAuth {
   static Future<bool> isAvailable() async {
     try {
       final canCheck = await _auth.canCheckBiometrics;
-      if (!canCheck) return false;
+      if (!canCheck) {
+        developer.log('Device does not support biometrics');
+        return false;
+      }
 
       final availableBiometrics = await _auth.getAvailableBiometrics();
+      developer.log('Available biometrics: $availableBiometrics');
       return availableBiometrics.isNotEmpty;
     } catch (e) {
+      developer.log('isAvailable error: $e');
       return false;
     }
   }
@@ -39,6 +48,7 @@ class BiometricAuth {
     try {
       return await _auth.getAvailableBiometrics();
     } catch (e) {
+      developer.log('getAvailableBiometrics error: $e');
       return [];
     }
   }
@@ -52,7 +62,8 @@ class BiometricAuth {
     required String localizedReason,
   }) async {
     try {
-      return await _auth.authenticate(
+      developer.log('Starting biometric authentication...');
+      final authenticated = await _auth.authenticate(
         localizedReason: localizedReason,
         options: const AuthenticationOptions(
           stickyAuth: true,
@@ -60,8 +71,23 @@ class BiometricAuth {
           sensitiveTransaction: true,
         ),
       );
+      developer.log('Authentication result: $authenticated');
+      return authenticated;
+    } on Exception catch (e) {
+      // 捕获具体的异常类型
+      developer.log('Authentication exception: $e');
+
+      // 检查是否是用户取消
+      if (e.toString().contains('User canceled') ||
+          e.toString().contains(auth_error.notAvailable) ||
+          e.toString().contains(auth_error.notEnrolled)) {
+        developer.log('User canceled or biometric not enrolled');
+      }
+
+      return false;
     } catch (e) {
       // 认证失败或用户取消，返回 false 不抛异常
+      developer.log('Authentication error: $e');
       return false;
     }
   }

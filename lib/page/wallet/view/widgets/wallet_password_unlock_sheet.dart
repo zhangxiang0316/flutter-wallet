@@ -68,12 +68,28 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
       return;
     }
 
+    // 详细检查生物识别可用性
+    final canCheck = await BiometricAuth.canCheckBiometrics();
+    if (!canCheck) {
+      // 设备硬件不支持
+      setState(() => _showPasswordField = true);
+      return;
+    }
+
+    final types = await BiometricAuth.getAvailableBiometrics();
+    if (types.isEmpty) {
+      // 硬件支持但用户未注册
+      setState(() => _showPasswordField = true);
+      // 可选：显示提示让用户注册生物识别
+      Toast.show('请先在系统设置中注册指纹或面容');
+      return;
+    }
+
     final available = await BiometricAuth.isAvailable();
     setState(() => _biometricAvailable = available);
 
     if (available) {
       // 设备支持生物识别，显示指纹按钮
-      // 注意：当前未实现密码缓存，所以生物识别成功后仍需用户首次输入密码
       setState(() => _showPasswordField = false);
     } else {
       // 不支持生物识别，直接显示密码输入框
