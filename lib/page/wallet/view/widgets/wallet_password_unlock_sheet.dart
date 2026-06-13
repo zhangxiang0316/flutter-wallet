@@ -71,14 +71,12 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
     final available = await BiometricAuth.isAvailable();
     setState(() => _biometricAvailable = available);
 
-    if (available && widget.cachedPassword != null) {
-      // 延迟一点，等弹窗完全显示
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) {
-        await _authenticateWithBiometric();
-      }
+    if (available) {
+      // 设备支持生物识别，显示指纹按钮
+      // 注意：当前未实现密码缓存，所以生物识别成功后仍需用户首次输入密码
+      setState(() => _showPasswordField = false);
     } else {
-      // 不支持或没有缓存密码，直接显示密码输入框
+      // 不支持生物识别，直接显示密码输入框
       setState(() => _showPasswordField = true);
     }
   }
@@ -91,20 +89,28 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
 
     if (!mounted) return;
 
-    if (authenticated && widget.cachedPassword != null) {
-      // 生物识别成功，使用缓存的密码
-      setState(() => _isSubmitting = true);
-      final ok = await widget.onSubmit(widget.cachedPassword!);
-      if (!mounted) return;
+    if (authenticated) {
+      // 生物识别成功
+      if (widget.cachedPassword != null) {
+        // 有缓存密码，直接使用
+        setState(() => _isSubmitting = true);
+        final ok = await widget.onSubmit(widget.cachedPassword!);
+        if (!mounted) return;
 
-      if (ok) {
-        Navigator.of(context).pop();
+        if (ok) {
+          Navigator.of(context).pop();
+        } else {
+          // 密码无效（可能被更改），显示密码输入框
+          Toast.show(S.current.invalidWalletPassword);
+          setState(() {
+            _isSubmitting = false;
+            _showPasswordField = true;
+          });
+        }
       } else {
-        // 密码无效（可能被更改），显示密码输入框
-        setState(() {
-          _isSubmitting = false;
-          _showPasswordField = true;
-        });
+        // 没有缓存密码，显示密码输入框让用户输入
+        // 未来可以在这里缓存用户输入的密码
+        setState(() => _showPasswordField = true);
       }
     } else {
       // 生物识别失败，显示密码输入框
