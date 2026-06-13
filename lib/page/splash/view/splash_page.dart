@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../generated/l10n.dart';
 import '../../../generated/route_table.dart';
+import '../../onboarding/view/onboarding_page.dart';
 
 /// Flutter 首屏欢迎页。
 ///

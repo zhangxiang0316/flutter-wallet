@@ -1889,6 +1889,116 @@ class S {
       args: [],
     );
   }
+
+  /// `Multi-Chain Wallet`
+  String get onboardingTitle1 {
+    return Intl.message(
+      'Multi-Chain Wallet',
+      name: 'onboardingTitle1',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Supports Ethereum, Solana, TRON and other mainstream blockchains, manage all assets in one wallet`
+  String get onboardingDesc1 {
+    return Intl.message(
+      'Supports Ethereum, Solana, TRON and other mainstream blockchains, manage all assets in one wallet',
+      name: 'onboardingDesc1',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Secure & Reliable`
+  String get onboardingTitle2 {
+    return Intl.message(
+      'Secure & Reliable',
+      name: 'onboardingTitle2',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Private keys are encrypted and stored locally with screenshot protection, never uploaded to servers`
+  String get onboardingDesc2 {
+    return Intl.message(
+      'Private keys are encrypted and stored locally with screenshot protection, never uploaded to servers',
+      name: 'onboardingDesc2',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Quick Unlock`
+  String get onboardingTitle3 {
+    return Intl.message(
+      'Quick Unlock',
+      name: 'onboardingTitle3',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Support fingerprint and Face ID for quick access to private keys and mnemonics`
+  String get onboardingDesc3 {
+    return Intl.message(
+      'Support fingerprint and Face ID for quick access to private keys and mnemonics',
+      name: 'onboardingDesc3',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Simple & Easy`
+  String get onboardingTitle4 {
+    return Intl.message(
+      'Simple & Easy',
+      name: 'onboardingTitle4',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Clean interface design and smooth user experience make digital asset management easier`
+  String get onboardingDesc4 {
+    return Intl.message(
+      'Clean interface design and smooth user experience make digital asset management easier',
+      name: 'onboardingDesc4',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Skip`
+  String get skip {
+    return Intl.message(
+      'Skip',
+      name: 'skip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Get Started`
+  String get getStarted {
+    return Intl.message(
+      'Get Started',
+      name: 'getStarted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Next`
+  String get next {
+    return Intl.message(
+      'Next',
+      name: 'next',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

@@ -111,6 +111,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "Fee estimate is unavailable. Try again later."),
         "fetchTokenInfo":
             MessageLookupByLibrary.simpleMessage("Detect token info"),
+        "getStarted": MessageLookupByLibrary.simpleMessage("Get Started"),
         "importMnemonic":
             MessageLookupByLibrary.simpleMessage("Import mnemonic"),
         "importPrivateKey":
@@ -161,6 +162,23 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkSymbol": MessageLookupByLibrary.simpleMessage("Native symbol"),
         "networkUpdated":
             MessageLookupByLibrary.simpleMessage("Network updated"),
+        "next": MessageLookupByLibrary.simpleMessage("Next"),
+        "onboardingDesc1": MessageLookupByLibrary.simpleMessage(
+            "Supports Ethereum, Solana, TRON and other mainstream blockchains, manage all assets in one wallet"),
+        "onboardingDesc2": MessageLookupByLibrary.simpleMessage(
+            "Private keys are encrypted and stored locally with screenshot protection, never uploaded to servers"),
+        "onboardingDesc3": MessageLookupByLibrary.simpleMessage(
+            "Support fingerprint and Face ID for quick access to private keys and mnemonics"),
+        "onboardingDesc4": MessageLookupByLibrary.simpleMessage(
+            "Clean interface design and smooth user experience make digital asset management easier"),
+        "onboardingTitle1":
+            MessageLookupByLibrary.simpleMessage("Multi-Chain Wallet"),
+        "onboardingTitle2":
+            MessageLookupByLibrary.simpleMessage("Secure & Reliable"),
+        "onboardingTitle3":
+            MessageLookupByLibrary.simpleMessage("Quick Unlock"),
+        "onboardingTitle4":
+            MessageLookupByLibrary.simpleMessage("Simple & Easy"),
         "openBlockExplorer":
             MessageLookupByLibrary.simpleMessage("View explorer"),
         "openInExternalBrowser":
@@ -224,6 +242,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "selectTransferChain":
             MessageLookupByLibrary.simpleMessage("Transfer network"),
         "settings": MessageLookupByLibrary.simpleMessage("Settings"),
+        "skip": MessageLookupByLibrary.simpleMessage("Skip"),
         "splashLoading": MessageLookupByLibrary.simpleMessage("Opening wallet"),
         "splashTagline":
             MessageLookupByLibrary.simpleMessage("Secure multi-chain assets"),

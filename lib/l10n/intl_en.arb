@@ -218,5 +218,16 @@
   "biometricAuthFailed": "Biometric authentication failed, please use password",
   "authenticateToUnlock": "Authenticate to view sensitive information",
   "biometricAuthTitle": "Biometric Authentication",
-  "orUsePassword": "Or use password"
+  "orUsePassword": "Or use password",
+  "onboardingTitle1": "Multi-Chain Wallet",
+  "onboardingDesc1": "Supports Ethereum, Solana, TRON and other mainstream blockchains, manage all assets in one wallet",
+  "onboardingTitle2": "Secure & Reliable",
+  "onboardingDesc2": "Private keys are encrypted and stored locally with screenshot protection, never uploaded to servers",
+  "onboardingTitle3": "Quick Unlock",
+  "onboardingDesc3": "Support fingerprint and Face ID for quick access to private keys and mnemonics",
+  "onboardingTitle4": "Simple & Easy",
+  "onboardingDesc4": "Clean interface design and smooth user experience make digital asset management easier",
+  "skip": "Skip",
+  "getStarted": "Get Started",
+  "next": "Next"
 }
