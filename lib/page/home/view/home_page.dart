@@ -10,6 +10,7 @@ import '../../../page/transaction/controller/transaction_history_controller.dart
 import '../../../page/transfer/controller/transfer_controller.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
+import '../../../widget/skeleton_widgets.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/add_wallet_sheet.dart';
 import 'widgets/chain_section.dart';
