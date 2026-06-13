@@ -94,6 +94,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "feeUnavailable":
             MessageLookupByLibrary.simpleMessage("暂时无法查询手续费，请稍后重试。"),
         "fetchTokenInfo": MessageLookupByLibrary.simpleMessage("自动识别币种信息"),
+        "getStarted": MessageLookupByLibrary.simpleMessage("开始使用"),
         "importMnemonic": MessageLookupByLibrary.simpleMessage("导入助记词"),
         "importPrivateKey": MessageLookupByLibrary.simpleMessage("导入私钥"),
         "importWallet": MessageLookupByLibrary.simpleMessage("导入钱包"),
@@ -137,10 +138,34 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("每行一个 RPC 地址，也可以用逗号分隔"),
         "networkSymbol": MessageLookupByLibrary.simpleMessage("原生币简称"),
         "networkUpdated": MessageLookupByLibrary.simpleMessage("网络已更新"),
+        "next": MessageLookupByLibrary.simpleMessage("下一步"),
+        "onboardingDesc1": MessageLookupByLibrary.simpleMessage(
+            "支持以太坊、Solana、TRON 等多条主流公链，一个钱包管理所有资产"),
+        "onboardingDesc2":
+            MessageLookupByLibrary.simpleMessage("私钥加密存储在本地，截屏保护，永不上传服务器"),
+        "onboardingDesc3":
+            MessageLookupByLibrary.simpleMessage("支持指纹和面容识别，快速查看私钥和助记词"),
+        "onboardingDesc4":
+            MessageLookupByLibrary.simpleMessage("简洁的界面设计，流畅的操作体验，让数字资产管理更轻松"),
+        "onboardingTitle1": MessageLookupByLibrary.simpleMessage("多链钱包"),
+        "onboardingTitle2": MessageLookupByLibrary.simpleMessage("安全可靠"),
+        "onboardingTitle3": MessageLookupByLibrary.simpleMessage("快速解锁"),
+        "onboardingTitle4": MessageLookupByLibrary.simpleMessage("简单易用"),
         "openBlockExplorer": MessageLookupByLibrary.simpleMessage("查看区块浏览器"),
         "openInExternalBrowser":
             MessageLookupByLibrary.simpleMessage("外部浏览器打开"),
         "orUsePassword": MessageLookupByLibrary.simpleMessage("或使用密码"),
+        "passwordCache": MessageLookupByLibrary.simpleMessage("密码缓存"),
+        "passwordCacheDesc":
+            MessageLookupByLibrary.simpleMessage("生物识别成功后自动使用缓存密码"),
+        "passwordCacheDisabled":
+            MessageLookupByLibrary.simpleMessage("密码缓存已禁用"),
+        "passwordCacheEnabled": MessageLookupByLibrary.simpleMessage("密码缓存已启用"),
+        "passwordCacheExpiry": MessageLookupByLibrary.simpleMessage("缓存过期时间"),
+        "passwordCacheExpiry1": MessageLookupByLibrary.simpleMessage("1分钟"),
+        "passwordCacheExpiry10": MessageLookupByLibrary.simpleMessage("10分钟"),
+        "passwordCacheExpiry30": MessageLookupByLibrary.simpleMessage("30分钟"),
+        "passwordCacheExpiry5": MessageLookupByLibrary.simpleMessage("5分钟（推荐）"),
         "phone": MessageLookupByLibrary.simpleMessage("手机"),
         "primaryMultiChainWallet":
             MessageLookupByLibrary.simpleMessage("EVM / SOL / TRX 多链主钱包"),
@@ -181,11 +206,13 @@ class MessageLookup extends MessageLookupByLibrary {
         "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
         "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
             "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。"),
+        "securitySettings": MessageLookupByLibrary.simpleMessage("安全设置"),
         "selectReceiveAsset": MessageLookupByLibrary.simpleMessage("选择收款币种"),
         "selectReceiveChain": MessageLookupByLibrary.simpleMessage("选择收款网络"),
         "selectTransferAsset": MessageLookupByLibrary.simpleMessage("转账币种"),
         "selectTransferChain": MessageLookupByLibrary.simpleMessage("转账网络"),
         "settings": MessageLookupByLibrary.simpleMessage("设置"),
+        "skip": MessageLookupByLibrary.simpleMessage("跳过"),
         "splashLoading": MessageLookupByLibrary.simpleMessage("正在进入钱包"),
         "splashTagline": MessageLookupByLibrary.simpleMessage("安全管理多链资产"),
         "switchWallet": MessageLookupByLibrary.simpleMessage("切换钱包"),

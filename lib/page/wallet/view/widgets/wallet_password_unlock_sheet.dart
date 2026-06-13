@@ -232,7 +232,7 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
     if (!mounted) return;
     if (ok) {
       // 密码验证成功，缓存密码以便下次生物识别后自动使用
-      PasswordCacheService.cachePassword(password);
+      await PasswordCacheService.cachePassword(password);
       Navigator.of(context).pop();
       return;
     }
