@@ -66,9 +66,8 @@ class BiometricAuth {
       final authenticated = await _auth.authenticate(
         localizedReason: localizedReason,
         options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-          sensitiveTransaction: false,
+          stickyAuth: false,
+          biometricOnly: true,
         ),
       );
       developer.log('Authentication result: $authenticated');
