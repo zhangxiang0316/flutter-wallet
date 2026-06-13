@@ -213,5 +213,10 @@
   "transferInputInvalid": "请输入有效的收款地址和转账数量",
   "copied": "已复制",
   "screenshotProtectionEnabled": "🔒 为保护您的资产安全，此页面已启用截屏保护",
-  "screenshotNotAllowed": "为了您的安全，此页面不允许截屏"
+  "screenshotNotAllowed": "为了您的安全，此页面不允许截屏",
+  "useBiometric": "使用生物识别",
+  "biometricAuthFailed": "生物识别失败，请使用密码",
+  "authenticateToUnlock": "验证身份以查看敏感信息",
+  "biometricAuthTitle": "生物识别验证",
+  "orUsePassword": "或使用密码"
 }

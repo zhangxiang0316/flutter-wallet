@@ -1839,6 +1839,56 @@ class S {
       args: [],
     );
   }
+
+  /// `Use biometric`
+  String get useBiometric {
+    return Intl.message(
+      'Use biometric',
+      name: 'useBiometric',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Biometric authentication failed, please use password`
+  String get biometricAuthFailed {
+    return Intl.message(
+      'Biometric authentication failed, please use password',
+      name: 'biometricAuthFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Authenticate to view sensitive information`
+  String get authenticateToUnlock {
+    return Intl.message(
+      'Authenticate to view sensitive information',
+      name: 'authenticateToUnlock',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Biometric Authentication`
+  String get biometricAuthTitle {
+    return Intl.message(
+      'Biometric Authentication',
+      name: 'biometricAuthTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Or use password`
+  String get orUsePassword {
+    return Intl.message(
+      'Or use password',
+      name: 'orUsePassword',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

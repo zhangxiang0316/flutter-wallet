@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>用于扫码填写转账收款地址。</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>使用面容 ID 快速解锁查看私钥和助记词</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

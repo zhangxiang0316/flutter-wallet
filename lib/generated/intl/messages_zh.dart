@@ -43,12 +43,17 @@ class MessageLookup extends MessageLookupByLibrary {
         "assetVisibility": MessageLookupByLibrary.simpleMessage("资产显示"),
         "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
             "关闭后，该币种会从首页资产列表和估值中隐藏；链上余额不会被删除，可随时重新开启。"),
+        "authenticateToUnlock":
+            MessageLookupByLibrary.simpleMessage("验证身份以查看敏感信息"),
         "availableBalance": MessageLookupByLibrary.simpleMessage("可用余额"),
         "backToWallet": MessageLookupByLibrary.simpleMessage("返回钱包"),
         "backupMnemonic": MessageLookupByLibrary.simpleMessage("备份助记词"),
         "backupMnemonicTip": MessageLookupByLibrary.simpleMessage(
             "请按顺序抄写并离线保存这些助记词。任何人获得助记词都可以控制你的资产。"),
         "balanceLoadFailed": MessageLookupByLibrary.simpleMessage("部分余额查询失败"),
+        "biometricAuthFailed":
+            MessageLookupByLibrary.simpleMessage("生物识别失败，请使用密码"),
+        "biometricAuthTitle": MessageLookupByLibrary.simpleMessage("生物识别验证"),
         "blockExplorer": MessageLookupByLibrary.simpleMessage("区块浏览器"),
         "blockExplorerBack": MessageLookupByLibrary.simpleMessage("后退"),
         "blockExplorerForward": MessageLookupByLibrary.simpleMessage("前进"),
@@ -135,6 +140,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "openBlockExplorer": MessageLookupByLibrary.simpleMessage("查看区块浏览器"),
         "openInExternalBrowser":
             MessageLookupByLibrary.simpleMessage("外部浏览器打开"),
+        "orUsePassword": MessageLookupByLibrary.simpleMessage("或使用密码"),
         "phone": MessageLookupByLibrary.simpleMessage("手机"),
         "primaryMultiChainWallet":
             MessageLookupByLibrary.simpleMessage("EVM / SOL / TRX 多链主钱包"),
@@ -226,6 +232,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "unlockWallet": MessageLookupByLibrary.simpleMessage("解锁钱包"),
         "unlockWalletForTransfer":
             MessageLookupByLibrary.simpleMessage("请输入钱包密码解锁本机私钥，用于本次交易签名。"),
+        "useBiometric": MessageLookupByLibrary.simpleMessage("使用生物识别"),
         "viewMnemonic": MessageLookupByLibrary.simpleMessage("查看助记词"),
         "viewPrivateKey": MessageLookupByLibrary.simpleMessage("查看私钥"),
         "walletAddresses": MessageLookupByLibrary.simpleMessage("链地址"),

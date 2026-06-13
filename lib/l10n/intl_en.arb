@@ -213,5 +213,10 @@
   "transferInputInvalid": "Enter a valid recipient address and transfer amount",
   "copied": "Copied",
   "screenshotProtectionEnabled": "🔒 Screenshot protection enabled for your security",
-  "screenshotNotAllowed": "Screenshots are not allowed on this page for your security"
+  "screenshotNotAllowed": "Screenshots are not allowed on this page for your security",
+  "useBiometric": "Use biometric",
+  "biometricAuthFailed": "Biometric authentication failed, please use password",
+  "authenticateToUnlock": "Authenticate to view sensitive information",
+  "biometricAuthTitle": "Biometric Authentication",
+  "orUsePassword": "Or use password"
 }

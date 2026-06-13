@@ -48,6 +48,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Asset display"),
         "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
             "Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime."),
+        "authenticateToUnlock": MessageLookupByLibrary.simpleMessage(
+            "Authenticate to view sensitive information"),
         "availableBalance":
             MessageLookupByLibrary.simpleMessage("Available balance"),
         "backToWallet": MessageLookupByLibrary.simpleMessage("Back to wallet"),
@@ -57,6 +59,10 @@ class MessageLookup extends MessageLookupByLibrary {
             "Write these words down in order and keep them offline. Anyone with these words can control your assets."),
         "balanceLoadFailed":
             MessageLookupByLibrary.simpleMessage("Some balance lookups failed"),
+        "biometricAuthFailed": MessageLookupByLibrary.simpleMessage(
+            "Biometric authentication failed, please use password"),
+        "biometricAuthTitle":
+            MessageLookupByLibrary.simpleMessage("Biometric Authentication"),
         "blockExplorer": MessageLookupByLibrary.simpleMessage("Block explorer"),
         "blockExplorerBack": MessageLookupByLibrary.simpleMessage("Back"),
         "blockExplorerForward": MessageLookupByLibrary.simpleMessage("Forward"),
@@ -159,6 +165,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("View explorer"),
         "openInExternalBrowser":
             MessageLookupByLibrary.simpleMessage("Open externally"),
+        "orUsePassword":
+            MessageLookupByLibrary.simpleMessage("Or use password"),
         "phone": MessageLookupByLibrary.simpleMessage("phone"),
         "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
             "EVM / SOL / TRX multi-chain wallet"),
@@ -278,6 +286,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "unlockWallet": MessageLookupByLibrary.simpleMessage("Unlock wallet"),
         "unlockWalletForTransfer": MessageLookupByLibrary.simpleMessage(
             "Enter the wallet password to unlock the local private key for this transaction."),
+        "useBiometric": MessageLookupByLibrary.simpleMessage("Use biometric"),
         "viewMnemonic": MessageLookupByLibrary.simpleMessage("View mnemonic"),
         "viewPrivateKey":
             MessageLookupByLibrary.simpleMessage("View private key"),
