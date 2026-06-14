@@ -239,5 +239,10 @@
   "passwordCacheExpiry10": "10分钟",
   "passwordCacheExpiry30": "30分钟",
   "passwordCacheDisabled": "密码缓存已禁用",
-  "passwordCacheEnabled": "密码缓存已启用"
+  "passwordCacheEnabled": "密码缓存已启用",
+  "retry": "重试",
+  "networkErrorMessage": "网络连接失败，请检查网络设置",
+  "validationErrorMessage": "输入信息有误，请检查后重试",
+  "systemErrorMessage": "操作失败，请稍后重试",
+  "unknownErrorMessage": "未知错误，请稍后重试"
 }

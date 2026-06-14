@@ -114,6 +114,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkAdded": MessageLookupByLibrary.simpleMessage("网络已添加"),
         "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
         "networkDuplicate": MessageLookupByLibrary.simpleMessage("该网络已存在"),
+        "networkErrorMessage":
+            MessageLookupByLibrary.simpleMessage("网络连接失败，请检查网络设置"),
         "networkExplorerApiKey":
             MessageLookupByLibrary.simpleMessage("浏览器 API Key"),
         "networkExplorerApiUrl":
@@ -188,6 +190,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "removeNetworkConfirm": m4,
         "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
         "removeWalletConfirmMessage": m5,
+        "retry": MessageLookupByLibrary.simpleMessage("重试"),
         "saveNetwork": MessageLookupByLibrary.simpleMessage("保存网络"),
         "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
         "scanCameraError":
@@ -216,6 +219,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "splashLoading": MessageLookupByLibrary.simpleMessage("正在进入钱包"),
         "splashTagline": MessageLookupByLibrary.simpleMessage("安全管理多链资产"),
         "switchWallet": MessageLookupByLibrary.simpleMessage("切换钱包"),
+        "systemErrorMessage":
+            MessageLookupByLibrary.simpleMessage("操作失败，请稍后重试"),
         "theme": MessageLookupByLibrary.simpleMessage("主题"),
         "themeDark": MessageLookupByLibrary.simpleMessage("深色主题"),
         "themeLight": MessageLookupByLibrary.simpleMessage("浅色主题"),
@@ -255,11 +260,15 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("请输入有效的收款地址和转账数量"),
         "transferSubmitted": MessageLookupByLibrary.simpleMessage("交易已提交"),
         "transferUnavailable": MessageLookupByLibrary.simpleMessage("转账信息不可用"),
+        "unknownErrorMessage":
+            MessageLookupByLibrary.simpleMessage("未知错误，请稍后重试"),
         "unlockToView": MessageLookupByLibrary.simpleMessage("输入钱包密码后查看"),
         "unlockWallet": MessageLookupByLibrary.simpleMessage("解锁钱包"),
         "unlockWalletForTransfer":
             MessageLookupByLibrary.simpleMessage("请输入钱包密码解锁本机私钥，用于本次交易签名。"),
         "useBiometric": MessageLookupByLibrary.simpleMessage("使用生物识别"),
+        "validationErrorMessage":
+            MessageLookupByLibrary.simpleMessage("输入信息有误，请检查后重试"),
         "viewMnemonic": MessageLookupByLibrary.simpleMessage("查看助记词"),
         "viewPrivateKey": MessageLookupByLibrary.simpleMessage("查看私钥"),
         "walletAddresses": MessageLookupByLibrary.simpleMessage("链地址"),

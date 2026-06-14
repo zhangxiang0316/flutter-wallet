@@ -239,5 +239,10 @@
   "passwordCacheExpiry10": "10 minutes",
   "passwordCacheExpiry30": "30 minutes",
   "passwordCacheDisabled": "Password cache disabled",
-  "passwordCacheEnabled": "Password cache enabled"
+  "passwordCacheEnabled": "Password cache enabled",
+  "retry": "Retry",
+  "networkErrorMessage": "Network connection failed, please check your network settings",
+  "validationErrorMessage": "Invalid input, please check and try again",
+  "systemErrorMessage": "Operation failed, please try again later",
+  "unknownErrorMessage": "Unknown error, please try again later"
 }

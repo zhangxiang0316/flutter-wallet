@@ -2099,6 +2099,56 @@ class S {
       args: [],
     );
   }
+
+  /// `Retry`
+  String get retry {
+    return Intl.message(
+      'Retry',
+      name: 'retry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network connection failed, please check your network settings`
+  String get networkErrorMessage {
+    return Intl.message(
+      'Network connection failed, please check your network settings',
+      name: 'networkErrorMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid input, please check and try again`
+  String get validationErrorMessage {
+    return Intl.message(
+      'Invalid input, please check and try again',
+      name: 'validationErrorMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Operation failed, please try again later`
+  String get systemErrorMessage {
+    return Intl.message(
+      'Operation failed, please try again later',
+      name: 'systemErrorMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unknown error, please try again later`
+  String get unknownErrorMessage {
+    return Intl.message(
+      'Unknown error, please try again later',
+      name: 'unknownErrorMessage',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

@@ -136,6 +136,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
         "networkDuplicate":
             MessageLookupByLibrary.simpleMessage("This network already exists"),
+        "networkErrorMessage": MessageLookupByLibrary.simpleMessage(
+            "Network connection failed, please check your network settings"),
         "networkExplorerApiKey":
             MessageLookupByLibrary.simpleMessage("Explorer API key"),
         "networkExplorerApiUrl":
@@ -229,6 +231,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "removeNetworkConfirm": m4,
         "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
         "removeWalletConfirmMessage": m5,
+        "retry": MessageLookupByLibrary.simpleMessage("Retry"),
         "saveNetwork": MessageLookupByLibrary.simpleMessage("Save network"),
         "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
         "scanCameraError": MessageLookupByLibrary.simpleMessage(
@@ -266,6 +269,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "splashTagline":
             MessageLookupByLibrary.simpleMessage("Secure multi-chain assets"),
         "switchWallet": MessageLookupByLibrary.simpleMessage("Switch wallet"),
+        "systemErrorMessage": MessageLookupByLibrary.simpleMessage(
+            "Operation failed, please try again later"),
         "theme": MessageLookupByLibrary.simpleMessage("Theme"),
         "themeDark": MessageLookupByLibrary.simpleMessage("Dark"),
         "themeLight": MessageLookupByLibrary.simpleMessage("Light"),
@@ -319,12 +324,16 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Transaction submitted"),
         "transferUnavailable": MessageLookupByLibrary.simpleMessage(
             "Transfer details are unavailable"),
+        "unknownErrorMessage": MessageLookupByLibrary.simpleMessage(
+            "Unknown error, please try again later"),
         "unlockToView": MessageLookupByLibrary.simpleMessage(
             "Unlock with wallet password to view"),
         "unlockWallet": MessageLookupByLibrary.simpleMessage("Unlock wallet"),
         "unlockWalletForTransfer": MessageLookupByLibrary.simpleMessage(
             "Enter the wallet password to unlock the local private key for this transaction."),
         "useBiometric": MessageLookupByLibrary.simpleMessage("Use biometric"),
+        "validationErrorMessage": MessageLookupByLibrary.simpleMessage(
+            "Invalid input, please check and try again"),
         "viewMnemonic": MessageLookupByLibrary.simpleMessage("View mnemonic"),
         "viewPrivateKey":
             MessageLookupByLibrary.simpleMessage("View private key"),
