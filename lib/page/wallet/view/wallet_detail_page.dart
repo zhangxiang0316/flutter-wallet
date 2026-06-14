@@ -134,7 +134,6 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
     required Future<bool> Function(String password) onSubmit,
   }) async {
     final cachedPassword = await PasswordCacheService.getCachedPassword();
-    if (!mounted) return;
 
     showModalBottomSheet(
       context: context!,
