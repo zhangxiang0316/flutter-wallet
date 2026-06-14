@@ -210,18 +210,24 @@ class EvmTransactionProvider implements ChainTransactionProvider {
     return WalletTransactionRecord(
       id: hash,
       walletId: '',
+      chainId: chainId,
       chainName: chainId,
-      symbol: 'ETH', // 主币符号
+      symbol: 'ETH',
       assetName: chainId.toUpperCase(),
       walletAddress: from,
       txHash: hash,
       fromAddress: from,
       toAddress: to,
       amount: tx['value'] ?? '0',
-      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-      status: (tx['isError'] ?? '0') == '1' ? 'failed' : 'success',
-      fee: tx['gasUsed'] ?? '0',
+      decimals: 18,
+      direction: WalletTransactionDirection.unknown,
+      status: (tx['isError'] ?? '0') == '1'
+          ? WalletTransactionStatus.failed
+          : WalletTransactionStatus.success,
+      source: WalletTransactionSource.remote,
+      feeAmount: tx['gasUsed'] ?? '0',
       blockNumber: int.parse(tx['blockNumber'] ?? '0'),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
     );
   }
 
@@ -238,6 +244,7 @@ class EvmTransactionProvider implements ChainTransactionProvider {
     return WalletTransactionRecord(
       id: hash,
       walletId: '',
+      chainId: chainId,
       chainName: chainId,
       symbol: tx['tokenSymbol'] ?? '',
       assetName: tx['tokenName'] ?? '',
@@ -246,11 +253,14 @@ class EvmTransactionProvider implements ChainTransactionProvider {
       fromAddress: from,
       toAddress: to,
       amount: tx['value'] ?? '0',
-      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-      status: 'success',
-      fee: tx['gasUsed'] ?? '0',
-      blockNumber: int.parse(tx['blockNumber'] ?? '0'),
+      decimals: int.tryParse(tx['tokenDecimal'] ?? '18') ?? 18,
+      direction: WalletTransactionDirection.unknown,
+      status: WalletTransactionStatus.success,
+      source: WalletTransactionSource.remote,
       contractAddress: tx['contractAddress'],
+      feeAmount: tx['gasUsed'] ?? '0',
+      blockNumber: int.parse(tx['blockNumber'] ?? '0'),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
     );
   }
 

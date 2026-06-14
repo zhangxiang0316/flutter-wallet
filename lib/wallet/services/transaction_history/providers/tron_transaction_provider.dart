@@ -136,6 +136,7 @@ class TronTransactionProvider implements ChainTransactionProvider {
     return WalletTransactionRecord(
       id: hash,
       walletId: '',
+      chainId: 'tron',
       chainName: 'tron',
       symbol: 'TRX',
       assetName: 'TRON',
@@ -144,12 +145,15 @@ class TronTransactionProvider implements ChainTransactionProvider {
       fromAddress: from,
       toAddress: to,
       amount: (value['amount'] ?? 0).toString(),
-      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      decimals: 6,
+      direction: WalletTransactionDirection.unknown,
       status: (tx['ret']?[0]?['contractRet'] ?? 'SUCCESS') == 'SUCCESS'
-          ? 'success'
-          : 'failed',
-      fee: (tx['ret']?[0]?['fee'] ?? 0).toString(),
+          ? WalletTransactionStatus.success
+          : WalletTransactionStatus.failed,
+      source: WalletTransactionSource.remote,
+      feeAmount: (tx['ret']?[0]?['fee'] ?? 0).toString(),
       blockNumber: tx['blockNumber'] ?? 0,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
     );
   }
 
@@ -163,6 +167,7 @@ class TronTransactionProvider implements ChainTransactionProvider {
     return WalletTransactionRecord(
       id: hash,
       walletId: '',
+      chainId: 'tron',
       chainName: 'tron',
       symbol: tx['token_info']?['symbol'] ?? '',
       assetName: tx['token_info']?['name'] ?? '',
@@ -171,10 +176,12 @@ class TronTransactionProvider implements ChainTransactionProvider {
       fromAddress: from,
       toAddress: to,
       amount: tx['value'] ?? '0',
-      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-      status: 'success',
-      fee: '0',
+      decimals: tx['token_info']?['decimals'] ?? 6,
+      direction: WalletTransactionDirection.unknown,
+      status: WalletTransactionStatus.success,
+      source: WalletTransactionSource.remote,
       blockNumber: tx['block'] ?? 0,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
       contractAddress: tx['token_info']?['address'],
     );
   }

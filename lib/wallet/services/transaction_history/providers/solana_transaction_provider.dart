@@ -89,6 +89,7 @@ class SolanaTransactionProvider implements ChainTransactionProvider {
     return WalletTransactionRecord(
       id: hash,
       walletId: '',
+      chainId: 'solana',
       chainName: 'solana',
       symbol: tx['tokenSymbol'] ?? 'SOL',
       assetName: tx['tokenName'] ?? 'Solana',
@@ -97,10 +98,15 @@ class SolanaTransactionProvider implements ChainTransactionProvider {
       fromAddress: from,
       toAddress: to,
       amount: (tx['lamport'] ?? 0).toString(),
-      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-      status: (tx['status'] ?? 'Success') == 'Success' ? 'success' : 'failed',
-      fee: (tx['fee'] ?? 0).toString(),
+      decimals: tx['decimals'] ?? 9,
+      direction: WalletTransactionDirection.unknown,
+      status: (tx['status'] ?? 'Success') == 'Success'
+          ? WalletTransactionStatus.success
+          : WalletTransactionStatus.failed,
+      source: WalletTransactionSource.remote,
+      feeAmount: (tx['fee'] ?? 0).toString(),
       blockNumber: tx['slot'] ?? 0,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
       contractAddress: tx['tokenAddress'],
     );
   }
