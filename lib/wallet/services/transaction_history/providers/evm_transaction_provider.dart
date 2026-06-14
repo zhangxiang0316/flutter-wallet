@@ -116,7 +116,14 @@ class EvmTransactionProvider implements ChainTransactionProvider {
 
       // 合并并排序
       final allTxs = [...normalTxs, ...internalTxs, ...tokenTxs];
-      allTxs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      allTxs.sort((a, b) {
+        final aTime = a.timestamp;
+        final bTime = b.timestamp;
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        return bTime.compareTo(aTime);
+      });
 
       return allTxs;
     } catch (error) {
