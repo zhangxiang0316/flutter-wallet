@@ -256,7 +256,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                 onWalletRemoved: widget.onWalletRemoved,
                 onAddWallet: widget.onAddWallet,
               ),
-              SizedBox(height: 24.h),
+              SizedBox(height: 18.h), // 从 24.h 减少到 18.h
               // 总资产标签
               Align(
                 alignment: Alignment.center,
@@ -277,7 +277,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                   ),
                 ),
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 8.h), // 从 10.h 减少到 8.h
               // 总资产金额
               Align(
                 alignment: Alignment.center,
@@ -301,7 +301,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                       maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 42.sp,
+                        fontSize: 36.sp, // 从 42.sp 减少到 36.sp
                         fontWeight: FontWeight.w900,
                         height: 1.1,
                         letterSpacing: -1.5,
@@ -310,7 +310,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                   ),
                 ),
               ),
-              SizedBox(height: 20.h),
+              SizedBox(height: 16.h), // 从 20.h 减少到 16.h
               // 收款/转账按钮
               Align(
                 alignment: Alignment.center,
