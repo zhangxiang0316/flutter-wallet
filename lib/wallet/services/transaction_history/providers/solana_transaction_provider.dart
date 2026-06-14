@@ -3,41 +3,116 @@ import 'package:dio/dio.dart';
 import '../../../models/chain_balance.dart';
 import '../../../models/wallet_transaction_record.dart';
 import '../chain_transaction_provider.dart';
+import '../transaction_cache.dart';
 
 /// Solana 链交易记录提供者。
 ///
-/// 负责查询 Solana 链的交易历史，包括：
-/// - 原生 SOL 转账
-/// - SPL Token 转账
+/// 使用 Solscan API 获取交易记录。
+/// API 文档：https://pro-api.solscan.io/
 class SolanaTransactionProvider implements ChainTransactionProvider {
-  SolanaTransactionProvider({Dio? dio})
+  SolanaTransactionProvider({Dio? dio, TransactionCache? cache})
       : _dio = dio ??
             Dio(
               BaseOptions(
-                connectTimeout: const Duration(seconds: 6),
-                receiveTimeout: const Duration(seconds: 6),
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 10),
               ),
-            );
+            ),
+        _cache = cache ?? TransactionCache();
 
   final Dio _dio;
+  final TransactionCache _cache;
+
+  static const String _apiUrl = 'https://api.solscan.io/account/transactions';
+
+  // 免费 API，无需 Key（有限额）
+  // 如需更高限额，注册：https://pro-api.solscan.io/
 
   @override
   Future<List<WalletTransactionRecord>> loadRecords({
     required String walletId,
     required ChainBalance asset,
   }) async {
-    // TODO: 实现 Solana 链交易记录查询逻辑
-    // 这里应该包含原来 _loadSolanaRecords 的逻辑
+    final chainId = 'solana';
+    final address = asset.address;
 
-    // 暂时返回空列表，等待完整迁移
-    return const [];
+    // 1. 尝试从缓存读取
+    final cached = await _cache.getCachedTransactions(address, chainId);
+    if (cached != null && cached.isNotEmpty) {
+      // 后台更新
+      _updateInBackground(walletId, asset);
+      return cached;
+    }
+
+    // 2. 从 API 获取
+    try {
+      final transactions = await _fetchFromApi(address);
+
+      // 3. 保存到缓存
+      await _cache.cacheTransactions(address, chainId, transactions);
+
+      return transactions;
+    } catch (error) {
+      // API 失败，返回缓存（即使过期）
+      if (cached != null) {
+        return cached;
+      }
+      rethrow;
+    }
   }
 
-  // TODO: 添加以下私有方法（从原文件迁移）
-  // - _loadSolanaNativeRecords
-  // - _loadSolanaTokenRecords
-  // - _solanaSignaturesForAddress
-  // - _solanaParsedTransaction
-  // - _solanaTokenAccountsForMint
-  // - Solana RPC 相关方法
+  /// 从 Solscan API 获取交易记录。
+  Future<List<WalletTransactionRecord>> _fetchFromApi(String address) async {
+    try {
+      final response = await _dio.get(
+        _apiUrl,
+        queryParameters: {
+          'address': address,
+          'limit': 50, // 获取最近 50 笔交易
+        },
+      );
+
+      final List<dynamic> data = response.data ?? [];
+      return data.map((tx) => _parseTransaction(tx)).toList();
+    } catch (error) {
+      throw Exception('Failed to fetch Solana transactions: $error');
+    }
+  }
+
+  /// 解析 Solana 交易。
+  WalletTransactionRecord _parseTransaction(Map<String, dynamic> tx) {
+    return WalletTransactionRecord(
+      hash: tx['txHash'] ?? '',
+      from: tx['src'] ?? '',
+      to: tx['dst'] ?? '',
+      value: (tx['lamport'] ?? 0).toString(),
+      timestamp: tx['blockTime'] ?? 0,
+      blockNumber: tx['slot'] ?? 0,
+      gasUsed: (tx['fee'] ?? 0).toString(),
+      gasPrice: '0',
+      isError: (tx['status'] ?? 'Success') != 'Success',
+      chainId: 'solana',
+      tokenSymbol: tx['tokenSymbol'],
+      tokenName: tx['tokenName'],
+      tokenDecimal: tx['decimals'],
+      contractAddress: tx['tokenAddress'],
+    );
+  }
+
+  /// 后台更新交易记录。
+  Future<void> _updateInBackground(
+    String walletId,
+    ChainBalance asset,
+  ) async {
+    try {
+      final transactions = await _fetchFromApi(asset.address);
+      await _cache.cacheTransactions(
+        asset.address,
+        'solana',
+        transactions,
+      );
+    } catch (e) {
+      // 后台更新失败不影响用户体验
+    }
+  }
 }

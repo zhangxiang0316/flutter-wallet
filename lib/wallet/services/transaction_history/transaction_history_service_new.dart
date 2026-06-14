@@ -6,31 +6,35 @@ import 'chain_transaction_provider.dart';
 import 'providers/evm_transaction_provider.dart';
 import 'providers/solana_transaction_provider.dart';
 import 'providers/tron_transaction_provider.dart';
+import 'transaction_cache.dart';
 
 /// 钱包交易历史服务。
 ///
 /// 使用 Provider 模式，根据不同链类型委托给相应的 Provider 处理。
-/// 这个类作为统一入口，不包含具体的链逻辑。
+/// 支持本地缓存和后台更新。
 class TransactionHistoryService {
   TransactionHistoryService({
     Dio? dio,
+    TransactionCache? cache,
     EvmTransactionProvider? evmProvider,
     TronTransactionProvider? tronProvider,
     SolanaTransactionProvider? solanaProvider,
   })  : _dio = dio ??
             Dio(
               BaseOptions(
-                connectTimeout: const Duration(seconds: 6),
-                receiveTimeout: const Duration(seconds: 6),
-                sendTimeout: const Duration(seconds: 6),
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 10),
+                sendTimeout: const Duration(seconds: 10),
               ),
             ),
-        _evmProvider = evmProvider ?? EvmTransactionProvider(dio: dio),
-        _tronProvider = tronProvider ?? TronTransactionProvider(dio: dio),
+        _cache = cache ?? TransactionCache(),
+        _evmProvider = evmProvider ?? EvmTransactionProvider(dio: dio, cache: cache),
+        _tronProvider = tronProvider ?? TronTransactionProvider(dio: dio, cache: cache),
         _solanaProvider =
-            solanaProvider ?? SolanaTransactionProvider(dio: dio);
+            solanaProvider ?? SolanaTransactionProvider(dio: dio, cache: cache);
 
   final Dio _dio;
+  final TransactionCache _cache;
   final EvmTransactionProvider _evmProvider;
   final TronTransactionProvider _tronProvider;
   final SolanaTransactionProvider _solanaProvider;
@@ -63,5 +67,20 @@ class TransactionHistoryService {
   /// 清理资源
   void dispose() {
     // 如果需要的话，可以在这里清理 provider 资源
+  }
+
+  /// 清除所有交易缓存。
+  Future<void> clearAllCache() async {
+    await _cache.clearAllCache();
+  }
+
+  /// 清除指定地址的缓存。
+  Future<void> clearCache(String address, String chainId) async {
+    await _cache.clearCache(address, chainId);
+  }
+
+  /// 检查是否有缓存。
+  Future<bool> hasCachedTransactions(String address, String chainId) async {
+    return await _cache.hasCachedTransactions(address, chainId);
   }
 }
