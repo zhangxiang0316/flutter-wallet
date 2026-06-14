@@ -202,17 +202,26 @@ class EvmTransactionProvider implements ChainTransactionProvider {
     Map<String, dynamic> tx,
     String chainId,
   ) {
+    final timestamp = int.parse(tx['timeStamp'] ?? '0');
+    final hash = tx['hash'] ?? '';
+    final from = tx['from'] ?? '';
+    final to = tx['to'] ?? '';
+
     return WalletTransactionRecord(
-      hash: tx['hash'] ?? '',
-      from: tx['from'] ?? '',
-      to: tx['to'] ?? '',
-      value: tx['value'] ?? '0',
-      timestamp: int.parse(tx['timeStamp'] ?? '0'),
+      id: hash,
+      walletId: '',
+      chainName: chainId,
+      symbol: 'ETH', // 主币符号
+      assetName: chainId.toUpperCase(),
+      walletAddress: from,
+      txHash: hash,
+      fromAddress: from,
+      toAddress: to,
+      amount: tx['value'] ?? '0',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      status: (tx['isError'] ?? '0') == '1' ? 'failed' : 'success',
+      fee: tx['gasUsed'] ?? '0',
       blockNumber: int.parse(tx['blockNumber'] ?? '0'),
-      gasUsed: tx['gasUsed'] ?? '0',
-      gasPrice: tx['gasPrice'] ?? '0',
-      isError: (tx['isError'] ?? '0') == '1',
-      chainId: chainId,
     );
   }
 
@@ -221,20 +230,26 @@ class EvmTransactionProvider implements ChainTransactionProvider {
     Map<String, dynamic> tx,
     String chainId,
   ) {
+    final timestamp = int.parse(tx['timeStamp'] ?? '0');
+    final hash = tx['hash'] ?? '';
+    final from = tx['from'] ?? '';
+    final to = tx['to'] ?? '';
+
     return WalletTransactionRecord(
-      hash: tx['hash'] ?? '',
-      from: tx['from'] ?? '',
-      to: tx['to'] ?? '',
-      value: tx['value'] ?? '0',
-      timestamp: int.parse(tx['timeStamp'] ?? '0'),
+      id: hash,
+      walletId: '',
+      chainName: chainId,
+      symbol: tx['tokenSymbol'] ?? '',
+      assetName: tx['tokenName'] ?? '',
+      walletAddress: from,
+      txHash: hash,
+      fromAddress: from,
+      toAddress: to,
+      amount: tx['value'] ?? '0',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      status: 'success',
+      fee: tx['gasUsed'] ?? '0',
       blockNumber: int.parse(tx['blockNumber'] ?? '0'),
-      gasUsed: tx['gasUsed'] ?? '0',
-      gasPrice: tx['gasPrice'] ?? '0',
-      isError: false,
-      chainId: chainId,
-      tokenSymbol: tx['tokenSymbol'],
-      tokenName: tx['tokenName'],
-      tokenDecimal: int.tryParse(tx['tokenDecimal'] ?? '18'),
       contractAddress: tx['contractAddress'],
     );
   }

@@ -81,20 +81,26 @@ class SolanaTransactionProvider implements ChainTransactionProvider {
 
   /// 解析 Solana 交易。
   WalletTransactionRecord _parseTransaction(Map<String, dynamic> tx) {
+    final timestamp = tx['blockTime'] ?? 0;
+    final hash = tx['txHash'] ?? '';
+    final from = tx['src'] ?? '';
+    final to = tx['dst'] ?? '';
+
     return WalletTransactionRecord(
-      hash: tx['txHash'] ?? '',
-      from: tx['src'] ?? '',
-      to: tx['dst'] ?? '',
-      value: (tx['lamport'] ?? 0).toString(),
-      timestamp: tx['blockTime'] ?? 0,
+      id: hash,
+      walletId: '',
+      chainName: 'solana',
+      symbol: tx['tokenSymbol'] ?? 'SOL',
+      assetName: tx['tokenName'] ?? 'Solana',
+      walletAddress: from,
+      txHash: hash,
+      fromAddress: from,
+      toAddress: to,
+      amount: (tx['lamport'] ?? 0).toString(),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      status: (tx['status'] ?? 'Success') == 'Success' ? 'success' : 'failed',
+      fee: (tx['fee'] ?? 0).toString(),
       blockNumber: tx['slot'] ?? 0,
-      gasUsed: (tx['fee'] ?? 0).toString(),
-      gasPrice: '0',
-      isError: (tx['status'] ?? 'Success') != 'Success',
-      chainId: 'solana',
-      tokenSymbol: tx['tokenSymbol'],
-      tokenName: tx['tokenName'],
-      tokenDecimal: tx['decimals'],
       contractAddress: tx['tokenAddress'],
     );
   }

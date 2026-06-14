@@ -128,37 +128,53 @@ class TronTransactionProvider implements ChainTransactionProvider {
     final rawData = tx['raw_data'] ?? {};
     final contract = (rawData['contract'] as List?)?.first ?? {};
     final value = contract['parameter']?['value'] ?? {};
+    final timestamp = (tx['block_timestamp'] ?? 0) ~/ 1000;
+    final hash = tx['txID'] ?? '';
+    final from = value['owner_address'] ?? '';
+    final to = value['to_address'] ?? '';
 
     return WalletTransactionRecord(
-      hash: tx['txID'] ?? '',
-      from: value['owner_address'] ?? '',
-      to: value['to_address'] ?? '',
-      value: (value['amount'] ?? 0).toString(),
-      timestamp: (tx['block_timestamp'] ?? 0) ~/ 1000,
+      id: hash,
+      walletId: '',
+      chainName: 'tron',
+      symbol: 'TRX',
+      assetName: 'TRON',
+      walletAddress: from,
+      txHash: hash,
+      fromAddress: from,
+      toAddress: to,
+      amount: (value['amount'] ?? 0).toString(),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      status: (tx['ret']?[0]?['contractRet'] ?? 'SUCCESS') == 'SUCCESS'
+          ? 'success'
+          : 'failed',
+      fee: (tx['ret']?[0]?['fee'] ?? 0).toString(),
       blockNumber: tx['blockNumber'] ?? 0,
-      gasUsed: (tx['ret']?[0]?['fee'] ?? 0).toString(),
-      gasPrice: '0',
-      isError: (tx['ret']?[0]?['contractRet'] ?? 'SUCCESS') != 'SUCCESS',
-      chainId: 'tron',
     );
   }
 
   /// 解析 TRC20 代币交易。
   WalletTransactionRecord _parseTokenTransaction(Map<String, dynamic> tx) {
+    final timestamp = (tx['block_timestamp'] ?? 0) ~/ 1000;
+    final hash = tx['transaction_id'] ?? '';
+    final from = tx['from'] ?? '';
+    final to = tx['to'] ?? '';
+
     return WalletTransactionRecord(
-      hash: tx['transaction_id'] ?? '',
-      from: tx['from'] ?? '',
-      to: tx['to'] ?? '',
-      value: tx['value'] ?? '0',
-      timestamp: (tx['block_timestamp'] ?? 0) ~/ 1000,
+      id: hash,
+      walletId: '',
+      chainName: 'tron',
+      symbol: tx['token_info']?['symbol'] ?? '',
+      assetName: tx['token_info']?['name'] ?? '',
+      walletAddress: from,
+      txHash: hash,
+      fromAddress: from,
+      toAddress: to,
+      amount: tx['value'] ?? '0',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+      status: 'success',
+      fee: '0',
       blockNumber: tx['block'] ?? 0,
-      gasUsed: '0',
-      gasPrice: '0',
-      isError: false,
-      chainId: 'tron',
-      tokenSymbol: tx['token_info']?['symbol'],
-      tokenName: tx['token_info']?['name'],
-      tokenDecimal: tx['token_info']?['decimals'],
       contractAddress: tx['token_info']?['address'],
     );
   }
