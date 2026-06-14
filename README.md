@@ -344,9 +344,9 @@ flutter test --coverage
 
 ## 📞 联系方式
 
-- **项目主页**: https://github.com/zhangxiang0316/omnicast
-- **问题反馈**: https://github.com/zhangxiang0316/omnicast/issues
-- **邮箱**: zhangxiang0316@example.com
+- **项目主页**: https://github.com/zhangxiang0316/flutter-wallet
+- **问题反馈**: https://github.com/zhangxiang0316/flutter-wallet/issues
+- **作者**: Zhang Xiang - [GitHub](https://github.com/zhangxiang0316)
 
 ---
 
