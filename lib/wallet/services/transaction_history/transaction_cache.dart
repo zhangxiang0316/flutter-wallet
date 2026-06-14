@@ -65,7 +65,7 @@ class TransactionCache {
     try {
       final List<dynamic> data = jsonDecode(cached);
       return data
-          .map((json) => WalletTransactionRecord.fromJson(json))
+          .map((json) => WalletTransactionRecord.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       // 解析失败，清除缓存
