@@ -66,16 +66,70 @@
 <div align="center">
   <table>
     <tr>
-      <td><img src="docs/screenshots/home.png" width="200" alt="首页" /></td>
-      <td><img src="docs/screenshots/wallet.png" width="200" alt="钱包" /></td>
-      <td><img src="docs/screenshots/transfer.png" width="200" alt="转账" /></td>
-      <td><img src="docs/screenshots/settings.png" width="200" alt="设置" /></td>
+      <td><img src="docs/1.jpg" width="200" alt="首页" /></td>
+      <td><img src="docs/2.jpg" width="200" alt="钱包切换" /></td>
+      <td><img src="docs/3.jpg" width="200" alt="钱包管理" /></td>
+      <td><img src="docs/4.jpg" width="200" alt="转账" /></td>
     </tr>
     <tr>
       <td align="center">首页</td>
+      <td align="center">钱包切换</td>
       <td align="center">钱包管理</td>
       <td align="center">转账</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <td><img src="docs/5.jpg" width="200" alt="收款" /></td>
+      <td><img src="docs/6.jpg" width="200" alt="交易历史" /></td>
+      <td><img src="docs/7.jpg" width="200" alt="设置" /></td>
+      <td><img src="docs/8.jpg" width="200" alt="资产管理" /></td>
+    </tr>
+    <tr>
+      <td align="center">收款</td>
+      <td align="center">交易历史</td>
       <td align="center">设置</td>
+      <td align="center">资产管理</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <td><img src="docs/9.jpg" width="200" alt="网络管理" /></td>
+      <td><img src="docs/10.jpg" width="200" alt="主题切换" /></td>
+      <td><img src="docs/11.jpg" width="200" alt="语言切换" /></td>
+      <td><img src="docs/12.jpg" width="200" alt="钱包详情" /></td>
+    </tr>
+    <tr>
+      <td align="center">网络管理</td>
+      <td align="center">主题切换</td>
+      <td align="center">语言切换</td>
+      <td align="center">钱包详情</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <td><img src="docs/13.jpg" width="200" alt="私钥查看" /></td>
+      <td><img src="docs/14.jpg" width="200" alt="助记词" /></td>
+      <td><img src="docs/15.jpg" width="200" alt="创建钱包" /></td>
+      <td><img src="docs/16.jpg" width="200" alt="导入钱包" /></td>
+    </tr>
+    <tr>
+      <td align="center">私钥查看</td>
+      <td align="center">助记词</td>
+      <td align="center">创建钱包</td>
+      <td align="center">导入钱包</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <td><img src="docs/17.jpg" width="200" alt="扫码" /></td>
+    </tr>
+    <tr>
+      <td align="center">扫码</td>
     </tr>
   </table>
 </div>
