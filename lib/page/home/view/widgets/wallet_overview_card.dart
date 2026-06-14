@@ -160,8 +160,8 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
 
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(minHeight: 180.h),
-      padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 20.h),
+      constraints: BoxConstraints(minHeight: 155.h), // 从 180.h 减少到 155.h
+      padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 16.h), // 减少内边距
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
