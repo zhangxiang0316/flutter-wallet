@@ -391,8 +391,8 @@ class _WalletNamePill extends StatelessWidget {
           borderRadius: BorderRadius.circular(999.r),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            constraints: BoxConstraints(maxWidth: 246.w, minHeight: 43.h),
-            padding: EdgeInsets.fromLTRB(6.w, 5.h, 8.w, 5.h),
+            constraints: BoxConstraints(maxWidth: 246.w, minHeight: 38.h), // 从 43.h 减少到 38.h
+            padding: EdgeInsets.fromLTRB(5.w, 4.h, 7.w, 4.h), // 减少 padding
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(999.r),
@@ -405,9 +405,9 @@ class _WalletNamePill extends StatelessWidget {
                   wallet: wallet,
                   selected: true,
                   onDark: true,
-                  size: 32,
+                  size: 28, // 从 32 减少到 28
                 ),
-                SizedBox(width: 9.w),
+                SizedBox(width: 8.w), // 从 9.w 减少到 8.w
                 Flexible(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -419,7 +419,7 @@ class _WalletNamePill extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 12.5.sp,
+                          fontSize: 12.sp, // 从 12.5.sp 减少到 12.sp
                           fontWeight: FontWeight.w900,
                           height: 1.1,
                         ),
@@ -428,10 +428,10 @@ class _WalletNamePill extends StatelessWidget {
                   ),
                 ),
                 if (canOpen) ...[
-                  SizedBox(width: 8.w),
+                  SizedBox(width: 6.w), // 从 8.w 减少到 6.w
                   Container(
-                    width: 24.w,
-                    height: 24.w,
+                    width: 22.w, // 从 24.w 减少到 22.w
+                    height: 22.w, // 从 24.w 减少到 22.w
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.16),
@@ -440,7 +440,7 @@ class _WalletNamePill extends StatelessWidget {
                     child: Icon(
                       Icons.expand_more_rounded,
                       color: colorScheme.onPrimary,
-                      size: 17.w,
+                      size: 16.w, // 从 17.w 减少到 16.w
                     ),
                   ),
                 ],
@@ -498,8 +498,8 @@ class _HeroActionButtonState extends State<_HeroActionButton> {
               onTap: widget.onPressed,
               borderRadius: BorderRadius.circular(999.r),
               child: Container(
-                height: 38.h,
-                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                height: 34.h, // 从 38.h 减少到 34.h
+                padding: EdgeInsets.symmetric(horizontal: 12.w), // 从 14.w 减少到 12.w
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999.r),
                   border: Border.all(
@@ -509,13 +509,13 @@ class _HeroActionButtonState extends State<_HeroActionButton> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(widget.icon, color: Colors.white, size: 17.w),
-                    SizedBox(width: 7.w),
+                    Icon(widget.icon, color: Colors.white, size: 16.w), // 从 17.w 减少到 16.w
+                    SizedBox(width: 6.w), // 从 7.w 减少到 6.w
                     Text(
                       widget.label,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 12.5.sp,
+                        fontSize: 12.sp, // 从 12.5.sp 减少到 12.sp
                         fontWeight: FontWeight.w900,
                       ),
                     ),
