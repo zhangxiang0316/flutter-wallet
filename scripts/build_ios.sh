@@ -36,18 +36,11 @@ echo "🔨 Step 2: Getting dependencies..."
 flutter pub get
 
 echo ""
-echo "🎨 Step 3: Generating app icons..."
-flutter pub run flutter_launcher_icons:main
-
-echo ""
-echo "🔨 Step 4: Building iOS app (Release)..."
+echo "🔨 Step 3: Building iOS app (Release)..."
 flutter build ios --release --no-codesign
 
 echo ""
-echo "📂 Step 5: Creating archive with Xcode..."
-echo "   This may take a few minutes..."
-
-# 打开 Xcode 构建说明
+echo "📂 Step 4: Build complete!"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📱 Manual Steps in Xcode:"
