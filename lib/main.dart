@@ -112,6 +112,8 @@ class MyApp extends StatelessWidget {
       designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
+      // 在 macOS 和桌面平台上也使用相同的设计尺寸
+      ensureScreenSize: true,
       // 根据响应式主题状态重建 MaterialApp
       builder: (BuildContext context, Widget? child) => Obx(
         () => GetMaterialApp(
