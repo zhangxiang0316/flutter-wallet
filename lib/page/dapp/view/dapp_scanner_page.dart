@@ -71,29 +71,47 @@ class DAppScannerController extends BaseController {
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null || barcode.rawValue == null) return;
     final uri = barcode.rawValue!;
+
+    debugPrint('📱 Detected QR code: ${uri.substring(0, 20)}...');
+
     if (!uri.startsWith('wc:')) {
       Toast.show('Invalid WalletConnect QR code');
       return;
     }
+
     _isProcessing = true;
+
     try {
       await scannerController.stop();
+      debugPrint('📷 Scanner stopped');
+
       Toast.show('Connecting to DApp...');
 
       // 确保只有一个控制器实例
       if (!Get.isRegistered<WalletConnectController>()) {
+        debugPrint('🎮 Creating WalletConnectController');
         Get.put(WalletConnectController());
+      } else {
+        debugPrint('🎮 WalletConnectController already exists');
       }
 
       // 先返回，让连接请求在首页显示
-      if (Get.context != null) Navigator.of(Get.context!).pop();
+      debugPrint('🔙 Closing scanner page');
+      if (Get.context != null) {
+        Navigator.of(Get.context!).pop();
+      }
 
       // 然后触发配对（弹窗会在首页显示）
+      debugPrint('⏳ Waiting 200ms before pairing...');
       await Future.delayed(Duration(milliseconds: 200));
+
+      debugPrint('🔗 Starting pairing...');
       await _wcService.pair(uri);
+      debugPrint('✅ Pairing initiated');
+
     } catch (e) {
-      debugPrint('Pairing failed: $e');
-      Toast.show('Connection failed');
+      debugPrint('❌ Pairing failed: $e');
+      Toast.show('Connection failed: $e');
       _isProcessing = false;
     }
   }
