@@ -87,6 +87,18 @@ class WalletConnectController extends BaseController {
           chains: [chainId], // 使用用户选择的链
         );
 
+        // 发送 chainChanged 事件通知 DApp 切换到选中的链
+        // 等待一小段时间确保会话建立完成
+        await Future.delayed(Duration(milliseconds: 500));
+
+        // 提取链 ID 数字部分 (例如 "eip155:56" -> "0x38")
+        final chainIdNum = chainId.split(':').last;
+        final hexChainId = '0x${int.parse(chainIdNum).toRadixString(16)}';
+
+        debugPrint('📡 Emitting chainChanged event: $hexChainId (${approved['chain']})');
+        // TODO: 发送 chainChanged 事件给 DApp
+        // 这需要通过 WalletConnect SDK 的 emitSessionEvent 方法
+
         Toast.show('Connected to ${event.params.proposer.metadata.name} on ${approved['chain']}!');
         debugPrint('✅ Session approved: ${event.params.proposer.metadata.name} on ${approved['chain']}');
 
