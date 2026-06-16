@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../wallet/services/walletconnect_service.dart';
+import '../controller/walletconnect_controller.dart';
 
 /// 连接请求确认弹窗
 class ConnectionRequestSheet extends StatelessWidget {

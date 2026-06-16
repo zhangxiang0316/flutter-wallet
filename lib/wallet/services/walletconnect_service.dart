@@ -24,15 +24,15 @@ class WalletConnectService {
 
   /// 会话提案事件
   Stream<SessionProposalEvent> get onSessionProposal =>
-      _walletKit?.onSessionProposal.subscribe() ?? Stream.empty();
+      _walletKit?.onSessionProposal.subscribe((event) {}) ?? Stream.empty();
 
   /// 会话请求事件
   Stream<SessionRequestEvent> get onSessionRequest =>
-      _walletKit?.onSessionRequest.subscribe() ?? Stream.empty();
+      _walletKit?.onSessionRequest.subscribe((event) {}) ?? Stream.empty();
 
   /// 会话删除事件
   Stream<SessionDelete> get onSessionDelete =>
-      _walletKit?.onSessionDelete.subscribe() ?? Stream.empty();
+      _walletKit?.onSessionDelete.subscribe((event) {}) ?? Stream.empty();
 
   /// 初始化服务
   Future<void> initialize() async {

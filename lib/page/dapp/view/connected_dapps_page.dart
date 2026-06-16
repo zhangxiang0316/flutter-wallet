@@ -37,7 +37,7 @@ class ConnectedDAppsPage extends BaseScaffoldPage<WalletConnectController> {
         padding: EdgeInsets.all(16.w),
         itemCount: sessions.length,
         separatorBuilder: (_, __) => SizedBox(height: 12.h),
-        itemBuilder: (context, index) => _buildDAppCard(context, sessions[index], index),
+        itemBuilder: (context, index) => _buildDAppCard(context, sessions[index]),
       );
     });
   }

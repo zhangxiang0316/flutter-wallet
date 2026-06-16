@@ -131,7 +131,9 @@ class WalletConnectController extends BaseController {
           proposalId: event.id,
           reason: 'Error: $e',
         );
-      } catch (_)
+      } catch (_) {
+        // Ignore
+      }
     }
   }
 
