@@ -227,15 +227,19 @@ class WalletConnectController extends BaseController {
       }
 
       // 显示签名确认界面
-      final signature = await MessageSignSheet.show(
+      final approved = await MessageSignSheet.show(
         context: Get.context!,
-        message: message,
-        chainName: 'Ethereum', // 从 event 中获取链信息
         dappName: _getSessionName(event.topic),
+        message: message,
+        messageType: MessageType.text,
+        signerAddress: wallet.bscAddress,
       );
 
-      if (signature != null && signature.isNotEmpty) {
-        // 返回签名结果
+      if (approved == true) {
+        // TODO: 实际签名消息
+        // 现在返回一个模拟签名
+        final signature = '0x' + '0' * 130; // 临时占位符
+
         await _wcService.respondSuccess(
           topic: event.topic,
           requestId: event.id,
@@ -352,15 +356,18 @@ class WalletConnectController extends BaseController {
       }
 
       // 显示 TypedData 签名确认界面
-      final signature = await MessageSignSheet.show(
+      final approved = await MessageSignSheet.show(
         context: Get.context!,
-        message: typedData,
-        chainName: 'Ethereum',
         dappName: _getSessionName(event.topic),
-        isTypedData: true,
+        message: typedData,
+        messageType: MessageType.typedData,
+        signerAddress: wallet.bscAddress,
       );
 
-      if (signature != null && signature.isNotEmpty) {
+      if (approved == true) {
+        // TODO: 实际签名 TypedData
+        final signature = '0x' + '0' * 130; // 临时占位符
+
         await _wcService.respondSuccess(
           topic: event.topic,
           requestId: event.id,
