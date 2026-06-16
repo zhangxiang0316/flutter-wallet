@@ -41,6 +41,39 @@ class ConnectionRequestSheet extends StatefulWidget {
 
   @override
   State<ConnectionRequestSheet> createState() => _ConnectionRequestSheetState();
+
+  static Future<Map<String, dynamic>?> show({
+    required BuildContext context,
+    required DAppProposal proposal,
+    required String walletAddress,
+  }) {
+    return showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String? selectedChain;
+
+        return ConnectionRequestSheet(
+          proposal: proposal,
+          walletAddress: walletAddress,
+          onApprove: () {
+            // 获取当前选中的链
+            final state = context.findAncestorStateOfType<_ConnectionRequestSheetState>();
+            selectedChain = state?._selectedChain;
+
+            Navigator.of(context).pop({
+              'approved': true,
+              'chain': selectedChain ?? 'Ethereum',
+              'chainId': state?._supportedChains
+                  .firstWhere((c) => c['name'] == selectedChain)['id'] ?? 'eip155:1',
+            });
+          },
+          onReject: () => Navigator.of(context).pop({'approved': false}),
+        );
+      },
+    );
+  }
 }
 
 class _ConnectionRequestSheetState extends State<ConnectionRequestSheet> {
@@ -416,36 +449,3 @@ class _ConnectionRequestSheetState extends State<ConnectionRequestSheet> {
     );
   }
 
-  static Future<Map<String, dynamic>?> show({
-    required BuildContext context,
-    required DAppProposal proposal,
-    required String walletAddress,
-  }) {
-    return showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        String? selectedChain;
-
-        return ConnectionRequestSheet(
-          proposal: proposal,
-          walletAddress: walletAddress,
-          onApprove: () {
-            // 获取当前选中的链
-            final state = context.findAncestorStateOfType<_ConnectionRequestSheetState>();
-            selectedChain = state?._selectedChain;
-
-            Navigator.of(context).pop({
-              'approved': true,
-              'chain': selectedChain ?? 'Ethereum',
-              'chainId': state?._supportedChains
-                  .firstWhere((c) => c['name'] == selectedChain)['id'] ?? 'eip155:1',
-            });
-          },
-          onReject: () => Navigator.of(context).pop({'approved': false}),
-        );
-      },
-    );
-  }
-}
