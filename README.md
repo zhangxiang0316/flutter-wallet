@@ -1,4 +1,4 @@
-# Omnicast Wallet
+# Flutter Wallet
 
 <div align="center">
   <img src="assets/images/app_icon.png" alt="Omnicast Wallet" width="120" height="120" />
@@ -17,6 +17,24 @@
 ---
 
 ## ✨ 功能特性
+
+### 🆕 新增功能
+
+#### Phase 1: 安全转账审查 ✅
+- **智能风险检测** - 大额转账、新地址、高手续费警告
+- **两步确认** - 审查交易详情后再签名
+- **交易预览** - 清晰显示转账信息、金额和手续费
+
+#### Phase 2: 消息签名 ✅
+- **EIP-191/EIP-712** - Ethereum 标准消息签名
+- **Solana/TRON** - 多链消息签名支持
+- **精美确认界面** - 清晰展示签名内容
+
+#### Phase 3: WalletConnect 集成 ✅
+- **DApp 扫码连接** - 扫描 QR 码连接 Web3 DApp
+- **实时会话管理** - 查看和管理已连接的 DApp
+- **多网络支持** - 支持所有 EVM 链
+- **请求处理** - 处理交易和签名请求
 
 ### 🔐 安全性
 - ✅ **生物识别认证** - 支持指纹和面容识别
@@ -162,7 +180,17 @@
    flutter pub run build_runner build
    ```
 
-4. **运行应用**
+4. **配置 WalletConnect**（可选，用于 DApp 扫码连接）
+   
+   如需使用 DApp 扫码连接功能，需要设置 WalletConnect Project ID：
+   - 访问 https://cloud.walletconnect.com/ 注册并获取免费 Project ID
+   - 在 `lib/wallet/services/walletconnect_service.dart` 第 42 行替换
+   
+   ```dart
+   const projectId = 'YOUR_PROJECT_ID_HERE'; // 替换为你的真实 ID
+   ```
+
+5. **运行应用**
    ```bash
    # 开发模式
    flutter run
