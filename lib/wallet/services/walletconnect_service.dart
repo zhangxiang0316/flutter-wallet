@@ -22,17 +22,14 @@ class WalletConnectService {
     return _walletKit!;
   }
 
-  /// 会话提案事件
-  Stream<SessionProposalEvent> get onSessionProposal =>
-      _walletKit?.onSessionProposal.subscribe((event) {}) ?? Stream.empty();
+  /// 会话提案事件 (直接返回 Event 对象，由 Controller 订阅)
+  Event<SessionProposalEvent>? get onSessionProposal => _walletKit?.onSessionProposal;
 
   /// 会话请求事件
-  Stream<SessionRequestEvent> get onSessionRequest =>
-      _walletKit?.onSessionRequest.subscribe((event) {}) ?? Stream.empty();
+  Event<SessionRequestEvent>? get onSessionRequest => _walletKit?.onSessionRequest;
 
   /// 会话删除事件
-  Stream<SessionDelete> get onSessionDelete =>
-      _walletKit?.onSessionDelete.subscribe((event) {}) ?? Stream.empty();
+  Event<SessionDelete>? get onSessionDelete => _walletKit?.onSessionDelete;
 
   /// 初始化服务
   Future<void> initialize() async {

@@ -42,7 +42,7 @@ class ConnectedDAppsPage extends BaseScaffoldPage<WalletConnectController> {
     });
   }
 
-  Widget _buildDAppCard(BuildContext context, String sessionId, int index) {
+  Widget _buildDAppCard(BuildContext context, dynamic session) {
     final theme = Theme.of(context);
     return Card(
       elevation: 0,
