@@ -87,27 +87,25 @@ class DAppScannerController extends BaseController {
 
       Toast.show('Connecting to DApp...');
 
-      // 确保只有一个控制器实例
+      // 确保控制器存在且持久化（permanent: true 防止被自动清理）
       if (!Get.isRegistered<WalletConnectController>()) {
-        debugPrint('🎮 Creating WalletConnectController');
-        Get.put(WalletConnectController());
+        debugPrint('🎮 Creating permanent WalletConnectController');
+        Get.put(WalletConnectController(), permanent: true);
       } else {
         debugPrint('🎮 WalletConnectController already exists');
       }
 
-      // 先返回，让连接请求在首页显示
+      // 立即触发配对，然后再关闭页面
+      debugPrint('🔗 Starting pairing...');
+      await _wcService.pair(uri);
+      debugPrint('✅ Pairing initiated');
+
+      // 配对完成后再关闭扫码页面
+      await Future.delayed(Duration(milliseconds: 100));
       debugPrint('🔙 Closing scanner page');
       if (Get.context != null) {
         Navigator.of(Get.context!).pop();
       }
-
-      // 然后触发配对（弹窗会在首页显示）
-      debugPrint('⏳ Waiting 200ms before pairing...');
-      await Future.delayed(Duration(milliseconds: 200));
-
-      debugPrint('🔗 Starting pairing...');
-      await _wcService.pair(uri);
-      debugPrint('✅ Pairing initiated');
 
     } catch (e) {
       debugPrint('❌ Pairing failed: $e');
