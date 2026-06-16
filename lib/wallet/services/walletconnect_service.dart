@@ -74,7 +74,9 @@ class WalletConnectService {
   /// 通过 URI 配对
   Future<PairingInfo> pair(String uriString) async {
     if (!_initialized || _walletKit == null) {
-      throw Exception('WalletConnect not initialized');
+      final error = 'WalletConnect not initialized. Please set your Project ID from https://cloud.walletconnect.com/';
+      debugPrint('❌ $error');
+      throw Exception(error);
     }
 
     try {
