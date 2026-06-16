@@ -414,7 +414,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       return;
     }
 
-    // Phase 3: WalletConnect 功能开发中
-    Toast.show('WalletConnect Coming Soon!\n\nPhase 1 & 2 are complete:\n✅ Secure transaction review\n✅ Message signing (EIP-191, EIP-712)\n✅ Solana & TRON support');
+    // 打开 WalletConnect 扫码页面
+    await Get.toNamed(RouteTable.dapp_scan);
   }
 }
