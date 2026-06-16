@@ -42,7 +42,9 @@ class WalletConnectService {
       // 模拟配对过程
       await Future.delayed(Duration(milliseconds: 500));
 
-      // 触发会话提案
+      // 触发会话提案（延迟触发，确保界面已准备好）
+      await Future.delayed(Duration(milliseconds: 300));
+
       final proposal = SessionProposal(
         id: DateTime.now().millisecondsSinceEpoch,
         name: 'Demo DApp',

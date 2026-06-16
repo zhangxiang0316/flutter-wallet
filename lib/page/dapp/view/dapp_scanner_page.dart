@@ -85,13 +85,15 @@ class DAppScannerController extends BaseController {
         Get.put(WalletConnectController());
       }
 
-      await _wcService.pair(uri);
-      await Future.delayed(Duration(milliseconds: 800));
+      // 先返回，让连接请求在首页显示
       if (Get.context != null) Navigator.of(Get.context!).pop();
+
+      // 然后触发配对（弹窗会在首页显示）
+      await Future.delayed(Duration(milliseconds: 200));
+      await _wcService.pair(uri);
     } catch (e) {
       debugPrint('Pairing failed: $e');
       Toast.show('Connection failed');
-      await scannerController.start();
       _isProcessing = false;
     }
   }
