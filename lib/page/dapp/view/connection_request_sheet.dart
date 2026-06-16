@@ -364,7 +364,7 @@ class _ConnectionRequestSheetState extends State<ConnectionRequestSheet> {
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
-                  walletAddress,
+                  widget.walletAddress,
                   style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500, fontFamily: 'monospace'),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -388,7 +388,7 @@ class _ConnectionRequestSheetState extends State<ConnectionRequestSheet> {
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: onReject,
+              onPressed: widget.onReject,
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 14.h),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
@@ -400,7 +400,7 @@ class _ConnectionRequestSheetState extends State<ConnectionRequestSheet> {
           SizedBox(width: 12.w),
           Expanded(
             child: ElevatedButton(
-              onPressed: onApprove,
+              onPressed: widget.onApprove,
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,
                 foregroundColor: Colors.white,
