@@ -415,6 +415,6 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     }
 
     // 打开 WalletConnect 扫码页面
-    await Get.toNamed(RouteTable.dappScan);
+    await Get.toNamed(RouteTable.dapp_scan);
   }
 }
