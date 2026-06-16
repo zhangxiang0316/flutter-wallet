@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../base/base_page.dart';
@@ -10,6 +11,7 @@ import '../../../wallet/services/walletconnect_service.dart';
 /// WalletConnect 扫码页面
 ///
 /// 扫描 DApp 的 WalletConnect 二维码建立连接
+@GetXRoutePage('/dapp/scan')
 class DAppScannerPage extends BasePage {
   const DAppScannerPage({Key? key}) : super(key: key);
 

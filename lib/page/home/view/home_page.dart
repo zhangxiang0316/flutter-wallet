@@ -414,10 +414,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       return;
     }
 
-    // TODO: 打开 WalletConnect 扫码页面（Phase 3 实现）
-    Toast.show('WalletConnect coming soon!\n\nThis feature will allow you to:\n• Scan DApp QR codes\n• Connect to DeFi platforms\n• Sign transactions securely');
-
-    // Phase 3 完成后取消注释：
-    // await Get.toNamed(RouteTable.walletConnectScan);
+    // 打开 WalletConnect 扫码页面
+    await Get.toNamed(RouteTable.dappScan);
   }
 }
