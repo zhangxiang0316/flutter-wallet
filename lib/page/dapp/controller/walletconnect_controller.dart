@@ -10,7 +10,7 @@ import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/walletconnect_service.dart';
-import '../../message_sign/view/message_sign_sheet.dart';
+import '../../../widget/message_sign_sheet.dart';
 import '../view/connection_request_sheet.dart';
 
 /// WalletConnect 控制器 (真实 SDK 集成)
