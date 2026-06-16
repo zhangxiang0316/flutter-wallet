@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -9,6 +10,7 @@ import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/walletconnect_service.dart';
+import '../../message_sign/view/message_sign_sheet.dart';
 import '../view/connection_request_sheet.dart';
 
 /// WalletConnect 控制器 (真实 SDK 集成)
@@ -182,33 +184,221 @@ class WalletConnectController extends BaseController {
   }
 
   Future<void> _handleSignRequest(SessionRequestEvent event) async {
-    // TODO: 显示签名确认界面并签名
-    debugPrint('🖊️ Sign request (not implemented yet)');
-    await _wcService.respondError(
-      topic: event.topic,
-      requestId: event.id,
-      error: 'Sign not implemented yet',
-    );
+    try {
+      debugPrint('🖊️ Handling sign request');
+
+      // 解析参数
+      final params = event.params as List;
+      if (params.isEmpty) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'Invalid parameters',
+        );
+        return;
+      }
+
+      String message = '';
+      String address = '';
+
+      if (event.method == 'personal_sign') {
+        // personal_sign: [message, address]
+        message = params[0] as String;
+        address = params.length > 1 ? params[1] as String : '';
+      } else {
+        // eth_sign: [address, message]
+        address = params[0] as String;
+        message = params.length > 1 ? params[1] as String : '';
+      }
+
+      debugPrint('   Message: ${message.substring(0, min(50, message.length))}...');
+      debugPrint('   Address: $address');
+
+      // 获取当前钱包
+      final wallet = await _repository.loadCurrentWallet();
+      if (wallet == null) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'No wallet available',
+        );
+        Toast.show('Please create a wallet first');
+        return;
+      }
+
+      // 显示签名确认界面
+      final signature = await MessageSignSheet.show(
+        context: Get.context!,
+        message: message,
+        chainName: 'Ethereum', // 从 event 中获取链信息
+        dappName: _getSessionName(event.topic),
+      );
+
+      if (signature != null && signature.isNotEmpty) {
+        // 返回签名结果
+        await _wcService.respondSuccess(
+          topic: event.topic,
+          requestId: event.id,
+          result: signature,
+        );
+        debugPrint('✅ Signature sent to DApp');
+        Toast.show('Signed successfully');
+      } else {
+        // 用户拒绝签名
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'User rejected',
+        );
+        debugPrint('❌ User rejected signing');
+      }
+    } catch (e, stack) {
+      debugPrint('❌ Sign request failed: $e');
+      debugPrint('Stack: $stack');
+      await _wcService.respondError(
+        topic: event.topic,
+        requestId: event.id,
+        error: e.toString(),
+      );
+    }
   }
 
   Future<void> _handleTransactionRequest(SessionRequestEvent event) async {
-    // TODO: 显示交易确认界面并签名发送
-    debugPrint('💸 Transaction request (not implemented yet)');
-    await _wcService.respondError(
-      topic: event.topic,
-      requestId: event.id,
-      error: 'Transaction not implemented yet',
-    );
+    try {
+      debugPrint('💸 Handling transaction request');
+
+      // 解析交易参数
+      final params = event.params as List;
+      if (params.isEmpty) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'Invalid parameters',
+        );
+        return;
+      }
+
+      final txParam = params[0] as Map<String, dynamic>;
+      debugPrint('   From: ${txParam['from']}');
+      debugPrint('   To: ${txParam['to']}');
+      debugPrint('   Value: ${txParam['value']}');
+
+      // 获取当前钱包
+      final wallet = await _repository.loadCurrentWallet();
+      if (wallet == null) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'No wallet available',
+        );
+        Toast.show('Please create a wallet first');
+        return;
+      }
+
+      // TODO: 显示交易预览界面（TransactionReviewSheet）
+      // 由于需要构造完整的交易对象，这里暂时返回 not implemented
+      // 你可以根据 Phase 1 的 TransactionReviewSheet 来集成
+
+      debugPrint('⚠️ Transaction UI not integrated yet');
+      Toast.show('Transaction signing will be added soon');
+
+      await _wcService.respondError(
+        topic: event.topic,
+        requestId: event.id,
+        error: 'Transaction signing UI not integrated yet',
+      );
+
+    } catch (e, stack) {
+      debugPrint('❌ Transaction request failed: $e');
+      debugPrint('Stack: $stack');
+      await _wcService.respondError(
+        topic: event.topic,
+        requestId: event.id,
+        error: e.toString(),
+      );
+    }
   }
 
   Future<void> _handleTypedDataRequest(SessionRequestEvent event) async {
-    // TODO: 显示 TypedData 签名确认界面
-    debugPrint('📝 TypedData request (not implemented yet)');
-    await _wcService.respondError(
-      topic: event.topic,
-      requestId: event.id,
-      error: 'TypedData not implemented yet',
-    );
+    try {
+      debugPrint('📝 Handling typed data request');
+
+      final params = event.params as List;
+      if (params.length < 2) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'Invalid parameters',
+        );
+        return;
+      }
+
+      final address = params[0] as String;
+      final typedData = params[1] as String;
+
+      debugPrint('   Address: $address');
+      debugPrint('   TypedData: ${typedData.substring(0, min(100, typedData.length))}...');
+
+      // 获取当前钱包
+      final wallet = await _repository.loadCurrentWallet();
+      if (wallet == null) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'No wallet available',
+        );
+        Toast.show('Please create a wallet first');
+        return;
+      }
+
+      // 显示 TypedData 签名确认界面
+      final signature = await MessageSignSheet.show(
+        context: Get.context!,
+        message: typedData,
+        chainName: 'Ethereum',
+        dappName: _getSessionName(event.topic),
+        isTypedData: true,
+      );
+
+      if (signature != null && signature.isNotEmpty) {
+        await _wcService.respondSuccess(
+          topic: event.topic,
+          requestId: event.id,
+          result: signature,
+        );
+        debugPrint('✅ TypedData signature sent');
+        Toast.show('Signed successfully');
+      } else {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'User rejected',
+        );
+        debugPrint('❌ User rejected TypedData signing');
+      }
+    } catch (e, stack) {
+      debugPrint('❌ TypedData request failed: $e');
+      debugPrint('Stack: $stack');
+      await _wcService.respondError(
+        topic: event.topic,
+        requestId: event.id,
+        error: e.toString(),
+      );
+    }
+  }
+
+  /// 获取会话的 DApp 名称
+  String _getSessionName(String topic) {
+    try {
+      final sessions = _wcService.getActiveSessions();
+      final session = sessions.firstWhere(
+        (s) => s.topic == topic,
+        orElse: () => throw Exception('Session not found'),
+      );
+      return session.peer.metadata.name;
+    } catch (e) {
+      return 'Unknown DApp';
+    }
   }
 
   List<SessionData> getActiveSessions() => _wcService.getActiveSessions();
