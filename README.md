@@ -148,8 +148,8 @@
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/zhangxiang0316/omnicast.git
-   cd omnicast
+   git clone https://github.com/zhangxiang0316/flutter-wallet.git
+   cd flutter-wallet
    ```
 
 2. **安装依赖**
