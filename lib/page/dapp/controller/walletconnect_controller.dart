@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
+import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/walletconnect_service.dart';
@@ -10,6 +14,8 @@ import '../view/connection_request_sheet.dart';
 class WalletConnectController extends BaseController {
   final WalletConnectService _wcService = WalletConnectService.instance;
   final WalletRepository _repository = WalletRepository();
+
+  StreamSubscription? _proposalSubscription;
 
   @override
   void onInit() {
@@ -27,7 +33,10 @@ class WalletConnectController extends BaseController {
   }
 
   void _listenToEvents() {
-    _wcService.onSessionProposal.listen((proposal) {
+    // 取消之前的订阅，防止重复
+    _proposalSubscription?.cancel();
+
+    _proposalSubscription = _wcService.onSessionProposal.listen((proposal) {
       _handleConnectionRequest(proposal);
     });
   }
@@ -37,12 +46,14 @@ class WalletConnectController extends BaseController {
       final wallet = await _repository.loadCurrentWallet();
       if (wallet == null) {
         await _wcService.rejectSession(proposalId: proposal.id, reason: 'No wallet');
+        Toast.show('Please create a wallet first');
         return;
       }
 
       final address = wallet.bscAddress;
       if (address.isEmpty) {
         await _wcService.rejectSession(proposalId: proposal.id, reason: 'No address');
+        Toast.show('No wallet address');
         return;
       }
 
@@ -54,13 +65,19 @@ class WalletConnectController extends BaseController {
 
       if (approved == true) {
         await _wcService.approveSession(proposalId: proposal.id, address: address);
-        debugPrint('✅ Session approved');
+        Toast.show('Connected to ${proposal.name}!');
+        debugPrint('✅ Session approved: ${proposal.name}');
+
+        // 刷新列表
+        update();
       } else {
         await _wcService.rejectSession(proposalId: proposal.id);
-        debugPrint('❌ Session rejected');
+        Toast.show('Connection rejected');
+        debugPrint('❌ Session rejected by user');
       }
     } catch (e) {
       debugPrint('❌ Handle connection request failed: $e');
+      Toast.show('Connection failed: $e');
       await _wcService.rejectSession(proposalId: proposal.id, reason: 'Error: $e');
     }
   }
@@ -69,5 +86,12 @@ class WalletConnectController extends BaseController {
 
   Future<void> disconnectSession(String sessionId) async {
     await _wcService.disconnectSession(sessionId);
+    update();
+  }
+
+  @override
+  void onClose() {
+    _proposalSubscription?.cancel();
+    super.onClose();
   }
 }
