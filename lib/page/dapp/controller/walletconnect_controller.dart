@@ -43,8 +43,11 @@ class WalletConnectController extends BaseController {
 
   Future<void> _handleConnectionRequest(SessionProposal proposal) async {
     try {
+      debugPrint('📥 Handling connection request for: ${proposal.name}');
+
       final wallet = await _repository.loadCurrentWallet();
       if (wallet == null) {
+        debugPrint('❌ No wallet available');
         await _wcService.rejectSession(proposalId: proposal.id, reason: 'No wallet');
         Toast.show('Please create a wallet first');
         return;
@@ -52,16 +55,23 @@ class WalletConnectController extends BaseController {
 
       final address = wallet.bscAddress;
       if (address.isEmpty) {
+        debugPrint('❌ No wallet address');
         await _wcService.rejectSession(proposalId: proposal.id, reason: 'No address');
         Toast.show('No wallet address');
         return;
       }
+
+      debugPrint('💬 Showing connection request dialog...');
+      debugPrint('   DApp: ${proposal.name}');
+      debugPrint('   Address: $address');
 
       final approved = await ConnectionRequestSheet.show(
         context: Get.context!,
         proposal: proposal,
         walletAddress: address,
       );
+
+      debugPrint('📊 User response: $approved');
 
       if (approved == true) {
         await _wcService.approveSession(proposalId: proposal.id, address: address);
