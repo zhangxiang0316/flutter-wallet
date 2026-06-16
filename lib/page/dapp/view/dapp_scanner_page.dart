@@ -10,7 +10,6 @@ import '../../../utils/toast_util.dart';
 
 @GetXRoutePage('/dapp/scan')
 class DAppScannerPage extends BasePage<DAppScannerController> {
-  DAppScannerPage({Key? key}) : super(key: key);
 
   @override
   DAppScannerController generateController() => DAppScannerController();

@@ -8,7 +8,6 @@ import '../../../base/base_controller.dart';
 
 @GetXRoutePage('/dapp/connected')
 class ConnectedDAppsPage extends BaseScaffoldPage<ConnectedDAppsController> {
-  ConnectedDAppsPage({Key? key}) : super(key: key);
 
   @override
   ConnectedDAppsController generateController() => Get.put(ConnectedDAppsController());
