@@ -60,7 +60,7 @@ class WalletConnectController extends BaseController {
     try {
       debugPrint('💬 Showing connection request dialog');
 
-      final proposal = SessionProposal(
+      final proposal = DAppProposal(
         id: event.id,
         params: event.params,
       );

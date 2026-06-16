@@ -5,20 +5,28 @@ import 'package:reown_walletkit/reown_walletkit.dart';
 import '../../../wallet/services/walletconnect_service.dart';
 import '../controller/walletconnect_controller.dart';
 
-/// 会话提案数据类
-class SessionProposal {
+/// DApp 提案数据类（避免与 SDK 的 SessionProposal 冲突）
+class DAppProposal {
   final int id;
   final ProposalData params;
 
-  SessionProposal({
+  DAppProposal({
     required this.id,
     required this.params,
   });
+
+  // 便捷访问属性
+  String get name => params.proposer.metadata.name;
+  String get url => params.proposer.metadata.url;
+  String? get icon => params.proposer.metadata.icons.isNotEmpty
+      ? params.proposer.metadata.icons.first
+      : null;
+  String get description => params.proposer.metadata.description;
 }
 
 /// 连接请求确认弹窗
 class ConnectionRequestSheet extends StatelessWidget {
-  final SessionProposal proposal;
+  final DAppProposal proposal;
   final String walletAddress;
   final VoidCallback onApprove;
   final VoidCallback onReject;
@@ -270,7 +278,7 @@ class ConnectionRequestSheet extends StatelessWidget {
 
   static Future<bool?> show({
     required BuildContext context,
-    required SessionProposal proposal,
+    required DAppProposal proposal,
     required String walletAddress,
   }) {
     return showModalBottomSheet<bool>(
