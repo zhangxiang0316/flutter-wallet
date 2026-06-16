@@ -77,15 +77,18 @@ class WalletConnectController extends BaseController {
         walletAddress: wallet.bscAddress,
       );
 
-      if (approved == true) {
-        // 批准会话
+      if (approved?['approved'] == true) {
+        final chainId = approved!['chainId'] as String;
+
+        // 批准会话，使用选中的链
         await _wcService.approveSession(
           proposalId: event.id,
           address: wallet.bscAddress,
+          chains: [chainId], // 使用用户选择的链
         );
 
-        Toast.show('Connected to ${event.params.proposer.metadata.name}!');
-        debugPrint('✅ Session approved: ${event.params.proposer.metadata.name}');
+        Toast.show('Connected to ${event.params.proposer.metadata.name} on ${approved['chain']}!');
+        debugPrint('✅ Session approved: ${event.params.proposer.metadata.name} on ${approved['chain']}');
 
         // 刷新列表
         update();

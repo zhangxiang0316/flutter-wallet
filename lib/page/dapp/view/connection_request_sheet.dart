@@ -25,7 +25,7 @@ class DAppProposal {
 }
 
 /// 连接请求确认弹窗
-class ConnectionRequestSheet extends StatelessWidget {
+class ConnectionRequestSheet extends StatefulWidget {
   final DAppProposal proposal;
   final String walletAddress;
   final VoidCallback onApprove;
@@ -38,6 +38,21 @@ class ConnectionRequestSheet extends StatelessWidget {
     required this.onApprove,
     required this.onReject,
   }) : super(key: key);
+
+  @override
+  State<ConnectionRequestSheet> createState() => _ConnectionRequestSheetState();
+}
+
+class _ConnectionRequestSheetState extends State<ConnectionRequestSheet> {
+  String _selectedChain = 'Ethereum'; // 默认选择以太坊
+
+  final List<Map<String, String>> _supportedChains = [
+    {'name': 'Ethereum', 'id': 'eip155:1'},
+    {'name': 'BSC', 'id': 'eip155:56'},
+    {'name': 'Polygon', 'id': 'eip155:137'},
+    {'name': 'Arbitrum', 'id': 'eip155:42161'},
+    {'name': 'Optimism', 'id': 'eip155:10'},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +75,8 @@ class ConnectionRequestSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildChainSelector(context),
+                    SizedBox(height: 20.h),
                     _buildPermissions(context),
                     SizedBox(height: 20.h),
                     _buildWalletInfo(context),
@@ -141,6 +158,129 @@ class ConnectionRequestSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildChainSelector(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select Network',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Column(
+            children: _supportedChains.asMap().entries.map((entry) {
+              final index = entry.key;
+              final chain = entry.value;
+              final isSelected = chain['name'] == _selectedChain;
+              final isLast = index == _supportedChains.length - 1;
+
+              return InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedChain = chain['name']!;
+                  });
+                },
+                borderRadius: BorderRadius.vertical(
+                  top: index == 0 ? Radius.circular(12.r) : Radius.zero,
+                  bottom: isLast ? Radius.circular(12.r) : Radius.zero,
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? theme.primaryColor.withValues(alpha: 0.1)
+                        : null,
+                    border: !isLast
+                        ? Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.2)))
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32.w,
+                        height: 32.w,
+                        decoration: BoxDecoration(
+                          color: _getChainColor(chain['name']!).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            chain['name']![0],
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: _getChainColor(chain['name']!),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              chain['name']!,
+                              style: TextStyle(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              chain['id']!,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        Icon(
+                          Icons.check_circle,
+                          color: theme.primaryColor,
+                          size: 20.sp,
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getChainColor(String chainName) {
+    switch (chainName) {
+      case 'Ethereum':
+        return Colors.blue;
+      case 'BSC':
+        return Colors.amber;
+      case 'Polygon':
+        return Colors.purple;
+      case 'Arbitrum':
+        return Colors.lightBlue;
+      case 'Optimism':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   Widget _buildPermissions(BuildContext context) {
@@ -276,21 +416,36 @@ class ConnectionRequestSheet extends StatelessWidget {
     );
   }
 
-  static Future<bool?> show({
+  static Future<Map<String, dynamic>?> show({
     required BuildContext context,
     required DAppProposal proposal,
     required String walletAddress,
   }) {
-    return showModalBottomSheet<bool>(
+    return showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ConnectionRequestSheet(
-        proposal: proposal,
-        walletAddress: walletAddress,
-        onApprove: () => Navigator.of(context).pop(true),
-        onReject: () => Navigator.of(context).pop(false),
-      ),
+      builder: (context) {
+        String? selectedChain;
+
+        return ConnectionRequestSheet(
+          proposal: proposal,
+          walletAddress: walletAddress,
+          onApprove: () {
+            // 获取当前选中的链
+            final state = context.findAncestorStateOfType<_ConnectionRequestSheetState>();
+            selectedChain = state?._selectedChain;
+
+            Navigator.of(context).pop({
+              'approved': true,
+              'chain': selectedChain ?? 'Ethereum',
+              'chainId': state?._supportedChains
+                  .firstWhere((c) => c['name'] == selectedChain)['id'] ?? 'eip155:1',
+            });
+          },
+          onReject: () => Navigator.of(context).pop({'approved': false}),
+        );
+      },
     );
   }
 }
