@@ -83,6 +83,18 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
+        // WalletConnect 扫码按钮
+        Semantics(
+          button: true,
+          label: 'Scan to Connect DApp',
+          child: IconButton(
+            tooltip: 'Connect DApp',
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            color: colorScheme.onSurface.withValues(alpha: 0.82),
+            iconSize: 20.w,
+            onPressed: _scanToConnectDApp,
+          ),
+        ).marginOnly(right: 2.w),
         Semantics(
           button: true,
           label: S.of(context!).settings,
@@ -393,4 +405,19 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// Solana 地址升级弹窗是否正在显示。
   bool _solanaAddressUpgradeSheetVisible = false;
+
+  /// 扫码连接 DApp (WalletConnect)
+  void _scanToConnectDApp() async {
+    // 检查是否有钱包
+    if (controller.wallet == null) {
+      Toast.show('Please create a wallet first');
+      return;
+    }
+
+    // TODO: 打开 WalletConnect 扫码页面（Phase 3 实现）
+    Toast.show('WalletConnect coming soon!\n\nThis feature will allow you to:\n• Scan DApp QR codes\n• Connect to DeFi platforms\n• Sign transactions securely');
+
+    // Phase 3 完成后取消注释：
+    // await Get.toNamed(RouteTable.walletConnectScan);
+  }
 }
