@@ -18,28 +18,6 @@
 
 ## ✨ 功能特性
 
-### 🔐 Phase 1: 安全转账审查
-- ✅ **智能风险检测** - 自动识别高风险交易
-  - 大额转账警告
-  - 新地址提醒  
-  - 高手续费提示
-- ✅ **两步确认** - 审查交易详情后再签名
-- ✅ **交易预览** - 清晰显示转账信息、金额和手续费
-
-### ✍️ Phase 2: 消息签名
-- ✅ **EIP-191 (personal_sign)** - 个人消息签名
-- ✅ **EIP-712 (Typed Data)** - 结构化数据签名
-- ✅ **Solana Ed25519** - Solana 原生消息签名
-- ✅ **TRON 签名** - TRON 网络消息签名支持
-- ✅ **精美界面** - 用户友好的签名确认界面
-
-### 🌐 Phase 3: WalletConnect 集成
-- ✅ **QR 码扫描** - 扫码连接 DApp
-- ✅ **实时连接** - 与 Web3 应用即时连接
-- ✅ **会话管理** - 查看和管理已连接的 DApp
-- ✅ **多网络支持** - 支持 EVM 链（Ethereum、BSC、Polygon 等）
-- ✅ **请求处理** - 处理来自 DApp 的交易和签名请求
-
 ### 🔐 安全性
 - ✅ **生物识别认证** - 支持指纹和面容识别
 - ✅ **密码缓存控制** - 用户可自定义密码缓存时间（5分钟/30分钟/永不）
@@ -184,17 +162,7 @@
    flutter pub run build_runner build
    ```
 
-4. **配置 WalletConnect**（可选，用于 DApp 连接功能）
-   
-   如需使用 WalletConnect 连接 DApp：
-   - 访问 [WalletConnect Cloud](https://cloud.walletconnect.com/) 获取 Project ID
-   - 在 `lib/wallet/services/walletconnect_service.dart` 第 42 行替换 Project ID
-   
-   ```dart
-   const projectId = 'YOUR_PROJECT_ID_HERE'; // 替换为你的真实 ID
-   ```
-
-5. **运行应用**
+4. **运行应用**
    ```bash
    # 开发模式
    flutter run
