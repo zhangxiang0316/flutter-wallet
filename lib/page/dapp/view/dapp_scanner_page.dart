@@ -7,10 +7,11 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../base/base_controller.dart';
 import '../../../base/base_page.dart';
 import '../../../utils/toast_util.dart';
+import '../../../wallet/services/walletconnect_service.dart';
+import '../controller/walletconnect_controller.dart';
 
 @GetXRoutePage('/dapp/scan')
 class DAppScannerPage extends BasePage<DAppScannerController> {
-
   @override
   DAppScannerController generateController() => DAppScannerController();
 
@@ -34,10 +35,7 @@ class DAppScannerPage extends BasePage<DAppScannerController> {
                     icon: Icon(Icons.arrow_back, color: Colors.white, size: 24.sp),
                   ),
                   SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text('Scan QR Code',
-                      style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold)),
-                  ),
+                  Expanded(child: Text('Scan QR Code', style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold))),
                   IconButton(
                     onPressed: () => controller.scannerController.toggleTorch(),
                     icon: Icon(Icons.flash_on, color: Colors.white, size: 24.sp),
@@ -52,13 +50,8 @@ class DAppScannerPage extends BasePage<DAppScannerController> {
               padding: EdgeInsets.symmetric(horizontal: 32.w),
               child: Container(
                 padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Text('Scan DApp QR code to connect',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 14.sp)),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12.r)),
+                child: Text('Scan DApp QR code to connect', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14.sp)),
               ),
             ),
           ),
@@ -70,6 +63,7 @@ class DAppScannerPage extends BasePage<DAppScannerController> {
 
 class DAppScannerController extends BaseController {
   final MobileScannerController scannerController = MobileScannerController(formats: [BarcodeFormat.qrCode]);
+  final WalletConnectService _wcService = WalletConnectService.instance;
   bool _isProcessing = false;
 
   void onDetect(BarcodeCapture capture) async {
@@ -84,12 +78,14 @@ class DAppScannerController extends BaseController {
     _isProcessing = true;
     try {
       await scannerController.stop();
-      Toast.show('WalletConnect detected! Full integration coming soon.');
-      await Future.delayed(Duration(seconds: 2));
+      Toast.show('Connecting to DApp...');
+      Get.put(WalletConnectController());
+      await _wcService.pair(uri);
+      await Future.delayed(Duration(milliseconds: 500));
       if (Get.context != null) Navigator.of(Get.context!).pop();
     } catch (e) {
-      debugPrint('Scan failed: $e');
-      Toast.show('Scan failed');
+      debugPrint('Pairing failed: $e');
+      Toast.show('Connection failed');
       await scannerController.start();
       _isProcessing = false;
     }
