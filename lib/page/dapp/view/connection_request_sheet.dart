@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:reown_walletkit/reown_walletkit.dart';
 
 import '../../../wallet/services/walletconnect_service.dart';
 import '../controller/walletconnect_controller.dart';
+
+/// 会话提案数据类
+class SessionProposal {
+  final int id;
+  final ProposalData params;
+
+  SessionProposal({
+    required this.id,
+    required this.params,
+  });
+}
 
 /// 连接请求确认弹窗
 class ConnectionRequestSheet extends StatelessWidget {
