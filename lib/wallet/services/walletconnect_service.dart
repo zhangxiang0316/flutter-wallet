@@ -2,61 +2,97 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:reown_walletkit/reown_walletkit.dart';
 
-/// WalletConnect 服务 (简化版)
+/// WalletConnect 服务 (完整实现)
 ///
-/// 提供基础的配对和会话管理功能
+/// 使用 reown_walletkit SDK 实现真实的 WalletConnect v2 协议
 class WalletConnectService {
   WalletConnectService._();
   static final WalletConnectService instance = WalletConnectService._();
 
+  ReownWalletKit? _walletKit;
   bool _initialized = false;
-  final List<String> _activeSessions = [];
 
-  /// 会话提案事件流
-  final _sessionProposalController = StreamController<SessionProposal>.broadcast();
-  Stream<SessionProposal> get onSessionProposal => _sessionProposalController.stream;
+  /// 获取 WalletKit 实例
+  ReownWalletKit get walletKit {
+    if (_walletKit == null) {
+      throw Exception('WalletConnect not initialized');
+    }
+    return _walletKit!;
+  }
+
+  /// 会话提案事件
+  Stream<SessionProposalEvent> get onSessionProposal =>
+      _walletKit?.onSessionProposal.subscribe() ?? Stream.empty();
+
+  /// 会话请求事件
+  Stream<SessionRequestEvent> get onSessionRequest =>
+      _walletKit?.onSessionRequest.subscribe() ?? Stream.empty();
+
+  /// 会话删除事件
+  Stream<SessionDelete> get onSessionDelete =>
+      _walletKit?.onSessionDelete.subscribe() ?? Stream.empty();
 
   /// 初始化服务
   Future<void> initialize() async {
     if (_initialized) return;
 
     try {
-      debugPrint('✅ WalletConnect Service initialized (simplified version)');
+      debugPrint('🚀 Initializing WalletConnect...');
+
+      // TODO: 从配置或环境变量读取
+      const projectId = 'YOUR_PROJECT_ID_HERE';
+
+      if (projectId == 'YOUR_PROJECT_ID_HERE') {
+        debugPrint('⚠️ WARNING: Using placeholder project ID');
+        debugPrint('⚠️ Get your project ID from: https://cloud.walletconnect.com/');
+      }
+
+      _walletKit = ReownWalletKit(
+        core: ReownCore(
+          projectId: projectId,
+        ),
+        metadata: const PairingMetadata(
+          name: 'Omnicast Wallet',
+          description: 'Multi-chain crypto wallet',
+          url: 'https://github.com/your-org/omnicast',
+          icons: ['https://your-domain.com/icon.png'],
+        ),
+      );
+
+      await _walletKit!.init();
       _initialized = true;
-    } catch (e) {
+
+      debugPrint('✅ WalletConnect initialized successfully');
+      debugPrint('   Protocol: ${_walletKit!.protocol}');
+      debugPrint('   Version: ${_walletKit!.version}');
+    } catch (e, stack) {
       debugPrint('❌ WalletConnect initialization failed: $e');
+      debugPrint('Stack: $stack');
       rethrow;
     }
   }
 
   /// 通过 URI 配对
-  Future<void> pair(String uri) async {
-    if (!_initialized) {
+  Future<PairingInfo> pair(String uriString) async {
+    if (!_initialized || _walletKit == null) {
       throw Exception('WalletConnect not initialized');
     }
 
     try {
-      debugPrint('📨 Pairing with URI: ${uri.substring(0, 20)}...');
+      debugPrint('📨 Pairing with URI: ${uriString.substring(0, 30)}...');
 
-      // 模拟配对过程
-      await Future.delayed(Duration(milliseconds: 500));
+      final uri = Uri.parse(uriString);
+      final pairingInfo = await _walletKit!.pair(uri: uri);
 
-      // 触发会话提案（延迟触发，确保界面已准备好）
-      await Future.delayed(Duration(milliseconds: 300));
-
-      final proposal = SessionProposal(
-        id: DateTime.now().millisecondsSinceEpoch,
-        name: 'Demo DApp',
-        description: 'A demo DApp for testing',
-        url: 'https://example.com',
-        icons: ['https://example.com/icon.png'],
-      );
-
-      _sessionProposalController.add(proposal);
       debugPrint('✅ Pairing initiated');
-    } catch (e) {
+      debugPrint('   Topic: ${pairingInfo.topic}');
+
+      return pairingInfo;
+    } catch (e, stack) {
       debugPrint('❌ Pairing failed: $e');
+      debugPrint('Stack: $stack');
       rethrow;
     }
   }
@@ -65,13 +101,39 @@ class WalletConnectService {
   Future<void> approveSession({
     required int proposalId,
     required String address,
+    List<String>? chains,
   }) async {
     try {
-      await Future.delayed(Duration(milliseconds: 300));
-      _activeSessions.add('session_$proposalId');
-      debugPrint('✅ Session approved: $proposalId');
-    } catch (e) {
+      debugPrint('✅ Approving session: $proposalId');
+      debugPrint('   Address: $address');
+
+      // 构造 Namespace
+      final namespaces = <String, Namespace>{};
+
+      // EVM chains
+      final evmChains = chains ?? ['eip155:1']; // 默认以太坊主网
+      namespaces['eip155'] = Namespace(
+        accounts: evmChains.map((chain) => '$chain:$address').toList(),
+        methods: [
+          'eth_sendTransaction',
+          'eth_signTransaction',
+          'eth_sign',
+          'personal_sign',
+          'eth_signTypedData',
+          'eth_signTypedData_v4',
+        ],
+        events: ['chainChanged', 'accountsChanged'],
+      );
+
+      await _walletKit!.approveSession(
+        id: proposalId,
+        namespaces: namespaces,
+      );
+
+      debugPrint('✅ Session approved successfully');
+    } catch (e, stack) {
       debugPrint('❌ Approve session failed: $e');
+      debugPrint('Stack: $stack');
       rethrow;
     }
   }
@@ -82,49 +144,106 @@ class WalletConnectService {
     String reason = 'User rejected',
   }) async {
     try {
-      await Future.delayed(Duration(milliseconds: 200));
-      debugPrint('✅ Session rejected: $proposalId - $reason');
-    } catch (e) {
+      debugPrint('❌ Rejecting session: $proposalId');
+      debugPrint('   Reason: $reason');
+
+      await _walletKit!.rejectSession(
+        id: proposalId,
+        reason: ReownSignError(
+          code: 5000,
+          message: reason,
+        ),
+      );
+
+      debugPrint('✅ Session rejected');
+    } catch (e, stack) {
       debugPrint('❌ Reject session failed: $e');
+      debugPrint('Stack: $stack');
       rethrow;
     }
   }
 
-  /// 获取活动会话
-  List<String> getActiveSessions() {
-    return List.unmodifiable(_activeSessions);
+  /// 响应会话请求（成功）
+  Future<void> respondSuccess({
+    required String topic,
+    required int requestId,
+    required String result,
+  }) async {
+    try {
+      debugPrint('✅ Responding to request: $requestId');
+
+      await _walletKit!.respondSessionRequest(
+        topic: topic,
+        response: JsonRpcResponse(
+          id: requestId,
+          jsonrpc: '2.0',
+          result: result,
+        ),
+      );
+
+      debugPrint('✅ Response sent successfully');
+    } catch (e, stack) {
+      debugPrint('❌ Respond success failed: $e');
+      debugPrint('Stack: $stack');
+      rethrow;
+    }
+  }
+
+  /// 响应会话请求（错误）
+  Future<void> respondError({
+    required String topic,
+    required int requestId,
+    required String error,
+  }) async {
+    try {
+      debugPrint('❌ Responding error to request: $requestId');
+
+      await _walletKit!.respondSessionRequest(
+        topic: topic,
+        response: JsonRpcResponse(
+          id: requestId,
+          jsonrpc: '2.0',
+          error: JsonRpcError(code: 5000, message: error),
+        ),
+      );
+
+      debugPrint('✅ Error response sent');
+    } catch (e, stack) {
+      debugPrint('❌ Respond error failed: $e');
+      debugPrint('Stack: $stack');
+      rethrow;
+    }
+  }
+
+  /// 获取所有活动会话
+  List<SessionData> getActiveSessions() {
+    if (_walletKit == null) return [];
+    return _walletKit!.sessions.getAll();
   }
 
   /// 断开会话
-  Future<void> disconnectSession(String sessionId) async {
+  Future<void> disconnectSession(String topic) async {
     try {
-      _activeSessions.remove(sessionId);
-      debugPrint('✅ Session disconnected: $sessionId');
-    } catch (e) {
-      debugPrint('❌ Disconnect session failed: $e');
+      debugPrint('🔌 Disconnecting session: $topic');
+
+      await _walletKit!.disconnectSession(
+        topic: topic,
+        reason: ReownSignError(
+          code: 6000,
+          message: 'User disconnected',
+        ),
+      );
+
+      debugPrint('✅ Session disconnected');
+    } catch (e, stack) {
+      debugPrint('❌ Disconnect failed: $e');
+      debugPrint('Stack: $stack');
       rethrow;
     }
   }
 
   /// 清理资源
   void dispose() {
-    _sessionProposalController.close();
+    // SDK 会自动清理
   }
-}
-
-/// 会话提案数据模型
-class SessionProposal {
-  final int id;
-  final String name;
-  final String description;
-  final String url;
-  final List<String> icons;
-
-  SessionProposal({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.url,
-    required this.icons,
-  });
 }
