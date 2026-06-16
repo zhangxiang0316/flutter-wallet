@@ -63,27 +63,21 @@ class WalletConnectController extends BaseController {
       final proposal = SessionProposal(
         id: event.id,
         params: event.params,
-        name: event.params.proposer.metadata.name,
-        url: event.params.proposer.metadata.url,
-        icon: event.params.proposer.metadata.icons.isNotEmpty
-            ? event.params.proposer.metadata.icons.first
-            : null,
-        description: event.params.proposer.metadata.description,
-        walletAddress: '', // Will be filled when approving
       );
+
+      // 获取当前钱包地址
+      final wallet = await _repository.loadCurrentWallet();
+      if (wallet == null) {
+        throw Exception('No wallet available');
+      }
 
       final approved = await ConnectionRequestSheet.show(
         context: Get.context!,
         proposal: proposal,
+        walletAddress: wallet.bscAddress,
       );
 
       if (approved == true) {
-        // 获取当前钱包地址
-        final wallet = await _repository.loadCurrentWallet();
-        if (wallet == null) {
-          throw Exception('No wallet available');
-        }
-
         // 批准会话
         await _wcService.approveSession(
           proposalId: event.id,
