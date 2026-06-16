@@ -39,7 +39,7 @@ class WalletConnectService {
       debugPrint('🚀 Initializing WalletConnect...');
 
       // TODO: 从配置或环境变量读取
-      const projectId = 'a75622765cedc2001f6ade8ae95202ca';
+      const projectId = '0e6c51f6b252e51c18fad22f591ae96f';
 
       if (projectId == 'YOUR_PROJECT_ID_HERE') {
         debugPrint('⚠️ WARNING: Using placeholder project ID');
