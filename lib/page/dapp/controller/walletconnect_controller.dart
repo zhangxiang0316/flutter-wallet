@@ -62,12 +62,14 @@ class WalletConnectController extends BaseController {
 
       final proposal = SessionProposal(
         id: event.id,
+        params: event.params,
         name: event.params.proposer.metadata.name,
         url: event.params.proposer.metadata.url,
         icon: event.params.proposer.metadata.icons.isNotEmpty
             ? event.params.proposer.metadata.icons.first
             : null,
         description: event.params.proposer.metadata.description,
+        walletAddress: '', // Will be filled when approving
       );
 
       final approved = await ConnectionRequestSheet.show(
@@ -88,8 +90,8 @@ class WalletConnectController extends BaseController {
           address: wallet.bscAddress,
         );
 
-        Toast.show('Connected to ${proposal.name}!');
-        debugPrint('✅ Session approved: ${proposal.name}');
+        Toast.show('Connected to ${event.params.proposer.metadata.name}!');
+        debugPrint('✅ Session approved: ${event.params.proposer.metadata.name}');
 
         // 刷新列表
         update();
