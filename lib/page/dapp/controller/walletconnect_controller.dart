@@ -36,23 +36,18 @@ class WalletConnectController extends BaseController {
   }
 
   void _listenToEvents() {
-    // 取消之前的订阅
-    _proposalSubscription?.cancel();
-    _requestSubscription?.cancel();
-
-    // 监听会话提案（DApp 请求连接）
+    // Event.subscribe() returns void, subscriptions are managed by Event itself
     final proposalEvent = _wcService.onSessionProposal;
     if (proposalEvent != null) {
-      _proposalSubscription = proposalEvent.subscribe((event) {
+      proposalEvent.subscribe((event) {
         debugPrint('📥 Session proposal received');
         _handleConnectionRequest(event);
       });
     }
 
-    // 监听会话请求（交易、签名等）
     final requestEvent = _wcService.onSessionRequest;
     if (requestEvent != null) {
-      _requestSubscription = requestEvent.subscribe((event) {
+      requestEvent.subscribe((event) {
         debugPrint('📥 Session request received: ${event.method}');
         _handleSessionRequest(event);
       });
