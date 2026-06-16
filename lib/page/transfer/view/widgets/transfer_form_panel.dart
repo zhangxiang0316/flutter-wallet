@@ -4,8 +4,11 @@ import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
+import '../../../../utils/transaction_risk_checker.dart';
 import '../../../../wallet/models/chain_balance.dart';
 import '../../../../wallet/models/wallet_chain.dart';
+import '../../../../wallet/services/wallet_transfer_service.dart';
+import '../../../../widget/transaction_review_sheet.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_styles.dart';
 
@@ -107,7 +110,7 @@ class TransferFormPanel extends StatelessWidget {
                     )
                   : const Icon(Icons.outbound_rounded),
               label: Text(
-                S.of(context).confirmTransfer,
+                'Review Transfer',
                 style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w800),
               ),
             ),
@@ -117,12 +120,59 @@ class TransferFormPanel extends StatelessWidget {
     );
   }
 
-  /// 打开钱包密码解锁弹窗。
+  /// 显示交易审查弹窗（新增）
   ///
-  /// 这里不直接读取私钥，只把用户输入的密码交给控制器继续处理。
+  /// Step 1: 显示完整交易详情，包括风险警告
+  /// 用户点击"Approve"后进入 Step 2（密码认证）
   Future<void> _showUnlockSheet(BuildContext context) async {
     if (!controller.validateTransferInput()) return;
 
+    final asset = controller.currentAsset;
+    if (asset == null) return;
+
+    // Step 1: 显示交易审查弹窗
+    final approved = await _showReviewSheet(context, asset);
+    if (approved != true) return;
+
+    // Step 2: 用户批准后，显示密码认证弹窗
+    final password = await _showPasswordSheet(context, asset);
+    if (password == null) return;
+
+    // Step 3: 提交交易
+    await controller.submit(password);
+  }
+
+  /// Step 1: 显示交易审查弹窗
+  Future<bool?> _showReviewSheet(BuildContext context, ChainBalance asset) async {
+    final amount = controller.amountController.text.trim();
+    final recipientAddress = controller.addressController.text.trim();
+    final feeEstimate = controller.feeEstimate;
+
+    // 检测风险
+    final risks = _detectRisks(asset, amount, recipientAddress, feeEstimate);
+
+    // 构建详情列表
+    final items = _buildReviewItems(asset, amount, recipientAddress, feeEstimate);
+
+    // 显示审查弹窗
+    return await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return TransactionReviewSheet(
+          title: 'Review Transfer',
+          items: items,
+          risks: risks,
+          onApprove: () => Navigator.of(context).pop(true),
+          onReject: () => Navigator.of(context).pop(false),
+        );
+      },
+    );
+  }
+
+  /// Step 2: 显示密码认证弹窗
+  Future<String?> _showPasswordSheet(BuildContext context, ChainBalance asset) async {
     final passwordController = TextEditingController();
     final password = await showModalBottomSheet<String>(
       context: context,
@@ -172,14 +222,9 @@ class TransferFormPanel extends StatelessWidget {
                   ),
                 ],
               ).marginOnly(bottom: 12.h),
-              Text(
-                S.of(sheetContext).unlockWalletForTransfer,
-                style: TextStyle(
-                  fontSize: 11.5.sp,
-                  height: 1.35,
-                  color: colorScheme.onSurface.withValues(alpha: 0.62),
-                ),
-              ).marginOnly(bottom: 14.h),
+              // 显示交易摘要
+              _buildTransactionSummary(sheetContext, asset),
+              SizedBox(height: 14.h),
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -224,8 +269,7 @@ class TransferFormPanel extends StatelessWidget {
       },
     );
     passwordController.dispose();
-    if (password == null) return;
-    await controller.submit(password);
+    return password;
   }
 
   /// 提交密码输入框内容并关闭底部弹窗。
@@ -235,6 +279,161 @@ class TransferFormPanel extends StatelessWidget {
       return;
     }
     Navigator.of(context).pop(password);
+  }
+
+  /// 构建交易摘要显示（在密码弹窗中）
+  Widget _buildTransactionSummary(BuildContext context, ChainBalance asset) {
+    final theme = Theme.of(context);
+    final recipientAddress = controller.addressController.text.trim();
+    final amount = controller.amountController.text.trim();
+
+    // 地址缩略显示（前6后4）
+    final shortAddress = recipientAddress.length > 10
+        ? '${recipientAddress.substring(0, 6)}...${recipientAddress.substring(recipientAddress.length - 4)}'
+        : recipientAddress;
+
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: theme.primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Transaction Summary',
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+              color: theme.primaryColor,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Row(
+            children: [
+              Text(
+                'To: ',
+                style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+              ),
+              Text(
+                shortAddress,
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 4.h),
+          Row(
+            children: [
+              Text(
+                'Amount: ',
+                style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+              ),
+              Text(
+                '$amount ${asset.symbol}',
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 检测交易风险
+  List<TransactionRisk> _detectRisks(
+    ChainBalance asset,
+    String amount,
+    String recipientAddress,
+    TransferFeeEstimate? feeEstimate,
+  ) {
+    // 获取历史地址（这里简化处理，实际应该从交易历史中获取）
+    final historyAddresses = <String>[];
+
+    return TransactionRiskChecker.checkAllRisks(
+      amount: amount,
+      balance: asset.amount, // 使用 amount 字段
+      recipientAddress: recipientAddress,
+      historyAddresses: historyAddresses,
+      fee: feeEstimate?.amount, // 使用 amount 字段
+    );
+  }
+
+  /// 构建审查详情列表
+  List<ReviewItem> _buildReviewItems(
+    ChainBalance asset,
+    String amount,
+    String recipientAddress,
+    TransferFeeEstimate? feeEstimate,
+  ) {
+    final args = controller.arguments;
+    final walletName = args != null ? 'Wallet' : 'Current Wallet';
+    final chainName = asset.chainConfig?.name ?? asset.chainRef.name;
+    final items = <ReviewItem>[];
+
+    // From
+    items.add(ReviewItem(
+      label: 'From',
+      value: walletName,
+      icon: Icon(Icons.account_balance_wallet, size: 18.sp),
+    ));
+
+    // To
+    items.add(ReviewItem(
+      label: 'To',
+      value: recipientAddress,
+      copyable: true,
+    ));
+
+    // Amount
+    items.add(ReviewItem(
+      label: 'Amount',
+      value: '$amount ${asset.symbol}',
+      highlight: true,
+      icon: Icon(Icons.payments, size: 18.sp, color: Theme.of(Get.context!).primaryColor),
+    ));
+
+    // Network
+    items.add(ReviewItem(
+      label: 'Network',
+      value: chainName,
+      icon: Icon(Icons.language, size: 18.sp),
+    ));
+
+    // Fee
+    if (feeEstimate != null && feeEstimate.amount.isNotEmpty) {
+      items.add(ReviewItem(
+        label: 'Estimated Fee',
+        value: '${feeEstimate.amount} ${feeEstimate.symbol}',
+      ));
+
+      // Total (Amount + Fee if same currency)
+      if (feeEstimate.symbol == asset.symbol) {
+        try {
+          final amountValue = double.parse(amount);
+          final feeValue = double.parse(feeEstimate.amount);
+          final total = amountValue + feeValue;
+          items.add(ReviewItem(
+            label: 'Total',
+            value: '${total.toStringAsFixed(6)} ${asset.symbol}',
+            highlight: true,
+          ));
+        } catch (_) {}
+      }
+    } else {
+      items.add(ReviewItem(
+        label: 'Estimated Fee',
+        value: 'Estimating...',
+      ));
+    }
+
+    return items;
   }
 
   /// 根据链类型返回地址输入框占位提示。

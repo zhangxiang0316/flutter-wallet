@@ -55,7 +55,6 @@ class TransactionReviewSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
@@ -292,7 +291,6 @@ class TransactionReviewSheet extends StatelessWidget {
   }
 
   Widget _buildWarningNote(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
