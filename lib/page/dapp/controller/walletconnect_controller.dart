@@ -473,6 +473,59 @@ class WalletConnectController extends BaseController {
     );
   }
 
+  /// 显示密码输入对话框
+  Future<String?> _showPasswordDialog({
+    required String title,
+    String? subtitle,
+  }) {
+    final passwordController = TextEditingController();
+
+    return showDialog<String>(
+      context: Get.context!,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (subtitle != null) ...[
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                ),
+                SizedBox(height: 16),
+              ],
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Wallet Password',
+                  hintText: 'Enter your password',
+                  prefixIcon: Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (value) => Navigator.of(context).pop(value),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(passwordController.text),
+              child: Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// 获取会话的 DApp 名称
   String _getSessionName(String topic) {
     try {
