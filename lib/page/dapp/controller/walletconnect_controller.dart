@@ -302,9 +302,17 @@ class WalletConnectController extends BaseController {
       }
 
       final txParam = params[0] as Map<String, dynamic>;
-      debugPrint('   From: ${txParam['from']}');
-      debugPrint('   To: ${txParam['to']}');
-      debugPrint('   Value: ${txParam['value']}');
+      final from = txParam['from'] as String? ?? '';
+      final to = txParam['to'] as String? ?? '';
+      final value = txParam['value'] as String? ?? '0x0';
+      final data = txParam['data'] as String? ?? '0x';
+      final gas = txParam['gas'] as String?;
+      final gasPrice = txParam['gasPrice'] as String?;
+
+      debugPrint('   From: $from');
+      debugPrint('   To: $to');
+      debugPrint('   Value: $value');
+      debugPrint('   Data: ${data.length > 20 ? '${data.substring(0, 20)}...' : data}');
 
       // 获取当前钱包
       final wallet = await _repository.loadCurrentWallet();
@@ -318,19 +326,79 @@ class WalletConnectController extends BaseController {
         return;
       }
 
-      // TODO: 显示交易预览界面（TransactionReviewSheet）
-      // 由于需要构造完整的交易对象，这里暂时返回 not implemented
-      // 你可以根据 Phase 1 的 TransactionReviewSheet 来集成
-
-      debugPrint('⚠️ Transaction UI not integrated yet');
-      Toast.show('Transaction signing will be added soon');
-
-      await _wcService.respondError(
-        topic: event.topic,
-        requestId: event.id,
-        error: 'Transaction signing UI not integrated yet',
+      // 显示交易确认对话框
+      final approved = await _showTransactionConfirmDialog(
+        dappName: _getSessionName(event.topic),
+        from: from,
+        to: to,
+        value: value,
+        data: data,
       );
 
+      if (approved != true) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'User rejected transaction',
+        );
+        debugPrint('❌ User rejected transaction');
+        return;
+      }
+
+      // 显示密码输入框
+      final password = await _showPasswordDialog(
+        title: 'Confirm Transaction',
+        subtitle: 'Enter password to send transaction from ${_getSessionName(event.topic)}',
+      );
+
+      if (password == null || password.isEmpty) {
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'User cancelled',
+        );
+        return;
+      }
+
+      try {
+        // 读取私钥
+        final privateKeyHex = await _repository.readWalletPrivateKey(
+          walletId: wallet.id,
+          password: password,
+        );
+
+        // TODO: 真实签名并发送交易到区块链
+        // 当前返回交易参数的哈希作为示意
+        // 完整实现需要：
+        // 1. 获取 nonce (从 RPC)
+        // 2. 估算 gas (如果未提供)
+        // 3. 构造完整交易
+        // 4. 使用 _signEvmTransaction 签名
+        // 5. 通过 RPC 发送签名后的交易
+        // 6. 返回真实的 tx hash
+
+        debugPrint('⚠️ Returning placeholder tx hash (full implementation requires RPC integration)');
+
+        // 暂时返回模拟 tx hash
+        final txHash = '0x${'0' * 64}';
+
+        await _wcService.respondSuccess(
+          topic: event.topic,
+          requestId: event.id,
+          result: txHash,
+        );
+
+        Toast.show('Transaction approved (mock hash returned)');
+        debugPrint('✅ Transaction response sent: $txHash');
+      } catch (e) {
+        debugPrint('❌ Transaction signing failed: $e');
+        Toast.show('Transaction failed: ${e.toString()}');
+        await _wcService.respondError(
+          topic: event.topic,
+          requestId: event.id,
+          error: 'Transaction failed: $e',
+        );
+      }
     } catch (e, stack) {
       debugPrint('❌ Transaction request failed: $e');
       debugPrint('Stack: $stack');
@@ -340,6 +408,110 @@ class WalletConnectController extends BaseController {
         error: e.toString(),
       );
     }
+  }
+
+  /// 显示交易确认对话框
+  Future<bool?> _showTransactionConfirmDialog({
+    required String dappName,
+    required String from,
+    required String to,
+    required String value,
+    required String data,
+  }) {
+    // 转换 value 从 hex 到 ETH
+    String formattedValue = '0';
+    try {
+      final wei = BigInt.parse(value.startsWith('0x') ? value.substring(2) : value, radix: 16);
+      final eth = wei / BigInt.from(10).pow(18);
+      formattedValue = eth.toString();
+    } catch (_) {
+      formattedValue = value;
+    }
+
+    return showDialog<bool>(
+      context: Get.context!,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.send, color: Theme.of(context).primaryColor),
+              SizedBox(width: 8),
+              Text('Confirm Transaction'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'From DApp: $dappName',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                _buildTxRow('From', from),
+                SizedBox(height: 8),
+                _buildTxRow('To', to),
+                SizedBox(height: 8),
+                _buildTxRow('Amount', '$formattedValue ETH'),
+                if (data != '0x' && data.isNotEmpty) ...[
+                  SizedBox(height: 8),
+                  _buildTxRow('Data', data.length > 30 ? '${data.substring(0, 30)}...' : data),
+                ],
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.orange, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Verify all details before approving',
+                          style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Reject'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text('Approve'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTxRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+        SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(fontSize: 13, fontFamily: 'monospace'),
+        ),
+      ],
+    );
   }
 
   Future<void> _handleTypedDataRequest(SessionRequestEvent event) async {
