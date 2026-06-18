@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,7 +8,9 @@ import 'package:reown_walletkit/reown_walletkit.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../utils/toast_util.dart';
+import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/services/wallet_repository.dart';
+import '../../../wallet/services/wallet_transfer_service.dart';
 import '../../../wallet/services/walletconnect_service.dart';
 import '../../../widget/message_sign_sheet.dart';
 import '../view/connection_request_sheet.dart';
@@ -18,6 +21,7 @@ import '../view/connection_request_sheet.dart';
 class WalletConnectController extends BaseController {
   final WalletConnectService _wcService = WalletConnectService.instance;
   final WalletRepository _repository = WalletRepository();
+  final WalletTransferService _transferService = WalletTransferService();
 
   @override
   void onInit() {
@@ -218,17 +222,50 @@ class WalletConnectController extends BaseController {
       );
 
       if (approved == true) {
-        // TODO: 实际签名消息
-        // 现在返回一个模拟签名
-        final signature = '0x${'0' * 130}';
-
-        await _wcService.respondSuccess(
-          topic: event.topic,
-          requestId: event.id,
-          result: signature,
+        // 显示密码输入框
+        final password = await _showPasswordDialog(
+          title: 'Sign Message',
+          subtitle: 'Enter password to sign message from ${_getSessionName(event.topic)}',
         );
-        debugPrint('✅ Signature sent to DApp');
-        Toast.show('Signed successfully');
+
+        if (password == null || password.isEmpty) {
+          await _wcService.respondError(
+            topic: event.topic,
+            requestId: event.id,
+            error: 'User cancelled',
+          );
+          return;
+        }
+
+        try {
+          // 读取私钥
+          final privateKeyHex = await _repository.readWalletPrivateKey(
+            walletId: wallet.id,
+            password: password,
+          );
+
+          // 真实签名
+          final signature = await _transferService.signPersonalMessage(
+            message: message,
+            privateKeyHex: privateKeyHex,
+          );
+
+          await _wcService.respondSuccess(
+            topic: event.topic,
+            requestId: event.id,
+            result: signature,
+          );
+          debugPrint('✅ Real signature sent to DApp: ${signature.substring(0, 20)}...');
+          Toast.show('Signed successfully');
+        } catch (e) {
+          debugPrint('❌ Signing failed: $e');
+          Toast.show('Signing failed: ${e.toString()}');
+          await _wcService.respondError(
+            topic: event.topic,
+            requestId: event.id,
+            error: 'Signing failed: $e',
+          );
+        }
       } else {
         // 用户拒绝签名
         await _wcService.respondError(
@@ -346,16 +383,53 @@ class WalletConnectController extends BaseController {
       );
 
       if (approved == true) {
-        // TODO: 实际签名 TypedData
-        final signature = '0x${'0' * 130}';
-
-        await _wcService.respondSuccess(
-          topic: event.topic,
-          requestId: event.id,
-          result: signature,
+        // 显示密码输入框
+        final password = await _showPasswordDialog(
+          title: 'Sign Typed Data',
+          subtitle: 'Enter password to sign typed data from ${_getSessionName(event.topic)}',
         );
-        debugPrint('✅ TypedData signature sent');
-        Toast.show('Signed successfully');
+
+        if (password == null || password.isEmpty) {
+          await _wcService.respondError(
+            topic: event.topic,
+            requestId: event.id,
+            error: 'User cancelled',
+          );
+          return;
+        }
+
+        try {
+          // 解析 typed data JSON
+          final typedDataMap = jsonDecode(typedData) as Map<String, dynamic>;
+
+          // 读取私钥
+          final privateKeyHex = await _repository.readWalletPrivateKey(
+            walletId: wallet.id,
+            password: password,
+          );
+
+          // 真实签名 TypedData
+          final signature = await _transferService.signTypedData(
+            typedData: typedDataMap,
+            privateKeyHex: privateKeyHex,
+          );
+
+          await _wcService.respondSuccess(
+            topic: event.topic,
+            requestId: event.id,
+            result: signature,
+          );
+          debugPrint('✅ Real TypedData signature sent: ${signature.substring(0, 20)}...');
+          Toast.show('Typed data signed successfully');
+        } catch (e) {
+          debugPrint('❌ TypedData signing failed: $e');
+          Toast.show('Signing failed: ${e.toString()}');
+          await _wcService.respondError(
+            topic: event.topic,
+            requestId: event.id,
+            error: 'Signing failed: $e',
+          );
+        }
       } else {
         await _wcService.respondError(
           topic: event.topic,
