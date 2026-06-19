@@ -87,7 +87,7 @@ class DAppScannerController extends BaseController {
 
       Toast.show('Connecting to DApp...');
 
-      // 确保控制器存在且持久化
+      // 重要：先创建控制器并等待事件监听器注册完成
       if (!Get.isRegistered<WalletConnectController>()) {
         debugPrint('🎮 Creating permanent WalletConnectController');
         Get.put(WalletConnectController(), permanent: true);
@@ -95,23 +95,32 @@ class DAppScannerController extends BaseController {
         debugPrint('🎮 WalletConnectController already exists');
       }
 
-      // 等待 WalletConnect 初始化完成
-      debugPrint('⏳ Waiting for WalletConnect initialization...');
-      await Future.delayed(Duration(seconds: 2));
+      // 等待 WalletConnect 初始化和事件监听器注册完成
+      debugPrint('⏳ Waiting for WalletConnect initialization and event registration...');
+      await Future.delayed(Duration(seconds: 3));
 
-      // 先关闭扫码页面
+      // 验证控制器已注册
+      if (!Get.isRegistered<WalletConnectController>()) {
+        throw Exception('WalletConnectController not registered after init');
+      }
+
+      // 强制访问控制器以确保 onInit 被调用
+      final controller = Get.find<WalletConnectController>();
+      debugPrint('✅ Controller verified: ${controller.runtimeType}');
+
+      // 关闭扫码页面
       debugPrint('🔙 Closing scanner page');
       if (Get.context != null) {
         Navigator.of(Get.context!).pop();
       }
 
       // 等待页面关闭完成
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(Duration(milliseconds: 500));
 
-      // 在首页触发配对
+      // 在首页触发配对（此时事件监听器已经准备好）
       debugPrint('🔗 Starting pairing on home page...');
       await _wcService.pair(uri);
-      debugPrint('✅ Pairing initiated');
+      debugPrint('✅ Pairing initiated, waiting for proposal event...');
 
     } catch (e) {
       debugPrint('❌ Pairing failed: $e');
