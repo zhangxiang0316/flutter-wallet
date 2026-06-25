@@ -10,7 +10,6 @@ import '../../../page/transaction/controller/transaction_history_controller.dart
 import '../../../page/transfer/controller/transfer_controller.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
-import '../../../widget/skeleton_widgets.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/add_wallet_sheet.dart';
 import 'widgets/chain_section.dart';
@@ -83,18 +82,6 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
-        // WalletConnect 扫码按钮
-        Semantics(
-          button: true,
-          label: 'Scan to Connect DApp',
-          child: IconButton(
-            tooltip: 'Connect DApp',
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            color: colorScheme.onSurface.withValues(alpha: 0.82),
-            iconSize: 20.w,
-            onPressed: _scanToConnectDApp,
-          ),
-        ).marginOnly(right: 2.w),
         Semantics(
           button: true,
           label: S.of(context!).settings,
@@ -405,16 +392,4 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// Solana 地址升级弹窗是否正在显示。
   bool _solanaAddressUpgradeSheetVisible = false;
-
-  /// 扫码连接 DApp (WalletConnect)
-  void _scanToConnectDApp() async {
-    // 检查是否有钱包
-    if (controller.wallet == null) {
-      Toast.show('Please create a wallet first');
-      return;
-    }
-
-    // 打开 WalletConnect 扫码页面
-    await Get.toNamed(RouteTable.dapp_scan);
-  }
 }
