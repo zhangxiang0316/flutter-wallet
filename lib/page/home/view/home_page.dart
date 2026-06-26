@@ -12,6 +12,7 @@ import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/add_wallet_sheet.dart';
+import 'widgets/asset_filter_bar.dart';
 import 'widgets/chain_section.dart';
 import 'widgets/empty_wallet_card.dart';
 import 'widgets/home_background.dart';
@@ -147,12 +148,21 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 ),
                 SizedBox(height: 16.h),
                 HomeEntranceItem(
+                  delay: const Duration(milliseconds: 70),
+                  initialOffset: const Offset(0, 0.05),
+                  child: AssetFilterBar(
+                    hideZeroBalances: controller.hideZeroBalances,
+                    onHideZeroChanged: controller.setHideZeroBalances,
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                HomeEntranceItem(
                   delay: const Duration(milliseconds: 90),
                   initialOffset: const Offset(0, 0.06),
                   child: ChainSection(
                     wallet: wallet,
-                    chains: controller.chains,
-                    balances: controller.visibleBalances,
+                    chains: controller.displayChains,
+                    balances: controller.displayBalances,
                     isLoading: controller.isLoading,
                     stableValueTextFor: controller.stableValueTextFor,
                     chainUsdValueTextFor: controller.chainUsdValueTextFor,

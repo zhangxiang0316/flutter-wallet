@@ -105,6 +105,9 @@ class HomeController extends BaseController {
   /// 当前已展开的链。默认空集合，首页只展示链信息。
   final Set<String> expandedChainIds = {};
 
+  /// 是否隐藏 0 余额资产。
+  bool hideZeroBalances = false;
+
   Timer? _balanceRefreshTimer;
 
   /// 余额请求版本号。
@@ -383,6 +386,40 @@ class HomeController extends BaseController {
     return chainUsdValueTexts[chain.id] ?? '--';
   }
 
+  /// 首页最终展示的资产列表。
+  ///
+  /// [visibleBalances] 只受资产显示设置影响；这里再叠加隐藏 0 余额，
+  /// 避免临时展示过滤影响总资产估值和转账可选资产范围。
+  List<ChainBalance> get displayBalances {
+    if (!hideZeroBalances) return visibleBalances;
+    return visibleBalances
+        .where((balance) => !_isZeroAmount(balance.amount))
+        .toList(growable: false);
+  }
+
+  /// 首页最终展示的链列表。
+  List<WalletChainConfig> get displayChains {
+    final displayChainIds = displayBalances
+        .map((balance) => balance.chainId)
+        .toSet();
+    if (!hideZeroBalances) {
+      return chains;
+    }
+    return chains
+        .where((chain) => displayChainIds.contains(chain.id))
+        .toList(growable: false);
+  }
+
+  void setHideZeroBalances(bool value) {
+    hideZeroBalances = value;
+    if (value) {
+      expandedChainIds
+        ..clear()
+        ..addAll(displayChains.map((chain) => chain.id));
+    }
+    update();
+  }
+
   /// 刷新非稳定币资产换算后的稳定币估值文本。
   void _refreshAssetStableValueTexts(Map<String, Decimal> prices) {
     // ✅ 优化：只更新价格变化的资产
@@ -572,6 +609,7 @@ class HomeController extends BaseController {
     assetStableValueTexts.clear();
     chainUsdValueTexts.clear();
     expandedChainIds.clear();
+    hideZeroBalances = false;
     totalAssetsText = '--';
     isLoading = false;
   }
@@ -586,6 +624,14 @@ class HomeController extends BaseController {
           ),
         )
         .toList(growable: false);
+  }
+
+  bool _isZeroAmount(String value) {
+    return _amountDecimal(value) == Decimal.zero;
+  }
+
+  Decimal _amountDecimal(String value) {
+    return Decimal.tryParse(value.trim()) ?? Decimal.zero;
   }
 
   /// 当前项目使用 EVM 地址小写形式作为钱包 ID。

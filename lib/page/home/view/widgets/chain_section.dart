@@ -59,6 +59,10 @@ class ChainSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (chains.isEmpty) {
+      return const _NoAssetResults();
+    }
+
     // 按链枚举动态渲染，EVM 链共用 EVM 地址，非 EVM 链使用各自地址。
     final chainCards = chains
         .map((chain) {
@@ -120,6 +124,35 @@ class ChainSection extends StatelessWidget {
       case null:
         return wallet.bscAddress;
     }
+  }
+}
+
+class _NoAssetResults extends StatelessWidget {
+  const _NoAssetResults();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(18.w),
+      decoration: homePanelDecoration(context),
+      child: Column(
+        children: [
+          Icon(
+            Icons.manage_search_rounded,
+            size: 30.w,
+            color: colorScheme.primary,
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            S.of(context).assetFilterNoResults,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12.5.sp, fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
   }
 }
 
