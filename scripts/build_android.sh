@@ -8,6 +8,17 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # 版本号（从 pubspec.yaml 读取）
 VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+ENV_FILE=".env.local"
+
+if [ -f "$ENV_FILE" ]; then
+    echo "🔐 Loading local API config from $ENV_FILE"
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+else
+    echo "⚠️  $ENV_FILE not found. History API keys will not be injected."
+fi
 
 echo ""
 echo "📦 Version: $VERSION"
@@ -22,7 +33,9 @@ flutter pub get
 
 echo ""
 echo "🔨 Step 3: Building APK (Release)..."
-flutter build apk --release
+flutter build apk --release \
+    --dart-define="ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY:-}" \
+    --dart-define="TRONGRID_API_KEY=${TRONGRID_API_KEY:-}"
 
 echo ""
 echo "📂 Step 4: Checking build output..."

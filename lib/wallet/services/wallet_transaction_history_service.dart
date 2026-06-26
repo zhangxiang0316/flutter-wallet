@@ -11,6 +11,7 @@ import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_transaction_record.dart';
+import 'wallet_history_api_config.dart';
 import 'wallet_transfer_service.dart';
 
 /// 交易历史分页游标。
@@ -68,7 +69,7 @@ class TransactionHistoryPageResult {
 /// 直接请求链上 RPC 或区块浏览器 API，并把不同链的返回格式归一化成
 /// [WalletTransactionRecord]。
 class WalletTransactionHistoryService {
-  WalletTransactionHistoryService({Dio? dio})
+  WalletTransactionHistoryService({Dio? dio, WalletHistoryApiConfig? apiConfig})
     : _dio =
           dio ??
           Dio(
@@ -77,16 +78,21 @@ class WalletTransactionHistoryService {
               receiveTimeout: _requestTimeout,
               sendTimeout: _requestTimeout,
             ),
-          );
+          ),
+      _apiConfig = apiConfig ?? const WalletHistoryApiConfig();
 
   /// HTTP/RPC 请求客户端。
   final Dio _dio;
+
+  final WalletHistoryApiConfig _apiConfig;
 
   static const Duration _requestTimeout = Duration(seconds: 6);
   static const int _historyLimit = 30;
   static const int _evmLogChunkSize = 50000;
   static const int _evmLogScanBlockWindow = 5000000;
+  static const int _arbitrumLogScanBlockWindow = 200000;
   static const int _blockscoutMaxPages = 4;
+  static const Duration _limitedLogFallbackTimeout = Duration(seconds: 4);
 
   /// 使用共享的 EVM Transfer 事件 topic
   static const String _evmTransferEventTopic =
@@ -103,6 +109,9 @@ class WalletTransactionHistoryService {
     'ethereum': 'https://api.etherscan.io/api',
     // Arbitrum: 浏览器 API 太慢或需要 Key，直接使用 RPC logs
   };
+
+  /// Etherscan V2 统一多链接口。
+  static const String _etherscanV2ApiUrl = 'https://api.etherscan.io/v2/api';
 
   /// 无需 API Key 的 Blockscout v2 地址交易接口。
   ///
@@ -255,7 +264,17 @@ class WalletTransactionHistoryService {
           nextCursor: null,
         );
       }
-      final records = await _loadEvmTokenLogs(walletId: walletId, asset: asset);
+      final records = await _loadEvmTokenLogs(walletId: walletId, asset: asset)
+          .timeout(
+            _limitedLogFallbackTimeout,
+            onTimeout: () {
+              developer.log(
+                '${asset.chainRef.name} token log fallback timed out',
+                name: 'WalletTransactionHistoryService',
+              );
+              return const <WalletTransactionRecord>[];
+            },
+          );
       return TransactionHistoryPageResult(records: records, nextCursor: null);
     } catch (error) {
       if (hasSuccessfulExplorer) {
@@ -643,7 +662,10 @@ class WalletTransactionHistoryService {
       const [],
     );
     final latest = latestBlock.toInt();
-    final start = math.max(0, latest - _evmLogScanBlockWindow);
+    final start = math.max(
+      0,
+      latest - _evmLogScanBlockWindowFor(asset.chainRef),
+    );
     final walletTopic = _evmAddressTopic(asset.address);
     final records = <WalletTransactionRecord>[];
     final seenIds = <String>{};
@@ -692,6 +714,13 @@ class WalletTransactionHistoryService {
 
     records.sort(_compareRecordTimeDesc);
     return records.take(_historyLimit).toList(growable: false);
+  }
+
+  int _evmLogScanBlockWindowFor(WalletChainRef chain) {
+    if (chain.id == WalletChain.arbitrum.id) {
+      return _arbitrumLogScanBlockWindow;
+    }
+    return _evmLogScanBlockWindow;
   }
 
   Future<WalletTransactionRecord?> _evmTokenRecordFromLog({
@@ -771,6 +800,7 @@ class WalletTransactionHistoryService {
           asset.isNative
               ? '$apiUrl/v1/accounts/${asset.address}/transactions'
               : '$apiUrl/v1/accounts/${asset.address}/transactions/trc20',
+          options: _tronGridOptions(apiUrl),
           queryParameters: {
             'limit': _historyLimit,
             'only_confirmed': true,
@@ -826,6 +856,17 @@ class WalletTransactionHistoryService {
       }
     }
     throw StateError('TRON history failed: ${lastError ?? 'unknown error'}');
+  }
+
+  Options? _tronGridOptions(String apiUrl) {
+    if (!_apiConfig.hasTronGridApiKey) return null;
+    final uri = Uri.tryParse(apiUrl);
+    if (uri == null || !uri.host.toLowerCase().contains('trongrid')) {
+      return null;
+    }
+    return Options(
+      headers: {'TRON-PRO-API-KEY': _apiConfig.tronGridApiKey.trim()},
+    );
   }
 
   WalletTransactionRecord? _tronNativeRecord({
@@ -1422,6 +1463,26 @@ class WalletTransactionHistoryService {
     final configuredApiUrl = _configuredExplorerApiUrl(chain);
     if (configuredApiUrl != null) {
       providers.add(_evmProviderFromUrl(configuredApiUrl, apiKey: apiKey));
+    }
+
+    if (_apiConfig.hasEtherscanApiKey && chain.evmChainId != null) {
+      developer.log(
+        'Using Etherscan V2 history provider for ${chain.name} '
+        'chainId=${chain.evmChainId}',
+        name: 'WalletTransactionHistoryService',
+      );
+      providers.add(
+        _EvmHistoryProvider(
+          url: _etherscanV2ApiUrl,
+          apiKey: _apiConfig.etherscanApiKey,
+          type: _EvmHistoryProviderType.etherscanCompatible,
+        ),
+      );
+    } else if (chain.id == WalletChain.arbitrum.id) {
+      developer.log(
+        'Etherscan V2 API key is not injected for Arbitrum history',
+        name: 'WalletTransactionHistoryService',
+      );
     }
 
     for (final baseUrl in _evmBlockscoutBaseUrls[chain.id] ?? const []) {
