@@ -113,7 +113,7 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
   Future<void> _chooseRecipientAddress() async {
     final asset = controller.currentAsset;
     if (asset == null) return;
-    final result = await Get.toNamed<String>(
+    final result = await Get.toNamed(
       RouteTable.addressBook,
       arguments: AddressBookPageArguments(
         chainId: asset.chainId,
@@ -121,7 +121,7 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
         selectable: true,
       ),
     );
-    if (result == null || result.trim().isEmpty) return;
+    if (result is! String || result.trim().isEmpty) return;
     controller.fillRecipientAddressFromBook(result);
   }
 }
