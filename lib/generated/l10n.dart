@@ -18,8 +18,10 @@ class S {
   static S? _current;
 
   static S get current {
-    assert(_current != null,
-        'No instance of S was loaded. Try to initialize the S delegate before accessing S.current.');
+    assert(
+      _current != null,
+      'No instance of S was loaded. Try to initialize the S delegate before accessing S.current.',
+    );
     return _current!;
   }
 
@@ -41,8 +43,10 @@ class S {
 
   static S of(BuildContext context) {
     final instance = S.maybeOf(context);
-    assert(instance != null,
-        'No instance of S present in the widget tree. Did you add S.delegate in localizationsDelegates?');
+    assert(
+      instance != null,
+      'No instance of S present in the widget tree. Did you add S.delegate in localizationsDelegates?',
+    );
     return instance!;
   }
 
@@ -52,42 +56,22 @@ class S {
 
   /// `phone`
   String get phone {
-    return Intl.message(
-      'phone',
-      name: 'phone',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('phone', name: 'phone', desc: '', args: []);
   }
 
   /// `email`
   String get email {
-    return Intl.message(
-      'email',
-      name: 'email',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('email', name: 'email', desc: '', args: []);
   }
 
   /// `login`
   String get login {
-    return Intl.message(
-      'login',
-      name: 'login',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('login', name: 'login', desc: '', args: []);
   }
 
   /// `沐晨钱包`
   String get appName {
-    return Intl.message(
-      '沐晨钱包',
-      name: 'appName',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('沐晨钱包', name: 'appName', desc: '', args: []);
   }
 
   /// `Secure multi-chain assets`
@@ -112,32 +96,17 @@ class S {
 
   /// `Settings`
   String get settings {
-    return Intl.message(
-      'Settings',
-      name: 'settings',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Settings', name: 'settings', desc: '', args: []);
   }
 
   /// `Language`
   String get language {
-    return Intl.message(
-      'Language',
-      name: 'language',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Language', name: 'language', desc: '', args: []);
   }
 
   /// `Theme`
   String get theme {
-    return Intl.message(
-      'Theme',
-      name: 'theme',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Theme', name: 'theme', desc: '', args: []);
   }
 
   /// `Address book`
@@ -232,12 +201,7 @@ class S {
 
   /// `Note`
   String get contactNote {
-    return Intl.message(
-      'Note',
-      name: 'contactNote',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Note', name: 'contactNote', desc: '', args: []);
   }
 
   /// `Optional label or reminder`
@@ -352,12 +316,7 @@ class S {
 
   /// `Add network`
   String get addNetwork {
-    return Intl.message(
-      'Add network',
-      name: 'addNetwork',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Add network', name: 'addNetwork', desc: '', args: []);
   }
 
   /// `Edit network`
@@ -422,22 +381,12 @@ class S {
 
   /// `Chain ID`
   String get networkChainId {
-    return Intl.message(
-      'Chain ID',
-      name: 'networkChainId',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Chain ID', name: 'networkChainId', desc: '', args: []);
   }
 
   /// `RPC URL`
   String get networkRpcUrl {
-    return Intl.message(
-      'RPC URL',
-      name: 'networkRpcUrl',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('RPC URL', name: 'networkRpcUrl', desc: '', args: []);
   }
 
   /// `One RPC URL per line, or separate them with commas`
@@ -622,12 +571,7 @@ class S {
 
   /// `Name`
   String get customAssetName {
-    return Intl.message(
-      'Name',
-      name: 'customAssetName',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Name', name: 'customAssetName', desc: '', args: []);
   }
 
   /// `Decimals`
@@ -692,32 +636,17 @@ class S {
 
   /// `System`
   String get themeSystem {
-    return Intl.message(
-      'System',
-      name: 'themeSystem',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('System', name: 'themeSystem', desc: '', args: []);
   }
 
   /// `Light`
   String get themeLight {
-    return Intl.message(
-      'Light',
-      name: 'themeLight',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Light', name: 'themeLight', desc: '', args: []);
   }
 
   /// `Dark`
   String get themeDark {
-    return Intl.message(
-      'Dark',
-      name: 'themeDark',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Dark', name: 'themeDark', desc: '', args: []);
   }
 
   /// `Create or import a wallet`
@@ -762,12 +691,7 @@ class S {
 
   /// `Add wallet`
   String get addWallet {
-    return Intl.message(
-      'Add wallet',
-      name: 'addWallet',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Add wallet', name: 'addWallet', desc: '', args: []);
   }
 
   /// `Switch wallet`
@@ -812,12 +736,7 @@ class S {
 
   /// `Wallet name`
   String get walletName {
-    return Intl.message(
-      'Wallet name',
-      name: 'walletName',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Wallet name', name: 'walletName', desc: '', args: []);
   }
 
   /// `Edit wallet name`
@@ -922,12 +841,7 @@ class S {
 
   /// `Refresh`
   String get refreshBalance {
-    return Intl.message(
-      'Refresh',
-      name: 'refreshBalance',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Refresh', name: 'refreshBalance', desc: '', args: []);
   }
 
   /// `Remove wallet`
@@ -952,12 +866,7 @@ class S {
 
   /// `Cancel`
   String get cancel {
-    return Intl.message(
-      'Cancel',
-      name: 'cancel',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Cancel', name: 'cancel', desc: '', args: []);
   }
 
   /// `Some balance lookups failed`
@@ -972,12 +881,7 @@ class S {
 
   /// `Loading...`
   String get loading {
-    return Intl.message(
-      'Loading...',
-      name: 'loading',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Loading...', name: 'loading', desc: '', args: []);
   }
 
   /// `Security notice`
@@ -1032,12 +936,7 @@ class S {
 
   /// `Mnemonic`
   String get mnemonic {
-    return Intl.message(
-      'Mnemonic',
-      name: 'mnemonic',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Mnemonic', name: 'mnemonic', desc: '', args: []);
   }
 
   /// `Enter 12 English words separated by spaces`
@@ -1122,12 +1021,7 @@ class S {
 
   /// `Back`
   String get backToMnemonic {
-    return Intl.message(
-      'Back',
-      name: 'backToMnemonic',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Back', name: 'backToMnemonic', desc: '', args: []);
   }
 
   /// `Mnemonic words do not match. Check your backup and try again.`
@@ -1182,12 +1076,7 @@ class S {
 
   /// `Import`
   String get confirmImport {
-    return Intl.message(
-      'Import',
-      name: 'confirmImport',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Import', name: 'confirmImport', desc: '', args: []);
   }
 
   /// `Wallet password`
@@ -1422,12 +1311,7 @@ class S {
 
   /// `Receive`
   String get receive {
-    return Intl.message(
-      'Receive',
-      name: 'receive',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Receive', name: 'receive', desc: '', args: []);
   }
 
   /// `Receive {symbol}`
@@ -1522,12 +1406,7 @@ class S {
 
   /// `Transfer`
   String get transfer {
-    return Intl.message(
-      'Transfer',
-      name: 'transfer',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Transfer', name: 'transfer', desc: '', args: []);
   }
 
   /// `Transfer {symbol}`
@@ -1552,12 +1431,7 @@ class S {
 
   /// `Amount`
   String get transferAmount {
-    return Intl.message(
-      'Amount',
-      name: 'transferAmount',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Amount', name: 'transferAmount', desc: '', args: []);
   }
 
   /// `Transfer`
@@ -1710,14 +1584,94 @@ class S {
     );
   }
 
-  /// `Network fee`
-  String get networkFee {
+  /// `Review transfer`
+  String get reviewTransfer {
     return Intl.message(
-      'Network fee',
-      name: 'networkFee',
+      'Review transfer',
+      name: 'reviewTransfer',
       desc: '',
       args: [],
     );
+  }
+
+  /// `Transaction summary`
+  String get transactionSummary {
+    return Intl.message(
+      'Transaction summary',
+      name: 'transactionSummary',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total`
+  String get totalTransferCost {
+    return Intl.message('Total', name: 'totalTransferCost', desc: '', args: []);
+  }
+
+  /// `Network fee is not available yet. Confirm you still have enough native balance before continuing.`
+  String get transferRiskFeeUnavailable {
+    return Intl.message(
+      'Network fee is not available yet. Confirm you still have enough native balance before continuing.',
+      name: 'transferRiskFeeUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `EVM addresses can be reused across networks. Confirm the recipient expects funds on {network}.`
+  String transferRiskEvmNetworkConfirm(Object network) {
+    return Intl.message(
+      'EVM addresses can be reused across networks. Confirm the recipient expects funds on $network.',
+      name: 'transferRiskEvmNetworkConfirm',
+      desc: '',
+      args: [network],
+    );
+  }
+
+  /// `The recipient is the same as your current wallet address.`
+  String get transferRiskSelfTransfer {
+    return Intl.message(
+      'The recipient is the same as your current wallet address.',
+      name: 'transferRiskSelfTransfer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The recipient matches this token contract address. Sending tokens to a contract address may permanently lose funds.`
+  String get transferRiskTokenContract {
+    return Intl.message(
+      'The recipient matches this token contract address. Sending tokens to a contract address may permanently lose funds.',
+      name: 'transferRiskTokenContract',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The recipient is a known burn or system address. Funds sent there are likely unrecoverable.`
+  String get transferRiskBurnAddress {
+    return Intl.message(
+      'The recipient is a known burn or system address. Funds sent there are likely unrecoverable.',
+      name: 'transferRiskBurnAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly.`
+  String get transferRiskClipboardMismatch {
+    return Intl.message(
+      'Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly.',
+      name: 'transferRiskClipboardMismatch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network fee`
+  String get networkFee {
+    return Intl.message('Network fee', name: 'networkFee', desc: '', args: []);
   }
 
   /// `Estimated network fee`
@@ -1882,22 +1836,12 @@ class S {
 
   /// `Network`
   String get network {
-    return Intl.message(
-      'Network',
-      name: 'network',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Network', name: 'network', desc: '', args: []);
   }
 
   /// `Asset`
   String get asset {
-    return Intl.message(
-      'Asset',
-      name: 'asset',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Asset', name: 'asset', desc: '', args: []);
   }
 
   /// `Contract address`
@@ -1922,12 +1866,7 @@ class S {
 
   /// `Time`
   String get transactionTime {
-    return Intl.message(
-      'Time',
-      name: 'transactionTime',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Time', name: 'transactionTime', desc: '', args: []);
   }
 
   /// `No transactions`
@@ -2072,22 +2011,12 @@ class S {
 
   /// `From`
   String get transactionFrom {
-    return Intl.message(
-      'From',
-      name: 'transactionFrom',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('From', name: 'transactionFrom', desc: '', args: []);
   }
 
   /// `To`
   String get transactionTo {
-    return Intl.message(
-      'To',
-      name: 'transactionTo',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('To', name: 'transactionTo', desc: '', args: []);
   }
 
   /// `Unknown time`
@@ -2122,12 +2051,7 @@ class S {
 
   /// `Back`
   String get blockExplorerBack {
-    return Intl.message(
-      'Back',
-      name: 'blockExplorerBack',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Back', name: 'blockExplorerBack', desc: '', args: []);
   }
 
   /// `Forward`
@@ -2152,22 +2076,12 @@ class S {
 
   /// `Copy link`
   String get copyLink {
-    return Intl.message(
-      'Copy link',
-      name: 'copyLink',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Copy link', name: 'copyLink', desc: '', args: []);
   }
 
   /// `More`
   String get more {
-    return Intl.message(
-      'More',
-      name: 'more',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('More', name: 'more', desc: '', args: []);
   }
 
   /// `Explorer is unavailable for this network`
@@ -2192,12 +2106,7 @@ class S {
 
   /// `Copy hash`
   String get copyHash {
-    return Intl.message(
-      'Copy hash',
-      name: 'copyHash',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Copy hash', name: 'copyHash', desc: '', args: []);
   }
 
   /// `Back to wallet`
@@ -2222,12 +2131,7 @@ class S {
 
   /// `Copied`
   String get copied {
-    return Intl.message(
-      'Copied',
-      name: 'copied',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Copied', name: 'copied', desc: '', args: []);
   }
 
   /// `🔒 Screenshot protection enabled for your security`
@@ -2382,32 +2286,17 @@ class S {
 
   /// `Skip`
   String get skip {
-    return Intl.message(
-      'Skip',
-      name: 'skip',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Skip', name: 'skip', desc: '', args: []);
   }
 
   /// `Get Started`
   String get getStarted {
-    return Intl.message(
-      'Get Started',
-      name: 'getStarted',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Get Started', name: 'getStarted', desc: '', args: []);
   }
 
   /// `Next`
   String get next {
-    return Intl.message(
-      'Next',
-      name: 'next',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Next', name: 'next', desc: '', args: []);
   }
 
   /// `Security Settings`
@@ -2512,12 +2401,7 @@ class S {
 
   /// `Retry`
   String get retry {
-    return Intl.message(
-      'Retry',
-      name: 'retry',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Retry', name: 'retry', desc: '', args: []);
   }
 
   /// `Network connection failed, please check your network settings`

@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// 交易风险等级
-enum RiskLevel {
-  low,
-  medium,
-  high,
-}
+enum RiskLevel { low, medium, high }
 
 /// 交易风险信息
 class TransactionRisk {
@@ -53,14 +49,16 @@ class TransactionRiskChecker {
       if (percentage >= 90) {
         return TransactionRisk(
           level: RiskLevel.high,
-          message: 'You are transferring ${percentage.toStringAsFixed(0)}% of your balance',
+          message:
+              'You are transferring ${percentage.toStringAsFixed(0)}% of your balance',
           icon: Icons.warning_amber_rounded,
           color: Colors.red,
         );
       } else if (percentage >= 50) {
         return TransactionRisk(
           level: RiskLevel.medium,
-          message: 'You are transferring ${percentage.toStringAsFixed(0)}% of your balance',
+          message:
+              'You are transferring ${percentage.toStringAsFixed(0)}% of your balance',
           icon: Icons.info_outline_rounded,
           color: Colors.orange,
         );
@@ -84,8 +82,9 @@ class TransactionRiskChecker {
     }
 
     final normalizedAddress = address.toLowerCase();
-    final isNewAddress = !historyAddresses
-        .any((addr) => addr.toLowerCase() == normalizedAddress);
+    final isNewAddress = !historyAddresses.any(
+      (addr) => addr.toLowerCase() == normalizedAddress,
+    );
 
     if (isNewAddress) {
       return TransactionRisk(
@@ -119,14 +118,16 @@ class TransactionRiskChecker {
       if (feePercentage >= 20) {
         return TransactionRisk(
           level: RiskLevel.high,
-          message: 'Fee is ${feePercentage.toStringAsFixed(0)}% of transfer amount (unusually high)',
+          message:
+              'Fee is ${feePercentage.toStringAsFixed(0)}% of transfer amount (unusually high)',
           icon: Icons.warning_amber_rounded,
           color: Colors.red,
         );
       } else if (feePercentage >= 10) {
         return TransactionRisk(
           level: RiskLevel.medium,
-          message: 'Fee is ${feePercentage.toStringAsFixed(0)}% of transfer amount',
+          message:
+              'Fee is ${feePercentage.toStringAsFixed(0)}% of transfer amount',
           icon: Icons.info_outline_rounded,
           color: Colors.orange,
         );
@@ -136,6 +137,83 @@ class TransactionRiskChecker {
     } catch (e) {
       return null;
     }
+  }
+
+  /// 检测是否正在转给当前钱包自己的地址。
+  static TransactionRisk? checkSelfTransfer({
+    required String recipientAddress,
+    required String walletAddress,
+    required String message,
+    required bool caseInsensitive,
+  }) {
+    if (!_sameAddress(recipientAddress, walletAddress, caseInsensitive)) {
+      return null;
+    }
+    return TransactionRisk(
+      level: RiskLevel.medium,
+      message: message,
+      icon: Icons.swap_horiz_rounded,
+      color: Colors.orange,
+    );
+  }
+
+  /// 检测是否误填了当前 token 合约地址。
+  static TransactionRisk? checkTokenContractRecipient({
+    required String recipientAddress,
+    required String? contractAddress,
+    required String message,
+    required bool caseInsensitive,
+  }) {
+    final contract = contractAddress?.trim();
+    if (contract == null || contract.isEmpty) return null;
+    if (!_sameAddress(recipientAddress, contract, caseInsensitive)) return null;
+    return TransactionRisk(
+      level: RiskLevel.high,
+      message: message,
+      icon: Icons.report_problem_outlined,
+      color: Colors.red,
+    );
+  }
+
+  /// 检测常见销毁地址。
+  static TransactionRisk? checkBurnAddress({
+    required String recipientAddress,
+    required String message,
+    required bool isEvm,
+    required bool isSolana,
+  }) {
+    final address = recipientAddress.trim();
+    final isBurn = isEvm
+        ? address.toLowerCase() ==
+                  '0x0000000000000000000000000000000000000000' ||
+              address.toLowerCase() ==
+                  '0x000000000000000000000000000000000000dead'
+        : isSolana && address == '11111111111111111111111111111111';
+    if (!isBurn) return null;
+    return TransactionRisk(
+      level: RiskLevel.high,
+      message: message,
+      icon: Icons.local_fire_department_outlined,
+      color: Colors.red,
+    );
+  }
+
+  /// 检测剪贴板中是否存在另一个同链格式地址。
+  static TransactionRisk? checkClipboardMismatch({
+    required String recipientAddress,
+    required String? clipboardAddress,
+    required String message,
+    required bool caseInsensitive,
+  }) {
+    final address = clipboardAddress?.trim();
+    if (address == null || address.isEmpty) return null;
+    if (_sameAddress(address, recipientAddress, caseInsensitive)) return null;
+    return TransactionRisk(
+      level: RiskLevel.medium,
+      message: message,
+      icon: Icons.content_paste_search_rounded,
+      color: Colors.orange,
+    );
   }
 
   /// 综合检测所有风险
@@ -151,10 +229,7 @@ class TransactionRiskChecker {
     final risks = <TransactionRisk>[];
 
     // 检测大额转账
-    final largeAmountRisk = checkLargeAmount(
-      amount: amount,
-      balance: balance,
-    );
+    final largeAmountRisk = checkLargeAmount(amount: amount, balance: balance);
     if (largeAmountRisk != null) {
       risks.add(largeAmountRisk);
     }
@@ -170,10 +245,7 @@ class TransactionRiskChecker {
 
     // 检测高手续费
     if (fee != null) {
-      final highFeeRisk = checkHighFee(
-        fee: fee,
-        amount: amount,
-      );
+      final highFeeRisk = checkHighFee(fee: fee, amount: amount);
       if (highFeeRisk != null) {
         risks.add(highFeeRisk);
       }
@@ -203,5 +275,15 @@ class TransactionRiskChecker {
       return RiskLevel.medium;
     }
     return RiskLevel.low;
+  }
+
+  static bool _sameAddress(String left, String right, bool caseInsensitive) {
+    final normalizedLeft = left.trim();
+    final normalizedRight = right.trim();
+    if (normalizedLeft.isEmpty || normalizedRight.isEmpty) return false;
+    if (caseInsensitive) {
+      return normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
+    }
+    return normalizedLeft == normalizedRight;
   }
 }

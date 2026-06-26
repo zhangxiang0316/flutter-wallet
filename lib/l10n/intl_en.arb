@@ -201,6 +201,20 @@
   "scanToggleFlash": "Toggle flash",
   "scanSwitchCamera": "Switch camera",
   "transferDetails": "Transfer details",
+  "reviewTransfer": "Review transfer",
+  "transactionSummary": "Transaction summary",
+  "totalTransferCost": "Total",
+  "transferRiskFeeUnavailable": "Network fee is not available yet. Confirm you still have enough native balance before continuing.",
+  "transferRiskEvmNetworkConfirm": "EVM addresses can be reused across networks. Confirm the recipient expects funds on {network}.",
+  "@transferRiskEvmNetworkConfirm": {
+    "placeholders": {
+      "network": {}
+    }
+  },
+  "transferRiskSelfTransfer": "The recipient is the same as your current wallet address.",
+  "transferRiskTokenContract": "The recipient matches this token contract address. Sending tokens to a contract address may permanently lose funds.",
+  "transferRiskBurnAddress": "The recipient is a known burn or system address. Funds sent there are likely unrecoverable.",
+  "transferRiskClipboardMismatch": "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly.",
   "networkFee": "Network fee",
   "estimatedNetworkFee": "Estimated network fee",
   "networkFeeAsset": "The network fee is paid in {symbol}. Make sure this wallet has enough balance.",

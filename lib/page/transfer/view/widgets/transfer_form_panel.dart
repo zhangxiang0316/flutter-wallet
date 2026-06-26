@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -110,7 +111,7 @@ class TransferFormPanel extends StatelessWidget {
                     )
                   : const Icon(Icons.outbound_rounded),
               label: Text(
-                'Review Transfer',
+                S.of(context).reviewTransfer,
                 style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w800),
               ),
             ),
@@ -132,6 +133,7 @@ class TransferFormPanel extends StatelessWidget {
 
     // Step 1: 显示交易审查弹窗
     final approved = await _showReviewSheet(context, asset);
+    if (!context.mounted) return;
     if (approved != true) return;
 
     // Step 2: 用户批准后，显示密码认证弹窗
@@ -143,16 +145,33 @@ class TransferFormPanel extends StatelessWidget {
   }
 
   /// Step 1: 显示交易审查弹窗
-  Future<bool?> _showReviewSheet(BuildContext context, ChainBalance asset) async {
+  Future<bool?> _showReviewSheet(
+    BuildContext context,
+    ChainBalance asset,
+  ) async {
     final amount = controller.amountController.text.trim();
     final recipientAddress = controller.addressController.text.trim();
     final feeEstimate = controller.feeEstimate;
+    final clipboardText = await _readClipboardText();
+    if (!context.mounted) return null;
 
     // 检测风险
-    final risks = _detectRisks(asset, amount, recipientAddress, feeEstimate);
+    final risks = _detectRisks(
+      context,
+      asset,
+      amount,
+      recipientAddress,
+      feeEstimate,
+      clipboardText,
+    );
 
     // 构建详情列表
-    final items = _buildReviewItems(asset, amount, recipientAddress, feeEstimate);
+    final items = _buildReviewItems(
+      asset,
+      amount,
+      recipientAddress,
+      feeEstimate,
+    );
 
     // 显示审查弹窗
     return await showModalBottomSheet<bool>(
@@ -161,7 +180,7 @@ class TransferFormPanel extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return TransactionReviewSheet(
-          title: 'Review Transfer',
+          title: S.of(context).reviewTransfer,
           items: items,
           risks: risks,
           onApprove: () => Navigator.of(context).pop(true),
@@ -172,7 +191,10 @@ class TransferFormPanel extends StatelessWidget {
   }
 
   /// Step 2: 显示密码认证弹窗
-  Future<String?> _showPasswordSheet(BuildContext context, ChainBalance asset) async {
+  Future<String?> _showPasswordSheet(
+    BuildContext context,
+    ChainBalance asset,
+  ) async {
     final passwordController = TextEditingController();
     final password = await showModalBottomSheet<String>(
       context: context,
@@ -295,14 +317,14 @@ class TransferFormPanel extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: theme.primaryColor.withOpacity(0.1),
+        color: theme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Transaction Summary',
+            S.of(context).transactionSummary,
             style: TextStyle(
               fontSize: 11.sp,
               fontWeight: FontWeight.w600,
@@ -313,15 +335,12 @@ class TransferFormPanel extends StatelessWidget {
           Row(
             children: [
               Text(
-                'To: ',
+                '${S.of(context).transactionTo}: ',
                 style: TextStyle(fontSize: 11.sp, color: Colors.grey),
               ),
               Text(
                 shortAddress,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -329,15 +348,12 @@ class TransferFormPanel extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Amount: ',
+                '${S.of(context).transactionAmount}: ',
                 style: TextStyle(fontSize: 11.sp, color: Colors.grey),
               ),
               Text(
                 '$amount ${asset.symbol}',
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -348,21 +364,92 @@ class TransferFormPanel extends StatelessWidget {
 
   /// 检测交易风险
   List<TransactionRisk> _detectRisks(
+    BuildContext context,
     ChainBalance asset,
     String amount,
     String recipientAddress,
     TransferFeeEstimate? feeEstimate,
+    String? clipboardText,
   ) {
+    final s = S.of(context);
     // 获取历史地址（这里简化处理，实际应该从交易历史中获取）
     final historyAddresses = <String>[];
 
-    return TransactionRiskChecker.checkAllRisks(
+    final risks = TransactionRiskChecker.checkAllRisks(
       amount: amount,
       balance: asset.amount, // 使用 amount 字段
       recipientAddress: recipientAddress,
       historyAddresses: historyAddresses,
       fee: feeEstimate?.amount, // 使用 amount 字段
     );
+    risks.addAll([
+      if (feeEstimate == null || feeEstimate.amount.isEmpty)
+        TransactionRisk(
+          level: RiskLevel.medium,
+          message: s.transferRiskFeeUnavailable,
+          icon: Icons.info_outline_rounded,
+          color: Colors.orange,
+        ),
+      if (asset.chainRef.isEvm)
+        TransactionRisk(
+          level: RiskLevel.medium,
+          message: s.transferRiskEvmNetworkConfirm(
+            asset.chainConfig?.name ?? asset.chainRef.name,
+          ),
+          icon: Icons.hub_outlined,
+          color: Colors.orange,
+        ),
+      if (TransactionRiskChecker.checkSelfTransfer(
+            recipientAddress: recipientAddress,
+            walletAddress: asset.address,
+            message: s.transferRiskSelfTransfer,
+            caseInsensitive: asset.chainRef.isEvm,
+          )
+          case final risk?)
+        risk,
+      if (TransactionRiskChecker.checkTokenContractRecipient(
+            recipientAddress: recipientAddress,
+            contractAddress: asset.contractAddress,
+            message: s.transferRiskTokenContract,
+            caseInsensitive: asset.chainRef.isEvm,
+          )
+          case final risk?)
+        risk,
+      if (TransactionRiskChecker.checkBurnAddress(
+            recipientAddress: recipientAddress,
+            message: s.transferRiskBurnAddress,
+            isEvm: asset.chainRef.isEvm,
+            isSolana:
+                asset.chainRef.id == WalletChain.solana.id ||
+                asset.chainConfig?.type == WalletChainType.solana,
+          )
+          case final risk?)
+        risk,
+    ]);
+
+    final clipboardAddress = _extractAddressFromTextForAsset(
+      asset,
+      clipboardText ?? '',
+    );
+    final clipboardRisk = TransactionRiskChecker.checkClipboardMismatch(
+      recipientAddress: recipientAddress,
+      clipboardAddress: clipboardAddress,
+      message: s.transferRiskClipboardMismatch,
+      caseInsensitive: asset.chainRef.isEvm,
+    );
+    if (clipboardRisk != null) {
+      risks.add(clipboardRisk);
+    }
+
+    risks.sort((a, b) {
+      const levelOrder = {
+        RiskLevel.high: 0,
+        RiskLevel.medium: 1,
+        RiskLevel.low: 2,
+      };
+      return (levelOrder[a.level] ?? 2).compareTo(levelOrder[b.level] ?? 2);
+    });
+    return risks;
   }
 
   /// 构建审查详情列表
@@ -378,40 +465,54 @@ class TransferFormPanel extends StatelessWidget {
     final items = <ReviewItem>[];
 
     // From
-    items.add(ReviewItem(
-      label: 'From',
-      value: walletName,
-      icon: Icon(Icons.account_balance_wallet, size: 18.sp),
-    ));
+    items.add(
+      ReviewItem(
+        label: S.current.transactionFrom,
+        value: walletName,
+        icon: Icon(Icons.account_balance_wallet, size: 18.sp),
+      ),
+    );
 
     // To
-    items.add(ReviewItem(
-      label: 'To',
-      value: recipientAddress,
-      copyable: true,
-    ));
+    items.add(
+      ReviewItem(
+        label: S.current.transactionTo,
+        value: recipientAddress,
+        copyable: true,
+      ),
+    );
 
     // Amount
-    items.add(ReviewItem(
-      label: 'Amount',
-      value: '$amount ${asset.symbol}',
-      highlight: true,
-      icon: Icon(Icons.payments, size: 18.sp, color: Theme.of(Get.context!).primaryColor),
-    ));
+    items.add(
+      ReviewItem(
+        label: S.current.transactionAmount,
+        value: '$amount ${asset.symbol}',
+        highlight: true,
+        icon: Icon(
+          Icons.payments,
+          size: 18.sp,
+          color: Theme.of(Get.context!).primaryColor,
+        ),
+      ),
+    );
 
     // Network
-    items.add(ReviewItem(
-      label: 'Network',
-      value: chainName,
-      icon: Icon(Icons.language, size: 18.sp),
-    ));
+    items.add(
+      ReviewItem(
+        label: S.current.network,
+        value: chainName,
+        icon: Icon(Icons.language, size: 18.sp),
+      ),
+    );
 
     // Fee
     if (feeEstimate != null && feeEstimate.amount.isNotEmpty) {
-      items.add(ReviewItem(
-        label: 'Estimated Fee',
-        value: '${feeEstimate.amount} ${feeEstimate.symbol}',
-      ));
+      items.add(
+        ReviewItem(
+          label: S.current.estimatedNetworkFee,
+          value: '${feeEstimate.amount} ${feeEstimate.symbol}',
+        ),
+      );
 
       // Total (Amount + Fee if same currency)
       if (feeEstimate.symbol == asset.symbol) {
@@ -419,18 +520,22 @@ class TransferFormPanel extends StatelessWidget {
           final amountValue = double.parse(amount);
           final feeValue = double.parse(feeEstimate.amount);
           final total = amountValue + feeValue;
-          items.add(ReviewItem(
-            label: 'Total',
-            value: '${total.toStringAsFixed(6)} ${asset.symbol}',
-            highlight: true,
-          ));
+          items.add(
+            ReviewItem(
+              label: S.current.totalTransferCost,
+              value: '${total.toStringAsFixed(6)} ${asset.symbol}',
+              highlight: true,
+            ),
+          );
         } catch (_) {}
       }
     } else {
-      items.add(ReviewItem(
-        label: 'Estimated Fee',
-        value: 'Estimating...',
-      ));
+      items.add(
+        ReviewItem(
+          label: S.current.estimatedNetworkFee,
+          value: S.current.feeEstimating,
+        ),
+      );
     }
 
     return items;
@@ -451,5 +556,31 @@ class TransferFormPanel extends StatelessWidget {
       return 'Solana address';
     }
     return '0x...';
+  }
+
+  Future<String?> _readClipboardText() async {
+    try {
+      return (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _extractAddressFromTextForAsset(ChainBalance asset, String value) {
+    if (value.trim().isEmpty) return null;
+    if (asset.chainRef.isEvm) {
+      return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
+    }
+    if (asset.chainRef.id == WalletChain.tron.id ||
+        asset.chainConfig?.type == WalletChainType.tron) {
+      return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
+    }
+    if (asset.chainRef.id == WalletChain.solana.id ||
+        asset.chainConfig?.type == WalletChainType.solana) {
+      return RegExp(
+        r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
+      ).firstMatch(value)?.group(0);
+    }
+    return null;
   }
 }

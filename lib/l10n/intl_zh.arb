@@ -201,6 +201,20 @@
   "scanToggleFlash": "切换闪光灯",
   "scanSwitchCamera": "切换摄像头",
   "transferDetails": "转账信息",
+  "reviewTransfer": "检查转账",
+  "transactionSummary": "交易摘要",
+  "totalTransferCost": "合计",
+  "transferRiskFeeUnavailable": "暂未获取到网络手续费，请确认钱包中仍有足够原生币支付手续费。",
+  "transferRiskEvmNetworkConfirm": "EVM 地址可在多个网络复用，请确认收款方希望在 {network} 接收资产。",
+  "@transferRiskEvmNetworkConfirm": {
+    "placeholders": {
+      "network": {}
+    }
+  },
+  "transferRiskSelfTransfer": "收款地址与当前钱包地址相同。",
+  "transferRiskTokenContract": "收款地址与当前代币合约地址相同，向合约地址转账可能导致资产永久丢失。",
+  "transferRiskBurnAddress": "收款地址是常见销毁或系统地址，转入后大概率无法找回。",
+  "transferRiskClipboardMismatch": "剪贴板中存在另一个地址，请确认收款地址没有被意外替换。",
   "networkFee": "网络手续费",
   "estimatedNetworkFee": "预计网络手续费",
   "networkFeeAsset": "手续费将使用 {symbol} 支付，请确认钱包中有足够余额。",
