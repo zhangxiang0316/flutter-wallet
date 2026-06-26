@@ -45,10 +45,14 @@
 
 ### ⚡ 性能优化
 - ✅ **骨架屏加载** - 优化感知性能 +40%
-- ✅ **交易历史缓存** - 速度提升 10-100x
+- ✅ **交易历史缓存与分页** - 速度提升 10-100x
   - 首次加载：1-3秒（原 10-30秒）
   - 重复查看：0.1秒（原 10-30秒）
   - 离线可查看历史记录
+- ✅ **交易历史数据源升级** - 支持 Etherscan V2 / TronGrid API Key
+  - EVM 链优先使用 Etherscan V2 多链接口
+  - TRON 请求自动携带 TronGrid API Key
+  - Arbitrum 避免长时间 RPC logs 扫块，使用短超时兜底
 - ✅ **图片缓存** - 减少网络请求，节省流量 70%
 - ✅ **智能错误处理** - 自动重试机制，成功率 +60%
 
@@ -190,10 +194,30 @@
    const projectId = 'YOUR_PROJECT_ID_HERE'; // 替换为你的真实 ID
    ```
 
-5. **运行应用**
+5. **配置交易历史 API Key**（推荐）
+
+   复制示例配置并填写本地 key：
+
    ```bash
-   # 开发模式
+   cp .env.example .env.local
+   ```
+
+   `.env.local` 支持：
+
+   ```bash
+   ETHERSCAN_API_KEY=your_etherscan_v2_key
+   TRONGRID_API_KEY=your_trongrid_key
+   ```
+
+   `.env.local` 已被 `.gitignore` 忽略，不要提交真实 key。
+
+6. **运行应用**
+   ```bash
+   # 开发模式（不注入交易历史 API Key）
    flutter run
+
+   # 推荐：读取 .env.local 并注入交易历史 API Key
+   scripts/flutter_run_with_env.sh
    
    # 发布模式
    flutter run --release
@@ -203,9 +227,11 @@
 
 #### Android
 ```bash
-flutter build apk --release
+# 推荐：脚本会读取 .env.local 并注入交易历史 API Key
+scripts/build_android.sh
+
 # 或构建 App Bundle
-flutter build appbundle --release
+scripts/build_android_bundle.sh
 ```
 
 #### iOS
@@ -302,30 +328,47 @@ final response = await client.get('/api/balance');
 
 ---
 
-## 🔑 API 密钥配置（可选）
+## 🔑 API 密钥配置
 
-为了获得更好的性能，建议注册并配置区块链浏览器 API 密钥：
+交易历史默认可以使用公共 RPC/Explorer 兜底，但生产或稳定测试建议配置 API Key。
 
-### Etherscan API（EVM 链）
-1. 注册：https://etherscan.io/apis
-2. 免费额度：5 calls/sec
-3. 配置位置：`lib/wallet/services/transaction_history/providers/evm_transaction_provider.dart`
+### 本地配置
 
-```dart
-static const Map<String, String> _apiKeys = {
-  'ethereum': 'YOUR_API_KEY',
-  'bsc': 'YOUR_API_KEY',
-  'polygon': 'YOUR_API_KEY',
-  // ...
-};
-```
+1. 复制配置模板：
 
-### Solscan API（Solana）
-- 免费使用，无需注册
-- 如需更高限额：https://pro-api.solscan.io/
+   ```bash
+   cp .env.example .env.local
+   ```
 
-### TronGrid API（TRON）
-- 官方免费，无需注册
+2. 填写本地密钥：
+
+   ```bash
+   ETHERSCAN_API_KEY=your_etherscan_v2_key
+   TRONGRID_API_KEY=your_trongrid_key
+   ```
+
+3. 使用带环境注入的运行脚本：
+
+   ```bash
+   scripts/flutter_run_with_env.sh
+   ```
+
+### 支持的数据源
+
+- **Etherscan V2**：用于 EVM 链交易历史。内置 EVM 链会优先使用 `https://api.etherscan.io/v2/api`，并通过 `chainid` 区分 Ethereum、BSC、Arbitrum 等链。
+- **TronGrid**：用于 TRON/TRC20 交易历史。配置后请求会自动携带 `TRON-PRO-API-KEY`。
+- **Solana RPC**：当前仍使用 RPC 查询，SOL 原生历史支持分页，SPL token 多 token account 场景暂保守只取第一页。
+
+### 注意事项
+
+- 不要把真实 API Key 写入 Dart 源码或 README。
+- `.env.local` 已被 `.gitignore` 忽略。
+- `String.fromEnvironment` 只在启动/编译时读取，修改 `.env.local` 后必须重新运行或重新打包，Hot Reload 不会生效。
+- 如果 Arbitrum 历史记录很慢或直接为空，先确认日志中出现：
+
+  ```text
+  Using Etherscan V2 history provider for Arbitrum chainId=42161
+  ```
 
 ---
 

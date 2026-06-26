@@ -4,6 +4,17 @@
 
 ## 📱 Android
 
+Android 构建脚本会自动读取项目根目录的 `.env.local`，并通过 `--dart-define`
+注入交易历史 API Key：
+
+```bash
+ETHERSCAN_API_KEY=your_etherscan_v2_key
+TRONGRID_API_KEY=your_trongrid_key
+```
+
+如果 `.env.local` 不存在，脚本仍会继续构建，但 EVM/TRON 交易历史会退回公共数据源，
+Arbitrum 等链的历史记录可能变慢或不完整。
+
 ### APK（直接安装）
 ```bash
 ./scripts/build_android.sh
@@ -148,6 +159,21 @@ codesign --deep --force --verify --verbose \
 ---
 
 ## 💡 Tips
+
+### 本地调试注入 API Key
+
+```bash
+./scripts/flutter_run_with_env.sh
+```
+
+该脚本读取 `.env.local` 并传入：
+
+```bash
+--dart-define=ETHERSCAN_API_KEY=...
+--dart-define=TRONGRID_API_KEY=...
+```
+
+修改 `.env.local` 后需要完全重启应用，Hot Reload 不会重新读取编译参数。
 
 ### 减小包体积
 ```bash
