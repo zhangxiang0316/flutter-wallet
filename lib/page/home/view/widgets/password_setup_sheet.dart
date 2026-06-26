@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
+import '../../../../utils/toast_util.dart';
+import '../../../../wallet/services/wallet_backup_status_service.dart';
 import '../../controller/home_controller.dart';
 import 'wallet_sheet_styles.dart';
 
@@ -53,10 +55,25 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
   /// 创建钱包成功后展示的助记词；为空时展示密码输入步骤。
   String? _mnemonic;
 
+  /// 创建钱包成功后的钱包 ID。
+  String? _walletId;
+
+  /// 是否进入助记词抽词确认步骤。
+  bool _isConfirmingMnemonic = false;
+
+  /// 抽词确认输入控制器。
+  final List<TextEditingController> _confirmWordControllers = [];
+
+  final WalletBackupStatusService _backupStatusService =
+      WalletBackupStatusService();
+
   @override
   void dispose() {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    for (final controller in _confirmWordControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -71,6 +88,8 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
           duration: const Duration(milliseconds: 180),
           child: _mnemonic == null
               ? _buildPasswordStep(context)
+              : _isConfirmingMnemonic
+              ? _buildMnemonicConfirmStep(context, _mnemonic!)
               : _buildMnemonicBackupStep(context, _mnemonic!),
         ),
       ),
@@ -141,9 +160,87 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
           width: double.infinity,
           child: FilledButton(
             style: vantFilledButtonStyle(context),
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(S.of(context).mnemonicBackupConfirm),
+            onPressed: _startMnemonicConfirm,
+            child: Text(S.of(context).mnemonicBackupNext),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMnemonicConfirmStep(BuildContext context, String mnemonic) {
+    final words = mnemonic.split(' ');
+    final indexes = _confirmIndexes(words.length);
+    _ensureConfirmControllers(indexes.length);
+    return Column(
+      key: const ValueKey('mnemonic-confirm-step'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        VantSheetTitle(title: S.of(context).confirmMnemonicBackup),
+        Text(
+          S.of(context).confirmMnemonicBackupTip,
+          style: TextStyle(
+            fontSize: 12.sp,
+            height: 1.35,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.62),
+          ),
+        ).marginOnly(bottom: 14.h),
+        ...indexes.asMap().entries.map((entry) {
+          final inputIndex = entry.key;
+          final wordIndex = entry.value;
+          return TextField(
+            controller: _confirmWordControllers[inputIndex],
+            textInputAction: inputIndex == indexes.length - 1
+                ? TextInputAction.done
+                : TextInputAction.next,
+            enabled: !_isSubmitting,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: S.of(context).mnemonicWordNumber(wordIndex + 1),
+              prefixIcon: const Icon(Icons.key_rounded),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            onSubmitted: (_) {
+              if (inputIndex == indexes.length - 1) {
+                _confirmMnemonicBackup();
+              }
+            },
+          ).marginOnly(bottom: 12.h);
+        }),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size.fromHeight(42.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                onPressed: _isSubmitting
+                    ? null
+                    : () => setState(() => _isConfirmingMnemonic = false),
+                child: Text(S.of(context).backToMnemonic),
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: FilledButton(
+                style: vantFilledButtonStyle(context),
+                onPressed: _isSubmitting ? null : _confirmMnemonicBackup,
+                child: VantButtonLoadingLabel(
+                  label: S.of(context).mnemonicBackupConfirm,
+                  loading: _isSubmitting,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -170,6 +267,7 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     if (!mounted) return;
     if (result is CreatedWalletBackup) {
       setState(() {
+        _walletId = result.walletId;
         _mnemonic = result.mnemonic;
         _isSubmitting = false;
       });
@@ -180,6 +278,55 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
       return;
     }
     setState(() => _isSubmitting = false);
+  }
+
+  void _startMnemonicConfirm() {
+    setState(() {
+      _isConfirmingMnemonic = true;
+      for (final controller in _confirmWordControllers) {
+        controller.clear();
+      }
+    });
+  }
+
+  Future<void> _confirmMnemonicBackup() async {
+    if (_isSubmitting) return;
+    final mnemonic = _mnemonic;
+    final walletId = _walletId;
+    if (mnemonic == null || walletId == null) return;
+
+    final words = mnemonic.split(' ');
+    final indexes = _confirmIndexes(words.length);
+    for (final entry in indexes.asMap().entries) {
+      final input = _confirmWordControllers[entry.key].text
+          .trim()
+          .toLowerCase();
+      final expected = words[entry.value].trim().toLowerCase();
+      if (input != expected) {
+        Toast.show(S.current.mnemonicBackupVerifyFailed);
+        return;
+      }
+    }
+
+    setState(() => _isSubmitting = true);
+    await _backupStatusService.markMnemonicBackedUp(walletId);
+    if (!mounted) return;
+    Toast.show(S.current.mnemonicBackedUp);
+    Navigator.of(context).pop();
+  }
+
+  void _ensureConfirmControllers(int count) {
+    while (_confirmWordControllers.length < count) {
+      _confirmWordControllers.add(TextEditingController());
+    }
+  }
+
+  List<int> _confirmIndexes(int wordCount) {
+    if (wordCount <= 0) return const [];
+    final candidates = <int>{1, 4, 8};
+    return candidates
+        .where((index) => index >= 0 && index < wordCount)
+        .toList(growable: false);
   }
 }
 

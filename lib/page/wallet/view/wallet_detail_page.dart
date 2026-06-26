@@ -77,37 +77,38 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
 
     return SecureScreen(
       child: ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
-          : const Color(0xFFF7F8FA),
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
-        children: [
-          WalletDetailHeader(
-            wallet: wallet,
-            isRenaming: controller.isRenamingWallet,
-            onRenamePressed: () => _showRenameWalletSheet(wallet.name),
-          ),
-          SizedBox(height: 12.h),
-          WalletAddressSection(wallet: wallet),
-          SizedBox(height: 12.h),
-          WalletSecretSection(
-            privateKeyText: controller.privateKeyText,
-            mnemonicText: controller.mnemonicText,
-            hasMnemonic: controller.hasMnemonic,
-            isUnlockingPrivateKey: controller.isUnlockingPrivateKey,
-            isUnlockingMnemonic: controller.isUnlockingMnemonic,
-            onUnlockPrivateKey: () => _showPasswordUnlockSheet(
-              title: S.of(context!).viewPrivateKey,
-              onSubmit: controller.unlockPrivateKey,
+        color: Theme.of(context!).brightness == Brightness.dark
+            ? Theme.of(context!).scaffoldBackgroundColor
+            : const Color(0xFFF7F8FA),
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
+          children: [
+            WalletDetailHeader(
+              wallet: wallet,
+              isRenaming: controller.isRenamingWallet,
+              isMnemonicBackedUp: controller.isMnemonicBackedUp,
+              onRenamePressed: () => _showRenameWalletSheet(wallet.name),
             ),
-            onUnlockMnemonic: () => _showPasswordUnlockSheet(
-              title: S.of(context!).viewMnemonic,
-              onSubmit: controller.unlockMnemonic,
+            SizedBox(height: 12.h),
+            WalletAddressSection(wallet: wallet),
+            SizedBox(height: 12.h),
+            WalletSecretSection(
+              privateKeyText: controller.privateKeyText,
+              mnemonicText: controller.mnemonicText,
+              hasMnemonic: controller.hasMnemonic,
+              isUnlockingPrivateKey: controller.isUnlockingPrivateKey,
+              isUnlockingMnemonic: controller.isUnlockingMnemonic,
+              onUnlockPrivateKey: () => _showPasswordUnlockSheet(
+                title: S.of(context!).viewPrivateKey,
+                onSubmit: controller.unlockPrivateKey,
+              ),
+              onUnlockMnemonic: () => _showPasswordUnlockSheet(
+                title: S.of(context!).viewMnemonic,
+                onSubmit: controller.unlockMnemonic,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

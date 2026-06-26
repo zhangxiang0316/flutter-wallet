@@ -18,6 +18,15 @@ class WalletBlockExplorerService {
     return Uri.parse(template.replaceAll('{address}', asset.address.trim()));
   }
 
+  /// 返回当前资产所在链的交易详情浏览器 URL。
+  Uri? transactionUri(ChainBalance asset, String txHash) {
+    final hash = txHash.trim();
+    if (hash.isEmpty) return null;
+    final template = _transactionTemplate(asset.chainRef);
+    if (template == null) return null;
+    return Uri.parse(template.replaceAll('{txHash}', hash));
+  }
+
   String? _addressTemplate(WalletChainRef chain) {
     switch (chain.id) {
       case 'bsc':
@@ -40,6 +49,28 @@ class WalletBlockExplorerService {
     return null;
   }
 
+  String? _transactionTemplate(WalletChainRef chain) {
+    switch (chain.id) {
+      case 'bsc':
+        return 'https://bscscan.com/tx/{txHash}';
+      case 'ethereum':
+        return 'https://etherscan.io/tx/{txHash}';
+      case 'x-layer':
+        return 'https://web3.okx.com/explorer/xlayer/tx/{txHash}';
+      case 'arbitrum':
+        return 'https://arbiscan.io/tx/{txHash}';
+      case 'solana':
+        return 'https://solscan.io/tx/{txHash}';
+      case 'tron':
+        return 'https://tronscan.org/#/transaction/{txHash}';
+    }
+
+    if (chain is WalletChainConfig) {
+      return _transactionTemplateFromConfiguredExplorer(chain.explorerApiUrl);
+    }
+    return null;
+  }
+
   String? _templateFromConfiguredExplorer(String? explorerApiUrl) {
     final rawUrl = explorerApiUrl?.trim() ?? '';
     if (rawUrl.isEmpty) return null;
@@ -58,6 +89,28 @@ class WalletBlockExplorerService {
         : uri.host;
     if (_looksLikeEvmScanHost(webHost)) {
       return '${uri.scheme}://$webHost/address/{address}';
+    }
+    return null;
+  }
+
+  String? _transactionTemplateFromConfiguredExplorer(String? explorerApiUrl) {
+    final rawUrl = explorerApiUrl?.trim() ?? '';
+    if (rawUrl.isEmpty) return null;
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null || uri.scheme.isEmpty || uri.host.isEmpty) {
+      return null;
+    }
+
+    final blockscoutBase = _blockscoutBase(uri);
+    if (blockscoutBase != null) {
+      return '$blockscoutBase/tx/{txHash}';
+    }
+
+    final webHost = uri.host.startsWith('api.')
+        ? uri.host.substring(4)
+        : uri.host;
+    if (_looksLikeEvmScanHost(webHost)) {
+      return '${uri.scheme}://$webHost/tx/{txHash}';
     }
     return null;
   }

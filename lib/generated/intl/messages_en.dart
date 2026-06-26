@@ -22,28 +22,38 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m0(amount) => "Up to ${amount}";
 
-  static String m1(symbol) =>
+  static String m1(index) => "Word #${index}";
+
+  static String m2(symbol) =>
       "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
 
-  static String m2(symbol) => "Receive ${symbol}";
+  static String m3(symbol) => "Receive ${symbol}";
 
-  static String m3(symbol) =>
+  static String m4(name) => "Remove \"${name}\" from the address book?";
+
+  static String m5(symbol) =>
       "Remove \"${symbol}\"? The home page will no longer query this asset balance.";
 
-  static String m4(name) =>
+  static String m6(name) =>
       "Remove \"${name}\"? Assets on this custom network will no longer be queried.";
 
-  static String m5(name) =>
+  static String m7(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m6(symbol) => "Transfer ${symbol}";
+  static String m8(symbol) => "Transfer ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+        "addAddressBookEntry":
+            MessageLookupByLibrary.simpleMessage("Add contact"),
         "addCustomAsset": MessageLookupByLibrary.simpleMessage("Add asset"),
         "addNetwork": MessageLookupByLibrary.simpleMessage("Add network"),
         "addWallet": MessageLookupByLibrary.simpleMessage("Add wallet"),
+        "addressBook": MessageLookupByLibrary.simpleMessage("Address book"),
+        "addressBookTip": MessageLookupByLibrary.simpleMessage(
+            "Save trusted recipient addresses by network. Transfer pages can pick contacts from the current network only."),
         "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
+        "asset": MessageLookupByLibrary.simpleMessage("Asset"),
         "assetVisibility":
             MessageLookupByLibrary.simpleMessage("Asset display"),
         "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
@@ -52,6 +62,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "Authenticate to view sensitive information"),
         "availableBalance":
             MessageLookupByLibrary.simpleMessage("Available balance"),
+        "backToMnemonic": MessageLookupByLibrary.simpleMessage("Back"),
         "backToWallet": MessageLookupByLibrary.simpleMessage("Back to wallet"),
         "backupMnemonic":
             MessageLookupByLibrary.simpleMessage("Back up mnemonic"),
@@ -70,11 +81,33 @@ class MessageLookup extends MessageLookupByLibrary {
             "Unable to open block explorer"),
         "blockExplorerUnavailable": MessageLookupByLibrary.simpleMessage(
             "Explorer is unavailable for this network"),
+        "blockNumber": MessageLookupByLibrary.simpleMessage("Block number"),
         "cancel": MessageLookupByLibrary.simpleMessage("Cancel"),
+        "chooseFromAddressBook":
+            MessageLookupByLibrary.simpleMessage("Choose from address book"),
         "confirmImport": MessageLookupByLibrary.simpleMessage("Import"),
+        "confirmMnemonicBackup":
+            MessageLookupByLibrary.simpleMessage("Confirm mnemonic backup"),
+        "confirmMnemonicBackupTip": MessageLookupByLibrary.simpleMessage(
+            "Enter the requested words to confirm you saved the mnemonic in the correct order."),
         "confirmTransfer": MessageLookupByLibrary.simpleMessage("Transfer"),
         "confirmWalletPassword":
             MessageLookupByLibrary.simpleMessage("Confirm wallet password"),
+        "contactAddress":
+            MessageLookupByLibrary.simpleMessage("Wallet address"),
+        "contactInvalid": MessageLookupByLibrary.simpleMessage(
+            "Check the contact name, network, and address"),
+        "contactName": MessageLookupByLibrary.simpleMessage("Contact name"),
+        "contactNameHint": MessageLookupByLibrary.simpleMessage(
+            "Exchange, friend, or cold wallet"),
+        "contactNote": MessageLookupByLibrary.simpleMessage("Note"),
+        "contactNoteHint":
+            MessageLookupByLibrary.simpleMessage("Optional label or reminder"),
+        "contactRemoved":
+            MessageLookupByLibrary.simpleMessage("Contact removed"),
+        "contactSaved": MessageLookupByLibrary.simpleMessage("Contact saved"),
+        "contractAddress":
+            MessageLookupByLibrary.simpleMessage("Contract address"),
         "copied": MessageLookupByLibrary.simpleMessage("Copied"),
         "copyHash": MessageLookupByLibrary.simpleMessage("Copy hash"),
         "copyLink": MessageLookupByLibrary.simpleMessage("Copy link"),
@@ -97,6 +130,8 @@ class MessageLookup extends MessageLookupByLibrary {
             "Token info is unavailable. Fill it in manually."),
         "customAssetName": MessageLookupByLibrary.simpleMessage("Name"),
         "customAssetSymbol": MessageLookupByLibrary.simpleMessage("Symbol"),
+        "editAddressBookEntry":
+            MessageLookupByLibrary.simpleMessage("Edit contact"),
         "editNetwork": MessageLookupByLibrary.simpleMessage("Edit network"),
         "editWalletName":
             MessageLookupByLibrary.simpleMessage("Edit wallet name"),
@@ -127,11 +162,23 @@ class MessageLookup extends MessageLookupByLibrary {
         "loading": MessageLookupByLibrary.simpleMessage("Loading..."),
         "login": MessageLookupByLibrary.simpleMessage("login"),
         "mnemonic": MessageLookupByLibrary.simpleMessage("Mnemonic"),
+        "mnemonicBackedUp":
+            MessageLookupByLibrary.simpleMessage("Mnemonic backup confirmed"),
+        "mnemonicBackedUpStatus":
+            MessageLookupByLibrary.simpleMessage("Backed up"),
         "mnemonicBackupConfirm": MessageLookupByLibrary.simpleMessage(
             "I have backed up the mnemonic"),
+        "mnemonicBackupNext":
+            MessageLookupByLibrary.simpleMessage("I wrote it down"),
+        "mnemonicBackupVerifyFailed": MessageLookupByLibrary.simpleMessage(
+            "Mnemonic words do not match. Check your backup and try again."),
         "mnemonicHint": MessageLookupByLibrary.simpleMessage(
             "Enter 12 English words separated by spaces"),
+        "mnemonicNotBackedUpStatus":
+            MessageLookupByLibrary.simpleMessage("Not backed up"),
+        "mnemonicWordNumber": m1,
         "more": MessageLookupByLibrary.simpleMessage("More"),
+        "network": MessageLookupByLibrary.simpleMessage("Network"),
         "networkAdded": MessageLookupByLibrary.simpleMessage("Network added"),
         "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
         "networkDuplicate":
@@ -145,7 +192,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkExplorerApiUrlHelper": MessageLookupByLibrary.simpleMessage(
             "Used for EVM transaction history. Supports Etherscan-compatible APIs."),
         "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
-        "networkFeeAsset": m1,
+        "networkFeeAsset": m2,
         "networkInvalid": MessageLookupByLibrary.simpleMessage(
             "Check the network name, symbol, chain ID, and RPC URL"),
         "networkManagement": MessageLookupByLibrary.simpleMessage("Networks"),
@@ -165,6 +212,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkUpdated":
             MessageLookupByLibrary.simpleMessage("Network updated"),
         "next": MessageLookupByLibrary.simpleMessage("Next"),
+        "noContacts": MessageLookupByLibrary.simpleMessage("No contacts yet"),
         "onboardingDesc1": MessageLookupByLibrary.simpleMessage(
             "Supports Ethereum, Solana, TRON and other mainstream blockchains, manage all assets in one wallet"),
         "onboardingDesc2": MessageLookupByLibrary.simpleMessage(
@@ -214,7 +262,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Receive address"),
         "receiveAddressEmpty": MessageLookupByLibrary.simpleMessage(
             "This wallet does not have an address for this network"),
-        "receiveAsset": m2,
+        "receiveAsset": m3,
         "receiveQrTip": MessageLookupByLibrary.simpleMessage(
             "Only send this asset on the selected network."),
         "receiveQrTitle":
@@ -224,14 +272,17 @@ class MessageLookup extends MessageLookupByLibrary {
         "recipientAddress":
             MessageLookupByLibrary.simpleMessage("Recipient address"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
+        "removeContact": MessageLookupByLibrary.simpleMessage("Remove contact"),
+        "removeContactConfirm": m4,
         "removeCustomAsset":
             MessageLookupByLibrary.simpleMessage("Remove asset"),
-        "removeCustomAssetConfirmMessage": m3,
+        "removeCustomAssetConfirmMessage": m5,
         "removeNetwork": MessageLookupByLibrary.simpleMessage("Remove network"),
-        "removeNetworkConfirm": m4,
+        "removeNetworkConfirm": m6,
         "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
-        "removeWalletConfirmMessage": m5,
+        "removeWalletConfirmMessage": m7,
         "retry": MessageLookupByLibrary.simpleMessage("Retry"),
+        "saveContact": MessageLookupByLibrary.simpleMessage("Save contact"),
         "saveNetwork": MessageLookupByLibrary.simpleMessage("Save network"),
         "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
         "scanCameraError": MessageLookupByLibrary.simpleMessage(
@@ -255,6 +306,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security."),
         "securitySettings":
             MessageLookupByLibrary.simpleMessage("Security Settings"),
+        "selectContact": MessageLookupByLibrary.simpleMessage("Select contact"),
         "selectReceiveAsset":
             MessageLookupByLibrary.simpleMessage("Select asset"),
         "selectReceiveChain":
@@ -276,6 +328,15 @@ class MessageLookup extends MessageLookupByLibrary {
         "themeLight": MessageLookupByLibrary.simpleMessage("Light"),
         "themeSystem": MessageLookupByLibrary.simpleMessage("System"),
         "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
+        "transactionAddresses":
+            MessageLookupByLibrary.simpleMessage("Addresses"),
+        "transactionAmount": MessageLookupByLibrary.simpleMessage("Amount"),
+        "transactionChainInfo":
+            MessageLookupByLibrary.simpleMessage("Network details"),
+        "transactionDetail":
+            MessageLookupByLibrary.simpleMessage("Transaction details"),
+        "transactionDirection":
+            MessageLookupByLibrary.simpleMessage("Direction"),
         "transactionFrom": MessageLookupByLibrary.simpleMessage("From"),
         "transactionHash":
             MessageLookupByLibrary.simpleMessage("Transaction hash"),
@@ -291,11 +352,14 @@ class MessageLookup extends MessageLookupByLibrary {
         "transactionNoAsset": MessageLookupByLibrary.simpleMessage(
             "Transaction details are unavailable"),
         "transactionOutgoing": MessageLookupByLibrary.simpleMessage("Sent"),
+        "transactionOverview": MessageLookupByLibrary.simpleMessage("Overview"),
         "transactionSelfTransfer":
             MessageLookupByLibrary.simpleMessage("Self transfer"),
+        "transactionSource": MessageLookupByLibrary.simpleMessage("Source"),
         "transactionSourceLocal": MessageLookupByLibrary.simpleMessage("Local"),
         "transactionSourceRemote":
             MessageLookupByLibrary.simpleMessage("On-chain"),
+        "transactionStatus": MessageLookupByLibrary.simpleMessage("Status"),
         "transactionStatusFailed":
             MessageLookupByLibrary.simpleMessage("Failed"),
         "transactionStatusPending":
@@ -304,14 +368,17 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Success"),
         "transactionStatusUnknown":
             MessageLookupByLibrary.simpleMessage("Unknown"),
+        "transactionTime": MessageLookupByLibrary.simpleMessage("Time"),
         "transactionTimeUnknown":
             MessageLookupByLibrary.simpleMessage("Unknown time"),
         "transactionTo": MessageLookupByLibrary.simpleMessage("To"),
         "transactionUnknownDirection":
             MessageLookupByLibrary.simpleMessage("Transaction"),
+        "transactionWalletAddress":
+            MessageLookupByLibrary.simpleMessage("Wallet address"),
         "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-        "transferAsset": m6,
+        "transferAsset": m8,
         "transferDetails":
             MessageLookupByLibrary.simpleMessage("Transfer details"),
         "transferFailed": MessageLookupByLibrary.simpleMessage(

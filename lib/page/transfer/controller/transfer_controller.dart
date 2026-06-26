@@ -175,6 +175,17 @@ class TransferController extends BaseController {
     _scheduleFeeEstimate();
   }
 
+  /// 将地址簿选择的地址写入收款地址输入框。
+  void fillRecipientAddressFromBook(String address) {
+    final value = address.trim();
+    if (value.isEmpty) return;
+    addressController.text = value;
+    addressController.selection = TextSelection.collapsed(offset: value.length);
+    transactionHash = '';
+    update();
+    _scheduleFeeEstimate();
+  }
+
   /// 校验当前地址和金额输入是否能进入提交流程。
   ///
   /// 金额会按资产精度转换为链上最小单位，地址会根据链类型分别使用

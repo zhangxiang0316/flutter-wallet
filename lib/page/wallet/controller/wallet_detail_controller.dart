@@ -4,6 +4,7 @@ import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_account.dart';
+import '../../../wallet/services/wallet_backup_status_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/wallet_secret_store.dart';
 
@@ -12,10 +13,15 @@ import '../../../wallet/services/wallet_secret_store.dart';
 /// 负责加载钱包基础信息、改名，以及在用户输入钱包密码后临时解锁私钥或助记词。
 /// 控制器不会主动暴露密钥，只有明确点击查看并校验密码后才更新展示文本。
 class WalletDetailController extends BaseController {
-  WalletDetailController({WalletRepository? repository})
-    : _repository = repository ?? WalletRepository();
+  WalletDetailController({
+    WalletRepository? repository,
+    WalletBackupStatusService? backupStatusService,
+  }) : _repository = repository ?? WalletRepository(),
+       _backupStatusService =
+           backupStatusService ?? WalletBackupStatusService();
 
   final WalletRepository _repository;
+  final WalletBackupStatusService _backupStatusService;
 
   /// 当前详情页展示的钱包。
   WalletAccount? wallet;
@@ -28,6 +34,9 @@ class WalletDetailController extends BaseController {
 
   /// 当前钱包是否保存了助记词。
   bool hasMnemonic = false;
+
+  /// 当前钱包助记词是否已完成备份确认。
+  bool isMnemonicBackedUp = false;
 
   /// 私钥解锁请求状态，防止重复点击。
   bool isUnlockingPrivateKey = false;
@@ -67,6 +76,9 @@ class WalletDetailController extends BaseController {
     hasMnemonic = wallet == null
         ? false
         : await _repository.hasWalletMnemonic(wallet!.id);
+    isMnemonicBackedUp = wallet == null
+        ? false
+        : await _backupStatusService.isMnemonicBackedUp(wallet!.id);
     update();
   }
 

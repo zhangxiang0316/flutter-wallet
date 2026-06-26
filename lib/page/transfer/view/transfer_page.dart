@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:getx_route_annotations/getx_route_annotations.dart';
 
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
+import '../../../generated/route_table.dart';
+import '../../address_book/view/address_book_page.dart';
 import '../controller/transfer_controller.dart';
 import 'widgets/transfer_fee_panel.dart';
 import 'widgets/transfer_address_scanner_page.dart';
@@ -35,6 +38,11 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
+        IconButton(
+          tooltip: S.of(context!).chooseFromAddressBook,
+          onPressed: controller.isSubmitting ? null : _chooseRecipientAddress,
+          icon: Icon(Icons.contacts_rounded, size: 21.w),
+        ),
         IconButton(
           tooltip: S.of(context!).scanRecipientAddress,
           onPressed: controller.isSubmitting ? null : _scanRecipientAddress,
@@ -99,5 +107,21 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
     );
     if (result == null || result.trim().isEmpty) return;
     controller.fillRecipientAddressFromScan(result);
+  }
+
+  /// 从地址簿选择当前链的收款人。
+  Future<void> _chooseRecipientAddress() async {
+    final asset = controller.currentAsset;
+    if (asset == null) return;
+    final result = await Get.toNamed<String>(
+      RouteTable.addressBook,
+      arguments: AddressBookPageArguments(
+        chainId: asset.chainId,
+        chainName: asset.chainConfig?.name ?? asset.chainRef.name,
+        selectable: true,
+      ),
+    );
+    if (result == null || result.trim().isEmpty) return;
+    controller.fillRecipientAddressFromBook(result);
   }
 }

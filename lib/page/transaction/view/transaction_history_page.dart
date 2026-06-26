@@ -104,6 +104,7 @@ class TransactionHistoryPage
               ...controller.records.map(
                 (record) => TransactionRecordTile(
                   record: record,
+                  onTap: () => controller.openRecordDetail(record),
                   onCopyHash: () => controller.copyHash(record),
                 ).marginOnly(bottom: 10.h),
               ),

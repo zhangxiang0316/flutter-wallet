@@ -11,6 +11,7 @@ import '../../../wallet/models/wallet_transaction_record.dart';
 import '../../../wallet/services/transaction_history_cache.dart';
 import '../../../wallet/services/wallet_block_explorer_service.dart';
 import '../../../wallet/services/wallet_transaction_history_service.dart';
+import 'transaction_detail_controller.dart';
 
 /// 交易记录页面参数。
 ///
@@ -124,6 +125,16 @@ class TransactionHistoryController extends BaseController {
     if (record.txHash.isEmpty) return;
     Clipboard.setData(ClipboardData(text: record.txHash));
     Toast.show(S.current.copied);
+  }
+
+  /// 打开单条交易详情。
+  Future<void> openRecordDetail(WalletTransactionRecord record) async {
+    final asset = arguments?.asset;
+    if (asset == null) return;
+    await Get.toNamed(
+      RouteTable.transactionDetail,
+      arguments: TransactionDetailPageArguments(asset: asset, record: record),
+    );
   }
 
   /// 打开应用内区块浏览器页面。

@@ -22,30 +22,40 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m0(amount) => "最高约 ${amount}";
 
-  static String m1(symbol) => "手续费将使用 ${symbol} 支付，请确认钱包中有足够余额。";
+  static String m1(index) => "第 ${index} 个单词";
 
-  static String m2(symbol) => "收款 ${symbol}";
+  static String m2(symbol) => "手续费将使用 ${symbol} 支付，请确认钱包中有足够余额。";
 
-  static String m3(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
+  static String m3(symbol) => "收款 ${symbol}";
 
-  static String m4(name) => "确定要移除「${name}」吗？移除后不再查询该自定义网络资产。";
+  static String m4(name) => "确定从地址簿移除「${name}」吗？";
 
-  static String m5(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+  static String m5(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
 
-  static String m6(symbol) => "转账 ${symbol}";
+  static String m6(name) => "确定要移除「${name}」吗？移除后不再查询该自定义网络资产。";
+
+  static String m7(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+
+  static String m8(symbol) => "转账 ${symbol}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+        "addAddressBookEntry": MessageLookupByLibrary.simpleMessage("添加联系人"),
         "addCustomAsset": MessageLookupByLibrary.simpleMessage("添加币种"),
         "addNetwork": MessageLookupByLibrary.simpleMessage("添加网络"),
         "addWallet": MessageLookupByLibrary.simpleMessage("添加钱包"),
+        "addressBook": MessageLookupByLibrary.simpleMessage("地址簿"),
+        "addressBookTip": MessageLookupByLibrary.simpleMessage(
+            "按网络保存可信收款地址。转账时仅可选择当前网络下的联系人。"),
         "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
+        "asset": MessageLookupByLibrary.simpleMessage("资产"),
         "assetVisibility": MessageLookupByLibrary.simpleMessage("资产显示"),
         "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
             "关闭后，该币种会从首页资产列表和估值中隐藏；链上余额不会被删除，可随时重新开启。"),
         "authenticateToUnlock":
             MessageLookupByLibrary.simpleMessage("验证身份以查看敏感信息"),
         "availableBalance": MessageLookupByLibrary.simpleMessage("可用余额"),
+        "backToMnemonic": MessageLookupByLibrary.simpleMessage("返回"),
         "backToWallet": MessageLookupByLibrary.simpleMessage("返回钱包"),
         "backupMnemonic": MessageLookupByLibrary.simpleMessage("备份助记词"),
         "backupMnemonicTip": MessageLookupByLibrary.simpleMessage(
@@ -61,10 +71,26 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("无法打开区块浏览器"),
         "blockExplorerUnavailable":
             MessageLookupByLibrary.simpleMessage("当前网络暂未配置区块浏览器"),
+        "blockNumber": MessageLookupByLibrary.simpleMessage("区块高度"),
         "cancel": MessageLookupByLibrary.simpleMessage("取消"),
+        "chooseFromAddressBook": MessageLookupByLibrary.simpleMessage("从地址簿选择"),
         "confirmImport": MessageLookupByLibrary.simpleMessage("确认导入"),
+        "confirmMnemonicBackup":
+            MessageLookupByLibrary.simpleMessage("确认助记词备份"),
+        "confirmMnemonicBackupTip":
+            MessageLookupByLibrary.simpleMessage("请输入指定序号的单词，确认你已按正确顺序保存助记词。"),
         "confirmTransfer": MessageLookupByLibrary.simpleMessage("确认转账"),
         "confirmWalletPassword": MessageLookupByLibrary.simpleMessage("确认钱包密码"),
+        "contactAddress": MessageLookupByLibrary.simpleMessage("钱包地址"),
+        "contactInvalid":
+            MessageLookupByLibrary.simpleMessage("请检查联系人名称、网络和地址"),
+        "contactName": MessageLookupByLibrary.simpleMessage("联系人名称"),
+        "contactNameHint": MessageLookupByLibrary.simpleMessage("交易所、朋友或冷钱包"),
+        "contactNote": MessageLookupByLibrary.simpleMessage("备注"),
+        "contactNoteHint": MessageLookupByLibrary.simpleMessage("可选标签或提醒"),
+        "contactRemoved": MessageLookupByLibrary.simpleMessage("联系人已移除"),
+        "contactSaved": MessageLookupByLibrary.simpleMessage("联系人已保存"),
+        "contractAddress": MessageLookupByLibrary.simpleMessage("合约地址"),
         "copied": MessageLookupByLibrary.simpleMessage("已复制"),
         "copyHash": MessageLookupByLibrary.simpleMessage("复制哈希"),
         "copyLink": MessageLookupByLibrary.simpleMessage("复制链接"),
@@ -84,6 +110,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("暂时无法识别币种信息，请手动填写"),
         "customAssetName": MessageLookupByLibrary.simpleMessage("币种名称"),
         "customAssetSymbol": MessageLookupByLibrary.simpleMessage("币种简称"),
+        "editAddressBookEntry": MessageLookupByLibrary.simpleMessage("编辑联系人"),
         "editNetwork": MessageLookupByLibrary.simpleMessage("编辑网络"),
         "editWalletName": MessageLookupByLibrary.simpleMessage("修改钱包名称"),
         "email": MessageLookupByLibrary.simpleMessage("注册"),
@@ -106,11 +133,20 @@ class MessageLookup extends MessageLookupByLibrary {
         "loading": MessageLookupByLibrary.simpleMessage("加载中..."),
         "login": MessageLookupByLibrary.simpleMessage("登录"),
         "mnemonic": MessageLookupByLibrary.simpleMessage("助记词"),
+        "mnemonicBackedUp": MessageLookupByLibrary.simpleMessage("助记词备份已确认"),
+        "mnemonicBackedUpStatus": MessageLookupByLibrary.simpleMessage("已备份"),
         "mnemonicBackupConfirm":
             MessageLookupByLibrary.simpleMessage("我已安全备份助记词"),
+        "mnemonicBackupNext": MessageLookupByLibrary.simpleMessage("我已抄写"),
+        "mnemonicBackupVerifyFailed":
+            MessageLookupByLibrary.simpleMessage("助记词单词不匹配，请检查备份后重试"),
         "mnemonicHint":
             MessageLookupByLibrary.simpleMessage("请输入 12 个英文助记词，使用空格分隔"),
+        "mnemonicNotBackedUpStatus":
+            MessageLookupByLibrary.simpleMessage("未备份"),
+        "mnemonicWordNumber": m1,
         "more": MessageLookupByLibrary.simpleMessage("更多"),
+        "network": MessageLookupByLibrary.simpleMessage("网络"),
         "networkAdded": MessageLookupByLibrary.simpleMessage("网络已添加"),
         "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
         "networkDuplicate": MessageLookupByLibrary.simpleMessage("该网络已存在"),
@@ -123,7 +159,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkExplorerApiUrlHelper": MessageLookupByLibrary.simpleMessage(
             "用于查询 EVM 交易记录，可填写 Etherscan 兼容 API"),
         "networkFee": MessageLookupByLibrary.simpleMessage("网络手续费"),
-        "networkFeeAsset": m1,
+        "networkFeeAsset": m2,
         "networkInvalid": MessageLookupByLibrary.simpleMessage(
             "请检查网络名称、币种简称、Chain ID 和 RPC 地址"),
         "networkManagement": MessageLookupByLibrary.simpleMessage("网络管理"),
@@ -141,6 +177,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkSymbol": MessageLookupByLibrary.simpleMessage("原生币简称"),
         "networkUpdated": MessageLookupByLibrary.simpleMessage("网络已更新"),
         "next": MessageLookupByLibrary.simpleMessage("下一步"),
+        "noContacts": MessageLookupByLibrary.simpleMessage("暂无联系人"),
         "onboardingDesc1": MessageLookupByLibrary.simpleMessage(
             "支持以太坊、Solana、TRON 等多条主流公链，一个钱包管理所有资产"),
         "onboardingDesc2":
@@ -177,20 +214,23 @@ class MessageLookup extends MessageLookupByLibrary {
         "receiveAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
         "receiveAddressEmpty":
             MessageLookupByLibrary.simpleMessage("当前钱包没有该网络地址"),
-        "receiveAsset": m2,
+        "receiveAsset": m3,
         "receiveQrTip":
             MessageLookupByLibrary.simpleMessage("请仅通过当前选择的网络转入该币种。"),
         "receiveQrTitle": MessageLookupByLibrary.simpleMessage("扫码收款"),
         "receiveUnavailable": MessageLookupByLibrary.simpleMessage("收款信息不可用"),
         "recipientAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
+        "removeContact": MessageLookupByLibrary.simpleMessage("移除联系人"),
+        "removeContactConfirm": m4,
         "removeCustomAsset": MessageLookupByLibrary.simpleMessage("移除币种"),
-        "removeCustomAssetConfirmMessage": m3,
+        "removeCustomAssetConfirmMessage": m5,
         "removeNetwork": MessageLookupByLibrary.simpleMessage("移除网络"),
-        "removeNetworkConfirm": m4,
+        "removeNetworkConfirm": m6,
         "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
-        "removeWalletConfirmMessage": m5,
+        "removeWalletConfirmMessage": m7,
         "retry": MessageLookupByLibrary.simpleMessage("重试"),
+        "saveContact": MessageLookupByLibrary.simpleMessage("保存联系人"),
         "saveNetwork": MessageLookupByLibrary.simpleMessage("保存网络"),
         "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
         "scanCameraError":
@@ -210,6 +250,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
             "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。"),
         "securitySettings": MessageLookupByLibrary.simpleMessage("安全设置"),
+        "selectContact": MessageLookupByLibrary.simpleMessage("选择联系人"),
         "selectReceiveAsset": MessageLookupByLibrary.simpleMessage("选择收款币种"),
         "selectReceiveChain": MessageLookupByLibrary.simpleMessage("选择收款网络"),
         "selectTransferAsset": MessageLookupByLibrary.simpleMessage("转账币种"),
@@ -226,6 +267,11 @@ class MessageLookup extends MessageLookupByLibrary {
         "themeLight": MessageLookupByLibrary.simpleMessage("浅色主题"),
         "themeSystem": MessageLookupByLibrary.simpleMessage("跟随系统"),
         "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
+        "transactionAddresses": MessageLookupByLibrary.simpleMessage("地址信息"),
+        "transactionAmount": MessageLookupByLibrary.simpleMessage("数量"),
+        "transactionChainInfo": MessageLookupByLibrary.simpleMessage("网络详情"),
+        "transactionDetail": MessageLookupByLibrary.simpleMessage("交易详情"),
+        "transactionDirection": MessageLookupByLibrary.simpleMessage("方向"),
         "transactionFrom": MessageLookupByLibrary.simpleMessage("发送方"),
         "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
         "transactionHistory": MessageLookupByLibrary.simpleMessage("交易记录"),
@@ -238,20 +284,26 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("交易记录加载失败，请稍后重试"),
         "transactionNoAsset": MessageLookupByLibrary.simpleMessage("交易记录信息不可用"),
         "transactionOutgoing": MessageLookupByLibrary.simpleMessage("转出"),
+        "transactionOverview": MessageLookupByLibrary.simpleMessage("概览"),
         "transactionSelfTransfer": MessageLookupByLibrary.simpleMessage("自转账"),
+        "transactionSource": MessageLookupByLibrary.simpleMessage("来源"),
         "transactionSourceLocal": MessageLookupByLibrary.simpleMessage("本地"),
         "transactionSourceRemote": MessageLookupByLibrary.simpleMessage("链上"),
+        "transactionStatus": MessageLookupByLibrary.simpleMessage("状态"),
         "transactionStatusFailed": MessageLookupByLibrary.simpleMessage("失败"),
         "transactionStatusPending": MessageLookupByLibrary.simpleMessage("待确认"),
         "transactionStatusSuccess": MessageLookupByLibrary.simpleMessage("成功"),
         "transactionStatusUnknown": MessageLookupByLibrary.simpleMessage("未知"),
+        "transactionTime": MessageLookupByLibrary.simpleMessage("时间"),
         "transactionTimeUnknown": MessageLookupByLibrary.simpleMessage("时间未知"),
         "transactionTo": MessageLookupByLibrary.simpleMessage("接收方"),
         "transactionUnknownDirection":
             MessageLookupByLibrary.simpleMessage("交易"),
+        "transactionWalletAddress":
+            MessageLookupByLibrary.simpleMessage("钱包地址"),
         "transfer": MessageLookupByLibrary.simpleMessage("转账"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-        "transferAsset": m6,
+        "transferAsset": m8,
         "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
         "transferFailed":
             MessageLookupByLibrary.simpleMessage("转账失败，请检查地址、数量和链上余额"),

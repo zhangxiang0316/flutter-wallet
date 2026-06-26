@@ -13,6 +13,7 @@ import '../../../wallet/services/asset_valuation_service.dart';
 import '../../../wallet/services/chain_balance_cache.dart';
 import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/wallet_asset_visibility_service.dart';
+import '../../../wallet/services/wallet_backup_status_service.dart';
 import '../../../wallet/services/wallet_chain_config_service.dart';
 import '../../../wallet/services/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
@@ -29,6 +30,7 @@ class HomeController extends BaseController {
     ChainBalanceService? balanceService,
     AssetValuationService? valuationService,
     WalletAssetVisibilityService? assetVisibilityService,
+    WalletBackupStatusService? backupStatusService,
     WalletChainConfigService? chainConfigService,
     ChainBalanceCache? balanceCache,
   }) : _repository = repository ?? WalletRepository(),
@@ -37,6 +39,8 @@ class HomeController extends BaseController {
        _valuationService = valuationService ?? AssetValuationService(),
        _assetVisibilityService =
            assetVisibilityService ?? WalletAssetVisibilityService(),
+       _backupStatusService =
+           backupStatusService ?? WalletBackupStatusService(),
        _chainConfigService = chainConfigService ?? WalletChainConfigService(),
        _balanceCache = balanceCache ?? ChainBalanceCache();
 
@@ -45,6 +49,7 @@ class HomeController extends BaseController {
   final ChainBalanceService _balanceService;
   final AssetValuationService _valuationService;
   final WalletAssetVisibilityService _assetVisibilityService;
+  final WalletBackupStatusService _backupStatusService;
   final WalletChainConfigService _chainConfigService;
   final ChainBalanceCache _balanceCache;
 
@@ -172,7 +177,7 @@ class HomeController extends BaseController {
     );
     await _saveAndSelectWallet(nextWallet);
     Toast.show(S.current.walletCreated);
-    return CreatedWalletBackup(mnemonic: mnemonic);
+    return CreatedWalletBackup(walletId: nextWallet.id, mnemonic: mnemonic);
   }
 
   /// 导入用户输入的私钥，派生 EVM/TRON 地址并保存到本地。
@@ -487,6 +492,7 @@ class HomeController extends BaseController {
     if (walletToRemove == null) return;
     final removedCurrentWallet = wallet?.id == walletToRemove.id;
     await _repository.removeWallet(walletToRemove.id);
+    await _backupStatusService.clearMnemonicBackedUp(walletToRemove.id);
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
@@ -683,7 +689,10 @@ class HomeController extends BaseController {
 ///
 /// 目前只包含助记词，底部弹窗会根据该对象切换到助记词备份步骤。
 class CreatedWalletBackup {
-  const CreatedWalletBackup({required this.mnemonic});
+  const CreatedWalletBackup({required this.walletId, required this.mnemonic});
+
+  /// 新钱包 ID，用于记录助记词是否已经完成备份确认。
+  final String walletId;
 
   /// 新钱包的助记词，用户需要离线保存。
   final String mnemonic;

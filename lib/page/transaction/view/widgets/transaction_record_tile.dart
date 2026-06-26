@@ -10,11 +10,15 @@ class TransactionRecordTile extends StatelessWidget {
   const TransactionRecordTile({
     super.key,
     required this.record,
+    required this.onTap,
     required this.onCopyHash,
   });
 
   /// 交易记录数据。
   final WalletTransactionRecord record;
+
+  /// 打开交易详情回调。
+  final VoidCallback onTap;
 
   /// 复制交易哈希回调。
   final VoidCallback onCopyHash;
@@ -24,108 +28,115 @@ class TransactionRecordTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final directionColor = _directionColor(context);
     final subTextColor = colorScheme.onSurface.withValues(alpha: 0.55);
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: transactionPanelDecoration(context),
-      child: Column(
-        children: [
-          Row(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: Container(
+          padding: EdgeInsets.all(12.w),
+          decoration: transactionPanelDecoration(context),
+          child: Column(
             children: [
-              Container(
-                width: 34.w,
-                height: 34.w,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: directionColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Icon(
-                  _directionIcon(),
-                  color: directionColor,
-                  size: 18.w,
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _directionText(context),
-                      style: TextStyle(
-                        fontSize: 12.5.sp,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      _formattedTime(context),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: subTextColor,
-                        fontSize: 10.5.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
                 children: [
-                  Text(
-                    '${_amountPrefix()}${record.amount} ${record.symbol}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                  Container(
+                    width: 34.w,
+                    height: 34.w,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: directionColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Icon(
+                      _directionIcon(),
                       color: directionColor,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w900,
+                      size: 18.w,
                     ),
                   ),
-                  SizedBox(height: 2.h),
-                  _StatusPill(status: record.status, source: record.source),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _directionText(context),
+                          style: TextStyle(
+                            fontSize: 12.5.sp,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          _formattedTime(context),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: subTextColor,
+                            fontSize: 10.5.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${_amountPrefix()}${record.amount} ${record.symbol}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: directionColor,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      _StatusPill(status: record.status, source: record.source),
+                    ],
+                  ),
                 ],
               ),
+              Divider(
+                height: 18.h,
+                thickness: 1,
+                color: colorScheme.outline.withValues(alpha: 0.1),
+              ),
+              _InfoRow(
+                label: S.of(context).transactionHash,
+                value: shortTransactionText(record.txHash, head: 10, tail: 8),
+                trailing: IconButton(
+                  visualDensity: VisualDensity.compact,
+                  constraints: BoxConstraints.tight(Size(30.w, 30.w)),
+                  padding: EdgeInsets.zero,
+                  tooltip: S.of(context).copyHash,
+                  onPressed: onCopyHash,
+                  icon: Icon(Icons.copy_rounded, size: 16.w),
+                ),
+              ),
+              SizedBox(height: 7.h),
+              _InfoRow(
+                label: S.of(context).transactionFrom,
+                value: shortTransactionText(record.fromAddress),
+              ),
+              SizedBox(height: 7.h),
+              _InfoRow(
+                label: S.of(context).transactionTo,
+                value: shortTransactionText(record.toAddress),
+              ),
+              if (record.feeAmount?.isNotEmpty ?? false) ...[
+                SizedBox(height: 7.h),
+                _InfoRow(
+                  label: S.of(context).networkFee,
+                  value: '${record.feeAmount} ${record.feeSymbol ?? ''}'.trim(),
+                ),
+              ],
             ],
           ),
-          Divider(
-            height: 18.h,
-            thickness: 1,
-            color: colorScheme.outline.withValues(alpha: 0.1),
-          ),
-          _InfoRow(
-            label: S.of(context).transactionHash,
-            value: shortTransactionText(record.txHash, head: 10, tail: 8),
-            trailing: IconButton(
-              visualDensity: VisualDensity.compact,
-              constraints: BoxConstraints.tight(Size(30.w, 30.w)),
-              padding: EdgeInsets.zero,
-              tooltip: S.of(context).copyHash,
-              onPressed: onCopyHash,
-              icon: Icon(Icons.copy_rounded, size: 16.w),
-            ),
-          ),
-          SizedBox(height: 7.h),
-          _InfoRow(
-            label: S.of(context).transactionFrom,
-            value: shortTransactionText(record.fromAddress),
-          ),
-          SizedBox(height: 7.h),
-          _InfoRow(
-            label: S.of(context).transactionTo,
-            value: shortTransactionText(record.toAddress),
-          ),
-          if (record.feeAmount?.isNotEmpty ?? false) ...[
-            SizedBox(height: 7.h),
-            _InfoRow(
-              label: S.of(context).networkFee,
-              value: '${record.feeAmount} ${record.feeSymbol ?? ''}'.trim(),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

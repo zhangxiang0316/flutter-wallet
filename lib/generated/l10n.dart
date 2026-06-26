@@ -140,6 +140,186 @@ class S {
     );
   }
 
+  /// `Address book`
+  String get addressBook {
+    return Intl.message(
+      'Address book',
+      name: 'addressBook',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Save trusted recipient addresses by network. Transfer pages can pick contacts from the current network only.`
+  String get addressBookTip {
+    return Intl.message(
+      'Save trusted recipient addresses by network. Transfer pages can pick contacts from the current network only.',
+      name: 'addressBookTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add contact`
+  String get addAddressBookEntry {
+    return Intl.message(
+      'Add contact',
+      name: 'addAddressBookEntry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Edit contact`
+  String get editAddressBookEntry {
+    return Intl.message(
+      'Edit contact',
+      name: 'editAddressBookEntry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select contact`
+  String get selectContact {
+    return Intl.message(
+      'Select contact',
+      name: 'selectContact',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No contacts yet`
+  String get noContacts {
+    return Intl.message(
+      'No contacts yet',
+      name: 'noContacts',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Contact name`
+  String get contactName {
+    return Intl.message(
+      'Contact name',
+      name: 'contactName',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exchange, friend, or cold wallet`
+  String get contactNameHint {
+    return Intl.message(
+      'Exchange, friend, or cold wallet',
+      name: 'contactNameHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet address`
+  String get contactAddress {
+    return Intl.message(
+      'Wallet address',
+      name: 'contactAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Note`
+  String get contactNote {
+    return Intl.message(
+      'Note',
+      name: 'contactNote',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Optional label or reminder`
+  String get contactNoteHint {
+    return Intl.message(
+      'Optional label or reminder',
+      name: 'contactNoteHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Save contact`
+  String get saveContact {
+    return Intl.message(
+      'Save contact',
+      name: 'saveContact',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remove contact`
+  String get removeContact {
+    return Intl.message(
+      'Remove contact',
+      name: 'removeContact',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remove "{name}" from the address book?`
+  String removeContactConfirm(Object name) {
+    return Intl.message(
+      'Remove "$name" from the address book?',
+      name: 'removeContactConfirm',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `Contact saved`
+  String get contactSaved {
+    return Intl.message(
+      'Contact saved',
+      name: 'contactSaved',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Contact removed`
+  String get contactRemoved {
+    return Intl.message(
+      'Contact removed',
+      name: 'contactRemoved',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Check the contact name, network, and address`
+  String get contactInvalid {
+    return Intl.message(
+      'Check the contact name, network, and address',
+      name: 'contactInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Choose from address book`
+  String get chooseFromAddressBook {
+    return Intl.message(
+      'Choose from address book',
+      name: 'chooseFromAddressBook',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Asset display`
   String get assetVisibility {
     return Intl.message(
@@ -890,11 +1070,101 @@ class S {
     );
   }
 
+  /// `I wrote it down`
+  String get mnemonicBackupNext {
+    return Intl.message(
+      'I wrote it down',
+      name: 'mnemonicBackupNext',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `I have backed up the mnemonic`
   String get mnemonicBackupConfirm {
     return Intl.message(
       'I have backed up the mnemonic',
       name: 'mnemonicBackupConfirm',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm mnemonic backup`
+  String get confirmMnemonicBackup {
+    return Intl.message(
+      'Confirm mnemonic backup',
+      name: 'confirmMnemonicBackup',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the requested words to confirm you saved the mnemonic in the correct order.`
+  String get confirmMnemonicBackupTip {
+    return Intl.message(
+      'Enter the requested words to confirm you saved the mnemonic in the correct order.',
+      name: 'confirmMnemonicBackupTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Word #{index}`
+  String mnemonicWordNumber(Object index) {
+    return Intl.message(
+      'Word #$index',
+      name: 'mnemonicWordNumber',
+      desc: '',
+      args: [index],
+    );
+  }
+
+  /// `Back`
+  String get backToMnemonic {
+    return Intl.message(
+      'Back',
+      name: 'backToMnemonic',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Mnemonic words do not match. Check your backup and try again.`
+  String get mnemonicBackupVerifyFailed {
+    return Intl.message(
+      'Mnemonic words do not match. Check your backup and try again.',
+      name: 'mnemonicBackupVerifyFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Mnemonic backup confirmed`
+  String get mnemonicBackedUp {
+    return Intl.message(
+      'Mnemonic backup confirmed',
+      name: 'mnemonicBackedUp',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Backed up`
+  String get mnemonicBackedUpStatus {
+    return Intl.message(
+      'Backed up',
+      name: 'mnemonicBackedUpStatus',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Not backed up`
+  String get mnemonicNotBackedUpStatus {
+    return Intl.message(
+      'Not backed up',
+      name: 'mnemonicNotBackedUpStatus',
       desc: '',
       args: [],
     );
@@ -1515,6 +1785,146 @@ class S {
     return Intl.message(
       'Transactions',
       name: 'transactionHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction details`
+  String get transactionDetail {
+    return Intl.message(
+      'Transaction details',
+      name: 'transactionDetail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Overview`
+  String get transactionOverview {
+    return Intl.message(
+      'Overview',
+      name: 'transactionOverview',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Status`
+  String get transactionStatus {
+    return Intl.message(
+      'Status',
+      name: 'transactionStatus',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Direction`
+  String get transactionDirection {
+    return Intl.message(
+      'Direction',
+      name: 'transactionDirection',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount`
+  String get transactionAmount {
+    return Intl.message(
+      'Amount',
+      name: 'transactionAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Source`
+  String get transactionSource {
+    return Intl.message(
+      'Source',
+      name: 'transactionSource',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Addresses`
+  String get transactionAddresses {
+    return Intl.message(
+      'Addresses',
+      name: 'transactionAddresses',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Wallet address`
+  String get transactionWalletAddress {
+    return Intl.message(
+      'Wallet address',
+      name: 'transactionWalletAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network details`
+  String get transactionChainInfo {
+    return Intl.message(
+      'Network details',
+      name: 'transactionChainInfo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network`
+  String get network {
+    return Intl.message(
+      'Network',
+      name: 'network',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Asset`
+  String get asset {
+    return Intl.message(
+      'Asset',
+      name: 'asset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Contract address`
+  String get contractAddress {
+    return Intl.message(
+      'Contract address',
+      name: 'contractAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Block number`
+  String get blockNumber {
+    return Intl.message(
+      'Block number',
+      name: 'blockNumber',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Time`
+  String get transactionTime {
+    return Intl.message(
+      'Time',
+      name: 'transactionTime',
       desc: '',
       args: [],
     );
