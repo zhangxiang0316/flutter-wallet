@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -11,6 +12,55 @@ import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_transaction_record.dart';
 import 'wallet_transfer_service.dart';
+
+/// 交易历史分页游标。
+class TransactionHistoryCursor {
+  const TransactionHistoryCursor._(this.source, this.value);
+
+  const TransactionHistoryCursor.evmExplorerPage(int page)
+    : this._('evmExplorerPage', page);
+
+  const TransactionHistoryCursor.blockscoutPage(String value)
+    : this._('blockscoutPage', value);
+
+  const TransactionHistoryCursor.tronFingerprint(String value)
+    : this._('tronFingerprint', value);
+
+  const TransactionHistoryCursor.solanaBefore(String value)
+    : this._('solanaBefore', value);
+
+  /// 游标来源。
+  final String source;
+
+  /// 来源特定的下一页参数。
+  final Object value;
+
+  int? get evmPage => source == 'evmExplorerPage' ? value as int : null;
+
+  String? get blockscoutParams =>
+      source == 'blockscoutPage' ? value as String : null;
+
+  String? get tronFingerprint =>
+      source == 'tronFingerprint' ? value as String : null;
+
+  String? get solanaBefore => source == 'solanaBefore' ? value as String : null;
+}
+
+/// 交易历史分页结果。
+class TransactionHistoryPageResult {
+  const TransactionHistoryPageResult({
+    required this.records,
+    required this.nextCursor,
+  });
+
+  /// 当前页交易记录。
+  final List<WalletTransactionRecord> records;
+
+  /// 下一页游标；为 null 表示当前数据源没有更多可取记录。
+  final TransactionHistoryCursor? nextCursor;
+
+  bool get hasMore => nextCursor != null;
+}
 
 /// 钱包链上交易记录服务。
 ///
@@ -39,7 +89,8 @@ class WalletTransactionHistoryService {
   static const int _blockscoutMaxPages = 4;
 
   /// 使用共享的 EVM Transfer 事件 topic
-  static const String _evmTransferEventTopic = CryptoConstants.evmTransferEventTopic;
+  static const String _evmTransferEventTopic =
+      CryptoConstants.evmTransferEventTopic;
 
   /// 内置 EVM 链的 Etherscan 兼容接口。
   ///
@@ -98,66 +149,82 @@ class WalletTransactionHistoryService {
     required String walletId,
     required ChainBalance asset,
   }) async {
-    final chain = asset.chainRef;
-    if (chain.isEvm) {
-      return _loadEvmRecords(walletId: walletId, asset: asset);
-    }
-    if (_isTronChain(chain)) {
-      return _loadTronRecords(walletId: walletId, asset: asset);
-    }
-    if (_isSolanaChain(chain)) {
-      return _loadSolanaRecords(walletId: walletId, asset: asset);
-    }
-    return const [];
+    final result = await loadAssetRecordPage(walletId: walletId, asset: asset);
+    return result.records;
   }
 
-  /// 带重试机制的请求包装器。
-  ///
-  /// 自动重试临时失败的请求，提高成功率。
-  Future<T> _withRetry<T>(
-    Future<T> Function() fn, {
-    int maxAttempts = 2,
-  }) async {
-    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        return await fn();
-      } catch (e) {
-        if (attempt == maxAttempts) rethrow;
-        // 简单的指数退避策略
-        await Future.delayed(Duration(milliseconds: 500 * attempt));
-      }
-    }
-    throw StateError('Retry exhausted');
-  }
-
-  Future<List<WalletTransactionRecord>> _loadEvmRecords({
+  /// 分页读取某个资产的链上交易记录。
+  Future<TransactionHistoryPageResult> loadAssetRecordPage({
     required String walletId,
     required ChainBalance asset,
+    TransactionHistoryCursor? cursor,
+  }) async {
+    final chain = asset.chainRef;
+    if (chain.isEvm) {
+      return _loadEvmRecordPage(
+        walletId: walletId,
+        asset: asset,
+        cursor: cursor,
+      );
+    }
+    if (_isTronChain(chain)) {
+      return _loadTronRecordPage(
+        walletId: walletId,
+        asset: asset,
+        cursor: cursor,
+      );
+    }
+    if (_isSolanaChain(chain)) {
+      return _loadSolanaRecordPage(
+        walletId: walletId,
+        asset: asset,
+        cursor: cursor,
+      );
+    }
+    return const TransactionHistoryPageResult(records: [], nextCursor: null);
+  }
+
+  Future<TransactionHistoryPageResult> _loadEvmRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    TransactionHistoryCursor? cursor,
   }) async {
     Object? lastExplorerError;
     var hasSuccessfulExplorer = false;
+    final isLoadMore = cursor != null;
 
     for (final provider in _evmHistoryProviders(asset.chainRef)) {
+      if (cursor?.evmPage != null &&
+          provider.type != _EvmHistoryProviderType.etherscanCompatible) {
+        continue;
+      }
+      if (cursor?.blockscoutParams != null &&
+          provider.type != _EvmHistoryProviderType.blockscoutV2) {
+        continue;
+      }
       try {
-        final records = switch (provider.type) {
+        final result = switch (provider.type) {
           _EvmHistoryProviderType.etherscanCompatible =>
-            await _loadEvmExplorerRecords(
+            await _loadEvmExplorerRecordPage(
               apiUrl: provider.url,
               apiKey: provider.apiKey,
               walletId: walletId,
               asset: asset,
+              page: cursor?.evmPage ?? 1,
             ),
-          _EvmHistoryProviderType.blockscoutV2 => await _loadBlockscoutRecords(
-            baseUrl: provider.url,
-            walletId: walletId,
-            asset: asset,
-          ),
+          _EvmHistoryProviderType.blockscoutV2 =>
+            await _loadBlockscoutRecordPage(
+              baseUrl: provider.url,
+              walletId: walletId,
+              asset: asset,
+              cursor: cursor?.blockscoutParams,
+            ),
         };
         hasSuccessfulExplorer = true;
-        if (records.isNotEmpty) {
-          return records;
+        if (result.records.isNotEmpty) {
+          return result;
         }
-        if (asset.isNative) return const [];
+        if (asset.isNative) return result;
       } catch (error) {
         lastExplorerError = error;
         developer.log(
@@ -169,6 +236,12 @@ class WalletTransactionHistoryService {
     }
 
     if (asset.isNative) {
+      if (isLoadMore) {
+        return const TransactionHistoryPageResult(
+          records: [],
+          nextCursor: null,
+        );
+      }
       throw StateError(
         '${asset.chainRef.name} native history failed: '
         '${lastExplorerError ?? 'no explorer provider'}',
@@ -176,20 +249,31 @@ class WalletTransactionHistoryService {
     }
 
     try {
-      return await _loadEvmTokenLogs(walletId: walletId, asset: asset);
+      if (isLoadMore) {
+        return const TransactionHistoryPageResult(
+          records: [],
+          nextCursor: null,
+        );
+      }
+      final records = await _loadEvmTokenLogs(walletId: walletId, asset: asset);
+      return TransactionHistoryPageResult(records: records, nextCursor: null);
     } catch (error) {
       if (hasSuccessfulExplorer) {
-        return const [];
+        return const TransactionHistoryPageResult(
+          records: [],
+          nextCursor: null,
+        );
       }
       rethrow;
     }
   }
 
-  Future<List<WalletTransactionRecord>> _loadEvmExplorerRecords({
+  Future<TransactionHistoryPageResult> _loadEvmExplorerRecordPage({
     required String apiUrl,
     String? apiKey,
     required String walletId,
     required ChainBalance asset,
+    required int page,
   }) async {
     final normalizedApiKey = apiKey?.trim() ?? '';
     final response = await _dio.get(
@@ -199,7 +283,7 @@ class WalletTransactionHistoryService {
         'action': asset.isNative ? 'txlist' : 'tokentx',
         'address': asset.address,
         if (!asset.isNative) 'contractaddress': asset.contractAddress,
-        'page': 1,
+        'page': page,
         'offset': _historyLimit,
         'sort': 'desc',
         if (_isEtherscanV2Api(apiUrl) && asset.chainRef.evmChainId != null)
@@ -214,7 +298,7 @@ class WalletTransactionHistoryService {
 
     final result = data['result'];
     if (result is List) {
-      return result
+      final records = result
           .whereType<Map>()
           .map(
             (item) => asset.isNative
@@ -232,13 +316,19 @@ class WalletTransactionHistoryService {
           .whereType<WalletTransactionRecord>()
           .take(_historyLimit)
           .toList(growable: false);
+      return TransactionHistoryPageResult(
+        records: records,
+        nextCursor: records.length >= _historyLimit
+            ? TransactionHistoryCursor.evmExplorerPage(page + 1)
+            : null,
+      );
     }
 
     final message = data['message']?.toString().toLowerCase() ?? '';
     final resultText = result?.toString().toLowerCase() ?? '';
     if (message.contains('no transactions') ||
         resultText.contains('no transactions')) {
-      return const [];
+      return const TransactionHistoryPageResult(records: [], nextCursor: null);
     }
     throw StateError(
       data['result']?.toString() ??
@@ -247,23 +337,33 @@ class WalletTransactionHistoryService {
     );
   }
 
-  Future<List<WalletTransactionRecord>> _loadBlockscoutRecords({
+  Future<TransactionHistoryPageResult> _loadBlockscoutRecordPage({
     required String baseUrl,
     required String walletId,
     required ChainBalance asset,
+    String? cursor,
   }) async {
     final apiBase = _blockscoutApiBase(baseUrl);
     final path = asset.isNative ? 'transactions' : 'token-transfers';
-    var queryParameters = asset.isNative
-        ? <String, dynamic>{}
-        : <String, dynamic>{'type': 'ERC-20'};
+    var queryParameters =
+        _decodeBlockscoutCursor(cursor) ??
+        (asset.isNative
+            ? <String, dynamic>{}
+            : <String, dynamic>{'type': 'ERC-20'});
+    if (!asset.isNative) {
+      queryParameters['type'] = 'ERC-20';
+    }
     final records = <WalletTransactionRecord>[];
     final seenIds = <String>{};
+    TransactionHistoryCursor? nextCursor;
 
     for (var page = 0; page < _blockscoutMaxPages; page++) {
+      final requestQueryParameters = queryParameters;
       final response = await _dio.get(
         '$apiBase/addresses/${Uri.encodeComponent(asset.address)}/$path',
-        queryParameters: queryParameters.isEmpty ? null : queryParameters,
+        queryParameters: requestQueryParameters.isEmpty
+            ? null
+            : requestQueryParameters,
       );
       final data = response.data;
       if (data is! Map) {
@@ -304,10 +404,29 @@ class WalletTransactionHistoryService {
           entry.key.toString(): entry.value,
         if (!asset.isNative) 'type': 'ERC-20',
       };
+      nextCursor = TransactionHistoryCursor.blockscoutPage(
+        jsonEncode(queryParameters),
+      );
     }
 
     records.sort(_compareRecordTimeDesc);
-    return records.take(_historyLimit).toList(growable: false);
+    return TransactionHistoryPageResult(
+      records: records.take(_historyLimit).toList(growable: false),
+      nextCursor: nextCursor,
+    );
+  }
+
+  Map<String, dynamic>? _decodeBlockscoutCursor(String? cursor) {
+    if (cursor == null || cursor.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(cursor);
+      if (decoded is! Map) return null;
+      return {
+        for (final entry in decoded.entries) entry.key.toString(): entry.value,
+      };
+    } catch (_) {
+      return null;
+    }
   }
 
   WalletTransactionRecord? _evmNativeRecordFromExplorer({
@@ -552,13 +671,10 @@ class WalletTransactionHistoryService {
       final incoming = results[1];
 
       // ✅ 并行处理所有日志
-      final logFutures = [...outgoing, ...incoming]
-          .whereType<Map>()
-          .map((log) => _evmTokenRecordFromLog(
-                walletId: walletId,
-                asset: asset,
-                log: log,
-              ));
+      final logFutures = [...outgoing, ...incoming].whereType<Map>().map(
+        (log) =>
+            _evmTokenRecordFromLog(walletId: walletId, asset: asset, log: log),
+      );
 
       final processedRecords = await Future.wait(logFutures);
 
@@ -643,9 +759,10 @@ class WalletTransactionHistoryService {
     );
   }
 
-  Future<List<WalletTransactionRecord>> _loadTronRecords({
+  Future<TransactionHistoryPageResult> _loadTronRecordPage({
     required String walletId,
     required ChainBalance asset,
+    TransactionHistoryCursor? cursor,
   }) async {
     Object? lastError;
     for (final apiUrl in _tronApiUrls(asset.chainRef)) {
@@ -658,6 +775,8 @@ class WalletTransactionHistoryService {
             'limit': _historyLimit,
             'only_confirmed': true,
             'order_by': 'block_timestamp,desc',
+            if (cursor?.tronFingerprint?.isNotEmpty ?? false)
+              'fingerprint': cursor!.tronFingerprint,
             if (!asset.isNative) 'contract_address': asset.contractAddress,
           },
         );
@@ -685,7 +804,19 @@ class WalletTransactionHistoryService {
             .take(_historyLimit)
             .toList(growable: false);
         records.sort(_compareRecordTimeDesc);
-        return records;
+        final meta = data is Map ? data['meta'] : null;
+        final nextFingerprint = meta is Map
+            ? meta['fingerprint']?.toString()
+            : null;
+        return TransactionHistoryPageResult(
+          records: records,
+          nextCursor:
+              nextFingerprint != null &&
+                  nextFingerprint.isNotEmpty &&
+                  records.length >= _historyLimit
+              ? TransactionHistoryCursor.tronFingerprint(nextFingerprint)
+              : null,
+        );
       } catch (error) {
         lastError = error;
         developer.log(
@@ -803,23 +934,37 @@ class WalletTransactionHistoryService {
     );
   }
 
-  Future<List<WalletTransactionRecord>> _loadSolanaRecords({
+  Future<TransactionHistoryPageResult> _loadSolanaRecordPage({
     required String walletId,
     required ChainBalance asset,
+    TransactionHistoryCursor? cursor,
   }) async {
     if (asset.isNative) {
-      return _loadSolanaNativeRecords(walletId: walletId, asset: asset);
+      return _loadSolanaNativeRecordPage(
+        walletId: walletId,
+        asset: asset,
+        cursor: cursor,
+      );
     }
-    return _loadSolanaTokenRecords(walletId: walletId, asset: asset);
+    if (cursor != null) {
+      return const TransactionHistoryPageResult(records: [], nextCursor: null);
+    }
+    final records = await _loadSolanaTokenRecords(
+      walletId: walletId,
+      asset: asset,
+    );
+    return TransactionHistoryPageResult(records: records, nextCursor: null);
   }
 
-  Future<List<WalletTransactionRecord>> _loadSolanaNativeRecords({
+  Future<TransactionHistoryPageResult> _loadSolanaNativeRecordPage({
     required String walletId,
     required ChainBalance asset,
+    TransactionHistoryCursor? cursor,
   }) async {
     final signatures = await _solanaSignaturesForAddress(
       chain: asset.chainRef,
       address: asset.address,
+      before: cursor?.solanaBefore,
     );
     final records = <WalletTransactionRecord>[];
     for (final signature in signatures.take(_historyLimit)) {
@@ -838,7 +983,12 @@ class WalletTransactionHistoryService {
       if (records.length >= _historyLimit) break;
     }
     records.sort(_compareRecordTimeDesc);
-    return records.take(_historyLimit).toList(growable: false);
+    return TransactionHistoryPageResult(
+      records: records.take(_historyLimit).toList(growable: false),
+      nextCursor: signatures.length >= _historyLimit
+          ? TransactionHistoryCursor.solanaBefore(signatures.last)
+          : null,
+    );
   }
 
   Future<List<WalletTransactionRecord>> _loadSolanaTokenRecords({
@@ -1016,10 +1166,14 @@ class WalletTransactionHistoryService {
     required WalletChainRef chain,
     required String address,
     int limit = _historyLimit,
+    String? before,
   }) async {
     final result = await _solanaRpc(chain, 'getSignaturesForAddress', [
       address,
-      {'limit': limit},
+      {
+        'limit': limit,
+        if (before != null && before.isNotEmpty) 'before': before,
+      },
     ]);
     if (result is! List) {
       return const [];

@@ -2070,6 +2070,36 @@ class S {
     );
   }
 
+  /// `Load more`
+  String get transactionLoadMore {
+    return Intl.message(
+      'Load more',
+      name: 'transactionLoadMore',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to load more transactions`
+  String get transactionLoadMoreFailed {
+    return Intl.message(
+      'Failed to load more transactions',
+      name: 'transactionLoadMoreFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No more transactions`
+  String get transactionNoMoreRecords {
+    return Intl.message(
+      'No more transactions',
+      name: 'transactionNoMoreRecords',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Transaction details are unavailable`
   String get transactionNoAsset {
     return Intl.message(

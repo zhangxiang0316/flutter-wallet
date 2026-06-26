@@ -358,8 +358,14 @@ class MessageLookup extends MessageLookupByLibrary {
         "transactionIncoming": MessageLookupByLibrary.simpleMessage("Received"),
         "transactionLoadFailed": MessageLookupByLibrary.simpleMessage(
             "Failed to load transactions. Try again later."),
+        "transactionLoadMore":
+            MessageLookupByLibrary.simpleMessage("Load more"),
+        "transactionLoadMoreFailed": MessageLookupByLibrary.simpleMessage(
+            "Failed to load more transactions"),
         "transactionNoAsset": MessageLookupByLibrary.simpleMessage(
             "Transaction details are unavailable"),
+        "transactionNoMoreRecords":
+            MessageLookupByLibrary.simpleMessage("No more transactions"),
         "transactionOutgoing": MessageLookupByLibrary.simpleMessage("Sent"),
         "transactionOverview": MessageLookupByLibrary.simpleMessage("Overview"),
         "transactionSelfTransfer":

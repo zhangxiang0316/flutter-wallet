@@ -86,3 +86,30 @@
 2. ~~交易详情页~~
 3. ~~助记词备份确认流程~~
 4. ~~转账安全检查增强~~
+
+
+
+
+## 历史记录优化方案
+
+1. ~~先修体验和失败兜底~~
+    - ~~有缓存时，刷新失败不显示整页错误，只保留旧记录并轻提示。~~
+    - ~~新请求返回空列表时，不直接覆盖已有缓存。~~
+    - ~~缓存 key 加上 contractAddress/native。~~
+    - ~~页面列表改成 ListView.builder，为后续大量记录做准备。~~
+
+2. ~~增加分页/加载更多~~
+    - ~~Controller 增加 loadInitial / refresh / loadMore。~~
+    - ~~服务返回 records + nextCursor + hasMore。~~
+    - ~~EVM 用 page + offset。~~
+    - ~~Blockscout 用 next_page_params。~~
+    - ~~Solana 原生币用 before signature，SPL token 多 token account 暂保守第一页。~~
+    - ~~TRON 用 fingerprint 或 offset。~~
+    - ~~页面底部加“加载中 / 没有更多 / 重试”。~~
+
+3. 数据源升级
+   最稳定的方案是引入正式 indexer/API Key：
+    - EVM：Etherscan V2 API Key、Covalent、Moralis、Alchemy、QuickNode 任选一个。
+    - Solana：Helius 或 QuickNode。
+    - TRON：TronGrid API Key。
+      这样才能真正解决“慢、失败、查不全”。

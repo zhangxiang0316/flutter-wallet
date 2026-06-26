@@ -20,8 +20,25 @@ class TransactionHistoryCache {
   static const Duration _maxAge = Duration(minutes: 5);
 
   /// 生成缓存键。
-  String _cacheKey(String walletId, String chainId, String symbol) {
+  String _cacheKey(
+    String walletId,
+    String chainId,
+    String symbol, {
+    String? contractAddress,
+  }) {
+    final assetKey = _assetKey(contractAddress);
+    return '${_keyPrefix}_${walletId}_${chainId}_${assetKey}_$symbol';
+  }
+
+  /// 旧版本缓存键，兼容升级前已保存的记录。
+  String _legacyCacheKey(String walletId, String chainId, String symbol) {
     return '${_keyPrefix}_${walletId}_${chainId}_$symbol';
+  }
+
+  String _assetKey(String? contractAddress) {
+    final value = contractAddress?.trim();
+    if (value == null || value.isEmpty) return 'native';
+    return value.toLowerCase();
   }
 
   /// 加载指定资产的缓存交易记录。
@@ -33,12 +50,20 @@ class TransactionHistoryCache {
   Future<List<WalletTransactionRecord>?> load(
     String walletId,
     String chainId,
-    String symbol,
-  ) async {
+    String symbol, {
+    String? contractAddress,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = _cacheKey(walletId, chainId, symbol);
-      final json = prefs.getString(key);
+      final key = _cacheKey(
+        walletId,
+        chainId,
+        symbol,
+        contractAddress: contractAddress,
+      );
+      final json =
+          prefs.getString(key) ??
+          prefs.getString(_legacyCacheKey(walletId, chainId, symbol));
       if (json == null) return null;
 
       final data = jsonDecode(json) as Map<String, dynamic>;
@@ -50,7 +75,10 @@ class TransactionHistoryCache {
       }
 
       final records = (data['records'] as List)
-          .map((item) => WalletTransactionRecord.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                WalletTransactionRecord.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
 
       return records;
@@ -67,11 +95,17 @@ class TransactionHistoryCache {
     String walletId,
     String chainId,
     String symbol,
-    List<WalletTransactionRecord> records,
-  ) async {
+    List<WalletTransactionRecord> records, {
+    String? contractAddress,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = _cacheKey(walletId, chainId, symbol);
+      final key = _cacheKey(
+        walletId,
+        chainId,
+        symbol,
+        contractAddress: contractAddress,
+      );
       final data = {
         'timestamp': DateTime.now().toIso8601String(),
         'records': records.map((r) => r.toJson()).toList(),
@@ -85,11 +119,22 @@ class TransactionHistoryCache {
   /// 清除指定资产的交易记录缓存。
   ///
   /// 用于用户手动刷新或清理缓存时使用。
-  Future<void> clear(String walletId, String chainId, String symbol) async {
+  Future<void> clear(
+    String walletId,
+    String chainId,
+    String symbol, {
+    String? contractAddress,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = _cacheKey(walletId, chainId, symbol);
+      final key = _cacheKey(
+        walletId,
+        chainId,
+        symbol,
+        contractAddress: contractAddress,
+      );
       await prefs.remove(key);
+      await prefs.remove(_legacyCacheKey(walletId, chainId, symbol));
     } catch (_) {
       // 清除失败不影响主流程
     }

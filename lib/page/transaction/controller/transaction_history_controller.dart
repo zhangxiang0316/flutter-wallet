@@ -58,6 +58,15 @@ class TransactionHistoryController extends BaseController {
   /// 是否正在读取交易记录。
   bool isLoading = false;
 
+  /// 是否正在加载更多历史记录。
+  bool isLoadingMore = false;
+
+  /// 当前数据源是否还有更多记录。
+  bool hasMore = false;
+
+  /// 下一页游标。
+  TransactionHistoryCursor? _nextCursor;
+
   /// 交易记录加载失败时展示的错误文案。
   String errorMessage = '';
 
@@ -80,15 +89,19 @@ class TransactionHistoryController extends BaseController {
   Future<void> loadRecords() async {
     final args = arguments;
     if (args == null) return;
+    _nextCursor = null;
+    hasMore = false;
 
     // ✅ 步骤 1: 立即显示缓存记录（如果有）
     final cached = await _cache.load(
       args.walletId,
       args.asset.chainId,
       args.asset.symbol,
+      contractAddress: args.asset.contractAddress,
     );
     if (cached != null && cached.isNotEmpty) {
       records = cached;
+      errorMessage = '';
       update(); // 立即显示缓存，用户感知 < 100ms
     }
 
@@ -98,26 +111,90 @@ class TransactionHistoryController extends BaseController {
       errorMessage = '';
       update();
 
-      final fresh = await _historyService.loadAssetRecords(
+      final result = await _historyService.loadAssetRecordPage(
         walletId: args.walletId,
         asset: args.asset,
       );
+      final fresh = result.records;
 
-      records = fresh;
+      if (fresh.isNotEmpty || records.isEmpty) {
+        records = fresh;
 
-      // ✅ 步骤 3: 保存新缓存
-      await _cache.save(
-        args.walletId,
-        args.asset.chainId,
-        args.asset.symbol,
-        fresh,
-      );
+        // ✅ 步骤 3: 保存新缓存
+        await _cache.save(
+          args.walletId,
+          args.asset.chainId,
+          args.asset.symbol,
+          fresh,
+          contractAddress: args.asset.contractAddress,
+        );
+      }
+      _nextCursor = result.nextCursor;
+      hasMore = result.hasMore;
     } catch (_) {
-      errorMessage = S.current.transactionLoadFailed;
+      if (records.isEmpty) {
+        errorMessage = S.current.transactionLoadFailed;
+      } else {
+        Toast.show(S.current.transactionLoadFailed);
+      }
     } finally {
       isLoading = false;
       update();
     }
+  }
+
+  /// 加载下一页交易记录。
+  Future<void> loadMoreRecords() async {
+    final args = arguments;
+    final cursor = _nextCursor;
+    if (args == null || cursor == null || isLoading || isLoadingMore) return;
+
+    try {
+      isLoadingMore = true;
+      update();
+
+      final result = await _historyService.loadAssetRecordPage(
+        walletId: args.walletId,
+        asset: args.asset,
+        cursor: cursor,
+      );
+      records = _mergeRecords(records, result.records);
+      _nextCursor = result.nextCursor;
+      hasMore = result.hasMore;
+      await _cache.save(
+        args.walletId,
+        args.asset.chainId,
+        args.asset.symbol,
+        records,
+        contractAddress: args.asset.contractAddress,
+      );
+    } catch (_) {
+      Toast.show(S.current.transactionLoadMoreFailed);
+    } finally {
+      isLoadingMore = false;
+      update();
+    }
+  }
+
+  List<WalletTransactionRecord> _mergeRecords(
+    List<WalletTransactionRecord> current,
+    List<WalletTransactionRecord> next,
+  ) {
+    if (next.isEmpty) return current;
+    final seen = current.map((record) => record.id).toSet();
+    final merged = [...current];
+    for (final record in next) {
+      if (seen.add(record.id)) {
+        merged.add(record);
+      }
+    }
+    merged.sort((left, right) {
+      final leftTime = left.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final rightTime =
+          right.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return rightTime.compareTo(leftTime);
+    });
+    return merged;
   }
 
   /// 复制交易哈希。

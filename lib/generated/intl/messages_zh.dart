@@ -288,7 +288,12 @@ class MessageLookup extends MessageLookupByLibrary {
         "transactionIncoming": MessageLookupByLibrary.simpleMessage("转入"),
         "transactionLoadFailed":
             MessageLookupByLibrary.simpleMessage("交易记录加载失败，请稍后重试"),
+        "transactionLoadMore": MessageLookupByLibrary.simpleMessage("加载更多"),
+        "transactionLoadMoreFailed":
+            MessageLookupByLibrary.simpleMessage("加载更多交易记录失败"),
         "transactionNoAsset": MessageLookupByLibrary.simpleMessage("交易记录信息不可用"),
+        "transactionNoMoreRecords":
+            MessageLookupByLibrary.simpleMessage("没有更多交易记录"),
         "transactionOutgoing": MessageLookupByLibrary.simpleMessage("转出"),
         "transactionOverview": MessageLookupByLibrary.simpleMessage("概览"),
         "transactionSelfTransfer": MessageLookupByLibrary.simpleMessage("自转账"),
