@@ -105,6 +105,7 @@ class ChainBalanceCache {
       'amount': balance.amount,
       'address': balance.address,
       'contractAddress': balance.contractAddress,
+      'logoUrl': balance.logoUrl,
       'decimals': balance.decimals,
       'isNative': balance.isNative,
       'error': balance.error,
@@ -131,6 +132,7 @@ class ChainBalanceCache {
         amount: json['amount'] as String,
         address: json['address'] as String,
         contractAddress: json['contractAddress'] as String?,
+        logoUrl: json['logoUrl'] as String?,
         decimals: json['decimals'] as int,
         error: json['error'] as String?,
       );
@@ -144,6 +146,7 @@ class ChainBalanceCache {
         amount: '0',
         address: json['address'] as String,
         contractAddress: json['contractAddress'] as String?,
+        logoUrl: json['logoUrl'] as String?,
         decimals: json['decimals'] as int,
         error: 'Cached data for custom chain',
       );

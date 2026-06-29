@@ -135,6 +135,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("This asset already exists"),
         "customAssetInvalid": MessageLookupByLibrary.simpleMessage(
             "Check the contract address, symbol, name, and decimals"),
+        "customAssetLogoUrl": MessageLookupByLibrary.simpleMessage("Logo URL"),
         "customAssetMetadataUnavailable": MessageLookupByLibrary.simpleMessage(
             "Token info is unavailable. Fill it in manually."),
         "customAssetName": MessageLookupByLibrary.simpleMessage("Name"),
@@ -286,6 +287,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "passwordCacheSecurityNoteTitle":
             MessageLookupByLibrary.simpleMessage("Security Notes"),
         "phone": MessageLookupByLibrary.simpleMessage("phone"),
+        "popularTokens": MessageLookupByLibrary.simpleMessage("Popular tokens"),
         "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
             "EVM / SOL / TRX multi-chain wallet"),
         "privateKeyHint": MessageLookupByLibrary.simpleMessage(

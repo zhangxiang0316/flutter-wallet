@@ -503,22 +503,10 @@ class _AssetRow extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 10.h),
           child: Row(
             children: [
-              Container(
-                width: 32.w,
-                height: 32.w,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: assetColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  balance.symbol.characters.first,
-                  style: TextStyle(
-                    color: assetColor,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+              _AssetLogo(
+                balance: balance,
+                color: assetColor,
+                size: 32.w,
               ).marginOnly(right: 10.w),
               Expanded(
                 child: Column(
@@ -584,6 +572,51 @@ class _AssetRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AssetLogo extends StatelessWidget {
+  const _AssetLogo({
+    required this.balance,
+    required this.color,
+    required this.size,
+  });
+
+  final ChainBalance balance;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Text(
+        balance.symbol.trim().isEmpty ? '?' : balance.symbol.characters.first,
+        style: TextStyle(
+          color: color,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+    final logoUrl = balance.logoUrl?.trim() ?? '';
+    if (logoUrl.isEmpty) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8.r),
+      child: Image.network(
+        logoUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
       ),
     );
   }

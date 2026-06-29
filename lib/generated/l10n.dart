@@ -770,6 +770,26 @@ class S {
     );
   }
 
+  /// `Logo URL`
+  String get customAssetLogoUrl {
+    return Intl.message(
+      'Logo URL',
+      name: 'customAssetLogoUrl',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Popular tokens`
+  String get popularTokens {
+    return Intl.message(
+      'Popular tokens',
+      name: 'popularTokens',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Detect token info`
   String get fetchTokenInfo {
     return Intl.message(

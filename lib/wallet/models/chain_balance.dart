@@ -8,6 +8,7 @@ class ChainBalance {
     required this.amount,
     required this.address,
     this.contractAddress,
+    this.logoUrl,
     this.decimals = 0,
     this.error,
   }) : chainConfig = null;
@@ -19,6 +20,7 @@ class ChainBalance {
     required this.amount,
     required this.address,
     this.contractAddress,
+    this.logoUrl,
     this.decimals = 0,
     this.error,
   }) : chain = null;
@@ -30,6 +32,7 @@ class ChainBalance {
   final String amount;
   final String address;
   final String? contractAddress;
+  final String? logoUrl;
   final int decimals;
   final String? error;
 

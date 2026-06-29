@@ -14,12 +14,16 @@ class AddCustomAssetSheet extends StatefulWidget {
   const AddCustomAssetSheet({
     super.key,
     required this.chain,
+    this.popularAssets = const [],
     required this.onFetchMetadata,
     required this.onSubmit,
   });
 
   /// 当前正在添加资产的链。
   final WalletChainConfig chain;
+
+  /// 当前链可一键添加的热门资产。
+  final List<WalletAsset> popularAssets;
 
   /// 根据合约地址查询链上资产元数据。
   final Future<WalletAsset?> Function({
@@ -35,6 +39,7 @@ class AddCustomAssetSheet extends StatefulWidget {
     required String symbol,
     required String name,
     required int decimals,
+    String? logoUrl,
   })
   onSubmit;
 
@@ -55,11 +60,16 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
   /// 币种精度输入控制器。
   final TextEditingController _decimalsController = TextEditingController();
 
+  /// Logo URL 输入控制器。
+  final TextEditingController _logoUrlController = TextEditingController();
+
   /// 是否正在自动获取合约元数据。
   bool _isFetching = false;
 
   /// 是否正在提交自定义资产。
   bool _isSubmitting = false;
+
+  String? _addingPopularAssetKey;
 
   @override
   void dispose() {
@@ -67,6 +77,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
     _symbolController.dispose();
     _nameController.dispose();
     _decimalsController.dispose();
+    _logoUrlController.dispose();
     super.dispose();
   }
 
@@ -138,6 +149,14 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                   ],
                 ),
                 SizedBox(height: 14.h),
+                if (widget.popularAssets.isNotEmpty) ...[
+                  _PopularAssetSection(
+                    assets: widget.popularAssets,
+                    addingAssetKey: _addingPopularAssetKey,
+                    onAddPressed: _addPopularAsset,
+                  ),
+                  SizedBox(height: 14.h),
+                ],
                 _CustomAssetTextField(
                   controller: _contractController,
                   label: S.of(context).customAssetContractAddress,
@@ -195,6 +214,15 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                   label: S.of(context).customAssetDecimals,
                   hint: '18',
                   keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
+                ),
+                SizedBox(height: 12.h),
+                _CustomAssetTextField(
+                  controller: _logoUrlController,
+                  label: S.of(context).customAssetLogoUrl,
+                  hint: 'https://example.com/logo.png',
+                  keyboardType: TextInputType.url,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
                 ),
@@ -267,6 +295,31 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
     _symbolController.text = metadata.symbol;
     _nameController.text = metadata.name;
     _decimalsController.text = metadata.decimals.toString();
+    _logoUrlController.text = metadata.logoUrl ?? '';
+  }
+
+  Future<void> _addPopularAsset(WalletAsset asset) async {
+    if (_addingPopularAssetKey != null || _isSubmitting) return;
+    final assetKey = asset.assetKey;
+    setState(() {
+      _addingPopularAssetKey = assetKey;
+    });
+    final success = await widget.onSubmit(
+      chain: widget.chain,
+      contractAddress: asset.contractAddress ?? '',
+      symbol: asset.symbol,
+      name: asset.name,
+      decimals: asset.decimals,
+      logoUrl: asset.logoUrl,
+    );
+    if (!mounted) return;
+    setState(() {
+      _addingPopularAssetKey = null;
+    });
+    if (success) {
+      Toast.show(S.current.customAssetAdded);
+      Navigator.of(context).pop();
+    }
   }
 
   /// 校验并提交自定义资产表单。
@@ -289,6 +342,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
       symbol: _symbolController.text.trim(),
       name: _nameController.text.trim(),
       decimals: decimals,
+      logoUrl: _logoUrlController.text.trim(),
     );
     if (!mounted) return;
     setState(() {
@@ -298,6 +352,158 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
       Toast.show(S.current.customAssetAdded);
       Navigator.of(context).pop();
     }
+  }
+}
+
+class _PopularAssetSection extends StatelessWidget {
+  const _PopularAssetSection({
+    required this.assets,
+    required this.addingAssetKey,
+    required this.onAddPressed,
+  });
+
+  final List<WalletAsset> assets;
+  final String? addingAssetKey;
+  final ValueChanged<WalletAsset> onAddPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          S.of(context).popularTokens,
+          style: TextStyle(
+            color: colorScheme.onSurface.withValues(alpha: 0.64),
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Wrap(
+          spacing: 8.w,
+          runSpacing: 8.h,
+          children: assets
+              .map((asset) {
+                final isAdding = addingAssetKey == asset.assetKey;
+                return InkWell(
+                  onTap: addingAssetKey == null
+                      ? () => onAddPressed(asset)
+                      : null,
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: Container(
+                    width: 148.w,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 9.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.34,
+                      ),
+                      borderRadius: BorderRadius.circular(8.r),
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.12),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        _TokenLogo(asset: asset, size: 26.w),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                asset.symbol,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              Text(
+                                asset.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colorScheme.onSurface.withValues(
+                                    alpha: 0.52,
+                                  ),
+                                  fontSize: 9.5.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        isAdding
+                            ? SizedBox(
+                                width: 14.w,
+                                height: 14.w,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : Icon(
+                                Icons.add_circle_outline_rounded,
+                                size: 17.w,
+                                color: colorScheme.primary,
+                              ),
+                      ],
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
+        ),
+      ],
+    );
+  }
+}
+
+class _TokenLogo extends StatelessWidget {
+  const _TokenLogo({required this.asset, required this.size});
+
+  final WalletAsset asset;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final logoUrl = asset.logoUrl?.trim() ?? '';
+    final fallback = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(7.r),
+      ),
+      child: Text(
+        asset.symbol.trim().isEmpty ? '?' : asset.symbol.characters.first,
+        style: TextStyle(
+          color: colorScheme.primary,
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+    if (logoUrl.isEmpty) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(7.r),
+      child: Image.network(
+        logoUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+      ),
+    );
   }
 }
 

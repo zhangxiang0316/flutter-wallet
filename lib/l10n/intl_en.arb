@@ -97,6 +97,8 @@
   "customAssetSymbol": "Symbol",
   "customAssetName": "Name",
   "customAssetDecimals": "Decimals",
+  "customAssetLogoUrl": "Logo URL",
+  "popularTokens": "Popular tokens",
   "fetchTokenInfo": "Detect token info",
   "customAssetMetadataUnavailable": "Token info is unavailable. Fill it in manually.",
   "customAssetDuplicate": "This asset already exists",

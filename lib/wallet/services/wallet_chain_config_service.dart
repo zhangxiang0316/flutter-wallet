@@ -162,6 +162,7 @@ class WalletChainConfigService {
             name: asset.name,
             decimals: asset.decimals,
             contractAddress: asset.contractAddress,
+            logoUrl: asset.logoUrl,
             isCustom: asset.isCustom,
           );
         })

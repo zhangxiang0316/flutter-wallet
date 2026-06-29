@@ -12,6 +12,7 @@ import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/wallet_asset_visibility_service.dart';
 import '../../../wallet/services/wallet_chain_config_service.dart';
 import '../../../wallet/services/wallet_custom_asset_service.dart';
+import '../../home/controller/home_controller.dart';
 import 'widgets/add_custom_asset_sheet.dart';
 import 'widgets/chain_asset_visibility_card.dart';
 import 'widgets/visibility_intro_card.dart';
@@ -102,6 +103,7 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => AddCustomAssetSheet(
         chain: chain,
+        popularAssets: controller.popularAssetsForChain(chain),
         onFetchMetadata: controller.fetchEvmTokenMetadata,
         onSubmit: controller.addCustomAsset,
       ),
@@ -164,6 +166,16 @@ class AssetVisibilityController extends BaseController {
     );
   }
 
+  List<WalletAsset> popularAssetsForChain(WalletChainConfig chain) {
+    final existingContracts = assetsForChain(chain)
+        .where((asset) => !asset.isNative)
+        .map((asset) => _contractKey(asset))
+        .toSet();
+    return WalletCustomAssetService.popularAssetsForChain(chain)
+        .where((asset) => existingContracts.add(_contractKey(asset)))
+        .toList(growable: false);
+  }
+
   /// 判断某个资产当前是否允许在首页展示。
   bool isAssetVisible(WalletAsset asset) {
     return !hiddenAssetKeys.contains(_service.keyForAsset(asset));
@@ -202,6 +214,7 @@ class AssetVisibilityController extends BaseController {
     required String symbol,
     required String name,
     required int decimals,
+    String? logoUrl,
   }) async {
     try {
       // 将用户输入标准化成钱包资产模型。
@@ -211,10 +224,12 @@ class AssetVisibilityController extends BaseController {
         symbol: symbol,
         name: name,
         decimals: decimals,
+        logoUrl: logoUrl,
       );
       await _customAssetService.addCustomAsset(asset);
       await _service.setAssetVisible(asset: asset, visible: true);
       await loadVisibility();
+      _refreshHomeBalances();
       return true;
     } on CustomAssetDuplicateException {
       Toast.show(S.current.customAssetDuplicate);
@@ -234,5 +249,20 @@ class AssetVisibilityController extends BaseController {
     keys.remove(_service.keyForAsset(asset));
     await _service.saveHiddenAssetKeys(keys);
     await loadVisibility();
+    _refreshHomeBalances();
+  }
+
+  void _refreshHomeBalances() {
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().refreshBalances();
+    }
+  }
+
+  String _contractKey(WalletAsset asset) {
+    final contractAddress = asset.contractAddress?.trim() ?? '';
+    if (contractAddress.isEmpty) return 'native';
+    return asset.chainRef.isEvm
+        ? contractAddress.toLowerCase()
+        : contractAddress;
   }
 }

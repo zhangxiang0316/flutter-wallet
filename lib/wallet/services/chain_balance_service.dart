@@ -432,6 +432,7 @@ class ChainBalanceService {
         name: asset.name,
         amount: _formatUnits(wei, asset.decimals),
         address: address,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -441,6 +442,7 @@ class ChainBalanceService {
         name: asset.name,
         amount: '0',
         address: address,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -476,6 +478,7 @@ class ChainBalanceService {
         amount: _formatUnits(value, asset.decimals),
         address: address,
         contractAddress: asset.contractAddress,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -486,6 +489,7 @@ class ChainBalanceService {
         amount: '0',
         address: address,
         contractAddress: asset.contractAddress,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -530,6 +534,7 @@ class ChainBalanceService {
             amount: '0',
             address: address,
             contractAddress: asset.contractAddress,
+            logoUrl: asset.logoUrl,
             decimals: asset.decimals,
           );
     });
@@ -605,6 +610,7 @@ class ChainBalanceService {
             amount: '0',
             address: address,
             contractAddress: asset.contractAddress,
+            logoUrl: asset.logoUrl,
             decimals: asset.decimals,
             error: error,
           ),
@@ -641,6 +647,7 @@ class ChainBalanceService {
         name: asset.name,
         amount: _formatUnits(lamports, asset.decimals),
         address: address,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -654,6 +661,7 @@ class ChainBalanceService {
         name: asset.name,
         amount: '0',
         address: address,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -734,6 +742,7 @@ class ChainBalanceService {
       amount: _formatUnits(rawAmount, decimals),
       address: address,
       contractAddress: asset.contractAddress,
+      logoUrl: asset.logoUrl,
       decimals: decimals,
     );
   }
@@ -796,6 +805,7 @@ class ChainBalanceService {
         amount: _formatUnits(rawAmountTotal, decimals),
         address: address,
         contractAddress: asset.contractAddress,
+        logoUrl: asset.logoUrl,
         decimals: decimals,
       );
     } catch (e) {
@@ -810,6 +820,7 @@ class ChainBalanceService {
         amount: '0',
         address: address,
         contractAddress: asset.contractAddress,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -829,6 +840,7 @@ class ChainBalanceService {
       amount: '0',
       address: address,
       contractAddress: asset.contractAddress,
+      logoUrl: asset.logoUrl,
       decimals: asset.decimals,
     );
   }
@@ -964,6 +976,7 @@ class ChainBalanceService {
       amount: _formatUnits(tokenBalance?.rawAmount ?? BigInt.zero, decimals),
       address: address,
       contractAddress: asset.contractAddress,
+      logoUrl: asset.logoUrl,
       decimals: decimals,
     );
   }
@@ -996,6 +1009,7 @@ class ChainBalanceService {
         name: asset.name,
         amount: _formatUnits(sun, asset.decimals),
         address: address,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -1005,6 +1019,7 @@ class ChainBalanceService {
         name: asset.name,
         amount: '0',
         address: address,
+        logoUrl: asset.logoUrl,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -1064,6 +1079,7 @@ class ChainBalanceService {
               ),
               address: address,
               contractAddress: contractAddress,
+              logoUrl: asset?.logoUrl,
               decimals: decimals,
             ),
           );
@@ -1092,6 +1108,7 @@ class ChainBalanceService {
             amount: '0',
             address: address,
             contractAddress: asset.contractAddress,
+            logoUrl: asset.logoUrl,
             decimals: asset.decimals,
             error: errorMessage,
           ),

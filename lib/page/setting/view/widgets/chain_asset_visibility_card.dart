@@ -168,23 +168,7 @@ class _AssetVisibilityTile extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
         children: [
-          Container(
-            width: 30.w,
-            height: 30.w,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              asset.symbol.trim().isEmpty ? '?' : asset.symbol.characters.first,
-              style: TextStyle(
-                color: colorScheme.primary,
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
+          _AssetLogo(asset: asset, size: 30.w, colorScheme: colorScheme),
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
@@ -238,6 +222,51 @@ class _AssetVisibilityTile extends StatelessWidget {
             ),
           Switch.adaptive(value: visible, onChanged: onChanged),
         ],
+      ),
+    );
+  }
+}
+
+class _AssetLogo extends StatelessWidget {
+  const _AssetLogo({
+    required this.asset,
+    required this.size,
+    required this.colorScheme,
+  });
+
+  final WalletAsset asset;
+  final double size;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Text(
+        asset.symbol.trim().isEmpty ? '?' : asset.symbol.characters.first,
+        style: TextStyle(
+          color: colorScheme.primary,
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+    final logoUrl = asset.logoUrl?.trim() ?? '';
+    if (logoUrl.isEmpty) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8.r),
+      child: Image.network(
+        logoUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
       ),
     );
   }

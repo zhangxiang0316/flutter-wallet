@@ -113,6 +113,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "customAssetDuplicate": MessageLookupByLibrary.simpleMessage("该币种已存在"),
         "customAssetInvalid":
             MessageLookupByLibrary.simpleMessage("请检查合约地址、简称、名称和精度"),
+        "customAssetLogoUrl": MessageLookupByLibrary.simpleMessage("Logo 地址"),
         "customAssetMetadataUnavailable":
             MessageLookupByLibrary.simpleMessage("暂时无法识别币种信息，请手动填写"),
         "customAssetName": MessageLookupByLibrary.simpleMessage("币种名称"),
@@ -234,6 +235,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "passwordCacheSecurityNoteTitle":
             MessageLookupByLibrary.simpleMessage("安全说明"),
         "phone": MessageLookupByLibrary.simpleMessage("手机"),
+        "popularTokens": MessageLookupByLibrary.simpleMessage("热门币种"),
         "primaryMultiChainWallet":
             MessageLookupByLibrary.simpleMessage("EVM / SOL / TRX 多链主钱包"),
         "privateKeyHint":

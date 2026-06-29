@@ -97,6 +97,8 @@
   "customAssetSymbol": "币种简称",
   "customAssetName": "币种名称",
   "customAssetDecimals": "精度",
+  "customAssetLogoUrl": "Logo 地址",
+  "popularTokens": "热门币种",
   "fetchTokenInfo": "自动识别币种信息",
   "customAssetMetadataUnavailable": "暂时无法识别币种信息，请手动填写",
   "customAssetDuplicate": "该币种已存在",

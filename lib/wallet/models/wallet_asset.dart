@@ -7,6 +7,7 @@ class WalletAsset {
     required this.name,
     required this.decimals,
     this.contractAddress,
+    this.logoUrl,
     this.isCustom = false,
   }) : chainConfig = null;
 
@@ -16,6 +17,7 @@ class WalletAsset {
     required this.name,
     required this.decimals,
     this.contractAddress,
+    this.logoUrl,
     this.isCustom = false,
   }) : chain = null;
 
@@ -25,6 +27,7 @@ class WalletAsset {
   final String name;
   final int decimals;
   final String? contractAddress;
+  final String? logoUrl;
   final bool isCustom;
 
   WalletChainRef get chainRef => chainConfig ?? chain!;
@@ -46,6 +49,7 @@ class WalletAsset {
       'name': name,
       'decimals': decimals,
       'contractAddress': contractAddress,
+      'logoUrl': logoUrl,
       'isCustom': isCustom,
     };
   }
@@ -63,6 +67,7 @@ class WalletAsset {
         ? decimalsValue
         : int.tryParse(decimalsValue?.toString() ?? '') ?? 0;
     final contractAddress = json['contractAddress'] as String?;
+    final logoUrl = json['logoUrl']?.toString().trim();
     final isCustom = json['isCustom'] as bool? ?? true;
     if (chain != null) {
       return WalletAsset(
@@ -71,6 +76,7 @@ class WalletAsset {
         name: name,
         decimals: decimals,
         contractAddress: contractAddress,
+        logoUrl: logoUrl?.isEmpty == true ? null : logoUrl,
         isCustom: isCustom,
       );
     }
@@ -86,6 +92,7 @@ class WalletAsset {
       name: name,
       decimals: decimals,
       contractAddress: contractAddress,
+      logoUrl: logoUrl?.isEmpty == true ? null : logoUrl,
       isCustom: isCustom,
     );
   }
