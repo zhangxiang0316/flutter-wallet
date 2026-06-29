@@ -570,6 +570,106 @@ class S {
     );
   }
 
+  /// `Test`
+  String get networkRpcTest {
+    return Intl.message(
+      'Test',
+      name: 'networkRpcTest',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Testing`
+  String get networkRpcTesting {
+    return Intl.message(
+      'Testing',
+      name: 'networkRpcTesting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Not tested`
+  String get networkRpcNotTested {
+    return Intl.message(
+      'Not tested',
+      name: 'networkRpcNotTested',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unavailable`
+  String get networkRpcDown {
+    return Intl.message(
+      'Unavailable',
+      name: 'networkRpcDown',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{ms} ms`
+  String networkRpcLatency(Object ms) {
+    return Intl.message(
+      '$ms ms',
+      name: 'networkRpcLatency',
+      desc: '',
+      args: [ms],
+    );
+  }
+
+  /// `Backup available · {ms} ms`
+  String networkRpcBackupHint(Object ms) {
+    return Intl.message(
+      'Backup available · $ms ms',
+      name: 'networkRpcBackupHint',
+      desc: '',
+      args: [ms],
+    );
+  }
+
+  /// `Switch`
+  String get networkRpcSwitch {
+    return Intl.message(
+      'Switch',
+      name: 'networkRpcSwitch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Primary RPC is available`
+  String get networkRpcTestAvailable {
+    return Intl.message(
+      'Primary RPC is available',
+      name: 'networkRpcTestAvailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Primary RPC is unavailable. A backup RPC is available.`
+  String get networkRpcBackupAvailable {
+    return Intl.message(
+      'Primary RPC is unavailable. A backup RPC is available.',
+      name: 'networkRpcBackupAvailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Primary RPC switched`
+  String get networkRpcSwitched {
+    return Intl.message(
+      'Primary RPC switched',
+      name: 'networkRpcSwitched',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.`
   String get assetVisibilityTip {
     return Intl.message(

@@ -27,22 +27,26 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m2(symbol) =>
       "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
 
-  static String m3(symbol) => "Receive ${symbol}";
+  static String m3(ms) => "Backup available · ${ms} ms";
 
-  static String m4(name) => "Remove \"${name}\" from the address book?";
+  static String m4(ms) => "${ms} ms";
 
-  static String m5(symbol) =>
+  static String m5(symbol) => "Receive ${symbol}";
+
+  static String m6(name) => "Remove \"${name}\" from the address book?";
+
+  static String m7(symbol) =>
       "Remove \"${symbol}\"? The home page will no longer query this asset balance.";
 
-  static String m6(name) =>
+  static String m8(name) =>
       "Remove \"${name}\"? Assets on this custom network will no longer be queried.";
 
-  static String m7(name) =>
+  static String m9(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m8(symbol) => "Transfer ${symbol}";
+  static String m10(symbol) => "Transfer ${symbol}";
 
-  static String m9(network) =>
+  static String m11(network) =>
       "EVM addresses can be reused across networks. Confirm the recipient expects funds on ${network}.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -207,8 +211,22 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkName": MessageLookupByLibrary.simpleMessage("Network name"),
         "networkRemoved":
             MessageLookupByLibrary.simpleMessage("Network removed"),
+        "networkRpcBackupAvailable": MessageLookupByLibrary.simpleMessage(
+            "Primary RPC is unavailable. A backup RPC is available."),
+        "networkRpcBackupHint": m3,
+        "networkRpcDown": MessageLookupByLibrary.simpleMessage("Unavailable"),
+        "networkRpcLatency": m4,
         "networkRpcMismatch":
             MessageLookupByLibrary.simpleMessage("RPC chain ID does not match"),
+        "networkRpcNotTested":
+            MessageLookupByLibrary.simpleMessage("Not tested"),
+        "networkRpcSwitch": MessageLookupByLibrary.simpleMessage("Switch"),
+        "networkRpcSwitched":
+            MessageLookupByLibrary.simpleMessage("Primary RPC switched"),
+        "networkRpcTest": MessageLookupByLibrary.simpleMessage("Test"),
+        "networkRpcTestAvailable":
+            MessageLookupByLibrary.simpleMessage("Primary RPC is available"),
+        "networkRpcTesting": MessageLookupByLibrary.simpleMessage("Testing"),
         "networkRpcUnavailable":
             MessageLookupByLibrary.simpleMessage("RPC is unavailable"),
         "networkRpcUrl": MessageLookupByLibrary.simpleMessage("RPC URL"),
@@ -268,7 +286,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Receive address"),
         "receiveAddressEmpty": MessageLookupByLibrary.simpleMessage(
             "This wallet does not have an address for this network"),
-        "receiveAsset": m3,
+        "receiveAsset": m5,
         "receiveQrTip": MessageLookupByLibrary.simpleMessage(
             "Only send this asset on the selected network."),
         "receiveQrTitle":
@@ -279,14 +297,14 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Recipient address"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
         "removeContact": MessageLookupByLibrary.simpleMessage("Remove contact"),
-        "removeContactConfirm": m4,
+        "removeContactConfirm": m6,
         "removeCustomAsset":
             MessageLookupByLibrary.simpleMessage("Remove asset"),
-        "removeCustomAssetConfirmMessage": m5,
+        "removeCustomAssetConfirmMessage": m7,
         "removeNetwork": MessageLookupByLibrary.simpleMessage("Remove network"),
-        "removeNetworkConfirm": m6,
+        "removeNetworkConfirm": m8,
         "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
-        "removeWalletConfirmMessage": m7,
+        "removeWalletConfirmMessage": m9,
         "retry": MessageLookupByLibrary.simpleMessage("Retry"),
         "reviewTransfer":
             MessageLookupByLibrary.simpleMessage("Review transfer"),
@@ -395,7 +413,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Wallet address"),
         "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-        "transferAsset": m8,
+        "transferAsset": m10,
         "transferDetails":
             MessageLookupByLibrary.simpleMessage("Transfer details"),
         "transferFailed": MessageLookupByLibrary.simpleMessage(
@@ -408,7 +426,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "The recipient is a known burn or system address. Funds sent there are likely unrecoverable."),
         "transferRiskClipboardMismatch": MessageLookupByLibrary.simpleMessage(
             "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly."),
-        "transferRiskEvmNetworkConfirm": m9,
+        "transferRiskEvmNetworkConfirm": m11,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "Network fee is not available yet. Confirm you still have enough native balance before continuing."),
         "transferRiskSelfTransfer": MessageLookupByLibrary.simpleMessage(

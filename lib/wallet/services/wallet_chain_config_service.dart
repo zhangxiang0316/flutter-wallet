@@ -355,6 +355,39 @@ class WalletChainConfigService {
     await saveCustomChains(chains);
   }
 
+  /// 将指定 RPC 切换为该链的优先 RPC。
+  Future<WalletChainConfig> setPrimaryRpcUrl({
+    required WalletChainConfig chain,
+    required String rpcUrl,
+  }) async {
+    final normalizedRpcUrl = rpcUrl.trim();
+    if (normalizedRpcUrl.isEmpty || !chain.rpcUrls.contains(normalizedRpcUrl)) {
+      throw const WalletChainConfigInvalidException();
+    }
+    final reorderedRpcUrls = [
+      normalizedRpcUrl,
+      ...chain.rpcUrls.where((url) => url != normalizedRpcUrl),
+    ];
+    if (chain.isBuiltin) {
+      return updateBuiltinChain(
+        chainId: chain.id,
+        name: chain.name,
+        symbol: chain.symbol,
+        rpcUrls: reorderedRpcUrls,
+        explorerApiUrl: chain.explorerApiUrl,
+        explorerApiKey: chain.explorerApiKey,
+      );
+    }
+    return updateCustomEvmChain(
+      chainId: chain.id,
+      name: chain.name,
+      symbol: chain.symbol,
+      rpcUrls: reorderedRpcUrls,
+      explorerApiUrl: chain.explorerApiUrl,
+      explorerApiKey: chain.explorerApiKey,
+    );
+  }
+
   /// 更新用户添加链的启用状态。
   Future<void> setCustomChainEnabled({
     required String chainId,

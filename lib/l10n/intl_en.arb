@@ -62,6 +62,26 @@
   "networkInvalid": "Check the network name, symbol, chain ID, and RPC URL",
   "networkRpcMismatch": "RPC chain ID does not match",
   "networkRpcUnavailable": "RPC is unavailable",
+  "networkRpcTest": "Test",
+  "networkRpcTesting": "Testing",
+  "networkRpcNotTested": "Not tested",
+  "networkRpcDown": "Unavailable",
+  "networkRpcLatency": "{ms} ms",
+  "@networkRpcLatency": {
+    "placeholders": {
+      "ms": {}
+    }
+  },
+  "networkRpcBackupHint": "Backup available · {ms} ms",
+  "@networkRpcBackupHint": {
+    "placeholders": {
+      "ms": {}
+    }
+  },
+  "networkRpcSwitch": "Switch",
+  "networkRpcTestAvailable": "Primary RPC is available",
+  "networkRpcBackupAvailable": "Primary RPC is unavailable. A backup RPC is available.",
+  "networkRpcSwitched": "Primary RPC switched",
   "assetVisibilityTip": "Turn an asset off to hide it from the home balance list and valuation. On-chain balances are not deleted and can be shown again anytime.",
   "addCustomAsset": "Add asset",
   "removeCustomAsset": "Remove asset",

@@ -10,6 +10,7 @@ import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/wallet_chain_config_service.dart';
 import '../../../wallet/services/wallet_custom_asset_service.dart';
+import '../../../wallet/services/wallet_rpc_health_service.dart';
 
 @GetXRoutePage('/networkManagement')
 /// 网络管理页面。
@@ -66,6 +67,8 @@ class NetworkManagementPage
           ...controller.chains.map(
             (chain) => _NetworkTile(
               chain: chain,
+              healthReport: controller.healthReports[chain.id],
+              isTesting: controller.testingChainIds.contains(chain.id),
               onEnabledChanged: chain.isBuiltin
                   ? null
                   : (enabled) => controller.setEnabled(chain, enabled),
@@ -73,6 +76,9 @@ class NetworkManagementPage
               onRemovePressed: chain.isBuiltin
                   ? null
                   : () => _confirmRemoveChain(chain),
+              onTestPressed: () => controller.testNetwork(chain),
+              onSwitchRpcPressed: (rpcUrl) =>
+                  controller.switchPrimaryRpc(chain, rpcUrl),
             ).marginOnly(bottom: 10.h),
           ),
         ],
@@ -148,15 +154,22 @@ class NetworkManagementController extends BaseController {
   NetworkManagementController({
     WalletChainConfigService? service,
     WalletCustomAssetService? customAssetService,
+    WalletRpcHealthService? rpcHealthService,
   }) : _service = service ?? WalletChainConfigService(),
-       _customAssetService = customAssetService ?? WalletCustomAssetService();
+       _customAssetService = customAssetService ?? WalletCustomAssetService(),
+       _rpcHealthService = rpcHealthService ?? WalletRpcHealthService();
 
   final WalletChainConfigService _service;
   final WalletCustomAssetService _customAssetService;
+  final WalletRpcHealthService _rpcHealthService;
 
   List<WalletChainConfig> chains = [];
 
   bool isSubmitting = false;
+
+  Map<String, WalletChainRpcHealthReport> healthReports = {};
+
+  Set<String> testingChainIds = {};
 
   @override
   void onInit() {
@@ -167,6 +180,42 @@ class NetworkManagementController extends BaseController {
   Future<void> loadChains() async {
     chains = await _service.loadAllChains();
     update();
+  }
+
+  Future<void> testNetwork(WalletChainConfig chain) async {
+    if (testingChainIds.contains(chain.id)) return;
+    testingChainIds = {...testingChainIds, chain.id};
+    update();
+    try {
+      final report = await _rpcHealthService.checkChain(chain);
+      healthReports = {...healthReports, chain.id: report};
+      final primary = report.primaryResult;
+      final best = report.bestAvailableResult;
+      if (primary?.isAvailable == true) {
+        Toast.show(S.current.networkRpcTestAvailable);
+      } else if (best != null) {
+        Toast.show(S.current.networkRpcBackupAvailable);
+      } else {
+        Toast.show(S.current.networkRpcUnavailable);
+      }
+    } finally {
+      testingChainIds = {...testingChainIds}..remove(chain.id);
+      update();
+    }
+  }
+
+  Future<void> switchPrimaryRpc(WalletChainConfig chain, String rpcUrl) async {
+    try {
+      await _service.setPrimaryRpcUrl(chain: chain, rpcUrl: rpcUrl);
+      Toast.show(S.current.networkRpcSwitched);
+      await loadChains();
+      final updated = chains.firstWhereOrNull((item) => item.id == chain.id);
+      if (updated != null) {
+        await testNetwork(updated);
+      }
+    } catch (_) {
+      Toast.show(S.current.networkInvalid);
+    }
   }
 
   Future<bool> addEvmChain({
@@ -321,93 +370,321 @@ class _NetworkIntroCard extends StatelessWidget {
 class _NetworkTile extends StatelessWidget {
   const _NetworkTile({
     required this.chain,
+    required this.healthReport,
+    required this.isTesting,
     required this.onEnabledChanged,
     required this.onEditPressed,
     required this.onRemovePressed,
+    required this.onTestPressed,
+    required this.onSwitchRpcPressed,
   });
 
   final WalletChainConfig chain;
+  final WalletChainRpcHealthReport? healthReport;
+  final bool isTesting;
   final ValueChanged<bool>? onEnabledChanged;
   final VoidCallback? onEditPressed;
   final VoidCallback? onRemovePressed;
+  final VoidCallback onTestPressed;
+  final ValueChanged<String> onSwitchRpcPressed;
 
   @override
   Widget build(BuildContext context) {
     final color = Color(chain.colorValue ?? 0xFF2563EB);
     final colorScheme = Theme.of(context).colorScheme;
+    final primaryResult = healthReport?.primaryResult;
+    final bestResult = healthReport?.bestAvailableResult;
+    final canSwitch =
+        bestResult != null && bestResult.rpcUrl.trim() != chain.rpcUrl.trim();
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: _panelDecoration(context),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 36.w,
-            height: 36.w,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              chain.symbol.characters.first,
-              style: TextStyle(
-                color: color,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  chain.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  chain.symbol.characters.first,
                   style: TextStyle(
+                    color: color,
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 3.h),
-                Text(
-                  chain.isEvm
-                      ? '${chain.symbol} · Chain ID ${chain.evmChainId}'
-                      : chain.symbol,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      chain.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      chain.isEvm
+                          ? '${chain.symbol} · Chain ID ${chain.evmChainId}'
+                          : chain.symbol,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.52),
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(value: chain.isEnabled, onChanged: onEnabledChanged),
+              if (onEditPressed != null)
+                IconButton(
+                  tooltip: S.of(context).editNetwork,
+                  onPressed: onEditPressed,
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    size: 19.w,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              if (onRemovePressed != null)
+                IconButton(
+                  tooltip: S.of(context).removeNetwork,
+                  onPressed: onRemovePressed,
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    size: 20.w,
+                    color: colorScheme.error,
+                  ),
+                ),
+            ],
+          ),
+          Divider(
+            height: 18.h,
+            thickness: 1,
+            color: colorScheme.outline.withValues(alpha: 0.08),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _RpcStatusPill(result: primaryResult, isTesting: isTesting),
+                    SizedBox(height: 7.h),
+                    Text(
+                      chain.rpcUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.52),
+                        fontSize: 10.5.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (canSwitch) ...[
+                      SizedBox(height: 7.h),
+                      _BackupRpcHint(
+                        result: bestResult,
+                        onSwitchPressed: () =>
+                            onSwitchRpcPressed(bestResult.rpcUrl),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(width: 10.w),
+              OutlinedButton.icon(
+                onPressed: isTesting ? null : onTestPressed,
+                icon: isTesting
+                    ? SizedBox(
+                        width: 13.w,
+                        height: 13.w,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
+                        ),
+                      )
+                    : Icon(Icons.speed_rounded, size: 15.w),
+                label: Text(S.of(context).networkRpcTest),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorScheme.primary,
+                  minimumSize: Size(0, 32.h),
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  textStyle: TextStyle(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  side: BorderSide(
+                    color: colorScheme.primary.withValues(alpha: 0.22),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RpcStatusPill extends StatelessWidget {
+  const _RpcStatusPill({required this.result, required this.isTesting});
+
+  final WalletRpcHealthResult? result;
+  final bool isTesting;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final (label, color, icon) = _statusMeta(context);
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 5.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13.w, color: color),
+          SizedBox(width: 5.w),
+          Text(
+            label,
+            style: TextStyle(
+              color: result == null && !isTesting
+                  ? colorScheme.onSurface.withValues(alpha: 0.58)
+                  : color,
+              fontSize: 10.5.sp,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  (String, Color, IconData) _statusMeta(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (isTesting) {
+      return (
+        S.of(context).networkRpcTesting,
+        colorScheme.primary,
+        Icons.sync_rounded,
+      );
+    }
+    final current = result;
+    if (current == null) {
+      return (
+        S.of(context).networkRpcNotTested,
+        colorScheme.onSurface.withValues(alpha: 0.58),
+        Icons.help_outline_rounded,
+      );
+    }
+    if (current.isAvailable) {
+      return (
+        S.of(context).networkRpcLatency('${current.latencyMs ?? '-'}'),
+        const Color(0xFF10B981),
+        Icons.check_circle_rounded,
+      );
+    }
+    return (
+      S.of(context).networkRpcDown,
+      colorScheme.error,
+      Icons.error_rounded,
+    );
+  }
+}
+
+class _BackupRpcHint extends StatelessWidget {
+  const _BackupRpcHint({required this.result, required this.onSwitchPressed});
+
+  final WalletRpcHealthResult result;
+  final VoidCallback onSwitchPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.all(9.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFF10B981).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: const Color(0xFF10B981).withValues(alpha: 0.16),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.swap_horiz_rounded,
+                size: 15.w,
+                color: const Color(0xFF10B981),
+              ),
+              SizedBox(width: 5.w),
+              Expanded(
+                child: Text(
+                  S
+                      .of(context)
+                      .networkRpcBackupHint(
+                        result.latencyMs?.toString() ?? '-',
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: colorScheme.onSurface.withValues(alpha: 0.52),
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF047857),
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-              ],
+              ),
+              TextButton(
+                onPressed: onSwitchPressed,
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.primary,
+                  minimumSize: Size(0, 28.h),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  textStyle: TextStyle(
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                child: Text(S.of(context).networkRpcSwitch),
+              ),
+            ],
+          ),
+          Text(
+            result.rpcUrl,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          Switch(value: chain.isEnabled, onChanged: onEnabledChanged),
-          if (onEditPressed != null)
-            IconButton(
-              tooltip: S.of(context).editNetwork,
-              onPressed: onEditPressed,
-              icon: Icon(
-                Icons.edit_outlined,
-                size: 19.w,
-                color: colorScheme.primary,
-              ),
-            ),
-          if (onRemovePressed != null)
-            IconButton(
-              tooltip: S.of(context).removeNetwork,
-              onPressed: onRemovePressed,
-              icon: Icon(
-                Icons.delete_outline_rounded,
-                size: 20.w,
-                color: colorScheme.error,
-              ),
-            ),
         ],
       ),
     );

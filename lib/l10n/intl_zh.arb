@@ -62,6 +62,26 @@
   "networkInvalid": "请检查网络名称、币种简称、Chain ID 和 RPC 地址",
   "networkRpcMismatch": "RPC 返回的 Chain ID 不一致",
   "networkRpcUnavailable": "RPC 暂时不可用",
+  "networkRpcTest": "测速",
+  "networkRpcTesting": "测速中",
+  "networkRpcNotTested": "未测速",
+  "networkRpcDown": "不可用",
+  "networkRpcLatency": "{ms} ms",
+  "@networkRpcLatency": {
+    "placeholders": {
+      "ms": {}
+    }
+  },
+  "networkRpcBackupHint": "备用可用 · {ms} ms",
+  "@networkRpcBackupHint": {
+    "placeholders": {
+      "ms": {}
+    }
+  },
+  "networkRpcSwitch": "切换",
+  "networkRpcTestAvailable": "主 RPC 可用",
+  "networkRpcBackupAvailable": "主 RPC 不可用，发现可用备用 RPC",
+  "networkRpcSwitched": "已切换主 RPC",
   "assetVisibilityTip": "关闭后，该币种会从首页资产列表和估值中隐藏；链上余额不会被删除，可随时重新开启。",
   "addCustomAsset": "添加币种",
   "removeCustomAsset": "移除币种",

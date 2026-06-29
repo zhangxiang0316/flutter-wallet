@@ -26,19 +26,23 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m2(symbol) => "手续费将使用 ${symbol} 支付，请确认钱包中有足够余额。";
 
-  static String m3(symbol) => "收款 ${symbol}";
+  static String m3(ms) => "备用可用 · ${ms} ms";
 
-  static String m4(name) => "确定从地址簿移除「${name}」吗？";
+  static String m4(ms) => "${ms} ms";
 
-  static String m5(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
+  static String m5(symbol) => "收款 ${symbol}";
 
-  static String m6(name) => "确定要移除「${name}」吗？移除后不再查询该自定义网络资产。";
+  static String m6(name) => "确定从地址簿移除「${name}」吗？";
 
-  static String m7(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+  static String m7(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
 
-  static String m8(symbol) => "转账 ${symbol}";
+  static String m8(name) => "确定要移除「${name}」吗？移除后不再查询该自定义网络资产。";
 
-  static String m9(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
+  static String m9(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+
+  static String m10(symbol) => "转账 ${symbol}";
+
+  static String m11(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -171,8 +175,20 @@ class MessageLookup extends MessageLookupByLibrary {
             "当前仅支持添加 EVM 兼容网络。自定义网络复用钱包 EVM 地址，支持原生币和代币余额查询。"),
         "networkName": MessageLookupByLibrary.simpleMessage("网络名称"),
         "networkRemoved": MessageLookupByLibrary.simpleMessage("网络已移除"),
+        "networkRpcBackupAvailable":
+            MessageLookupByLibrary.simpleMessage("主 RPC 不可用，发现可用备用 RPC"),
+        "networkRpcBackupHint": m3,
+        "networkRpcDown": MessageLookupByLibrary.simpleMessage("不可用"),
+        "networkRpcLatency": m4,
         "networkRpcMismatch":
             MessageLookupByLibrary.simpleMessage("RPC 返回的 Chain ID 不一致"),
+        "networkRpcNotTested": MessageLookupByLibrary.simpleMessage("未测速"),
+        "networkRpcSwitch": MessageLookupByLibrary.simpleMessage("切换"),
+        "networkRpcSwitched": MessageLookupByLibrary.simpleMessage("已切换主 RPC"),
+        "networkRpcTest": MessageLookupByLibrary.simpleMessage("测速"),
+        "networkRpcTestAvailable":
+            MessageLookupByLibrary.simpleMessage("主 RPC 可用"),
+        "networkRpcTesting": MessageLookupByLibrary.simpleMessage("测速中"),
         "networkRpcUnavailable":
             MessageLookupByLibrary.simpleMessage("RPC 暂时不可用"),
         "networkRpcUrl": MessageLookupByLibrary.simpleMessage("RPC 地址"),
@@ -218,7 +234,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "receiveAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
         "receiveAddressEmpty":
             MessageLookupByLibrary.simpleMessage("当前钱包没有该网络地址"),
-        "receiveAsset": m3,
+        "receiveAsset": m5,
         "receiveQrTip":
             MessageLookupByLibrary.simpleMessage("请仅通过当前选择的网络转入该币种。"),
         "receiveQrTitle": MessageLookupByLibrary.simpleMessage("扫码收款"),
@@ -226,13 +242,13 @@ class MessageLookup extends MessageLookupByLibrary {
         "recipientAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
         "removeContact": MessageLookupByLibrary.simpleMessage("移除联系人"),
-        "removeContactConfirm": m4,
+        "removeContactConfirm": m6,
         "removeCustomAsset": MessageLookupByLibrary.simpleMessage("移除币种"),
-        "removeCustomAssetConfirmMessage": m5,
+        "removeCustomAssetConfirmMessage": m7,
         "removeNetwork": MessageLookupByLibrary.simpleMessage("移除网络"),
-        "removeNetworkConfirm": m6,
+        "removeNetworkConfirm": m8,
         "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
-        "removeWalletConfirmMessage": m7,
+        "removeWalletConfirmMessage": m9,
         "retry": MessageLookupByLibrary.simpleMessage("重试"),
         "reviewTransfer": MessageLookupByLibrary.simpleMessage("检查转账"),
         "saveContact": MessageLookupByLibrary.simpleMessage("保存联系人"),
@@ -315,7 +331,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("钱包地址"),
         "transfer": MessageLookupByLibrary.simpleMessage("转账"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-        "transferAsset": m8,
+        "transferAsset": m10,
         "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
         "transferFailed":
             MessageLookupByLibrary.simpleMessage("转账失败，请检查地址、数量和链上余额"),
@@ -326,7 +342,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("收款地址是常见销毁或系统地址，转入后大概率无法找回。"),
         "transferRiskClipboardMismatch":
             MessageLookupByLibrary.simpleMessage("剪贴板中存在另一个地址，请确认收款地址没有被意外替换。"),
-        "transferRiskEvmNetworkConfirm": m9,
+        "transferRiskEvmNetworkConfirm": m11,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "暂未获取到网络手续费，请确认钱包中仍有足够原生币支付手续费。"),
         "transferRiskSelfTransfer":
