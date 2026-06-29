@@ -13,6 +13,7 @@ import '../../../utils/storage.dart';
 ///
 /// 提供中文和英文两个选项，选择后立即更新 GetX Locale，并把语言代码保存到
 /// 本地存储，供下次启动时恢复。
+// ignore: use_key_in_widget_constructors, must_be_immutable
 class LanguagePage extends BaseScaffoldPage<LanguageController> {
   /// 创建语言设置控制器。
   @override
@@ -66,13 +67,15 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
         child: Column(
           children: [
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => controller.switchLanguage('zh'),
               child: Container(
+                width: double.infinity,
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text('中文'),
-                    Spacer(),
+                    const Text('中文'),
+                    const Spacer(),
                     Visibility(
                       visible: controller.currentLanguage.value == '中文',
                       child: Icon(CupertinoIcons.check_mark, size: 20.r),
@@ -82,13 +85,15 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
               ),
             ).marginOnly(bottom: 16.h),
             GestureDetector(
-              onTap: () => controller.switchLanguage("en"),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => controller.switchLanguage('en'),
               child: Container(
+                width: double.infinity,
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text('English'),
-                    Spacer(),
+                    const Text('English'),
+                    const Spacer(),
                     Visibility(
                       visible: controller.currentLanguage.value == 'English',
                       child: Icon(CupertinoIcons.check_mark, size: 20.r),

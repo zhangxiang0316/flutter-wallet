@@ -140,6 +140,16 @@ class S {
     );
   }
 
+  /// `Theme Settings`
+  String get themeSettings {
+    return Intl.message(
+      'Theme Settings',
+      name: 'themeSettings',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Address book`
   String get addressBook {
     return Intl.message(
@@ -2745,6 +2755,46 @@ class S {
     return Intl.message(
       'Password cache enabled',
       name: 'passwordCacheEnabled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Security Notes`
+  String get passwordCacheSecurityNoteTitle {
+    return Intl.message(
+      'Security Notes',
+      name: 'passwordCacheSecurityNoteTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The password is only cached in memory`
+  String get passwordCacheMemoryOnly {
+    return Intl.message(
+      'The password is only cached in memory',
+      name: 'passwordCacheMemoryOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cache is cleared automatically after app exit`
+  String get passwordCacheClearedOnExit {
+    return Intl.message(
+      'Cache is cleared automatically after app exit',
+      name: 'passwordCacheClearedOnExit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cache expires after the selected duration`
+  String get passwordCacheExpiresAutomatically {
+    return Intl.message(
+      'Cache expires after the selected duration',
+      name: 'passwordCacheExpiresAutomatically',
       desc: '',
       args: [],
     );

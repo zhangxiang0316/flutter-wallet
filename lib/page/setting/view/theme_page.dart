@@ -8,12 +8,14 @@ import 'package:omnicast/main.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../common/theme/app_theme_extension.dart';
+import '../../../generated/l10n.dart';
 
 @GetXRoutePage('/theme')
 /// 应用主题设置页面。
 ///
 /// 提供跟随系统、浅色和深色三种主题模式。实际主题状态由全局
 /// [ThemeController] 持有，本页面只负责展示和触发切换。
+// ignore: use_key_in_widget_constructors, must_be_immutable
 class ThemePage extends BaseScaffoldPage<ThemesController> {
   /// 创建主题页控制器。
   @override
@@ -37,7 +39,7 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
         onPressed: back,
       ),
       title: Text(
-        '主题设置',
+        S.of(context!).themeSettings,
         style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
       ),
       centerTitle: true,
@@ -75,8 +77,8 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text('跟随系统'),
-                    Spacer(),
+                    Text(S.of(context!).themeSystem),
+                    const Spacer(),
                     Obx(
                       () => Visibility(
                         visible:
@@ -95,8 +97,8 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text('浅色主题'),
-                    Spacer(),
+                    Text(S.of(context!).themeLight),
+                    const Spacer(),
                     Obx(
                       () => Visibility(
                         visible:
@@ -115,8 +117,8 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text('深色主题'),
-                    Spacer(),
+                    Text(S.of(context!).themeDark),
+                    const Spacer(),
                     Obx(
                       () => Visibility(
                         visible:

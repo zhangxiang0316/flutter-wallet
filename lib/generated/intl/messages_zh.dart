@@ -215,16 +215,24 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("外部浏览器打开"),
         "orUsePassword": MessageLookupByLibrary.simpleMessage("或使用密码"),
         "passwordCache": MessageLookupByLibrary.simpleMessage("密码缓存"),
+        "passwordCacheClearedOnExit":
+            MessageLookupByLibrary.simpleMessage("应用退出后自动清除缓存"),
         "passwordCacheDesc":
             MessageLookupByLibrary.simpleMessage("生物识别成功后自动使用缓存密码"),
         "passwordCacheDisabled":
             MessageLookupByLibrary.simpleMessage("密码缓存已禁用"),
         "passwordCacheEnabled": MessageLookupByLibrary.simpleMessage("密码缓存已启用"),
+        "passwordCacheExpiresAutomatically":
+            MessageLookupByLibrary.simpleMessage("超过设定时间后自动过期"),
         "passwordCacheExpiry": MessageLookupByLibrary.simpleMessage("缓存过期时间"),
         "passwordCacheExpiry1": MessageLookupByLibrary.simpleMessage("1分钟"),
         "passwordCacheExpiry10": MessageLookupByLibrary.simpleMessage("10分钟"),
         "passwordCacheExpiry30": MessageLookupByLibrary.simpleMessage("30分钟"),
         "passwordCacheExpiry5": MessageLookupByLibrary.simpleMessage("5分钟（推荐）"),
+        "passwordCacheMemoryOnly":
+            MessageLookupByLibrary.simpleMessage("密码仅缓存在内存中"),
+        "passwordCacheSecurityNoteTitle":
+            MessageLookupByLibrary.simpleMessage("安全说明"),
         "phone": MessageLookupByLibrary.simpleMessage("手机"),
         "primaryMultiChainWallet":
             MessageLookupByLibrary.simpleMessage("EVM / SOL / TRX 多链主钱包"),
@@ -286,6 +294,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "theme": MessageLookupByLibrary.simpleMessage("主题"),
         "themeDark": MessageLookupByLibrary.simpleMessage("深色主题"),
         "themeLight": MessageLookupByLibrary.simpleMessage("浅色主题"),
+        "themeSettings": MessageLookupByLibrary.simpleMessage("主题设置"),
         "themeSystem": MessageLookupByLibrary.simpleMessage("跟随系统"),
         "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("合计"),
