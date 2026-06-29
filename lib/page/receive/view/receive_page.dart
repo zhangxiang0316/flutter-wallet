@@ -10,6 +10,7 @@ import '../../../utils/toast_util.dart';
 import '../controller/receive_controller.dart';
 import 'widgets/qr_address_panel.dart';
 import 'widgets/receive_hero.dart';
+import 'widgets/receive_request_panel.dart';
 import 'widgets/receive_selector_row.dart';
 
 @GetXRoutePage('/receive')
@@ -95,9 +96,12 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
             onAssetSelected: controller.selectAsset,
           ),
           SizedBox(height: 12.h),
+          ReceiveRequestPanel(controller: controller),
+          SizedBox(height: 12.h),
           ReceiveQrAddressPanel(
             chain: controller.selectedChain,
             address: address,
+            qrData: controller.currentQrPayload(),
             onCopyPressed: () => _copyAddress(address),
           ),
         ],

@@ -244,10 +244,17 @@ class MessageLookup extends MessageLookupByLibrary {
         "receiveAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
         "receiveAddressEmpty":
             MessageLookupByLibrary.simpleMessage("当前钱包没有该网络地址"),
+        "receiveAmount": MessageLookupByLibrary.simpleMessage("金额"),
+        "receiveAmountHint": MessageLookupByLibrary.simpleMessage("选填"),
         "receiveAsset": m5,
+        "receiveMemo": MessageLookupByLibrary.simpleMessage("备注"),
+        "receiveMemoHint": MessageLookupByLibrary.simpleMessage("选填，最多 80 个字符"),
         "receiveQrTip":
             MessageLookupByLibrary.simpleMessage("请仅通过当前选择的网络转入该币种。"),
         "receiveQrTitle": MessageLookupByLibrary.simpleMessage("扫码收款"),
+        "receiveRequestTip":
+            MessageLookupByLibrary.simpleMessage("填写金额或备注后，二维码会包含收款请求信息。"),
+        "receiveRequestTitle": MessageLookupByLibrary.simpleMessage("收款请求"),
         "receiveUnavailable": MessageLookupByLibrary.simpleMessage("收款信息不可用"),
         "recipientAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
@@ -312,6 +319,10 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("暂无交易记录"),
         "transactionHistoryExplorerHint":
             MessageLookupByLibrary.simpleMessage("应用内暂未查到记录，可到区块浏览器查看该地址。"),
+        "transactionHistoryProviderFailed":
+            MessageLookupByLibrary.simpleMessage("交易记录数据源暂不可用，请稍后重试或查看区块浏览器"),
+        "transactionHistoryRateLimited":
+            MessageLookupByLibrary.simpleMessage("交易记录接口请求过于频繁，请稍后再试"),
         "transactionIncoming": MessageLookupByLibrary.simpleMessage("转入"),
         "transactionLoadFailed":
             MessageLookupByLibrary.simpleMessage("交易记录加载失败，请稍后重试"),

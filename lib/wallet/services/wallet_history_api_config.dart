@@ -6,6 +6,8 @@ class WalletHistoryApiConfig {
   const WalletHistoryApiConfig({
     this.etherscanApiKey = _etherscanApiKey,
     this.tronGridApiKey = _tronGridApiKey,
+    this.heliusApiKey = _heliusApiKey,
+    this.heliusBaseUrl = _heliusBaseUrl,
   });
 
   static const String _etherscanApiKey = String.fromEnvironment(
@@ -14,6 +16,11 @@ class WalletHistoryApiConfig {
   static const String _tronGridApiKey = String.fromEnvironment(
     'TRONGRID_API_KEY',
   );
+  static const String _heliusApiKey = String.fromEnvironment('HELIUS_API_KEY');
+  static const String _heliusBaseUrl = String.fromEnvironment(
+    'HELIUS_BASE_URL',
+    defaultValue: 'https://api.helius.xyz/v0',
+  );
 
   /// Etherscan V2 API key. A single key can be used for supported EVM chains.
   final String etherscanApiKey;
@@ -21,7 +28,15 @@ class WalletHistoryApiConfig {
   /// TronGrid API key for TRON/TRC20 transaction history.
   final String tronGridApiKey;
 
+  /// Helius API key for Solana/SPL transaction history.
+  final String heliusApiKey;
+
+  /// Helius API base URL. Kept configurable for tests and proxy deployments.
+  final String heliusBaseUrl;
+
   bool get hasEtherscanApiKey => etherscanApiKey.trim().isNotEmpty;
 
   bool get hasTronGridApiKey => tronGridApiKey.trim().isNotEmpty;
+
+  bool get hasHeliusApiKey => heliusApiKey.trim().isNotEmpty;
 }

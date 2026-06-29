@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
@@ -39,15 +40,30 @@ class ReceiveController extends BaseController {
   /// 是否正在读取自定义资产配置。
   bool isLoadingAssets = false;
 
+  /// 可选收款金额输入。
+  final TextEditingController amountController = TextEditingController();
+
+  /// 可选收款备注输入。
+  final TextEditingController memoController = TextEditingController();
+
   @override
   void onInit() {
     super.onInit();
+    amountController.addListener(update);
+    memoController.addListener(update);
     final args = Get.arguments;
     if (args is WalletAccount) {
       wallet = args;
     }
     _selectFirstAvailableAsset();
     loadAssets();
+  }
+
+  @override
+  void onClose() {
+    amountController.dispose();
+    memoController.dispose();
+    super.onClose();
   }
 
   /// 读取用户自定义资产，并在加载完成后刷新当前链的币种选择。
@@ -110,6 +126,32 @@ class ReceiveController extends BaseController {
       case null:
         return currentWallet.bscAddress;
     }
+  }
+
+  /// 当前二维码内容。
+  ///
+  /// 未填写金额和备注时保持为纯地址，方便通用钱包直接识别；填写任一字段后使用
+  /// 应用内收款 URI，携带链、资产、金额和备注。
+  String currentQrPayload() {
+    final address = currentAddress();
+    if (address.trim().isEmpty) return '';
+    final amount = amountController.text.trim();
+    final memo = memoController.text.trim();
+    final asset = selectedAsset;
+    final contractAddress = asset?.contractAddress?.trim() ?? '';
+    if (amount.isEmpty && memo.isEmpty) return address;
+    return Uri(
+      scheme: 'omnicast',
+      host: 'receive',
+      queryParameters: {
+        'address': address,
+        'chain': selectedChain.id,
+        if (asset != null) 'symbol': asset.symbol,
+        if (contractAddress.isNotEmpty) 'contract': contractAddress,
+        if (amount.isNotEmpty) 'amount': amount,
+        if (memo.isNotEmpty) 'memo': memo,
+      },
+    ).toString();
   }
 
   /// 保证 [selectedAsset] 始终指向当前链中存在的资产。

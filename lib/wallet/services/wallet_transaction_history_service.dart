@@ -14,6 +14,19 @@ import '../models/wallet_transaction_record.dart';
 import 'wallet_history_api_config.dart';
 import 'wallet_transfer_service.dart';
 
+enum TransactionHistoryFailureKind { provider, rateLimited }
+
+class TransactionHistoryLoadException implements Exception {
+  const TransactionHistoryLoadException(this.kind, this.message, [this.cause]);
+
+  final TransactionHistoryFailureKind kind;
+  final String message;
+  final Object? cause;
+
+  @override
+  String toString() => message;
+}
+
 /// 交易历史分页游标。
 class TransactionHistoryCursor {
   const TransactionHistoryCursor._(this.source, this.value);
@@ -93,6 +106,8 @@ class WalletTransactionHistoryService {
   static const int _arbitrumLogScanBlockWindow = 200000;
   static const int _blockscoutMaxPages = 4;
   static const Duration _limitedLogFallbackTimeout = Duration(seconds: 4);
+  static const int _heliusPageLimit = 50;
+  static const int _heliusMaxScanPages = 3;
 
   /// 使用共享的 EVM Transfer 事件 topic
   static const String _evmTransferEventTopic =
@@ -980,21 +995,327 @@ class WalletTransactionHistoryService {
     required ChainBalance asset,
     TransactionHistoryCursor? cursor,
   }) async {
+    Object? heliusError;
+    if (_apiConfig.hasHeliusApiKey) {
+      try {
+        return await _loadSolanaHeliusRecordPage(
+          walletId: walletId,
+          asset: asset,
+          cursor: cursor,
+        );
+      } catch (error) {
+        heliusError = error;
+        developer.log(
+          'Solana Helius history failed: $error',
+          name: 'WalletTransactionHistoryService',
+        );
+        if (error is TransactionHistoryLoadException &&
+            error.kind == TransactionHistoryFailureKind.rateLimited) {
+          rethrow;
+        }
+      }
+    }
+
     if (asset.isNative) {
-      return _loadSolanaNativeRecordPage(
+      try {
+        return await _loadSolanaNativeRecordPage(
+          walletId: walletId,
+          asset: asset,
+          cursor: cursor,
+        );
+      } catch (error) {
+        throw TransactionHistoryLoadException(
+          TransactionHistoryFailureKind.provider,
+          'Solana history provider failed',
+          heliusError ?? error,
+        );
+      }
+    }
+    try {
+      return await _loadSolanaTokenRecordPage(
         walletId: walletId,
         asset: asset,
         cursor: cursor,
       );
+    } catch (error) {
+      throw TransactionHistoryLoadException(
+        TransactionHistoryFailureKind.provider,
+        'Solana token history provider failed',
+        heliusError ?? error,
+      );
     }
-    if (cursor != null) {
-      return const TransactionHistoryPageResult(records: [], nextCursor: null);
+  }
+
+  Future<TransactionHistoryPageResult> _loadSolanaHeliusRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    TransactionHistoryCursor? cursor,
+  }) async {
+    final records = <WalletTransactionRecord>[];
+    String? before = cursor?.solanaBefore;
+    String? nextBefore;
+    var hasMore = false;
+
+    for (var page = 0; page < _heliusMaxScanPages; page++) {
+      final transactions = await _solanaHeliusTransactions(
+        address: asset.address,
+        before: before,
+      );
+      if (transactions.isEmpty) {
+        return TransactionHistoryPageResult(records: records, nextCursor: null);
+      }
+
+      for (final transaction in transactions.whereType<Map>()) {
+        nextBefore = _solanaHeliusSignature(transaction) ?? nextBefore;
+        records.addAll(
+          _solanaHeliusRecordsFromTransaction(
+            walletId: walletId,
+            asset: asset,
+            transaction: transaction,
+          ),
+        );
+        if (records.length >= _historyLimit) break;
+      }
+
+      nextBefore ??= _solanaHeliusSignature(transactions.last);
+      hasMore = transactions.length >= _heliusPageLimit;
+      if (records.length >= _historyLimit ||
+          !hasMore ||
+          nextBefore == null ||
+          nextBefore.isEmpty) {
+        break;
+      }
+      before = nextBefore;
     }
+
+    records.sort(_compareRecordTimeDesc);
+    return TransactionHistoryPageResult(
+      records: records.take(_historyLimit).toList(growable: false),
+      nextCursor: hasMore && nextBefore != null && nextBefore.isNotEmpty
+          ? TransactionHistoryCursor.solanaBefore(nextBefore)
+          : null,
+    );
+  }
+
+  Future<List<dynamic>> _solanaHeliusTransactions({
+    required String address,
+    String? before,
+  }) async {
+    final baseUrl = _apiConfig.heliusBaseUrl.trim().replaceAll(
+      RegExp(r'/+$'),
+      '',
+    );
+    try {
+      final response = await _dio.get(
+        '$baseUrl/addresses/$address/transactions',
+        queryParameters: {
+          'api-key': _apiConfig.heliusApiKey.trim(),
+          'limit': _heliusPageLimit,
+          if (before != null && before.isNotEmpty) 'before': before,
+        },
+      );
+      final data = response.data;
+      if (data is List) return data;
+      throw TransactionHistoryLoadException(
+        TransactionHistoryFailureKind.provider,
+        'Invalid Solana history API response',
+        data,
+      );
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 429) {
+        throw const TransactionHistoryLoadException(
+          TransactionHistoryFailureKind.rateLimited,
+          'Solana history API rate limited',
+        );
+      }
+      throw TransactionHistoryLoadException(
+        TransactionHistoryFailureKind.provider,
+        'Solana history API request failed',
+        error,
+      );
+    }
+  }
+
+  List<WalletTransactionRecord> _solanaHeliusRecordsFromTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> transaction,
+  }) {
+    return asset.isNative
+        ? _solanaHeliusNativeRecordsFromTransaction(
+            walletId: walletId,
+            asset: asset,
+            transaction: transaction,
+          )
+        : _solanaHeliusTokenRecordsFromTransaction(
+            walletId: walletId,
+            asset: asset,
+            transaction: transaction,
+          );
+  }
+
+  List<WalletTransactionRecord> _solanaHeliusNativeRecordsFromTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> transaction,
+  }) {
+    final transfers = transaction['nativeTransfers'];
+    if (transfers is! List) return const [];
+    final records = <WalletTransactionRecord>[];
+    for (var index = 0; index < transfers.length; index++) {
+      final transfer = transfers[index];
+      if (transfer is! Map) continue;
+      final from = transfer['fromUserAccount']?.toString() ?? '';
+      final to = transfer['toUserAccount']?.toString() ?? '';
+      if (from != asset.address && to != asset.address) continue;
+      final lamports =
+          BigInt.tryParse(transfer['amount']?.toString() ?? '') ?? BigInt.zero;
+      if (lamports == BigInt.zero) continue;
+      records.add(
+        _solanaRecord(
+          walletId: walletId,
+          asset: asset,
+          transaction: transaction,
+          index: index,
+          from: from,
+          to: to,
+          amount: WalletTransferService.rawUnitsToAmount(lamports, 9),
+          decimals: 9,
+          direction: _directionForAddress(
+            walletAddress: asset.address,
+            fromAddress: from,
+            toAddress: to,
+            normalize: (value) => value.trim(),
+          ),
+        ),
+      );
+    }
+    return records;
+  }
+
+  List<WalletTransactionRecord> _solanaHeliusTokenRecordsFromTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> transaction,
+  }) {
+    final transfers = transaction['tokenTransfers'];
+    if (transfers is! List) return const [];
+    final mint = asset.contractAddress?.trim() ?? '';
+    final records = <WalletTransactionRecord>[];
+    for (var index = 0; index < transfers.length; index++) {
+      final transfer = transfers[index];
+      if (transfer is! Map) continue;
+      if (mint.isNotEmpty && transfer['mint']?.toString() != mint) continue;
+      final from = transfer['fromUserAccount']?.toString() ?? '';
+      final to = transfer['toUserAccount']?.toString() ?? '';
+      if (from != asset.address && to != asset.address) continue;
+      final amount = _solanaHeliusTokenAmount(transfer, asset.decimals);
+      if (amount == null) continue;
+      records.add(
+        _solanaRecord(
+          walletId: walletId,
+          asset: asset,
+          transaction: transaction,
+          index: index,
+          from: from,
+          to: to,
+          amount: amount,
+          decimals: asset.decimals,
+          direction: _directionForAddress(
+            walletAddress: asset.address,
+            fromAddress: from,
+            toAddress: to,
+            normalize: (value) => value.trim(),
+          ),
+        ),
+      );
+    }
+    return records;
+  }
+
+  WalletTransactionRecord _solanaRecord({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> transaction,
+    required int index,
+    required String from,
+    required String to,
+    required String amount,
+    required int decimals,
+    required WalletTransactionDirection direction,
+  }) {
+    final signature = _solanaHeliusSignature(transaction) ?? '';
+    return WalletTransactionRecord(
+      id: _recordId(walletId, asset, '$signature:$index'),
+      walletId: walletId,
+      chainId: asset.chainId,
+      chainName: asset.chainRef.name,
+      symbol: asset.symbol,
+      assetName: asset.name,
+      walletAddress: asset.address,
+      txHash: signature,
+      fromAddress: from,
+      toAddress: to,
+      amount: amount,
+      decimals: decimals,
+      direction: direction,
+      status: transaction['transactionError'] == null
+          ? WalletTransactionStatus.success
+          : WalletTransactionStatus.failed,
+      source: WalletTransactionSource.remote,
+      contractAddress: asset.contractAddress,
+      feeAmount: _solanaHeliusFeeAmount(transaction),
+      feeSymbol: asset.chainRef.symbol,
+      blockNumber: int.tryParse(transaction['slot']?.toString() ?? ''),
+      timestamp: _dateTimeFromSeconds(transaction['timestamp']),
+    );
+  }
+
+  String? _solanaHeliusTokenAmount(
+    Map<dynamic, dynamic> transfer,
+    int decimals,
+  ) {
+    final raw = transfer['rawTokenAmount'];
+    if (raw is Map) {
+      final rawAmount = BigInt.tryParse(raw['tokenAmount']?.toString() ?? '');
+      final rawDecimals =
+          int.tryParse(raw['decimals']?.toString() ?? '') ?? decimals;
+      if (rawAmount != null) {
+        return WalletTransferService.rawUnitsToAmount(rawAmount, rawDecimals);
+      }
+    }
+    final value = transfer['tokenAmount'];
+    if (value == null) return null;
+    return _normalizeDecimalString(value.toString());
+  }
+
+  String? _solanaHeliusFeeAmount(Map<dynamic, dynamic> transaction) {
+    final fee = BigInt.tryParse(transaction['fee']?.toString() ?? '');
+    if (fee == null || fee == BigInt.zero) return null;
+    return WalletTransferService.rawUnitsToAmount(fee, 9);
+  }
+
+  String? _solanaHeliusSignature(Object? value) {
+    if (value is! Map) return null;
+    return value['signature']?.toString();
+  }
+
+  Future<TransactionHistoryPageResult> _loadSolanaTokenRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    TransactionHistoryCursor? cursor,
+  }) async {
     final records = await _loadSolanaTokenRecords(
       walletId: walletId,
       asset: asset,
+      before: cursor?.solanaBefore,
     );
-    return TransactionHistoryPageResult(records: records, nextCursor: null);
+    return TransactionHistoryPageResult(
+      records: records,
+      nextCursor: records.length >= _historyLimit
+          ? TransactionHistoryCursor.solanaBefore(records.last.txHash)
+          : null,
+    );
   }
 
   Future<TransactionHistoryPageResult> _loadSolanaNativeRecordPage({
@@ -1035,6 +1356,7 @@ class WalletTransactionHistoryService {
   Future<List<WalletTransactionRecord>> _loadSolanaTokenRecords({
     required String walletId,
     required ChainBalance asset,
+    String? before,
   }) async {
     final tokenAccounts = await _solanaTokenAccountsForMint(
       chain: asset.chainRef,
@@ -1051,6 +1373,7 @@ class WalletTransactionHistoryService {
         chain: asset.chainRef,
         address: account,
         limit: math.max(8, _historyLimit ~/ tokenAccounts.length),
+        before: before,
       );
       signatures.addAll(accountSignatures);
       if (signatures.length >= _historyLimit) break;
@@ -1354,6 +1677,12 @@ class WalletTransactionHistoryService {
         }
         throw StateError(data is Map ? data.toString() : 'Invalid RPC data');
       } catch (error) {
+        if (error is DioException && error.response?.statusCode == 429) {
+          throw const TransactionHistoryLoadException(
+            TransactionHistoryFailureKind.rateLimited,
+            'Solana RPC rate limited',
+          );
+        }
         lastError = error;
       }
     }
@@ -1778,6 +2107,15 @@ class WalletTransactionHistoryService {
       }
     }
     return output.toString().split('').reversed.join();
+  }
+
+  String _normalizeDecimalString(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) return '0';
+    if (!normalized.contains('.')) return normalized;
+    return normalized
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 }
 

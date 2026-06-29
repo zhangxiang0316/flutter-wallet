@@ -18,6 +18,7 @@ import 'package:omnicast/wallet/services/transaction_history_cache.dart';
 import 'package:omnicast/wallet/services/wallet_custom_asset_service.dart';
 import 'package:omnicast/wallet/services/wallet_chain_config_service.dart';
 import 'package:omnicast/wallet/services/wallet_crypto_service.dart';
+import 'package:omnicast/wallet/services/wallet_history_api_config.dart';
 import 'package:omnicast/wallet/services/wallet_secret_store.dart';
 import 'package:omnicast/wallet/services/wallet_transfer_service.dart';
 import 'package:omnicast/wallet/services/wallet_transaction_history_service.dart';
@@ -455,6 +456,113 @@ void main() {
       expect(records.single.amount, '1.25');
       expect(records.single.feeAmount, '0.000005');
       expect(records.single.direction, WalletTransactionDirection.outgoing);
+    });
+
+    test('loads native Solana transactions from Helius', () async {
+      const owner = 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8';
+      const recipient = 'BPFLoaderUpgradeab1e11111111111111111111111';
+      final dio = Dio()
+        ..httpClientAdapter = _FallbackRpcAdapter(
+          heliusOwner: owner,
+          heliusRecipient: recipient,
+        );
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: 'helius-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.solana,
+        symbol: 'SOL',
+        name: 'Solana',
+        amount: '10',
+        address: owner,
+        decimals: 9,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(1));
+      expect(result.records.single.txHash, 'helius-sol-signature');
+      expect(result.records.single.amount, '1.25');
+      expect(result.records.single.feeAmount, '0.000005');
+      expect(result.records.single.blockNumber, 123);
+      expect(
+        result.records.single.direction,
+        WalletTransactionDirection.outgoing,
+      );
+      expect(result.hasMore, isFalse);
+    });
+
+    test('loads SPL token transactions from Helius with pagination', () async {
+      const owner = 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8';
+      const sender = 'BPFLoaderUpgradeab1e11111111111111111111111';
+      const mint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+      final adapter = _FallbackRpcAdapter(
+        heliusOwner: owner,
+        heliusRecipient: sender,
+        heliusMint: mint,
+        heliusFullPage: true,
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: 'helius-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.solana,
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: '10',
+        address: owner,
+        contractAddress: mint,
+        decimals: 6,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(30));
+      expect(result.records.first.txHash, 'helius-token-signature-0');
+      expect(result.records.first.amount, '2.5');
+      expect(
+        result.records.first.direction,
+        WalletTransactionDirection.incoming,
+      );
+      expect(result.hasMore, isTrue);
+      expect(result.nextCursor?.solanaBefore, 'helius-token-signature-29');
+    });
+
+    test('classifies Solana history API rate limits', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _FallbackRpcAdapter(failHeliusRateLimit: true);
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: 'helius-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.solana,
+        symbol: 'SOL',
+        name: 'Solana',
+        amount: '10',
+        address: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+        decimals: 9,
+      );
+
+      expect(
+        () => service.loadAssetRecords(walletId: 'wallet-1', asset: asset),
+        throwsA(
+          isA<TransactionHistoryLoadException>().having(
+            (error) => error.kind,
+            'kind',
+            TransactionHistoryFailureKind.rateLimited,
+          ),
+        ),
+      );
     });
   });
 
@@ -1295,6 +1403,11 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     this.solanaTokenAccountBalances = const {},
     this.solanaHistoryOwner,
     this.solanaHistoryRecipient,
+    this.heliusOwner,
+    this.heliusRecipient,
+    this.heliusMint,
+    this.heliusFullPage = false,
+    this.failHeliusRateLimit = false,
   });
 
   final bool failTronGridAccount;
@@ -1303,6 +1416,11 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   final Map<String, Map<String, dynamic>> solanaTokenAccountBalances;
   final String? solanaHistoryOwner;
   final String? solanaHistoryRecipient;
+  final String? heliusOwner;
+  final String? heliusRecipient;
+  final String? heliusMint;
+  final bool heliusFullPage;
+  final bool failHeliusRateLimit;
   final calls = <String>[];
   final solanaMethods = <String>[];
   String? lastSolanaTransactionBase64;
@@ -1315,6 +1433,54 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   ) async {
     final origin = '${options.uri.scheme}://${options.uri.host}';
     calls.add(origin);
+
+    if (origin == 'https://api.helius.xyz') {
+      if (failHeliusRateLimit) {
+        return _jsonResponse({'error': 'rate limited'}, statusCode: 429);
+      }
+      final owner = heliusOwner ?? '';
+      final other = heliusRecipient ?? '';
+      final mint = heliusMint ?? '';
+      if (mint.isNotEmpty) {
+        final count = heliusFullPage ? 50 : 1;
+        return _jsonResponse(
+          List.generate(count, (index) {
+            return {
+              'signature': 'helius-token-signature-$index',
+              'timestamp': 1700000000 - index,
+              'slot': 123 - index,
+              'fee': 5000,
+              'transactionError': null,
+              'tokenTransfers': [
+                {
+                  'fromUserAccount': other,
+                  'toUserAccount': owner,
+                  'mint': mint,
+                  'tokenAmount': 2.5,
+                  'rawTokenAmount': {'tokenAmount': '2500000', 'decimals': 6},
+                },
+              ],
+            };
+          }),
+        );
+      }
+      return _jsonResponse([
+        {
+          'signature': 'helius-sol-signature',
+          'timestamp': 1700000000,
+          'slot': 123,
+          'fee': 5000,
+          'transactionError': null,
+          'nativeTransfers': [
+            {
+              'fromUserAccount': owner,
+              'toUserAccount': other,
+              'amount': 1250000000,
+            },
+          ],
+        },
+      ]);
+    }
 
     if (origin == 'https://bsc-dataseed.bnbchain.org') {
       return _jsonResponse({

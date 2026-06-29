@@ -141,11 +141,11 @@ class TransactionHistoryController extends BaseController {
       }
       _nextCursor = result.nextCursor;
       hasMore = result.hasMore;
-    } catch (_) {
+    } catch (error) {
       if (records.isEmpty) {
-        errorMessage = S.current.transactionLoadFailed;
+        errorMessage = _historyLoadErrorMessage(error);
       } else {
-        Toast.show(S.current.transactionLoadFailed);
+        Toast.show(_historyLoadErrorMessage(error));
       }
     } finally {
       isLoading = false;
@@ -178,12 +178,26 @@ class TransactionHistoryController extends BaseController {
         records,
         contractAddress: args.asset.contractAddress,
       );
-    } catch (_) {
-      Toast.show(S.current.transactionLoadMoreFailed);
+    } catch (error) {
+      Toast.show(_historyLoadErrorMessage(error, isLoadMore: true));
     } finally {
       isLoadingMore = false;
       update();
     }
+  }
+
+  String _historyLoadErrorMessage(Object error, {bool isLoadMore = false}) {
+    if (error is TransactionHistoryLoadException) {
+      return switch (error.kind) {
+        TransactionHistoryFailureKind.rateLimited =>
+          S.current.transactionHistoryRateLimited,
+        TransactionHistoryFailureKind.provider =>
+          S.current.transactionHistoryProviderFailed,
+      };
+    }
+    return isLoadMore
+        ? S.current.transactionLoadMoreFailed
+        : S.current.transactionLoadFailed;
   }
 
   List<WalletTransactionRecord> _mergeRecords(

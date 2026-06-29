@@ -16,4 +16,5 @@ set +a
 flutter run \
   --dart-define="ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY:-}" \
   --dart-define="TRONGRID_API_KEY=${TRONGRID_API_KEY:-}" \
+  --dart-define="HELIUS_API_KEY=${HELIUS_API_KEY:-}" \
   "$@"

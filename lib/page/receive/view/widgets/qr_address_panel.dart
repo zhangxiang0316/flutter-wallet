@@ -15,6 +15,7 @@ class ReceiveQrAddressPanel extends StatelessWidget {
     super.key,
     required this.chain,
     required this.address,
+    required this.qrData,
     required this.onCopyPressed,
   });
 
@@ -24,12 +25,16 @@ class ReceiveQrAddressPanel extends StatelessWidget {
   /// 当前链的钱包地址。
   final String address;
 
+  /// 当前二维码内容，可能是纯地址，也可能是带金额/备注的收款 URI。
+  final String qrData;
+
   /// 复制地址按钮回调。
   final VoidCallback onCopyPressed;
 
   @override
   Widget build(BuildContext context) {
     final hasAddress = address.trim().isNotEmpty;
+    final hasQrData = qrData.trim().isNotEmpty;
     final color = receiveChainColor(chain);
     return ReceivePanel(
       title: S.of(context).receiveQrTitle,
@@ -53,9 +58,9 @@ class ReceiveQrAddressPanel extends StatelessWidget {
                   ),
                 ],
               ),
-              child: hasAddress
+              child: hasQrData
                   ? QrImageView(
-                      data: address,
+                      data: qrData,
                       version: QrVersions.auto,
                       backgroundColor: Colors.white,
                       eyeStyle: QrEyeStyle(

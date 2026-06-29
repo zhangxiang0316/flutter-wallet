@@ -297,11 +297,20 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Receive address"),
         "receiveAddressEmpty": MessageLookupByLibrary.simpleMessage(
             "This wallet does not have an address for this network"),
+        "receiveAmount": MessageLookupByLibrary.simpleMessage("Amount"),
+        "receiveAmountHint": MessageLookupByLibrary.simpleMessage("Optional"),
         "receiveAsset": m5,
+        "receiveMemo": MessageLookupByLibrary.simpleMessage("Memo"),
+        "receiveMemoHint": MessageLookupByLibrary.simpleMessage(
+            "Optional, up to 80 characters"),
         "receiveQrTip": MessageLookupByLibrary.simpleMessage(
             "Only send this asset on the selected network."),
         "receiveQrTitle":
             MessageLookupByLibrary.simpleMessage("Scan to receive"),
+        "receiveRequestTip": MessageLookupByLibrary.simpleMessage(
+            "The QR code includes request details when amount or memo is filled."),
+        "receiveRequestTitle":
+            MessageLookupByLibrary.simpleMessage("Payment request"),
         "receiveUnavailable": MessageLookupByLibrary.simpleMessage(
             "Receive details are unavailable"),
         "recipientAddress":
@@ -385,6 +394,10 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("No transactions"),
         "transactionHistoryExplorerHint": MessageLookupByLibrary.simpleMessage(
             "No in-app records found. View this address in a block explorer."),
+        "transactionHistoryProviderFailed": MessageLookupByLibrary.simpleMessage(
+            "Transaction history provider is unavailable. Try again later or view the block explorer."),
+        "transactionHistoryRateLimited": MessageLookupByLibrary.simpleMessage(
+            "Transaction history API is rate limited. Try again later."),
         "transactionIncoming": MessageLookupByLibrary.simpleMessage("Received"),
         "transactionLoadFailed": MessageLookupByLibrary.simpleMessage(
             "Failed to load transactions. Try again later."),

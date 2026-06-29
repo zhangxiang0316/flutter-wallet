@@ -1640,6 +1640,66 @@ class S {
     );
   }
 
+  /// `Payment request`
+  String get receiveRequestTitle {
+    return Intl.message(
+      'Payment request',
+      name: 'receiveRequestTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount`
+  String get receiveAmount {
+    return Intl.message(
+      'Amount',
+      name: 'receiveAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Optional`
+  String get receiveAmountHint {
+    return Intl.message(
+      'Optional',
+      name: 'receiveAmountHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Memo`
+  String get receiveMemo {
+    return Intl.message(
+      'Memo',
+      name: 'receiveMemo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Optional, up to 80 characters`
+  String get receiveMemoHint {
+    return Intl.message(
+      'Optional, up to 80 characters',
+      name: 'receiveMemoHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The QR code includes request details when amount or memo is filled.`
+  String get receiveRequestTip {
+    return Intl.message(
+      'The QR code includes request details when amount or memo is filled.',
+      name: 'receiveRequestTip',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Receive address`
   String get receiveAddress {
     return Intl.message(
@@ -2195,6 +2255,26 @@ class S {
     return Intl.message(
       'Failed to load transactions. Try again later.',
       name: 'transactionLoadFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction history provider is unavailable. Try again later or view the block explorer.`
+  String get transactionHistoryProviderFailed {
+    return Intl.message(
+      'Transaction history provider is unavailable. Try again later or view the block explorer.',
+      name: 'transactionHistoryProviderFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction history API is rate limited. Try again later.`
+  String get transactionHistoryRateLimited {
+    return Intl.message(
+      'Transaction history API is rate limited. Try again later.',
+      name: 'transactionHistoryRateLimited',
       desc: '',
       args: [],
     );

@@ -35,7 +35,8 @@ echo ""
 echo "🔨 Step 3: Building App Bundle (Release)..."
 flutter build appbundle --release \
     --dart-define="ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY:-}" \
-    --dart-define="TRONGRID_API_KEY=${TRONGRID_API_KEY:-}"
+    --dart-define="TRONGRID_API_KEY=${TRONGRID_API_KEY:-}" \
+    --dart-define="HELIUS_API_KEY=${HELIUS_API_KEY:-}"
 
 echo ""
 echo "📂 Step 4: Checking build output..."
