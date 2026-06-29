@@ -135,6 +135,8 @@ class TransactionHistoryPage
       record: record,
       onTap: () => controller.openRecordDetail(record),
       onCopyHash: () => controller.copyHash(record),
+      onRefreshStatus: () => controller.refreshRecordStatus(record),
+      onOpenExplorer: () => controller.openTransactionExplorer(record),
     ).marginOnly(bottom: 10.h);
   }
 

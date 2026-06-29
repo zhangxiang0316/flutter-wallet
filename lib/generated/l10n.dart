@@ -2320,6 +2320,26 @@ class S {
     );
   }
 
+  /// `Refresh status`
+  String get transactionRefreshStatus {
+    return Intl.message(
+      'Refresh status',
+      name: 'transactionRefreshStatus',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to refresh transaction status`
+  String get transactionStatusRefreshFailed {
+    return Intl.message(
+      'Failed to refresh transaction status',
+      name: 'transactionStatusRefreshFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Local`
   String get transactionSourceLocal {
     return Intl.message(

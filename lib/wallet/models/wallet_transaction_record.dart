@@ -60,6 +60,38 @@ class WalletTransactionRecord {
 
   bool get isOutgoing => direction == WalletTransactionDirection.outgoing;
 
+  WalletTransactionRecord copyWith({
+    WalletTransactionStatus? status,
+    WalletTransactionSource? source,
+    String? feeAmount,
+    String? feeSymbol,
+    int? blockNumber,
+    DateTime? timestamp,
+  }) {
+    return WalletTransactionRecord(
+      id: id,
+      walletId: walletId,
+      chainId: chainId,
+      chainName: chainName,
+      symbol: symbol,
+      assetName: assetName,
+      walletAddress: walletAddress,
+      txHash: txHash,
+      fromAddress: fromAddress,
+      toAddress: toAddress,
+      amount: amount,
+      decimals: decimals,
+      direction: direction,
+      status: status ?? this.status,
+      source: source ?? this.source,
+      contractAddress: contractAddress,
+      feeAmount: feeAmount ?? this.feeAmount,
+      feeSymbol: feeSymbol ?? this.feeSymbol,
+      blockNumber: blockNumber ?? this.blockNumber,
+      timestamp: timestamp ?? this.timestamp,
+    );
+  }
+
   String get assetKey {
     final contract = contractAddress?.trim() ?? '';
     return [

@@ -287,6 +287,8 @@
   "transactionStatusFailed": "Failed",
   "transactionStatusPending": "Pending",
   "transactionStatusUnknown": "Unknown",
+  "transactionRefreshStatus": "Refresh status",
+  "transactionStatusRefreshFailed": "Failed to refresh transaction status",
   "transactionSourceLocal": "Local",
   "transactionSourceRemote": "On-chain",
   "transactionFrom": "From",

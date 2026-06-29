@@ -398,6 +398,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("No more transactions"),
         "transactionOutgoing": MessageLookupByLibrary.simpleMessage("Sent"),
         "transactionOverview": MessageLookupByLibrary.simpleMessage("Overview"),
+        "transactionRefreshStatus":
+            MessageLookupByLibrary.simpleMessage("Refresh status"),
         "transactionSelfTransfer":
             MessageLookupByLibrary.simpleMessage("Self transfer"),
         "transactionSource": MessageLookupByLibrary.simpleMessage("Source"),
@@ -409,6 +411,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Failed"),
         "transactionStatusPending":
             MessageLookupByLibrary.simpleMessage("Pending"),
+        "transactionStatusRefreshFailed": MessageLookupByLibrary.simpleMessage(
+            "Failed to refresh transaction status"),
         "transactionStatusSuccess":
             MessageLookupByLibrary.simpleMessage("Success"),
         "transactionStatusUnknown":

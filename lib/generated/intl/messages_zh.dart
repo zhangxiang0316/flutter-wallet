@@ -323,6 +323,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("没有更多交易记录"),
         "transactionOutgoing": MessageLookupByLibrary.simpleMessage("转出"),
         "transactionOverview": MessageLookupByLibrary.simpleMessage("概览"),
+        "transactionRefreshStatus":
+            MessageLookupByLibrary.simpleMessage("刷新状态"),
         "transactionSelfTransfer": MessageLookupByLibrary.simpleMessage("自转账"),
         "transactionSource": MessageLookupByLibrary.simpleMessage("来源"),
         "transactionSourceLocal": MessageLookupByLibrary.simpleMessage("本地"),
@@ -330,6 +332,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "transactionStatus": MessageLookupByLibrary.simpleMessage("状态"),
         "transactionStatusFailed": MessageLookupByLibrary.simpleMessage("失败"),
         "transactionStatusPending": MessageLookupByLibrary.simpleMessage("待确认"),
+        "transactionStatusRefreshFailed":
+            MessageLookupByLibrary.simpleMessage("交易状态刷新失败"),
         "transactionStatusSuccess": MessageLookupByLibrary.simpleMessage("成功"),
         "transactionStatusUnknown": MessageLookupByLibrary.simpleMessage("未知"),
         "transactionSummary": MessageLookupByLibrary.simpleMessage("交易摘要"),

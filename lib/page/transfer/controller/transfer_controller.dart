@@ -7,12 +7,18 @@ import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
+import '../../../generated/route_table.dart';
 import '../../../utils/toast_util.dart';
+import '../../browser/controller/block_explorer_controller.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/models/wallet_chain_extensions.dart';
+import '../../../wallet/models/wallet_transaction_record.dart';
+import '../../../wallet/services/transaction_history_cache.dart';
+import '../../../wallet/services/wallet_block_explorer_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/wallet_secret_store.dart';
+import '../../../wallet/services/wallet_transaction_status_service.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
 
 /// 转账页面的路由参数。
@@ -47,11 +53,22 @@ class TransferController extends BaseController {
   TransferController({
     WalletTransferService? transferService,
     WalletRepository? repository,
+    TransactionHistoryCache? transactionCache,
+    WalletTransactionStatusService? transactionStatusService,
+    WalletBlockExplorerService? blockExplorerService,
   }) : _transferService = transferService ?? WalletTransferService(),
-       _repository = repository ?? WalletRepository();
+       _repository = repository ?? WalletRepository(),
+       _transactionCache = transactionCache ?? TransactionHistoryCache(),
+       _transactionStatusService =
+           transactionStatusService ?? WalletTransactionStatusService(),
+       _blockExplorerService =
+           blockExplorerService ?? const WalletBlockExplorerService();
 
   final WalletTransferService _transferService;
   final WalletRepository _repository;
+  final TransactionHistoryCache _transactionCache;
+  final WalletTransactionStatusService _transactionStatusService;
+  final WalletBlockExplorerService _blockExplorerService;
 
   /// 收款地址输入框控制器。
   final TextEditingController addressController = TextEditingController();
@@ -85,8 +102,15 @@ class TransferController extends BaseController {
   /// 链上广播后返回的交易哈希。
   String transactionHash = '';
 
+  /// 当前提交交易的链上确认状态。
+  WalletTransactionStatus submittedStatus = WalletTransactionStatus.unknown;
+
   /// 手续费查询防抖计时器，避免输入过程中频繁请求 RPC。
   Timer? _feeDebounce;
+
+  Timer? _submittedStatusTimer;
+
+  int _submittedStatusPollCount = 0;
 
   /// 手续费请求序号，用于忽略过期异步响应。
   int _feeRequestId = 0;
@@ -224,6 +248,7 @@ class TransferController extends BaseController {
     try {
       isSubmitting = true;
       transactionHash = '';
+      submittedStatus = WalletTransactionStatus.unknown;
       update();
       final privateKeyHex = await _repository.readWalletPrivateKey(
         walletId: args.walletId,
@@ -243,6 +268,9 @@ class TransferController extends BaseController {
         solanaPrivateKey: solanaPrivateKey,
       );
       transactionHash = hash;
+      submittedStatus = WalletTransactionStatus.pending;
+      await _saveSubmittedTransaction(asset, hash);
+      _startSubmittedStatusTracking(asset, hash);
       Toast.show(S.current.transferSubmitted);
     } on WalletSecretMissingException {
       Toast.show(S.current.walletSecretMissing);
@@ -352,6 +380,40 @@ class TransferController extends BaseController {
     Toast.show(S.current.copied);
   }
 
+  Future<void> openSubmittedTransactionExplorer() async {
+    final asset = currentAsset;
+    if (asset == null || transactionHash.isEmpty) return;
+    final uri = _blockExplorerService.transactionUri(asset, transactionHash);
+    if (uri == null) {
+      Toast.show(S.current.blockExplorerUnavailable);
+      return;
+    }
+    await Get.toNamed(
+      RouteTable.blockExplorer,
+      arguments: BlockExplorerPageArguments(
+        url: uri,
+        title: asset.chainRef.name,
+      ),
+    );
+  }
+
+  Future<void> refreshSubmittedStatus() async {
+    final asset = currentAsset;
+    final hash = transactionHash;
+    if (asset == null || hash.isEmpty) return;
+    try {
+      final status = await _transactionStatusService.loadStatus(
+        chain: asset.chainRef,
+        txHash: hash,
+      );
+      submittedStatus = status;
+      await _saveSubmittedTransaction(asset, hash, status: status);
+      update();
+    } catch (_) {
+      Toast.show(S.current.transactionStatusRefreshFailed);
+    }
+  }
+
   /// 返回首页，并把是否已提交交易作为结果传回首页用于刷新余额。
   void backToWallet() {
     Get.back(result: transactionHash.isNotEmpty);
@@ -391,6 +453,8 @@ class TransferController extends BaseController {
     feeEstimateUnavailable = false;
     isEstimatingFee = false;
     transactionHash = '';
+    submittedStatus = WalletTransactionStatus.unknown;
+    _stopSubmittedStatusTracking();
   }
 
   /// 构建资产唯一 key。
@@ -404,6 +468,81 @@ class TransferController extends BaseController {
       normalizedContract.isEmpty ? 'native' : normalizedContract,
       asset.symbol.toUpperCase(),
     ].join(':');
+  }
+
+  Future<void> _saveSubmittedTransaction(
+    ChainBalance asset,
+    String txHash, {
+    WalletTransactionStatus status = WalletTransactionStatus.pending,
+  }) {
+    final record = WalletTransactionRecord(
+      id: _localRecordId(arguments!.walletId, asset, txHash),
+      walletId: arguments!.walletId,
+      chainId: asset.chainId,
+      chainName: asset.chainRef.name,
+      symbol: asset.symbol,
+      assetName: asset.name,
+      walletAddress: asset.address,
+      txHash: txHash,
+      fromAddress: asset.address,
+      toAddress: addressController.text.trim(),
+      amount: amountController.text.trim(),
+      decimals: asset.decimals,
+      direction: WalletTransactionDirection.outgoing,
+      status: status,
+      source: WalletTransactionSource.local,
+      contractAddress: asset.contractAddress,
+      feeAmount: feeEstimate?.amount,
+      feeSymbol: feeEstimate?.symbol,
+      timestamp: DateTime.now(),
+    );
+    return _transactionCache.upsertLocalRecord(record);
+  }
+
+  String _localRecordId(String walletId, ChainBalance asset, String txHash) {
+    return [
+      'local',
+      walletId,
+      asset.chainId,
+      asset.contractAddress ?? 'native',
+      txHash.toLowerCase(),
+    ].join(':');
+  }
+
+  void _startSubmittedStatusTracking(ChainBalance asset, String txHash) {
+    _stopSubmittedStatusTracking();
+    _submittedStatusPollCount = 0;
+    _submittedStatusTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      _pollSubmittedStatus(asset, txHash);
+    });
+    _pollSubmittedStatus(asset, txHash);
+  }
+
+  Future<void> _pollSubmittedStatus(ChainBalance asset, String txHash) async {
+    if (txHash != transactionHash) return;
+    _submittedStatusPollCount++;
+    try {
+      final status = await _transactionStatusService.loadStatus(
+        chain: asset.chainRef,
+        txHash: txHash,
+      );
+      if (txHash != transactionHash) return;
+      submittedStatus = status;
+      await _saveSubmittedTransaction(asset, txHash, status: status);
+      update();
+      if (status != WalletTransactionStatus.pending) {
+        _stopSubmittedStatusTracking();
+      }
+    } catch (_) {
+      if (_submittedStatusPollCount >= 8) {
+        _stopSubmittedStatusTracking();
+      }
+    }
+  }
+
+  void _stopSubmittedStatusTracking() {
+    _submittedStatusTimer?.cancel();
+    _submittedStatusTimer = null;
   }
 
   /// 从扫码内容中提取当前链可用的钱包地址。
@@ -476,6 +615,7 @@ class TransferController extends BaseController {
   @override
   void onClose() {
     _feeDebounce?.cancel();
+    _stopSubmittedStatusTracking();
     addressController.dispose();
     amountController.dispose();
     super.onClose();

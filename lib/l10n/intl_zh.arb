@@ -287,6 +287,8 @@
   "transactionStatusFailed": "失败",
   "transactionStatusPending": "待确认",
   "transactionStatusUnknown": "未知",
+  "transactionRefreshStatus": "刷新状态",
+  "transactionStatusRefreshFailed": "交易状态刷新失败",
   "transactionSourceLocal": "本地",
   "transactionSourceRemote": "链上",
   "transactionFrom": "发送方",

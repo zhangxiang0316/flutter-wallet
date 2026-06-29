@@ -14,6 +14,8 @@ class TransactionHistoryCache {
   /// 缓存键前缀。
   static const String _keyPrefix = 'tx_history_v1';
 
+  static const String _localKeyPrefix = 'tx_local_v1';
+
   /// 缓存最大有效期。
   ///
   /// 交易历史 5 分钟内不会有太大变化，缓存可以有效减少请求。
@@ -33,6 +35,16 @@ class TransactionHistoryCache {
   /// 旧版本缓存键，兼容升级前已保存的记录。
   String _legacyCacheKey(String walletId, String chainId, String symbol) {
     return '${_keyPrefix}_${walletId}_${chainId}_$symbol';
+  }
+
+  String _localCacheKey(
+    String walletId,
+    String chainId,
+    String symbol, {
+    String? contractAddress,
+  }) {
+    final assetKey = _assetKey(contractAddress);
+    return '${_localKeyPrefix}_${walletId}_${chainId}_${assetKey}_$symbol';
   }
 
   String _assetKey(String? contractAddress) {
@@ -116,6 +128,87 @@ class TransactionHistoryCache {
     }
   }
 
+  /// 读取本地提交但可能尚未被链上历史接口索引到的交易。
+  Future<List<WalletTransactionRecord>> loadLocalRecords(
+    String walletId,
+    String chainId,
+    String symbol, {
+    String? contractAddress,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _localCacheKey(
+        walletId,
+        chainId,
+        symbol,
+        contractAddress: contractAddress,
+      );
+      final json = prefs.getString(key);
+      if (json == null) return const [];
+      final data = jsonDecode(json) as Map<String, dynamic>;
+      final records = (data['records'] as List)
+          .map(
+            (item) =>
+                WalletTransactionRecord.fromJson(item as Map<String, dynamic>),
+          )
+          .toList();
+      return records;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> saveLocalRecords(
+    String walletId,
+    String chainId,
+    String symbol,
+    List<WalletTransactionRecord> records, {
+    String? contractAddress,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _localCacheKey(
+        walletId,
+        chainId,
+        symbol,
+        contractAddress: contractAddress,
+      );
+      final data = {
+        'timestamp': DateTime.now().toIso8601String(),
+        'records': records.map((record) => record.toJson()).toList(),
+      };
+      await prefs.setString(key, jsonEncode(data));
+    } catch (_) {
+      // 保存失败不影响转账主流程
+    }
+  }
+
+  /// 追加或更新一条本地提交交易。
+  Future<void> upsertLocalRecord(WalletTransactionRecord record) async {
+    final records = await loadLocalRecords(
+      record.walletId,
+      record.chainId,
+      record.symbol,
+      contractAddress: record.contractAddress,
+    );
+    final nextRecords = [...records];
+    final index = nextRecords.indexWhere(
+      (item) => item.txHash.toLowerCase() == record.txHash.toLowerCase(),
+    );
+    if (index >= 0) {
+      nextRecords[index] = record;
+    } else {
+      nextRecords.insert(0, record);
+    }
+    await saveLocalRecords(
+      record.walletId,
+      record.chainId,
+      record.symbol,
+      nextRecords,
+      contractAddress: record.contractAddress,
+    );
+  }
+
   /// 清除指定资产的交易记录缓存。
   ///
   /// 用于用户手动刷新或清理缓存时使用。
@@ -135,6 +228,14 @@ class TransactionHistoryCache {
       );
       await prefs.remove(key);
       await prefs.remove(_legacyCacheKey(walletId, chainId, symbol));
+      await prefs.remove(
+        _localCacheKey(
+          walletId,
+          chainId,
+          symbol,
+          contractAddress: contractAddress,
+        ),
+      );
     } catch (_) {
       // 清除失败不影响主流程
     }
@@ -148,7 +249,7 @@ class TransactionHistoryCache {
       final prefs = await SharedPreferences.getInstance();
       final keys = prefs.getKeys();
       for (final key in keys) {
-        if (key.startsWith(_keyPrefix)) {
+        if (key.startsWith(_keyPrefix) || key.startsWith(_localKeyPrefix)) {
           await prefs.remove(key);
         }
       }

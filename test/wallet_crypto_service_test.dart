@@ -14,6 +14,7 @@ import 'package:omnicast/wallet/models/wallet_transaction_record.dart';
 import 'package:omnicast/wallet/services/asset_valuation_service.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
 import 'package:omnicast/wallet/services/wallet_block_explorer_service.dart';
+import 'package:omnicast/wallet/services/transaction_history_cache.dart';
 import 'package:omnicast/wallet/services/wallet_custom_asset_service.dart';
 import 'package:omnicast/wallet/services/wallet_chain_config_service.dart';
 import 'package:omnicast/wallet/services/wallet_crypto_service.dart';
@@ -273,6 +274,45 @@ void main() {
         'https://polygonscan.com/address/0x2222222222222222222222222222222222222222',
       );
     });
+  });
+
+  group('TransactionHistoryCache local records', () {
+    test(
+      'upserts local pending records and preserves updated status',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final cache = TransactionHistoryCache();
+        final record = WalletTransactionRecord(
+          id: 'local:wallet:bsc:0xabc',
+          walletId: 'wallet',
+          chainId: 'bsc',
+          chainName: 'BNB Smart Chain',
+          symbol: 'BNB',
+          assetName: 'BNB',
+          walletAddress: '0x1111111111111111111111111111111111111111',
+          txHash: '0xabc',
+          fromAddress: '0x1111111111111111111111111111111111111111',
+          toAddress: '0x2222222222222222222222222222222222222222',
+          amount: '1',
+          decimals: 18,
+          direction: WalletTransactionDirection.outgoing,
+          status: WalletTransactionStatus.pending,
+          source: WalletTransactionSource.local,
+          timestamp: DateTime.utc(2026),
+        );
+
+        await cache.upsertLocalRecord(record);
+        await cache.upsertLocalRecord(
+          record.copyWith(status: WalletTransactionStatus.success),
+        );
+
+        final records = await cache.loadLocalRecords('wallet', 'bsc', 'BNB');
+
+        expect(records, hasLength(1));
+        expect(records.single.status, WalletTransactionStatus.success);
+        expect(records.single.toAddress, record.toAddress);
+      },
+    );
   });
 
   group('WalletTransactionHistoryService', () {

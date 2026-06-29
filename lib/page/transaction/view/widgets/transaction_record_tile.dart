@@ -12,6 +12,8 @@ class TransactionRecordTile extends StatelessWidget {
     required this.record,
     required this.onTap,
     required this.onCopyHash,
+    this.onRefreshStatus,
+    this.onOpenExplorer,
   });
 
   /// 交易记录数据。
@@ -22,6 +24,10 @@ class TransactionRecordTile extends StatelessWidget {
 
   /// 复制交易哈希回调。
   final VoidCallback onCopyHash;
+
+  final VoidCallback? onRefreshStatus;
+
+  final VoidCallback? onOpenExplorer;
 
   @override
   Widget build(BuildContext context) {
@@ -134,11 +140,54 @@ class TransactionRecordTile extends StatelessWidget {
                   value: '${record.feeAmount} ${record.feeSymbol ?? ''}'.trim(),
                 ),
               ],
+              if (_showsStatusActions) ...[
+                SizedBox(height: 10.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onRefreshStatus,
+                        icon: Icon(Icons.refresh_rounded, size: 16.w),
+                        label: Text(S.of(context).transactionRefreshStatus),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: Size(0, 32.h),
+                          padding: EdgeInsets.symmetric(horizontal: 10.w),
+                          textStyle: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onOpenExplorer,
+                        icon: Icon(Icons.open_in_new_rounded, size: 16.w),
+                        label: Text(S.of(context).openBlockExplorer),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: Size(0, 32.h),
+                          padding: EdgeInsets.symmetric(horizontal: 10.w),
+                          textStyle: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  bool get _showsStatusActions {
+    return record.status == WalletTransactionStatus.pending ||
+        record.status == WalletTransactionStatus.failed;
   }
 
   String _amountPrefix() {

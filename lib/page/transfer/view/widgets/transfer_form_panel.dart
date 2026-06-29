@@ -195,8 +195,7 @@ class TransferFormPanel extends StatelessWidget {
     BuildContext context,
     ChainBalance asset,
   ) async {
-    final passwordController = TextEditingController();
-    final password = await showModalBottomSheet<String>(
+    return await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -205,102 +204,12 @@ class TransferFormPanel extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
       builder: (sheetContext) {
-        final colorScheme = Theme.of(sheetContext).colorScheme;
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16.w,
-            right: 16.w,
-            top: 4.h,
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 18.h,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 34.w,
-                    height: 34.w,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Icon(
-                      Icons.lock_open_rounded,
-                      size: 19.w,
-                      color: colorScheme.primary,
-                    ),
-                  ).marginOnly(right: 10.w),
-                  Expanded(
-                    child: Text(
-                      S.of(sheetContext).unlockWallet,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ).marginOnly(bottom: 12.h),
-              // 显示交易摘要
-              _buildTransactionSummary(sheetContext, asset),
-              SizedBox(height: 14.h),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                autofocus: true,
-                style: transferInputTextStyle(sheetContext),
-                decoration: transferInputDecoration(
-                  sheetContext,
-                  label: S.of(sheetContext).walletPassword,
-                  icon: Icons.lock_outline_rounded,
-                ),
-                onSubmitted: (_) => _submitPassword(
-                  sheetContext,
-                  passwordController.text.trim(),
-                ),
-              ).marginOnly(bottom: 14.h),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    minimumSize: Size.fromHeight(42.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                  ),
-                  onPressed: () => _submitPassword(
-                    sheetContext,
-                    passwordController.text.trim(),
-                  ),
-                  icon: const Icon(Icons.verified_user_outlined),
-                  label: Text(
-                    S.of(sheetContext).confirmTransfer,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+        return _TransferPasswordSheet(
+          asset: asset,
+          summary: _buildTransactionSummary(sheetContext, asset),
         );
       },
     );
-    passwordController.dispose();
-    return password;
-  }
-
-  /// 提交密码输入框内容并关闭底部弹窗。
-  void _submitPassword(BuildContext context, String password) {
-    if (password.isEmpty) {
-      Toast.show(S.current.walletPasswordRequired);
-      return;
-    }
-    Navigator.of(context).pop(password);
   }
 
   /// 构建交易摘要显示（在密码弹窗中）
@@ -582,5 +491,111 @@ class TransferFormPanel extends StatelessWidget {
       ).firstMatch(value)?.group(0);
     }
     return null;
+  }
+}
+
+class _TransferPasswordSheet extends StatefulWidget {
+  const _TransferPasswordSheet({required this.asset, required this.summary});
+
+  final ChainBalance asset;
+  final Widget summary;
+
+  @override
+  State<_TransferPasswordSheet> createState() => _TransferPasswordSheetState();
+}
+
+class _TransferPasswordSheetState extends State<_TransferPasswordSheet> {
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16.w,
+        right: 16.w,
+        top: 4.h,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 18.h,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34.w,
+                height: 34.w,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  Icons.lock_open_rounded,
+                  size: 19.w,
+                  color: colorScheme.primary,
+                ),
+              ).marginOnly(right: 10.w),
+              Expanded(
+                child: Text(
+                  S.of(context).unlockWallet,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ).marginOnly(bottom: 12.h),
+          widget.summary,
+          SizedBox(height: 14.h),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            autofocus: true,
+            style: transferInputTextStyle(context),
+            decoration: transferInputDecoration(
+              context,
+              label: S.of(context).walletPassword,
+              icon: Icons.lock_outline_rounded,
+            ),
+            onSubmitted: (_) => _submitPassword(),
+          ).marginOnly(bottom: 14.h),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: Size.fromHeight(42.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              onPressed: _submitPassword,
+              icon: const Icon(Icons.verified_user_outlined),
+              label: Text(
+                S.of(context).confirmTransfer,
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submitPassword() {
+    final password = _passwordController.text.trim();
+    if (password.isEmpty) {
+      Toast.show(S.current.walletPasswordRequired);
+      return;
+    }
+    Navigator.of(context).pop(password);
   }
 }

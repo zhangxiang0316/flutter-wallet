@@ -10,6 +10,7 @@ import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_transaction_record.dart';
 import '../../../wallet/services/transaction_history_cache.dart';
 import '../../../wallet/services/wallet_block_explorer_service.dart';
+import '../../../wallet/services/wallet_transaction_status_service.dart';
 import '../../../wallet/services/wallet_transaction_history_service.dart';
 import 'transaction_detail_controller.dart';
 
@@ -39,14 +40,18 @@ class TransactionHistoryController extends BaseController {
   TransactionHistoryController({
     WalletTransactionHistoryService? historyService,
     WalletBlockExplorerService? blockExplorerService,
+    WalletTransactionStatusService? transactionStatusService,
     TransactionHistoryCache? cache,
   }) : _historyService = historyService ?? WalletTransactionHistoryService(),
        _blockExplorerService =
            blockExplorerService ?? const WalletBlockExplorerService(),
+       _transactionStatusService =
+           transactionStatusService ?? WalletTransactionStatusService(),
        _cache = cache ?? TransactionHistoryCache();
 
   final WalletTransactionHistoryService _historyService;
   final WalletBlockExplorerService _blockExplorerService;
+  final WalletTransactionStatusService _transactionStatusService;
   final TransactionHistoryCache _cache;
 
   /// 路由传入的当前钱包和资产参数。
@@ -91,6 +96,7 @@ class TransactionHistoryController extends BaseController {
     if (args == null) return;
     _nextCursor = null;
     hasMore = false;
+    final local = await _loadAndRefreshLocalRecords(args);
 
     // ✅ 步骤 1: 立即显示缓存记录（如果有）
     final cached = await _cache.load(
@@ -100,9 +106,13 @@ class TransactionHistoryController extends BaseController {
       contractAddress: args.asset.contractAddress,
     );
     if (cached != null && cached.isNotEmpty) {
-      records = cached;
+      records = _mergeRecords(local, cached);
       errorMessage = '';
       update(); // 立即显示缓存，用户感知 < 100ms
+    } else if (local.isNotEmpty) {
+      records = local;
+      errorMessage = '';
+      update();
     }
 
     // ✅ 步骤 2: 后台加载最新数据
@@ -118,14 +128,14 @@ class TransactionHistoryController extends BaseController {
       final fresh = result.records;
 
       if (fresh.isNotEmpty || records.isEmpty) {
-        records = fresh;
+        records = _mergeRecords(local, fresh);
 
         // ✅ 步骤 3: 保存新缓存
         await _cache.save(
           args.walletId,
           args.asset.chainId,
           args.asset.symbol,
-          fresh,
+          records,
           contractAddress: args.asset.contractAddress,
         );
       }
@@ -181,10 +191,16 @@ class TransactionHistoryController extends BaseController {
     List<WalletTransactionRecord> next,
   ) {
     if (next.isEmpty) return current;
-    final seen = current.map((record) => record.id).toSet();
+    final seen = current.map(_recordMergeKey).toSet();
     final merged = [...current];
     for (final record in next) {
-      if (seen.add(record.id)) {
+      final key = _recordMergeKey(record);
+      final existingIndex = merged.indexWhere(
+        (item) => _recordMergeKey(item) == key,
+      );
+      if (existingIndex >= 0) {
+        merged[existingIndex] = _preferRecord(merged[existingIndex], record);
+      } else if (seen.add(key)) {
         merged.add(record);
       }
     }
@@ -195,6 +211,81 @@ class TransactionHistoryController extends BaseController {
       return rightTime.compareTo(leftTime);
     });
     return merged;
+  }
+
+  String _recordMergeKey(WalletTransactionRecord record) {
+    final hash = record.txHash.trim().toLowerCase();
+    if (hash.isNotEmpty) return hash;
+    return record.id;
+  }
+
+  WalletTransactionRecord _preferRecord(
+    WalletTransactionRecord current,
+    WalletTransactionRecord next,
+  ) {
+    if (next.source == WalletTransactionSource.remote) return next;
+    if (current.status == WalletTransactionStatus.pending &&
+        next.status != WalletTransactionStatus.pending) {
+      return next;
+    }
+    return current;
+  }
+
+  Future<List<WalletTransactionRecord>> _loadAndRefreshLocalRecords(
+    TransactionHistoryPageArguments args,
+  ) async {
+    final local = await _cache.loadLocalRecords(
+      args.walletId,
+      args.asset.chainId,
+      args.asset.symbol,
+      contractAddress: args.asset.contractAddress,
+    );
+    if (local.isEmpty) return local;
+    final refreshed = <WalletTransactionRecord>[];
+    for (final record in local) {
+      refreshed.add(await _refreshRecordStatus(record, showToast: false));
+    }
+    await _cache.saveLocalRecords(
+      args.walletId,
+      args.asset.chainId,
+      args.asset.symbol,
+      refreshed,
+      contractAddress: args.asset.contractAddress,
+    );
+    return refreshed;
+  }
+
+  Future<WalletTransactionRecord> _refreshRecordStatus(
+    WalletTransactionRecord record, {
+    bool showToast = true,
+  }) async {
+    final asset = arguments?.asset;
+    if (asset == null || record.txHash.isEmpty) return record;
+    try {
+      final status = await _transactionStatusService.loadStatus(
+        chain: asset.chainRef,
+        txHash: record.txHash,
+      );
+      final next = record.copyWith(status: status);
+      await _cache.upsertLocalRecord(next);
+      return next;
+    } catch (_) {
+      if (showToast) {
+        Toast.show(S.current.transactionStatusRefreshFailed);
+      }
+      return record;
+    }
+  }
+
+  Future<void> refreshRecordStatus(WalletTransactionRecord record) async {
+    final next = await _refreshRecordStatus(record);
+    records = records
+        .map(
+          (item) =>
+              _recordMergeKey(item) == _recordMergeKey(record) ? next : item,
+        )
+        .toList(growable: false);
+    update();
   }
 
   /// 复制交易哈希。
@@ -219,6 +310,23 @@ class TransactionHistoryController extends BaseController {
     final asset = arguments?.asset;
     if (asset == null) return;
     final uri = _blockExplorerService.addressUri(asset);
+    if (uri == null) {
+      Toast.show(S.current.blockExplorerUnavailable);
+      return;
+    }
+    Get.toNamed(
+      RouteTable.blockExplorer,
+      arguments: BlockExplorerPageArguments(
+        url: uri,
+        title: asset.chainRef.name,
+      ),
+    );
+  }
+
+  Future<void> openTransactionExplorer(WalletTransactionRecord record) async {
+    final asset = arguments?.asset;
+    if (asset == null) return;
+    final uri = _blockExplorerService.transactionUri(asset, record.txHash);
     if (uri == null) {
       Toast.show(S.current.blockExplorerUnavailable);
       return;
