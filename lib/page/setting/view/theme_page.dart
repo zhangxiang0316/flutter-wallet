@@ -6,9 +6,8 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
 import 'package:omnicast/main.dart';
 
-import '../../../base/base_controller.dart';
-import '../../../common/theme/app_theme_extension.dart';
 import '../../../generated/l10n.dart';
+import '../controller/themes_controller.dart';
 
 @GetXRoutePage('/theme')
 /// 应用主题设置页面。
@@ -135,12 +134,4 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
       ),
     );
   }
-}
-
-/// 主题页控制器。
-///
-/// 当前只暴露主题扩展对象，便于后续如果页面需要读取品牌色或语义色时复用。
-class ThemesController extends BaseController {
-  /// 当前上下文中的主题扩展。
-  final appTheme = Theme.of(Get.context!).extension<AppThemeExtension>()!;
 }
