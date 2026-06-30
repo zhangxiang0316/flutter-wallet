@@ -113,7 +113,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                   title: S.of(context!).securitySettings,
                   value: '',
                   onTap: () async {
-                    await Get.to(() => const PasswordCacheSettingsPage());
+                    await Get.to(() => PasswordCacheSettingsPage());
                     controller.update();
                   },
                 ),
