@@ -17,6 +17,10 @@ import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_chain_extensions.dart';
 
+part 'transfer/evm_wallet_transfer.dart';
+part 'transfer/tron_wallet_transfer.dart';
+part 'transfer/solana_wallet_transfer.dart';
+
 /// 钱包转账服务。
 ///
 /// 该服务负责把用户输入的转账信息转换成各链可广播的交易：
@@ -55,7 +59,8 @@ class WalletTransferService {
   static const int _evmNativeGasLimit = CryptoConstants.evmNativeGasLimit;
   static const int _evmTokenGasLimit = CryptoConstants.evmTokenGasLimit;
   static const int _tronTokenFeeLimit = CryptoConstants.tronTokenFeeLimit;
-  static const int _solanaLamportsPerSignature = CryptoConstants.solanaLamportsPerSignature;
+  static const int _solanaLamportsPerSignature =
+      CryptoConstants.solanaLamportsPerSignature;
   static final BigInt _secp256k1P = CryptoConstants.secp256k1P;
 
   /// 发起转账。
@@ -136,666 +141,6 @@ class WalletTransferService {
   ///
   /// 优先调用 `eth_estimateGas`，失败时使用固定兜底 gasLimit。手续费计算公式为
   /// `gasLimit * gasPrice`，最终按 18 位精度转为链原生币数量。
-  Future<TransferFeeEstimate> _estimateEvmFee({
-    required ChainBalance asset,
-    required String toAddress,
-    required String amount,
-  }) async {
-    final normalizedTo = normalizeEvmAddress(toAddress);
-    final value = amountToRawUnits(amount, asset.decimals);
-    final isNative = asset.isNative;
-    final txTo = isNative ? normalizedTo : asset.contractAddress!;
-    final txValue = isNative ? value : BigInt.zero;
-    final data = isNative ? '0x' : erc20TransferData(normalizedTo, value);
-    final gasPrice = await _evmRpcBigInt(
-      asset.chainRef,
-      'eth_gasPrice',
-      const [],
-    );
-    BigInt gasLimit;
-    try {
-      gasLimit = await _evmRpcBigInt(asset.chainRef, 'eth_estimateGas', [
-        {
-          'from': asset.address,
-          'to': txTo,
-          'value': _hexQuantity(txValue),
-          if (!isNative) 'data': data,
-        },
-      ]);
-    } catch (_) {
-      gasLimit = BigInt.from(isNative ? _evmNativeGasLimit : _evmTokenGasLimit);
-    }
-
-    final feeWei = gasLimit * gasPrice;
-    return TransferFeeEstimate(
-      amount: rawUnitsToAmount(feeWei, 18),
-      symbol: asset.chainRef.symbol,
-      rawAmount: feeWei,
-      isFallback: false,
-    );
-  }
-
-  /// 估算 TRON 转账手续费。
-  ///
-  /// TRX 原生转账主要消耗带宽，TRC20 转账还需要能量。这里会读取链参数里的
-  /// `getTransactionFee` 和 `getEnergyFee`，再按交易字节数和能量估算 sun。
-  Future<TransferFeeEstimate> _estimateTronFee({
-    required ChainBalance asset,
-    required String toAddress,
-    required String amount,
-  }) async {
-    final value = amountToRawUnits(amount, asset.decimals);
-    final chainParameters = await _loadTronChainParameters(asset.chainRef);
-    final transactionFee = chainParameters['getTransactionFee'] ?? BigInt.one;
-    final energyFee = chainParameters['getEnergyFee'] ?? BigInt.from(420);
-
-    if (asset.isNative) {
-      final transaction = await _createTronNativeTransaction(
-        chain: asset.chainRef,
-        fromAddress: asset.address,
-        toAddress: toAddress,
-        amount: value,
-      );
-      final rawDataHex = transaction['raw_data_hex']?.toString() ?? '';
-      final bandwidthBytes = BigInt.from(rawDataHex.length ~/ 2);
-      final feeSun = bandwidthBytes * transactionFee;
-      return TransferFeeEstimate(
-        amount: rawUnitsToAmount(feeSun, 6),
-        symbol: asset.chainRef.symbol,
-        rawAmount: feeSun,
-        isFallback: false,
-      );
-    }
-
-    final energy = await _estimateTronEnergy(
-      chain: asset.chainRef,
-      fromAddress: asset.address,
-      toAddress: toAddress,
-      contractAddress: asset.contractAddress!,
-      amount: value,
-    );
-    if (energy != null) {
-      final transaction = await _createTronTokenTransaction(
-        chain: asset.chainRef,
-        fromAddress: asset.address,
-        toAddress: toAddress,
-        contractAddress: asset.contractAddress!,
-        amount: value,
-      );
-      final rawDataHex = transaction['raw_data_hex']?.toString() ?? '';
-      final bandwidthFee = BigInt.from(rawDataHex.length ~/ 2) * transactionFee;
-      final feeSun = energy * energyFee + bandwidthFee;
-      return TransferFeeEstimate(
-        amount: rawUnitsToAmount(feeSun, 6),
-        symbol: asset.chainRef.symbol,
-        rawAmount: feeSun,
-        isFallback: false,
-      );
-    }
-
-    final fallbackFee = BigInt.from(_tronTokenFeeLimit);
-    return TransferFeeEstimate(
-      amount: rawUnitsToAmount(fallbackFee, 6),
-      symbol: asset.chainRef.symbol,
-      rawAmount: fallbackFee,
-      isFallback: true,
-    );
-  }
-
-  /// 估算 Solana 转账手续费。
-  ///
-  /// 当前使用单签名固定费用估算。SPL Token 实际交易会额外包含创建 ATA 的指令，
-  /// 这里先返回基础 fallback 费用，避免 UI 阻塞在复杂模拟请求上。
-  Future<TransferFeeEstimate> _estimateSolanaFee({
-    required ChainBalance asset,
-    required String toAddress,
-    required String amount,
-  }) async {
-    normalizeSolanaAddress(toAddress);
-    amountToRawUnits(amount, asset.decimals);
-    final signatureCount = asset.isNative ? 1 : 1;
-    return TransferFeeEstimate(
-      amount: rawUnitsToAmount(
-        BigInt.from(_solanaLamportsPerSignature * signatureCount),
-        9,
-      ),
-      symbol: asset.chainRef.symbol,
-      rawAmount: BigInt.from(_solanaLamportsPerSignature * signatureCount),
-      isFallback: true,
-    );
-  }
-
-  /// 发送 EVM 链交易。
-  ///
-  /// 原生币交易把金额放在 value；ERC20 交易把 value 设为 0，并把 transfer 调用编码
-  /// 放进 data。签名使用 EIP-155 的 chainId 防重放规则。
-  Future<String> _transferEvm({
-    required String privateKeyHex,
-    required ChainBalance asset,
-    required String toAddress,
-    required String amount,
-  }) async {
-    final chainId = asset.chainRef.evmChainId;
-    if (chainId == null) {
-      throw StateError('${asset.chainRef.name} is not an EVM chain');
-    }
-
-    final normalizedTo = normalizeEvmAddress(toAddress);
-    final value = amountToRawUnits(amount, asset.decimals);
-    final gasPrice = await _evmRpcBigInt(
-      asset.chainRef,
-      'eth_gasPrice',
-      const [],
-    );
-    final nonce = await _evmRpcBigInt(
-      asset.chainRef,
-      'eth_getTransactionCount',
-      [asset.address, 'latest'],
-    );
-
-    final isNative = asset.isNative;
-    final txTo = isNative ? normalizedTo : asset.contractAddress!;
-    final txValue = isNative ? value : BigInt.zero;
-    final data = isNative
-        ? Uint8List(0)
-        : hexToBytes(erc20TransferData(normalizedTo, value));
-    final gasLimit = isNative ? _evmNativeGasLimit : _evmTokenGasLimit;
-    final rawTx = _signEvmTransaction(
-      privateKeyHex: privateKeyHex,
-      nonce: nonce,
-      gasPrice: gasPrice,
-      gasLimit: BigInt.from(gasLimit),
-      toAddress: txTo,
-      value: txValue,
-      data: data,
-      chainId: chainId,
-    );
-    final response = await _evmRpc(asset.chainRef, 'eth_sendRawTransaction', [
-      '0x$rawTx',
-    ]);
-    if (response is String && response.isNotEmpty) {
-      return response;
-    }
-    throw StateError('${asset.chainRef.name} transfer failed');
-  }
-
-  /// 发送 TRON 链交易。
-  ///
-  /// 先通过节点创建未签名交易，再对 `raw_data_hex` 做 SHA-256 后 secp256k1 签名，
-  /// 最后调用 `broadcasttransaction` 广播。
-  Future<String> _transferTron({
-    required String privateKeyHex,
-    required ChainBalance asset,
-    required String toAddress,
-    required String amount,
-  }) async {
-    final value = amountToRawUnits(amount, asset.decimals);
-    final transaction = asset.isNative
-        ? await _createTronNativeTransaction(
-            chain: asset.chainRef,
-            fromAddress: asset.address,
-            toAddress: toAddress,
-            amount: value,
-          )
-        : await _createTronTokenTransaction(
-            chain: asset.chainRef,
-            fromAddress: asset.address,
-            toAddress: toAddress,
-            contractAddress: asset.contractAddress!,
-            amount: value,
-          );
-
-    final signedTransaction = _signTronTransaction(
-      privateKeyHex: privateKeyHex,
-      transaction: transaction,
-    );
-    final response = await _dio.post(
-      '${asset.chainRef.rpcUrl}/wallet/broadcasttransaction',
-      data: signedTransaction,
-      options: Options(headers: {'content-type': 'application/json'}),
-    );
-    final data = response.data;
-    if (data is Map && data['result'] == true) {
-      return data['txid']?.toString() ??
-          signedTransaction['txID']?.toString() ??
-          '';
-    }
-    throw StateError(data is Map ? data.toString() : 'TRON transfer failed');
-  }
-
-  /// 发送 Solana 交易。
-  ///
-  /// 先根据私钥恢复 signer，并校验 signer 地址必须等于资产发送方地址，防止拿错钱包
-  /// 私钥后签出错误交易。原生 SOL 和 SPL Token 使用不同 message 构造逻辑。
-  Future<String> _transferSolana({
-    required List<int> solanaPrivateKey,
-    required ChainBalance asset,
-    required String toAddress,
-    required String amount,
-  }) async {
-    final rawAmount = amountToRawUnits(amount, asset.decimals);
-    final signer = await Ed25519HDKeyPair.fromPrivateKeyBytes(
-      privateKey: solanaPrivateKey,
-    );
-    if (signer.address != normalizeSolanaAddress(asset.address)) {
-      throw StateError('Solana private key does not match sender address');
-    }
-
-    final recipientPublicKey = Ed25519HDPublicKey.fromBase58(
-      normalizeSolanaAddress(toAddress),
-    );
-    final blockhash = await _getLatestSolanaBlockhash(asset.chainRef);
-    final message = asset.isNative
-        ? _buildSolanaNativeTransferMessage(
-            fromPublicKey: signer.publicKey,
-            toPublicKey: recipientPublicKey,
-            lamports: rawAmount,
-          )
-        : await _buildSolanaTokenTransferMessage(
-            chain: asset.chainRef,
-            ownerPublicKey: signer.publicKey,
-            recipientPublicKey: recipientPublicKey,
-            asset: asset,
-            amount: rawAmount,
-          );
-    final transaction = await signer.signMessage(
-      message: message,
-      recentBlockhash: blockhash,
-    );
-    final response = await _solanaRpc(asset.chainRef, 'sendTransaction', [
-      transaction.encode(),
-      {'encoding': 'base64', 'preflightCommitment': 'confirmed'},
-    ]);
-    if (response is String && response.isNotEmpty) {
-      return response;
-    }
-    throw StateError('Solana transfer failed');
-  }
-
-  /// 创建 TRX 原生转账交易。
-  ///
-  /// 返回的是节点构造好的未签名交易，后续还需要本地签名和广播。
-  Future<Map<String, dynamic>> _createTronNativeTransaction({
-    required WalletChainRef chain,
-    required String fromAddress,
-    required String toAddress,
-    required BigInt amount,
-  }) async {
-    final response = await _dio.post(
-      '${chain.rpcUrl}/wallet/createtransaction',
-      data: {
-        'owner_address': fromAddress,
-        'to_address': toAddress,
-        'amount': amount.toInt(),
-        'visible': true,
-      },
-      options: Options(headers: {'content-type': 'application/json'}),
-    );
-    final data = response.data;
-    if (data is Map && data['raw_data_hex'] is String) {
-      return Map<String, dynamic>.from(data);
-    }
-    throw StateError('Invalid TRON transaction response');
-  }
-
-  /// 创建 TRC20 转账交易。
-  ///
-  /// 使用 `triggersmartcontract` 调用 `transfer(address,uint256)`，参数由
-  /// [trc20TransferParameter] 按 ABI 格式编码。
-  Future<Map<String, dynamic>> _createTronTokenTransaction({
-    required WalletChainRef chain,
-    required String fromAddress,
-    required String toAddress,
-    required String contractAddress,
-    required BigInt amount,
-  }) async {
-    final response = await _dio.post(
-      '${chain.rpcUrl}/wallet/triggersmartcontract',
-      data: {
-        'owner_address': fromAddress,
-        'contract_address': contractAddress,
-        'function_selector': 'transfer(address,uint256)',
-        'parameter': trc20TransferParameter(toAddress, amount),
-        'fee_limit': _tronTokenFeeLimit,
-        'call_value': 0,
-        'visible': true,
-      },
-      options: Options(headers: {'content-type': 'application/json'}),
-    );
-    final data = response.data;
-    if (data is Map && data['transaction'] is Map) {
-      return Map<String, dynamic>.from(data['transaction'] as Map);
-    }
-    throw StateError('Invalid TRC20 transaction response');
-  }
-
-  /// 发送 EVM JSON-RPC 请求并返回 result。
-  Future<dynamic> _evmRpc(
-    WalletChainRef chain,
-    String method,
-    List<dynamic> params,
-  ) async {
-    final response = await _dio.post(
-      chain.rpcUrl,
-      data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
-      options: Options(headers: {'content-type': 'application/json'}),
-    );
-    final data = response.data;
-    if (data is Map && data['result'] != null) {
-      return data['result'];
-    }
-    throw StateError(
-      data is Map ? data.toString() : 'Invalid ${chain.name} response',
-    );
-  }
-
-  /// 发送 EVM JSON-RPC 请求并把十六进制数量解析成 [BigInt]。
-  Future<BigInt> _evmRpcBigInt(
-    WalletChainRef chain,
-    String method,
-    List<dynamic> params,
-  ) async {
-    final result = await _evmRpc(chain, method, params);
-    if (result is! String) {
-      throw StateError('Invalid ${chain.name} number response');
-    }
-    return BigInt.parse(result.replaceFirst('0x', ''), radix: 16);
-  }
-
-  /// 发送 Solana JSON-RPC 请求并返回 result。
-  Future<dynamic> _solanaRpc(
-    WalletChainRef chain,
-    String method,
-    List<dynamic> params,
-  ) async {
-    final response = await _dio.post(
-      chain.rpcUrl,
-      data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
-      options: Options(headers: {'content-type': 'application/json'}),
-    );
-    final data = response.data;
-    if (data is Map && data['result'] != null) {
-      return data['result'];
-    }
-    throw StateError(data is Map ? data.toString() : 'Invalid Solana response');
-  }
-
-  /// 获取 Solana 最新 blockhash。
-  ///
-  /// Solana 交易必须带 recentBlockhash，过期后交易会被节点拒绝。
-  Future<String> _getLatestSolanaBlockhash(WalletChainRef chain) async {
-    final result = await _solanaRpc(chain, 'getLatestBlockhash', [
-      {'commitment': 'confirmed'},
-    ]);
-    if (result is Map) {
-      final value = result['value'];
-      if (value is Map && value['blockhash'] is String) {
-        return value['blockhash'] as String;
-      }
-    }
-    throw StateError('Invalid Solana blockhash response');
-  }
-
-  /// 读取 TRON 链手续费参数。
-  ///
-  /// 返回 key 为链参数名，value 为链上整数值。请求失败时返回空 map，由调用方使用默认值。
-  Future<Map<String, BigInt>> _loadTronChainParameters(
-    WalletChainRef chain,
-  ) async {
-    try {
-      final response = await _dio.get(
-        '${chain.rpcUrl}/wallet/getchainparameters',
-        options: Options(headers: {'content-type': 'application/json'}),
-      );
-      final data = response.data;
-      if (data is! Map || data['chainParameter'] is! List) {
-        return {};
-      }
-      final values = <String, BigInt>{};
-      for (final item in data['chainParameter'] as List) {
-        if (item is! Map) continue;
-        final key = item['key']?.toString();
-        final value = BigInt.tryParse(item['value']?.toString() ?? '');
-        if (key != null && value != null) {
-          values[key] = value;
-        }
-      }
-      return values;
-    } catch (_) {
-      return {};
-    }
-  }
-
-  /// 估算 TRC20 转账所需能量。
-  ///
-  /// 公共节点可能不支持该接口，所以失败时返回 null，并由调用方使用 fee_limit 兜底。
-  Future<BigInt?> _estimateTronEnergy({
-    required WalletChainRef chain,
-    required String fromAddress,
-    required String toAddress,
-    required String contractAddress,
-    required BigInt amount,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '${chain.rpcUrl}/wallet/estimateenergy',
-        data: {
-          'owner_address': fromAddress,
-          'contract_address': contractAddress,
-          'function_selector': 'transfer(address,uint256)',
-          'parameter': trc20TransferParameter(toAddress, amount),
-          'visible': true,
-        },
-        options: Options(headers: {'content-type': 'application/json'}),
-      );
-      final data = response.data;
-      if (data is! Map) return null;
-      final value = data['energy_required'] ?? data['energy_used'];
-      return BigInt.tryParse(value?.toString() ?? '');
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// 签名 EVM legacy transaction。
-  ///
-  /// 先对包含 chainId 的 payload 做 RLP 编码并 Keccak，然后 ECDSA 签名；最终把
-  /// `v/r/s` 回填到交易 payload，返回可直接广播的十六进制裸交易。
-  String _signEvmTransaction({
-    required String privateKeyHex,
-    required BigInt nonce,
-    required BigInt gasPrice,
-    required BigInt gasLimit,
-    required String toAddress,
-    required BigInt value,
-    required Uint8List data,
-    required int chainId,
-  }) {
-    final toBytes = hexToBytes(normalizeBscAddress(toAddress));
-    final signingPayload = _rlpEncode([
-      nonce,
-      gasPrice,
-      gasLimit,
-      toBytes,
-      value,
-      data,
-      BigInt.from(chainId),
-      BigInt.zero,
-      BigInt.zero,
-    ]);
-    final hash = _keccak(signingPayload);
-    final signature = _signHash(privateKeyHex, hash);
-    final recoveryId = _findRecoveryId(privateKeyHex, hash, signature);
-    final v = BigInt.from(recoveryId + 35 + chainId * 2);
-    final rawPayload = _rlpEncode([
-      nonce,
-      gasPrice,
-      gasLimit,
-      toBytes,
-      value,
-      data,
-      v,
-      signature.r,
-      signature.s,
-    ]);
-    return hex.encode(rawPayload);
-  }
-
-  /// 签名 TRON 未签名交易。
-  ///
-  /// TRON 使用 `sha256(raw_data_hex)` 作为签名哈希，签名结果需要拼接 recoveryId，
-  /// 并放入 transaction 的 `signature` 数组。
-  Map<String, dynamic> _signTronTransaction({
-    required String privateKeyHex,
-    required Map<String, dynamic> transaction,
-  }) {
-    final rawDataHex = transaction['raw_data_hex']?.toString();
-    if (rawDataHex == null || rawDataHex.isEmpty) {
-      throw StateError('Missing TRON raw data');
-    }
-    final hash = _sha256(hexToBytes(rawDataHex));
-    final signature = _signHash(privateKeyHex, hash);
-    final recoveryId = _findRecoveryId(privateKeyHex, hash, signature);
-    final signatureBytes = Uint8List.fromList([
-      ..._bigIntToBytes(signature.r, length: 32),
-      ..._bigIntToBytes(signature.s, length: 32),
-      recoveryId,
-    ]);
-
-    final signed = Map<String, dynamic>.from(transaction);
-    signed['signature'] = [hex.encode(signatureBytes)];
-    return signed;
-  }
-
-  /// 构造 SOL 原生转账 message。
-  Message _buildSolanaNativeTransferMessage({
-    required Ed25519HDPublicKey fromPublicKey,
-    required Ed25519HDPublicKey toPublicKey,
-    required BigInt lamports,
-  }) {
-    return Message.only(
-      SystemInstruction.transfer(
-        fundingAccount: fromPublicKey,
-        recipientAccount: toPublicKey,
-        lamports: _solanaU64Amount(lamports, 'SOL transfer amount'),
-      ),
-    );
-  }
-
-  /// 构造 SPL Token 转账 message。
-  ///
-  /// 发送方需要已有该 mint 的 token account；接收方的 ATA 使用 idempotent 创建指令，
-  /// 如果已存在不会失败。随后使用 `transferChecked` 携带 decimals 做安全转账。
-  Future<Message> _buildSolanaTokenTransferMessage({
-    required WalletChainRef chain,
-    required Ed25519HDPublicKey ownerPublicKey,
-    required Ed25519HDPublicKey recipientPublicKey,
-    required ChainBalance asset,
-    required BigInt amount,
-  }) async {
-    final mintAddress = asset.contractAddress;
-    if (mintAddress == null || mintAddress.trim().isEmpty) {
-      throw StateError('Missing Solana token mint');
-    }
-    final mintPublicKey = Ed25519HDPublicKey.fromBase58(
-      normalizeSolanaAddress(mintAddress),
-    );
-    final sourceTokenAccount = await _findSolanaTokenAccount(
-      chain: chain,
-      ownerAddress: ownerPublicKey.toBase58(),
-      mintAddress: mintPublicKey.toBase58(),
-      minimumAmount: amount,
-    );
-    if (sourceTokenAccount == null) {
-      throw StateError('Source Solana token account not found');
-    }
-
-    final sourceTokenPublicKey = Ed25519HDPublicKey.fromBase58(
-      sourceTokenAccount,
-    );
-    final destinationTokenPublicKey = await findAssociatedTokenAddress(
-      owner: recipientPublicKey,
-      mint: mintPublicKey,
-    );
-
-    return Message(
-      instructions: [
-        AssociatedTokenAccountInstruction.createAccountIdempotent(
-          funder: ownerPublicKey,
-          address: destinationTokenPublicKey,
-          owner: recipientPublicKey,
-          mint: mintPublicKey,
-          tokenProgramId: TokenProgramType.tokenProgram.id,
-        ),
-        TokenInstruction.transferChecked(
-          source: sourceTokenPublicKey,
-          mint: mintPublicKey,
-          destination: destinationTokenPublicKey,
-          owner: ownerPublicKey,
-          amount: _solanaU64Amount(amount, '${asset.symbol} transfer amount'),
-          decimals: asset.decimals,
-        ),
-      ],
-    );
-  }
-
-  /// 查找发送方可用的 Solana token account。
-  ///
-  /// 如果能解析余额，会优先返回余额足够的账户；如果所有账户余额都不足则抛错。
-  /// 如果节点没有返回可解析余额，则返回第一个账户作为兜底。
-  Future<String?> _findSolanaTokenAccount({
-    required WalletChainRef chain,
-    required String ownerAddress,
-    required String mintAddress,
-    required BigInt minimumAmount,
-  }) async {
-    final data = await _solanaRpc(chain, 'getTokenAccountsByOwner', [
-      ownerAddress,
-      {'mint': mintAddress},
-      {'encoding': 'jsonParsed'},
-    ]);
-    if (data is! Map) {
-      return null;
-    }
-    final values = data['value'];
-    if (values is! List || values.isEmpty) {
-      return null;
-    }
-    String? fallbackAccount;
-    var parsedAnyAmount = false;
-    for (final item in values) {
-      if (item is! Map) continue;
-      final pubkey = item['pubkey']?.toString();
-      if (pubkey == null || pubkey.isEmpty) continue;
-      fallbackAccount ??= pubkey;
-
-      final account = item['account'];
-      final accountData = account is Map ? account['data'] : null;
-      final parsed = accountData is Map ? accountData['parsed'] : null;
-      final info = parsed is Map ? parsed['info'] : null;
-      final tokenAmount = info is Map ? info['tokenAmount'] : null;
-      final rawAmount = tokenAmount is Map
-          ? BigInt.tryParse(tokenAmount['amount']?.toString() ?? '')
-          : null;
-      if (rawAmount == null) {
-        throw StateError(
-          'Unable to parse Solana token account balance for address: $pubkey',
-        );
-      }
-      parsedAnyAmount = true;
-      if (rawAmount >= minimumAmount) {
-        return pubkey;
-      }
-    }
-    if (parsedAnyAmount) {
-      throw StateError('Source Solana token account balance is insufficient');
-    }
-    return fallbackAccount;
-  }
-
-  /// 对 32 字节哈希做 secp256k1 ECDSA 签名。
-  ///
-  /// 签名结果会 normalize 到 low-s，避免高 s 签名在部分节点或工具中被拒绝。
   ECSignature _signHash(String privateKeyHex, Uint8List hash) {
     final privateKey = BigInt.parse(
       privateKeyHex.replaceFirst(RegExp('^0x'), ''),
@@ -938,7 +283,9 @@ class WalletTransferService {
     // 如果地址是混合大小写，验证校验和
     if (addr != addr.toLowerCase() && addr != addr.toUpperCase()) {
       final digest = KeccakDigest(256);
-      final hash = digest.process(Uint8List.fromList(addr.toLowerCase().codeUnits));
+      final hash = digest.process(
+        Uint8List.fromList(addr.toLowerCase().codeUnits),
+      );
       final hashHex = hex.encode(hash);
 
       for (int i = 0; i < 40; i++) {
@@ -1020,10 +367,7 @@ class WalletTransferService {
     final prefix = '\x19Ethereum Signed Message:\n${messageBytes.length}';
     final prefixBytes = Uint8List.fromList(prefix.codeUnits);
 
-    final fullMessage = Uint8List.fromList([
-      ...prefixBytes,
-      ...messageBytes,
-    ]);
+    final fullMessage = Uint8List.fromList([...prefixBytes, ...messageBytes]);
 
     // 2. Keccak-256 哈希
     final hash = _keccak(fullMessage);
@@ -1132,10 +476,7 @@ class WalletTransferService {
     final prefix = '\x19TRON Signed Message:\n${messageBytes.length}';
     final prefixBytes = Uint8List.fromList(prefix.codeUnits);
 
-    final fullMessage = Uint8List.fromList([
-      ...prefixBytes,
-      ...messageBytes,
-    ]);
+    final fullMessage = Uint8List.fromList([...prefixBytes, ...messageBytes]);
 
     // 2. SHA-256 哈希（TRON 使用 SHA-256，不是 Keccak-256）
     final digest = SHA256Digest();
@@ -1157,8 +498,7 @@ class WalletTransferService {
 
   /// 判断字符串是否为十六进制格式
   bool _isHexString(String value) {
-    return value.startsWith('0x') ||
-           RegExp(r'^[0-9a-fA-F]+$').hasMatch(value);
+    return value.startsWith('0x') || RegExp(r'^[0-9a-fA-F]+$').hasMatch(value);
   }
 
   /// EIP-712 结构体哈希
@@ -1217,7 +557,10 @@ class WalletTransferService {
       return _bigIntToBytes(numValue, length: 32);
     }
     if (type == 'bool') {
-      return _bigIntToBytes(value == true ? BigInt.one : BigInt.zero, length: 32);
+      return _bigIntToBytes(
+        value == true ? BigInt.one : BigInt.zero,
+        length: 32,
+      );
     }
 
     // 自定义结构体
@@ -1228,9 +571,9 @@ class WalletTransferService {
     // 数组类型
     if (type.endsWith('[]')) {
       final itemType = type.substring(0, type.length - 2);
-      final items = (value as List).map((item) =>
-        _encodeValue(itemType, item, types)
-      ).toList();
+      final items = (value as List)
+          .map((item) => _encodeValue(itemType, item, types))
+          .toList();
       final concatenated = items.expand((x) => x).toList();
       return _keccak(Uint8List.fromList(concatenated));
     }
@@ -1328,7 +671,9 @@ class WalletTransferService {
   static Uint8List _base58Decode(String input) {
     var value = BigInt.zero;
     for (final codeUnit in input.codeUnits) {
-      final digit = CryptoConstants.base58Alphabet.indexOf(String.fromCharCode(codeUnit));
+      final digit = CryptoConstants.base58Alphabet.indexOf(
+        String.fromCharCode(codeUnit),
+      );
       if (digit < 0) {
         throw const FormatException('Invalid Base58 character');
       }
