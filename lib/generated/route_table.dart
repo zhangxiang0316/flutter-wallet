@@ -5,8 +5,6 @@ import 'package:omnicast/page/transaction/view/transaction_history_page.dart';
 import 'package:omnicast/page/address_book/view/address_book_page.dart';
 import 'package:omnicast/page/home/view/home_page.dart';
 import 'package:omnicast/page/splash/view/splash_page.dart';
-import 'package:omnicast/page/dapp/view/connected_dapps_page.dart';
-import 'package:omnicast/page/dapp/view/dapp_scanner_page.dart';
 import 'package:omnicast/page/transfer/view/transfer_page.dart';
 import 'package:omnicast/page/receive/view/receive_page.dart';
 import 'package:omnicast/page/browser/view/block_explorer_page.dart';
@@ -24,8 +22,6 @@ class RouteTable {
   static const String addressBook = '/addressBook';
   static const String home = '/home';
   static const String splash = '/splash';
-  static const String dapp_connected = '/dapp/connected';
-  static const String dapp_scan = '/dapp/scan';
   static const String transfer = '/transfer';
   static const String receive = '/receive';
   static const String blockExplorer = '/blockExplorer';
@@ -43,8 +39,6 @@ class RouteTable {
     GetPage(name: '/addressBook', page: () => AddressBookPage()),
     GetPage(name: '/home', page: () => HomePage()),
     GetPage(name: '/splash', page: () => SplashPage()),
-    GetPage(name: '/dapp/connected', page: () => ConnectedDAppsPage()),
-    GetPage(name: '/dapp/scan', page: () => DAppScannerPage()),
     GetPage(name: '/transfer', page: () => TransferPage()),
     GetPage(name: '/receive', page: () => ReceivePage()),
     GetPage(name: '/blockExplorer', page: () => BlockExplorerPage()),

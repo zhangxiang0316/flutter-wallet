@@ -30,12 +30,6 @@
 - **Solana/TRON** - 多链消息签名支持
 - **精美确认界面** - 清晰展示签名内容
 
-#### Phase 3: WalletConnect 集成 ✅
-- **DApp 扫码连接** - 扫描 QR 码连接 Web3 DApp
-- **实时会话管理** - 查看和管理已连接的 DApp
-- **多网络支持** - 支持所有 EVM 链
-- **请求处理** - 处理交易和签名请求
-
 ### 🔐 安全性
 - ✅ **生物识别认证** - 支持指纹和面容识别
 - ✅ **密码缓存控制** - 用户可自定义密码缓存时间（5分钟/30分钟/永不）
@@ -184,17 +178,7 @@
    flutter pub run build_runner build
    ```
 
-4. **配置 WalletConnect**（可选，用于 DApp 扫码连接）
-   
-   如需使用 DApp 扫码连接功能，需要设置 WalletConnect Project ID：
-   - 访问 https://cloud.walletconnect.com/ 注册并获取免费 Project ID
-   - 在 `lib/wallet/services/walletconnect_service.dart` 第 42 行替换
-   
-   ```dart
-   const projectId = 'YOUR_PROJECT_ID_HERE'; // 替换为你的真实 ID
-   ```
-
-5. **配置交易历史 API Key**（推荐）
+4. **配置交易历史 API Key**（推荐）
 
    复制示例配置并填写本地 key：
 
@@ -212,7 +196,7 @@
 
    `.env.local` 已被 `.gitignore` 忽略，不要提交真实 key。
 
-6. **运行应用**
+5. **运行应用**
    ```bash
    # 开发模式（不注入交易历史 API Key）
    flutter run

@@ -36,8 +36,6 @@ class TransactionReviewSheet extends StatelessWidget {
   final String title;
   final List<ReviewItem> items;
   final List<TransactionRisk> risks;
-  final String? dappName;
-  final String? dappUrl;
   final VoidCallback onApprove;
   final VoidCallback onReject;
 
@@ -46,8 +44,6 @@ class TransactionReviewSheet extends StatelessWidget {
     required this.title,
     required this.items,
     this.risks = const [],
-    this.dappName,
-    this.dappUrl,
     required this.onApprove,
     required this.onReject,
   }) : super(key: key);
@@ -67,9 +63,6 @@ class TransactionReviewSheet extends StatelessWidget {
           children: [
             // 标题栏
             _buildHeader(context),
-
-            // DApp 信息（如果有）
-            if (dappName != null) _buildDAppInfo(context),
 
             // 交易详情
             Flexible(
@@ -116,10 +109,7 @@ class TransactionReviewSheet extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
           ),
           IconButton(
@@ -127,62 +117,6 @@ class TransactionReviewSheet extends StatelessWidget {
             icon: Icon(Icons.close, size: 24.sp),
             padding: EdgeInsets.zero,
             constraints: BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDAppInfo(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: theme.primaryColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32.w,
-            height: 32.w,
-            decoration: BoxDecoration(
-              color: theme.primaryColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Icon(
-              Icons.language,
-              size: 20.sp,
-              color: theme.primaryColor,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dappName!,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (dappUrl != null) ...[
-                  SizedBox(height: 2.h),
-                  Text(
-                    dappUrl!,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: Colors.grey,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
-            ),
           ),
         ],
       ),
@@ -198,18 +132,11 @@ class TransactionReviewSheet extends StatelessWidget {
           decoration: BoxDecoration(
             color: risk.color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(
-              color: risk.color.withOpacity(0.3),
-              width: 1,
-            ),
+            border: Border.all(color: risk.color.withOpacity(0.3), width: 1),
           ),
           child: Row(
             children: [
-              Icon(
-                risk.icon,
-                color: risk.color,
-                size: 20.sp,
-              ),
+              Icon(risk.icon, color: risk.color, size: 20.sp),
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
@@ -238,14 +165,15 @@ class TransactionReviewSheet extends StatelessWidget {
         children: [
           Text(
             item.label,
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
           ),
           SizedBox(height: 6.h),
           InkWell(
-            onTap: item.onTap ?? (item.copyable ? () => _copyToClipboard(context, item.value) : null),
+            onTap:
+                item.onTap ??
+                (item.copyable
+                    ? () => _copyToClipboard(context, item.value)
+                    : null),
             child: Container(
               padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
@@ -262,25 +190,20 @@ class TransactionReviewSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  if (item.icon != null) ...[
-                    item.icon!,
-                    SizedBox(width: 8.w),
-                  ],
+                  if (item.icon != null) ...[item.icon!, SizedBox(width: 8.w)],
                   Expanded(
                     child: Text(
                       item.value,
                       style: TextStyle(
                         fontSize: 14.sp,
-                        fontWeight: item.highlight ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: item.highlight
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
                     ),
                   ),
                   if (item.copyable)
-                    Icon(
-                      Icons.copy,
-                      size: 16.sp,
-                      color: Colors.grey,
-                    ),
+                    Icon(Icons.copy, size: 16.sp, color: Colors.grey),
                 ],
               ),
             ),
@@ -300,11 +223,7 @@ class TransactionReviewSheet extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline,
-            size: 18.sp,
-            color: Colors.amber.shade700,
-          ),
+          Icon(Icons.info_outline, size: 18.sp, color: Colors.amber.shade700),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
@@ -331,10 +250,7 @@ class TransactionReviewSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
-          top: BorderSide(
-            color: Colors.grey.withOpacity(0.2),
-            width: 1,
-          ),
+          top: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
         ),
       ),
       child: Row(
@@ -351,10 +267,7 @@ class TransactionReviewSheet extends StatelessWidget {
               ),
               child: Text(
                 'Reject',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -373,10 +286,7 @@ class TransactionReviewSheet extends StatelessWidget {
               ),
               child: Text(
                 'Approve & Sign',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -402,8 +312,6 @@ class TransactionReviewSheet extends StatelessWidget {
     required String title,
     required List<ReviewItem> items,
     List<TransactionRisk> risks = const [],
-    String? dappName,
-    String? dappUrl,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -414,8 +322,6 @@ class TransactionReviewSheet extends StatelessWidget {
           title: title,
           items: items,
           risks: risks,
-          dappName: dappName,
-          dappUrl: dappUrl,
           onApprove: () => Navigator.of(context).pop(true),
           onReject: () => Navigator.of(context).pop(false),
         );
