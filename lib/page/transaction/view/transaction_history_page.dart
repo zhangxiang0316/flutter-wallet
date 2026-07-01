@@ -118,6 +118,13 @@ class TransactionHistoryPage
           onAction: controller.openBlockExplorer,
         );
       }
+      if (controller.hasMore) {
+        return TransactionEmptyState(
+          message: S.of(context!).transactionHistoryExplorerHint,
+          actionLabel: S.of(context!).transactionLoadMore,
+          onAction: controller.loadMoreRecords,
+        );
+      }
       return TransactionEmptyState(
         message: S.of(context!).transactionHistoryExplorerHint,
         actionLabel: S.of(context!).openBlockExplorer,

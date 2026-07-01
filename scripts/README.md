@@ -10,10 +10,12 @@ Android 构建脚本会自动读取项目根目录的 `.env.local`，并通过 `
 ```bash
 ETHERSCAN_API_KEY=your_etherscan_v2_key
 TRONGRID_API_KEY=your_trongrid_key
+HELIUS_API_KEY=your_helius_key
+MORALIS_API_KEY=your_moralis_key
 ```
 
-如果 `.env.local` 不存在，脚本仍会继续构建，但 EVM/TRON 交易历史会退回公共数据源，
-Arbitrum 等链的历史记录可能变慢或不完整。
+如果 `.env.local` 不存在，脚本仍会继续构建，但 EVM/TRON/Solana/BSC
+交易历史会退回公共数据源，部分链的历史记录可能变慢或不完整。
 
 ### APK（直接安装）
 ```bash
@@ -172,6 +174,7 @@ codesign --deep --force --verify --verbose \
 --dart-define=ETHERSCAN_API_KEY=...
 --dart-define=TRONGRID_API_KEY=...
 --dart-define=HELIUS_API_KEY=...
+--dart-define=MORALIS_API_KEY=...
 ```
 
 修改 `.env.local` 后需要完全重启应用，Hot Reload 不会重新读取编译参数。

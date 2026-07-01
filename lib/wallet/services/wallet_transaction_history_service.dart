@@ -16,6 +16,7 @@ import 'wallet_transfer_service.dart';
 
 part 'transaction_history/transaction_history_provider_helpers.dart';
 part 'transaction_history/evm_transaction_history_provider.dart';
+part 'transaction_history/moralis_bsc_transaction_history_provider.dart';
 part 'transaction_history/tron_transaction_history_provider.dart';
 part 'transaction_history/solana_transaction_history_provider.dart';
 
@@ -39,8 +40,14 @@ class TransactionHistoryCursor {
   const TransactionHistoryCursor.evmExplorerPage(int page)
     : this._('evmExplorerPage', page);
 
+  const TransactionHistoryCursor.evmLogBeforeBlock(int block)
+    : this._('evmLogBeforeBlock', block);
+
   const TransactionHistoryCursor.blockscoutPage(String value)
     : this._('blockscoutPage', value);
+
+  const TransactionHistoryCursor.moralisCursor(String value)
+    : this._('moralisCursor', value);
 
   const TransactionHistoryCursor.tronFingerprint(String value)
     : this._('tronFingerprint', value);
@@ -56,8 +63,14 @@ class TransactionHistoryCursor {
 
   int? get evmPage => source == 'evmExplorerPage' ? value as int : null;
 
+  int? get evmLogBeforeBlock =>
+      source == 'evmLogBeforeBlock' ? value as int : null;
+
   String? get blockscoutParams =>
       source == 'blockscoutPage' ? value as String : null;
+
+  String? get moralisCursor =>
+      source == 'moralisCursor' ? value as String : null;
 
   String? get tronFingerprint =>
       source == 'tronFingerprint' ? value as String : null;
@@ -100,6 +113,10 @@ class WalletTransactionHistoryService {
       dio: _dio,
       apiConfig: _apiConfig,
     );
+    _moralisBscProvider = _MoralisBscTransactionHistoryProvider(
+      dio: _dio,
+      apiConfig: _apiConfig,
+    );
     _tronProvider = _TronTransactionHistoryProvider(
       dio: _dio,
       apiConfig: _apiConfig,
@@ -116,6 +133,7 @@ class WalletTransactionHistoryService {
   final WalletHistoryApiConfig _apiConfig;
 
   late final _EvmTransactionHistoryProvider _evmProvider;
+  late final _MoralisBscTransactionHistoryProvider _moralisBscProvider;
   late final _TronTransactionHistoryProvider _tronProvider;
   late final _SolanaTransactionHistoryProvider _solanaProvider;
 
@@ -140,6 +158,27 @@ class WalletTransactionHistoryService {
   }) async {
     final chain = asset.chainRef;
     if (chain.isEvm) {
+      final canUseMoralisBsc =
+          chain.id == WalletChain.bsc.id &&
+          _apiConfig.hasMoralisApiKey &&
+          (cursor == null || cursor.moralisCursor != null);
+      if (canUseMoralisBsc) {
+        try {
+          final result = await _moralisBscProvider.loadRecordPage(
+            walletId: walletId,
+            asset: asset,
+            cursor: cursor,
+          );
+          if (result.records.isNotEmpty || result.hasMore || cursor != null) {
+            return result;
+          }
+        } catch (error) {
+          developer.log(
+            'Moralis BSC history failed; falling back to EVM providers: $error',
+            name: 'WalletTransactionHistoryService',
+          );
+        }
+      }
       return _evmProvider.loadRecordPage(
         walletId: walletId,
         asset: asset,

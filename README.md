@@ -192,6 +192,7 @@
    ETHERSCAN_API_KEY=your_etherscan_v2_key
    TRONGRID_API_KEY=your_trongrid_key
    HELIUS_API_KEY=your_helius_key
+   MORALIS_API_KEY=your_moralis_key
    ```
 
    `.env.local` 已被 `.gitignore` 忽略，不要提交真实 key。
@@ -331,6 +332,7 @@ final response = await client.get('/api/balance');
    ETHERSCAN_API_KEY=your_etherscan_v2_key
    TRONGRID_API_KEY=your_trongrid_key
    HELIUS_API_KEY=your_helius_key
+   MORALIS_API_KEY=your_moralis_key
    ```
 
 3. 使用带环境注入的运行脚本：
@@ -344,6 +346,7 @@ final response = await client.get('/api/balance');
 - **Etherscan V2**：用于 EVM 链交易历史。内置 EVM 链会优先使用 `https://api.etherscan.io/v2/api`，并通过 `chainid` 区分 Ethereum、BSC、Arbitrum 等链。
 - **TronGrid**：用于 TRON/TRC20 交易历史。配置后请求会自动携带 `TRON-PRO-API-KEY`。
 - **Helius**：用于 Solana/SPL 交易历史。配置 `HELIUS_API_KEY` 后会优先使用 Helius Enhanced Transactions，支持 SOL 和 SPL token 分页；未配置或数据源失败时回退到 Solana RPC。
+- **Moralis**：用于 BSC/BNB Smart Chain 交易历史。配置 `MORALIS_API_KEY` 后会优先查询 Moralis 的 BSC 原生交易和 BEP20 Token 转账，并使用 cursor 做分页；Moralis 失败时回退到现有 EVM/RPC 数据源。
 - **Solana RPC**：作为 Helius 不可用时的兜底路径，公共 RPC 可能限流或超时，不建议作为主要历史记录数据源。
 
 ### 注意事项

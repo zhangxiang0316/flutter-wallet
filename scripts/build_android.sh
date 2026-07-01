@@ -36,7 +36,8 @@ echo "🔨 Step 3: Building APK (Release)..."
 flutter build apk --release \
     --dart-define="ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY:-}" \
     --dart-define="TRONGRID_API_KEY=${TRONGRID_API_KEY:-}" \
-    --dart-define="HELIUS_API_KEY=${HELIUS_API_KEY:-}"
+    --dart-define="HELIUS_API_KEY=${HELIUS_API_KEY:-}" \
+    --dart-define="MORALIS_API_KEY=${MORALIS_API_KEY:-}"
 
 echo ""
 echo "📂 Step 4: Checking build output..."

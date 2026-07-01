@@ -6,6 +6,7 @@ import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omnicast/wallet/constants/crypto_constants.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/wallet_account.dart';
 import 'package:omnicast/wallet/models/wallet_asset.dart';
@@ -317,9 +318,83 @@ void main() {
   });
 
   group('WalletTransactionHistoryService', () {
+    test('loads BSC native transactions from Moralis', () async {
+      final adapter = _FallbackRpcAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(moralisApiKey: 'moralis-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'BNB',
+        name: 'BNB',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        decimals: 18,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(1));
+      expect(result.records.single.txHash, '0xmoralisnative');
+      expect(result.records.single.amount, '1.25');
+      expect(result.records.single.status, WalletTransactionStatus.success);
+      expect(result.hasMore, isFalse);
+      expect(adapter.calls.first, 'https://deep-index.moralis.io');
+    });
+
+    test('paginates BSC token transactions from Moralis', () async {
+      final adapter = _FallbackRpcAdapter(moralisTokenFullPage: true);
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(moralisApiKey: 'moralis-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0x55d398326f99059fF775485246999027B3197955',
+        decimals: 18,
+      );
+
+      final firstPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+      final secondPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+        cursor: firstPage.nextCursor,
+      );
+
+      expect(firstPage.records, hasLength(30));
+      expect(firstPage.hasMore, isTrue);
+      expect(firstPage.nextCursor?.moralisCursor, 'moralis-next');
+      expect(secondPage.records.single.txHash, '0xmoralis-token-next');
+      expect(secondPage.records.single.amount, '3');
+      expect(adapter.moralisCursors, ['', 'moralis-next']);
+      expect(
+        adapter.moralisContractFilters,
+        everyElement(['0x55d398326f99059fF775485246999027B3197955']),
+      );
+    });
+
     test('loads EVM token transactions from explorer API', () async {
       final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
-      final service = WalletTransactionHistoryService(dio: dio);
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(
+          etherscanApiKey: '',
+          moralisApiKey: '',
+        ),
+      );
       const asset = ChainBalance(
         chain: WalletChain.bsc,
         symbol: 'USDT',
@@ -343,11 +418,199 @@ void main() {
       expect(records.single.feeAmount, '0.000021');
     });
 
+    test('paginates BSC token transactions from explorer API', () async {
+      final adapter = _FallbackRpcAdapter(
+        bscScanResultsByPage: {
+          1: List.generate(
+            100,
+            (index) => _bscTokenTxItem(
+              hash: '0xbsc-page1-$index',
+              timestamp: 1700000000 - index,
+            ),
+          ),
+          2: [_bscTokenTxItem(hash: '0xbsc-page2-old', timestamp: 1699990000)],
+        },
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(
+          etherscanApiKey: '',
+          moralisApiKey: '',
+        ),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0x55d398326f99059fF775485246999027B3197955',
+        decimals: 18,
+      );
+
+      final firstPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+      final secondPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+        cursor: firstPage.nextCursor,
+      );
+
+      expect(firstPage.records, hasLength(30));
+      expect(firstPage.hasMore, isTrue);
+      expect(firstPage.nextCursor?.evmPage, 2);
+      expect(secondPage.records.single.txHash, '0xbsc-page2-old');
+      expect(secondPage.hasMore, isFalse);
+      expect(adapter.bscScanPages, [1, 2]);
+      expect(adapter.bscScanOffsets, everyElement(100));
+    });
+
+    test(
+      'skips Etherscan V2 for BSC history with unsupported free key',
+      () async {
+        final adapter = _FallbackRpcAdapter();
+        final dio = Dio()..httpClientAdapter = adapter;
+        final service = WalletTransactionHistoryService(
+          dio: dio,
+          apiConfig: const WalletHistoryApiConfig(
+            etherscanApiKey: 'test-key',
+            moralisApiKey: '',
+          ),
+        );
+        const asset = ChainBalance(
+          chain: WalletChain.bsc,
+          symbol: 'USDT',
+          name: 'Tether USD',
+          amount: '10',
+          address: '0x1111111111111111111111111111111111111111',
+          contractAddress: '0x55d398326f99059fF775485246999027B3197955',
+          decimals: 18,
+        );
+
+        final records = await service.loadAssetRecords(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(records.single.txHash, '0xbeef');
+        expect(adapter.calls, isNot(contains('https://api.etherscan.io')));
+        expect(adapter.etherscanV2ChainIds, isEmpty);
+      },
+    );
+
+    test(
+      'returns empty BSC native history when explorer is unavailable',
+      () async {
+        final adapter = _FallbackRpcAdapter(failBscScan: true);
+        final dio = Dio()..httpClientAdapter = adapter;
+        final service = WalletTransactionHistoryService(
+          dio: dio,
+          apiConfig: const WalletHistoryApiConfig(
+            etherscanApiKey: '',
+            moralisApiKey: '',
+          ),
+        );
+        const asset = ChainBalance(
+          chain: WalletChain.bsc,
+          symbol: 'BNB',
+          name: 'BNB',
+          amount: '10',
+          address: '0x1111111111111111111111111111111111111111',
+          decimals: 18,
+        );
+
+        final result = await service.loadAssetRecordPage(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(result.records, isEmpty);
+        expect(result.hasMore, isFalse);
+      },
+    );
+
+    test(
+      'returns empty X Layer native history without an indexed provider',
+      () async {
+        final adapter = _FallbackRpcAdapter();
+        final dio = Dio()..httpClientAdapter = adapter;
+        final service = WalletTransactionHistoryService(
+          dio: dio,
+          apiConfig: const WalletHistoryApiConfig(
+            etherscanApiKey: '',
+            moralisApiKey: '',
+          ),
+        );
+        const asset = ChainBalance(
+          chain: WalletChain.xLayer,
+          symbol: 'OKB',
+          name: 'OKB',
+          amount: '10',
+          address: '0x1111111111111111111111111111111111111111',
+          decimals: 18,
+        );
+
+        final result = await service.loadAssetRecordPage(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(result.records, isEmpty);
+        expect(result.hasMore, isFalse);
+        expect(adapter.calls, isNot(contains('https://api.etherscan.io')));
+      },
+    );
+
+    test('loads X Layer token transactions from paged RPC logs', () async {
+      final adapter = _FallbackRpcAdapter(xLayerTokenLogFullPage: true);
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(
+          etherscanApiKey: '',
+          moralisApiKey: '',
+        ),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.xLayer,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0x74b7F16337b8972027F6196A17a631aC6dE26d22',
+        decimals: 18,
+      );
+
+      final firstPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+      final secondPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+        cursor: firstPage.nextCursor,
+      );
+
+      expect(firstPage.records, hasLength(30));
+      expect(firstPage.hasMore, isTrue);
+      expect(firstPage.nextCursor?.evmLogBeforeBlock, 500000);
+      expect(secondPage.records.single.txHash, '0xxlayerold');
+      expect(secondPage.records.single.amount, '2');
+      expect(adapter.xLayerLogRanges.first, (950001, 1000000));
+      expect(adapter.xLayerLogRanges, contains((450001, 500000)));
+    });
+
     test(
       'falls back to Blockscout v2 for builtin EVM native history',
       () async {
         final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
-        final service = WalletTransactionHistoryService(dio: dio);
+        final service = WalletTransactionHistoryService(
+          dio: dio,
+          apiConfig: const WalletHistoryApiConfig(etherscanApiKey: ''),
+        );
         final asset = ChainBalance.config(
           chainConfig: WalletChain.ethereum.config,
           symbol: 'ETH',
@@ -1395,8 +1658,70 @@ void main() {
   });
 }
 
+Map<String, dynamic> _bscTokenTxItem({
+  required String hash,
+  required int timestamp,
+}) {
+  return {
+    'blockNumber': timestamp.toString(),
+    'timeStamp': timestamp.toString(),
+    'hash': hash,
+    'from': '0x1111111111111111111111111111111111111111',
+    'to': '0x2222222222222222222222222222222222222222',
+    'value': '2000000000000000000',
+    'tokenDecimal': '18',
+    'gasUsed': '21000',
+    'gasPrice': '1000000000',
+    'contractAddress': '0x55d398326f99059fF775485246999027B3197955',
+  };
+}
+
+Map<String, dynamic> _moralisTokenTxItem({
+  required String hash,
+  required String value,
+  String timestamp = '2026-06-01T12:00:00.000Z',
+  int logIndex = 1,
+}) {
+  return {
+    'token_name': 'Tether USD',
+    'token_symbol': 'USDT',
+    'token_decimals': '18',
+    'transaction_hash': hash,
+    'address': '0x55d398326f99059fF775485246999027B3197955',
+    'block_timestamp': timestamp,
+    'block_number': 123,
+    'from_address': '0x1111111111111111111111111111111111111111',
+    'to_address': '0x2222222222222222222222222222222222222222',
+    'value': value,
+    'log_index': logIndex,
+  };
+}
+
+Map<String, dynamic> _xLayerTokenLog(
+  String hash,
+  int blockNumber,
+  int logIndex,
+) {
+  const walletTopic =
+      '0x0000000000000000000000001111111111111111111111111111111111111111';
+  const recipientTopic =
+      '0x0000000000000000000000002222222222222222222222222222222222222222';
+  return {
+    'transactionHash': hash,
+    'blockNumber': '0x${blockNumber.toRadixString(16)}',
+    'logIndex': '0x${logIndex.toRadixString(16)}',
+    'data': '0x1bc16d674ec80000',
+    'topics': [
+      CryptoConstants.evmTransferEventTopic,
+      walletTopic,
+      recipientTopic,
+    ],
+  };
+}
+
 class _FallbackRpcAdapter implements HttpClientAdapter {
   _FallbackRpcAdapter({
+    this.failBscScan = false,
     this.failTronGridAccount = false,
     this.hangSolana = false,
     this.solanaTokenAccountPubkey,
@@ -1408,8 +1733,12 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     this.heliusMint,
     this.heliusFullPage = false,
     this.failHeliusRateLimit = false,
+    this.bscScanResultsByPage,
+    this.moralisTokenFullPage = false,
+    this.xLayerTokenLogFullPage = false,
   });
 
+  final bool failBscScan;
   final bool failTronGridAccount;
   final bool hangSolana;
   final String? solanaTokenAccountPubkey;
@@ -1421,7 +1750,16 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   final String? heliusMint;
   final bool heliusFullPage;
   final bool failHeliusRateLimit;
+  final Map<int, List<Map<String, dynamic>>>? bscScanResultsByPage;
+  final bool moralisTokenFullPage;
+  final bool xLayerTokenLogFullPage;
   final calls = <String>[];
+  final bscScanPages = <int>[];
+  final bscScanOffsets = <int>[];
+  final moralisCursors = <String>[];
+  final moralisContractFilters = <List<String>>[];
+  final xLayerLogRanges = <(int, int)>[];
+  final etherscanV2ChainIds = <String>[];
   final solanaMethods = <String>[];
   String? lastSolanaTransactionBase64;
 
@@ -1433,6 +1771,60 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   ) async {
     final origin = '${options.uri.scheme}://${options.uri.host}';
     calls.add(origin);
+
+    if (origin == 'https://deep-index.moralis.io') {
+      final cursor = options.uri.queryParameters['cursor'] ?? '';
+      moralisCursors.add(cursor);
+      final contractFilters =
+          options.uri.queryParametersAll['contract_addresses'] ?? const [];
+      if (contractFilters.isNotEmpty) {
+        moralisContractFilters.add(contractFilters);
+      }
+      if (options.uri.path.endsWith('/erc20/transfers')) {
+        if (cursor == 'moralis-next') {
+          return _jsonResponse({
+            'result': [
+              _moralisTokenTxItem(
+                hash: '0xmoralis-token-next',
+                value: '3000000000000000000',
+              ),
+            ],
+            'cursor': null,
+          });
+        }
+        final count = moralisTokenFullPage ? 30 : 1;
+        return _jsonResponse({
+          'result': List.generate(
+            count,
+            (index) => _moralisTokenTxItem(
+              hash: '0xmoralis-token-$index',
+              value: '2000000000000000000',
+              timestamp:
+                  '2026-06-01T12:00:${index.toString().padLeft(2, '0')}Z',
+              logIndex: index,
+            ),
+          ),
+          'cursor': moralisTokenFullPage ? 'moralis-next' : null,
+        });
+      }
+      return _jsonResponse({
+        'result': [
+          {
+            'hash': '0xmoralisnative',
+            'from_address': '0x2222222222222222222222222222222222222222',
+            'to_address': '0x1111111111111111111111111111111111111111',
+            'value': '1250000000000000000',
+            'gas_price': '1000000000',
+            'receipt_gas_used': '21000',
+            'receipt_status': '1',
+            'transaction_fee': '0.000021',
+            'block_number': 123,
+            'block_timestamp': '2026-06-01T12:00:00.000Z',
+          },
+        ],
+        'cursor': null,
+      });
+    }
 
     if (origin == 'https://api.helius.xyz') {
       if (failHeliusRateLimit) {
@@ -1503,6 +1895,26 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     }
 
     if (origin == 'https://api.bscscan.com' && options.uri.path == '/api') {
+      final page = int.tryParse(options.uri.queryParameters['page'] ?? '') ?? 1;
+      final offset =
+          int.tryParse(options.uri.queryParameters['offset'] ?? '') ?? 0;
+      bscScanPages.add(page);
+      bscScanOffsets.add(offset);
+      if (failBscScan) {
+        return _jsonResponse({
+          'status': '0',
+          'message': 'NOTOK',
+          'result': 'Explorer unavailable',
+        });
+      }
+      final pageResults = bscScanResultsByPage?[page];
+      if (pageResults != null) {
+        return _jsonResponse({
+          'status': pageResults.isEmpty ? '0' : '1',
+          'message': pageResults.isEmpty ? 'No transactions found' : 'OK',
+          'result': pageResults.isEmpty ? 'No transactions found' : pageResults,
+        });
+      }
       return _jsonResponse({
         'status': '1',
         'message': 'OK',
@@ -1519,6 +1931,17 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
             'gasPrice': '1000000000',
             'contractAddress': '0x55d398326f99059fF775485246999027B3197955',
           },
+        ],
+      });
+    }
+
+    if (origin == 'https://api.etherscan.io' && options.uri.path == '/v2/api') {
+      etherscanV2ChainIds.add(options.uri.queryParameters['chainid'] ?? '');
+      return _jsonResponse({
+        'status': '1',
+        'message': 'OK',
+        'result': [
+          _bscTokenTxItem(hash: '0xetherscanv2bsc', timestamp: 1700000000),
         ],
       });
     }
@@ -1586,8 +2009,63 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
       });
     }
 
+    if (origin == 'https://rpc.xlayer.tech') {
+      final method = _evmMethod(options.data);
+      if (method == 'eth_blockNumber') {
+        return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0xf4240'});
+      }
+      if (method == 'eth_getLogs') {
+        final filter = _firstEvmParamMap(options.data);
+        final fromBlock = _hexToInt(filter['fromBlock']?.toString() ?? '0x0');
+        final toBlock = _hexToInt(filter['toBlock']?.toString() ?? '0x0');
+        final topics = filter['topics'];
+        final isOutgoing =
+            topics is List && topics.length > 1 && topics[1] != null;
+        if (isOutgoing) {
+          xLayerLogRanges.add((fromBlock, toBlock));
+          if (toBlock == 500000) {
+            return _jsonResponse({
+              'jsonrpc': '2.0',
+              'id': 1,
+              'result': [_xLayerTokenLog('0xxlayerold', 499999, 1)],
+            });
+          }
+          if (xLayerTokenLogFullPage && toBlock == 1000000) {
+            return _jsonResponse({
+              'jsonrpc': '2.0',
+              'id': 1,
+              'result': List.generate(
+                30,
+                (index) =>
+                    _xLayerTokenLog('0xxlayer$index', 1000000 - index, index),
+              ),
+            });
+          }
+        }
+        return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': []});
+      }
+      if (method == 'eth_getTransactionReceipt') {
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': {
+            'status': '0x1',
+            'gasUsed': '0x5208',
+            'effectiveGasPrice': '0x3b9aca00',
+          },
+        });
+      }
+      if (method == 'eth_getBlockByNumber') {
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': {'timestamp': '0x6553f100'},
+        });
+      }
+      return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x0'});
+    }
+
     if (origin == 'https://ethereum-rpc.publicnode.com' ||
-        origin == 'https://rpc.xlayer.tech' ||
         origin == 'https://arb1.arbitrum.io') {
       return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x0'});
     }
@@ -1766,6 +2244,24 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
 
   bool _isEvmChainIdRequest(dynamic data) {
     return data is Map && data['method'] == 'eth_chainId';
+  }
+
+  String? _evmMethod(dynamic data) {
+    return data is Map ? data['method']?.toString() : null;
+  }
+
+  Map<dynamic, dynamic> _firstEvmParamMap(dynamic data) {
+    final params = data is Map ? data['params'] : null;
+    if (params is List && params.isNotEmpty && params.first is Map) {
+      return params.first as Map;
+    }
+    return const {};
+  }
+
+  int _hexToInt(String value) {
+    final normalized = value.replaceFirst('0x', '');
+    if (normalized.isEmpty) return 0;
+    return int.parse(normalized, radix: 16);
   }
 
   bool _isSolanaMethod(dynamic data, String method) {

@@ -10,8 +10,12 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
   final WalletHistoryApiConfig apiConfig;
 
   static const int _historyLimit = 30;
+  static const int _bscExplorerPageSize = 100;
+  static const int _bscExplorerMaxScanPages = 3;
   static const int _evmLogChunkSize = 50000;
+  static const int _evmLogPageBlockWindow = 500000;
   static const int _evmLogScanBlockWindow = 5000000;
+  static const int _xLayerLogScanBlockWindow = 500000;
   static const int _arbitrumLogScanBlockWindow = 200000;
   static const int _blockscoutMaxPages = 4;
   static const Duration _limitedLogFallbackTimeout = Duration(seconds: 4);
@@ -54,6 +58,14 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     Object? lastExplorerError;
     var hasSuccessfulExplorer = false;
     final isLoadMore = cursor != null;
+    if (cursor?.evmLogBeforeBlock != null &&
+        _supportsEvmTokenLogPaging(asset)) {
+      return _loadEvmTokenLogRecordPage(
+        walletId: walletId,
+        asset: asset,
+        beforeBlock: cursor!.evmLogBeforeBlock!,
+      );
+    }
 
     for (final provider in _evmHistoryProviders(asset.chainRef)) {
       if (cursor?.evmPage != null &&
@@ -83,7 +95,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
             ),
         };
         hasSuccessfulExplorer = true;
-        if (result.records.isNotEmpty) {
+        if (result.records.isNotEmpty || result.hasMore) {
           return result;
         }
         if (asset.isNative) return result;
@@ -104,6 +116,18 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
           nextCursor: null,
         );
       }
+      if (_nativeHistoryCanBeEmpty(asset.chainRef)) {
+        developer.log(
+          '${asset.chainRef.name} native history provider failed; '
+          'returning empty result: '
+          '${lastExplorerError ?? 'no explorer provider'}',
+          name: 'WalletTransactionHistoryService',
+        );
+        return const TransactionHistoryPageResult(
+          records: [],
+          nextCursor: null,
+        );
+      }
       throw StateError(
         '${asset.chainRef.name} native history failed: '
         '${lastExplorerError ?? 'no explorer provider'}',
@@ -116,6 +140,9 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
           records: [],
           nextCursor: null,
         );
+      }
+      if (_supportsEvmTokenLogPaging(asset)) {
+        return _loadEvmTokenLogRecordPage(walletId: walletId, asset: asset);
       }
       final records = await _loadEvmTokenLogs(walletId: walletId, asset: asset)
           .timeout(
@@ -140,6 +167,48 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     }
   }
 
+  bool _supportsEvmTokenLogPaging(ChainBalance asset) {
+    return asset.chainRef.isEvm &&
+        !asset.isNative &&
+        (asset.contractAddress?.trim().isNotEmpty ?? false);
+  }
+
+  bool _nativeHistoryCanBeEmpty(WalletChainRef chain) {
+    return chain.id == WalletChain.bsc.id || chain.id == WalletChain.xLayer.id;
+  }
+
+  Future<TransactionHistoryPageResult> _loadEvmTokenLogRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    int? beforeBlock,
+  }) async {
+    final latestBlock = beforeBlock == null
+        ? await _evmRpcBigInt(asset.chainRef, 'eth_blockNumber', const [])
+        : BigInt.from(beforeBlock);
+    final toBlock = latestBlock.toInt();
+    if (toBlock <= 0) {
+      return const TransactionHistoryPageResult(records: [], nextCursor: null);
+    }
+
+    final fromBlock = math.max(
+      0,
+      toBlock - _evmLogPageBlockWindowFor(asset.chainRef) + 1,
+    );
+    final records = await _loadEvmTokenLogsInRange(
+      walletId: walletId,
+      asset: asset,
+      fromBlock: fromBlock,
+      toBlock: toBlock,
+    );
+
+    return TransactionHistoryPageResult(
+      records: records,
+      nextCursor: fromBlock > 0
+          ? TransactionHistoryCursor.evmLogBeforeBlock(fromBlock - 1)
+          : null,
+    );
+  }
+
   Future<TransactionHistoryPageResult> _loadEvmExplorerRecordPage({
     required String apiUrl,
     String? apiKey,
@@ -147,66 +216,98 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     required ChainBalance asset,
     required int page,
   }) async {
+    final requestLimit = _evmExplorerRequestLimit(asset.chainRef);
+    final maxScanPages = _evmExplorerScanPages(asset.chainRef);
     final normalizedApiKey = apiKey?.trim() ?? '';
-    final response = await dio.get(
-      apiUrl,
-      queryParameters: {
-        'module': 'account',
-        'action': asset.isNative ? 'txlist' : 'tokentx',
-        'address': asset.address,
-        if (!asset.isNative) 'contractaddress': asset.contractAddress,
-        'page': page,
-        'offset': _historyLimit,
-        'sort': 'desc',
-        if (_isEtherscanV2Api(apiUrl) && asset.chainRef.evmChainId != null)
-          'chainid': asset.chainRef.evmChainId,
-        if (normalizedApiKey.isNotEmpty) 'apikey': normalizedApiKey,
-      },
-    );
-    final data = response.data;
-    if (data is! Map) {
-      throw StateError('Invalid ${asset.chainRef.name} explorer response');
-    }
+    final records = <WalletTransactionRecord>[];
+    final seenIds = <String>{};
+    var currentPage = page;
+    var hasMoreRawPages = false;
 
-    final result = data['result'];
-    if (result is List) {
-      final records = result
-          .whereType<Map>()
-          .map(
-            (item) => asset.isNative
-                ? _evmNativeRecordFromExplorer(
-                    walletId: walletId,
-                    asset: asset,
-                    item: item,
-                  )
-                : _evmTokenRecordFromExplorer(
-                    walletId: walletId,
-                    asset: asset,
-                    item: item,
-                  ),
-          )
-          .whereType<WalletTransactionRecord>()
-          .take(_historyLimit)
-          .toList(growable: false);
-      return TransactionHistoryPageResult(
-        records: records,
-        nextCursor: records.length >= _historyLimit
-            ? TransactionHistoryCursor.evmExplorerPage(page + 1)
-            : null,
+    for (var scanPage = 0; scanPage < maxScanPages; scanPage++) {
+      final response = await dio.get(
+        apiUrl,
+        queryParameters: {
+          'module': 'account',
+          'action': asset.isNative ? 'txlist' : 'tokentx',
+          'address': asset.address,
+          if (!asset.isNative) 'contractaddress': asset.contractAddress,
+          'page': currentPage,
+          'offset': requestLimit,
+          'sort': 'desc',
+          if (_isEtherscanV2Api(apiUrl) && asset.chainRef.evmChainId != null)
+            'chainid': asset.chainRef.evmChainId,
+          if (normalizedApiKey.isNotEmpty) 'apikey': normalizedApiKey,
+        },
+      );
+      final data = response.data;
+      if (data is! Map) {
+        throw StateError('Invalid ${asset.chainRef.name} explorer response');
+      }
+
+      final result = data['result'];
+      if (result is List) {
+        hasMoreRawPages = result.length >= requestLimit;
+        for (final record
+            in result
+                .whereType<Map>()
+                .map(
+                  (item) => asset.isNative
+                      ? _evmNativeRecordFromExplorer(
+                          walletId: walletId,
+                          asset: asset,
+                          item: item,
+                        )
+                      : _evmTokenRecordFromExplorer(
+                          walletId: walletId,
+                          asset: asset,
+                          item: item,
+                        ),
+                )
+                .whereType<WalletTransactionRecord>()) {
+          if (seenIds.add(record.id)) {
+            records.add(record);
+          }
+        }
+        records.sort(_compareRecordTimeDesc);
+        if (records.length >= _historyLimit || !hasMoreRawPages) {
+          break;
+        }
+        currentPage += 1;
+        continue;
+      }
+
+      final message = data['message']?.toString().toLowerCase() ?? '';
+      final resultText = result?.toString().toLowerCase() ?? '';
+      if (message.contains('no transactions') ||
+          resultText.contains('no transactions')) {
+        hasMoreRawPages = false;
+        break;
+      }
+      throw StateError(
+        data['result']?.toString() ??
+            data['message']?.toString() ??
+            'Explorer request failed',
       );
     }
 
-    final message = data['message']?.toString().toLowerCase() ?? '';
-    final resultText = result?.toString().toLowerCase() ?? '';
-    if (message.contains('no transactions') ||
-        resultText.contains('no transactions')) {
-      return const TransactionHistoryPageResult(records: [], nextCursor: null);
-    }
-    throw StateError(
-      data['result']?.toString() ??
-          data['message']?.toString() ??
-          'Explorer request failed',
+    records.sort(_compareRecordTimeDesc);
+    return TransactionHistoryPageResult(
+      records: records.take(_historyLimit).toList(growable: false),
+      nextCursor: hasMoreRawPages
+          ? TransactionHistoryCursor.evmExplorerPage(currentPage + 1)
+          : null,
     );
+  }
+
+  int _evmExplorerRequestLimit(WalletChainRef chain) {
+    if (chain.id == WalletChain.bsc.id) return _bscExplorerPageSize;
+    return _historyLimit;
+  }
+
+  int _evmExplorerScanPages(WalletChainRef chain) {
+    if (chain.id == WalletChain.bsc.id) return _bscExplorerMaxScanPages;
+    return 1;
   }
 
   Future<TransactionHistoryPageResult> _loadBlockscoutRecordPage({
@@ -519,25 +620,46 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       0,
       latest - _evmLogScanBlockWindowFor(asset.chainRef),
     );
+    return _loadEvmTokenLogsInRange(
+      walletId: walletId,
+      asset: asset,
+      fromBlock: start,
+      toBlock: latest,
+    );
+  }
+
+  Future<List<WalletTransactionRecord>> _loadEvmTokenLogsInRange({
+    required String walletId,
+    required ChainBalance asset,
+    required int fromBlock,
+    required int toBlock,
+  }) async {
     final walletTopic = _evmAddressTopic(asset.address);
     final records = <WalletTransactionRecord>[];
     final seenIds = <String>{};
 
-    for (var toBlock = latest; toBlock >= start; toBlock -= _evmLogChunkSize) {
-      final fromBlock = math.max(start, toBlock - _evmLogChunkSize + 1);
+    for (
+      var chunkToBlock = toBlock;
+      chunkToBlock >= fromBlock;
+      chunkToBlock -= _evmLogChunkSize
+    ) {
+      final chunkFromBlock = math.max(
+        fromBlock,
+        chunkToBlock - _evmLogChunkSize + 1,
+      );
 
       // ✅ 并行获取转出和转入日志
       final results = await Future.wait([
         _evmGetLogs(asset.chainRef, {
           'address': asset.contractAddress,
-          'fromBlock': _hexQuantity(BigInt.from(fromBlock)),
-          'toBlock': _hexQuantity(BigInt.from(toBlock)),
+          'fromBlock': _hexQuantity(BigInt.from(chunkFromBlock)),
+          'toBlock': _hexQuantity(BigInt.from(chunkToBlock)),
           'topics': [_evmTransferEventTopic, walletTopic],
         }),
         _evmGetLogs(asset.chainRef, {
           'address': asset.contractAddress,
-          'fromBlock': _hexQuantity(BigInt.from(fromBlock)),
-          'toBlock': _hexQuantity(BigInt.from(toBlock)),
+          'fromBlock': _hexQuantity(BigInt.from(chunkFromBlock)),
+          'toBlock': _hexQuantity(BigInt.from(chunkToBlock)),
           'topics': [_evmTransferEventTopic, null, walletTopic],
         }),
       ]);
@@ -570,10 +692,20 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
   }
 
   int _evmLogScanBlockWindowFor(WalletChainRef chain) {
+    if (chain.id == WalletChain.xLayer.id) {
+      return _xLayerLogScanBlockWindow;
+    }
     if (chain.id == WalletChain.arbitrum.id) {
       return _arbitrumLogScanBlockWindow;
     }
     return _evmLogScanBlockWindow;
+  }
+
+  int _evmLogPageBlockWindowFor(WalletChainRef chain) {
+    if (chain.id == WalletChain.arbitrum.id) {
+      return _arbitrumLogScanBlockWindow;
+    }
+    return _evmLogPageBlockWindow;
   }
 
   Future<WalletTransactionRecord?> _evmTokenRecordFromLog({
@@ -755,11 +887,13 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     final providers = <_EvmHistoryProvider>[];
     final apiKey = _configuredExplorerApiKey(chain);
     final configuredApiUrl = _configuredExplorerApiUrl(chain);
-    if (configuredApiUrl != null) {
-      providers.add(_evmProviderFromUrl(configuredApiUrl, apiKey: apiKey));
-    }
 
-    if (apiConfig.hasEtherscanApiKey && chain.evmChainId != null) {
+    final canUseEtherscanV2 =
+        apiConfig.hasEtherscanApiKey &&
+        chain.evmChainId != null &&
+        chain.id != WalletChain.bsc.id &&
+        chain.id != WalletChain.xLayer.id;
+    if (canUseEtherscanV2) {
       developer.log(
         'Using Etherscan V2 history provider for ${chain.name} '
         'chainId=${chain.evmChainId}',
@@ -777,6 +911,10 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         'Etherscan V2 API key is not injected for Arbitrum history',
         name: 'WalletTransactionHistoryService',
       );
+    }
+
+    if (configuredApiUrl != null) {
+      providers.add(_evmProviderFromUrl(configuredApiUrl, apiKey: apiKey));
     }
 
     for (final baseUrl in _evmBlockscoutBaseUrls[chain.id] ?? const []) {
