@@ -9,7 +9,7 @@ class _TronTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
   @override
   final WalletHistoryApiConfig apiConfig;
 
-  static const int _historyLimit = 30;
+  static const int _historyLimit = _transactionHistoryPageSize;
 
   static const List<String> _tronApiFallbacks = [
     'https://api.trongrid.io',

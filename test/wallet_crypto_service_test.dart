@@ -374,7 +374,7 @@ void main() {
         cursor: firstPage.nextCursor,
       );
 
-      expect(firstPage.records, hasLength(30));
+      expect(firstPage.records, hasLength(10));
       expect(firstPage.hasMore, isTrue);
       expect(firstPage.nextCursor?.moralisCursor, 'moralis-next');
       expect(secondPage.records.single.txHash, '0xmoralis-token-next');
@@ -383,6 +383,71 @@ void main() {
       expect(
         adapter.moralisContractFilters,
         everyElement(['0x55d398326f99059fF775485246999027B3197955']),
+      );
+    });
+
+    test('loads Arbitrum native transactions from Moralis', () async {
+      final adapter = _FallbackRpcAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(moralisApiKey: 'moralis-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.arbitrum,
+        symbol: 'ETH',
+        name: 'Ethereum',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        decimals: 18,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(1));
+      expect(result.records.single.txHash, '0xmoralisnative');
+      expect(result.records.single.amount, '1.25');
+      expect(adapter.moralisChains.single, 'arbitrum');
+    });
+
+    test('paginates Arbitrum token transactions from Moralis', () async {
+      final adapter = _FallbackRpcAdapter(moralisTokenFullPage: true);
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(moralisApiKey: 'moralis-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.arbitrum,
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        decimals: 6,
+      );
+
+      final firstPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+      final secondPage = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+        cursor: firstPage.nextCursor,
+      );
+
+      expect(firstPage.records, hasLength(10));
+      expect(firstPage.hasMore, isTrue);
+      expect(firstPage.nextCursor?.moralisCursor, 'moralis-next');
+      expect(secondPage.records.single.txHash, '0xmoralis-token-next');
+      expect(adapter.moralisChains, ['arbitrum', 'arbitrum']);
+      expect(
+        adapter.moralisContractFilters,
+        everyElement(['0xaf88d065e77c8cC2239327C5EDb3A432268e5831']),
       );
     });
 
@@ -459,7 +524,7 @@ void main() {
         cursor: firstPage.nextCursor,
       );
 
-      expect(firstPage.records, hasLength(30));
+      expect(firstPage.records, hasLength(10));
       expect(firstPage.hasMore, isTrue);
       expect(firstPage.nextCursor?.evmPage, 2);
       expect(secondPage.records.single.txHash, '0xbsc-page2-old');
@@ -594,7 +659,7 @@ void main() {
         cursor: firstPage.nextCursor,
       );
 
-      expect(firstPage.records, hasLength(30));
+      expect(firstPage.records, hasLength(10));
       expect(firstPage.hasMore, isTrue);
       expect(firstPage.nextCursor?.evmLogBeforeBlock, 500000);
       expect(secondPage.records.single.txHash, '0xxlayerold');
@@ -636,7 +701,10 @@ void main() {
 
     test('loads EVM token transactions from Blockscout v2', () async {
       final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
-      final service = WalletTransactionHistoryService(dio: dio);
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: ''),
+      );
       final asset = ChainBalance.config(
         chainConfig: WalletChain.ethereum.config,
         symbol: 'USDT',
@@ -661,7 +729,10 @@ void main() {
 
     test('loads TRON token transactions from TronGrid API', () async {
       final dio = Dio()..httpClientAdapter = _FallbackRpcAdapter();
-      final service = WalletTransactionHistoryService(dio: dio);
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: ''),
+      );
       const asset = ChainBalance(
         chain: WalletChain.tron,
         symbol: 'USDT',
@@ -699,7 +770,10 @@ void main() {
           solanaHistoryOwner: keyPair.solanaAddress,
           solanaHistoryRecipient: recipient,
         );
-      final service = WalletTransactionHistoryService(dio: dio);
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: ''),
+      );
       final asset = ChainBalance(
         chain: WalletChain.solana,
         symbol: 'SOL',
@@ -789,7 +863,7 @@ void main() {
         asset: asset,
       );
 
-      expect(result.records, hasLength(30));
+      expect(result.records, hasLength(10));
       expect(result.records.first.txHash, 'helius-token-signature-0');
       expect(result.records.first.amount, '2.5');
       expect(
@@ -797,7 +871,81 @@ void main() {
         WalletTransactionDirection.incoming,
       );
       expect(result.hasMore, isTrue);
-      expect(result.nextCursor?.solanaBefore, 'helius-token-signature-29');
+      expect(result.nextCursor?.solanaBefore, 'helius-token-signature-9');
+    });
+
+    test(
+      'loads native Solana balance changes from Helius account data',
+      () async {
+        const owner = 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8';
+        final dio = Dio()
+          ..httpClientAdapter = _FallbackRpcAdapter(
+            heliusOwner: owner,
+            heliusUseAccountData: true,
+          );
+        final service = WalletTransactionHistoryService(
+          dio: dio,
+          apiConfig: const WalletHistoryApiConfig(heliusApiKey: 'helius-key'),
+        );
+        const asset = ChainBalance(
+          chain: WalletChain.solana,
+          symbol: 'SOL',
+          name: 'Solana',
+          amount: '10',
+          address: owner,
+          decimals: 9,
+        );
+
+        final result = await service.loadAssetRecordPage(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(result.records, hasLength(1));
+        expect(result.records.single.txHash, 'helius-sol-account-data');
+        expect(result.records.single.amount, '0.25');
+        expect(
+          result.records.single.direction,
+          WalletTransactionDirection.outgoing,
+        );
+      },
+    );
+
+    test('loads SPL token balance changes from Helius account data', () async {
+      const owner = 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8';
+      const mint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+      final dio = Dio()
+        ..httpClientAdapter = _FallbackRpcAdapter(
+          heliusOwner: owner,
+          heliusMint: mint,
+          heliusUseAccountData: true,
+        );
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: 'helius-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.solana,
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: '10',
+        address: owner,
+        contractAddress: mint,
+        decimals: 6,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(1));
+      expect(result.records.single.txHash, 'helius-token-account-data');
+      expect(result.records.single.amount, '2.5');
+      expect(
+        result.records.single.direction,
+        WalletTransactionDirection.incoming,
+      );
     });
 
     test('classifies Solana history API rate limits', () async {
@@ -1679,15 +1827,17 @@ Map<String, dynamic> _bscTokenTxItem({
 Map<String, dynamic> _moralisTokenTxItem({
   required String hash,
   required String value,
+  String contractAddress = '0x55d398326f99059fF775485246999027B3197955',
+  String tokenDecimals = '18',
   String timestamp = '2026-06-01T12:00:00.000Z',
   int logIndex = 1,
 }) {
   return {
     'token_name': 'Tether USD',
     'token_symbol': 'USDT',
-    'token_decimals': '18',
+    'token_decimals': tokenDecimals,
     'transaction_hash': hash,
-    'address': '0x55d398326f99059fF775485246999027B3197955',
+    'address': contractAddress,
     'block_timestamp': timestamp,
     'block_number': 123,
     'from_address': '0x1111111111111111111111111111111111111111',
@@ -1733,6 +1883,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     this.heliusMint,
     this.heliusFullPage = false,
     this.failHeliusRateLimit = false,
+    this.heliusUseAccountData = false,
     this.bscScanResultsByPage,
     this.moralisTokenFullPage = false,
     this.xLayerTokenLogFullPage = false,
@@ -1750,12 +1901,14 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   final String? heliusMint;
   final bool heliusFullPage;
   final bool failHeliusRateLimit;
+  final bool heliusUseAccountData;
   final Map<int, List<Map<String, dynamic>>>? bscScanResultsByPage;
   final bool moralisTokenFullPage;
   final bool xLayerTokenLogFullPage;
   final calls = <String>[];
   final bscScanPages = <int>[];
   final bscScanOffsets = <int>[];
+  final moralisChains = <String>[];
   final moralisCursors = <String>[];
   final moralisContractFilters = <List<String>>[];
   final xLayerLogRanges = <(int, int)>[];
@@ -1773,10 +1926,14 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     calls.add(origin);
 
     if (origin == 'https://deep-index.moralis.io') {
+      moralisChains.add(options.uri.queryParameters['chain'] ?? '');
       final cursor = options.uri.queryParameters['cursor'] ?? '';
       moralisCursors.add(cursor);
       final contractFilters =
           options.uri.queryParametersAll['contract_addresses'] ?? const [];
+      final contractAddress = contractFilters.isNotEmpty
+          ? contractFilters.first
+          : '0x55d398326f99059fF775485246999027B3197955';
       if (contractFilters.isNotEmpty) {
         moralisContractFilters.add(contractFilters);
       }
@@ -1787,6 +1944,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
               _moralisTokenTxItem(
                 hash: '0xmoralis-token-next',
                 value: '3000000000000000000',
+                contractAddress: contractAddress,
               ),
             ],
             'cursor': null,
@@ -1799,6 +1957,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
             (index) => _moralisTokenTxItem(
               hash: '0xmoralis-token-$index',
               value: '2000000000000000000',
+              contractAddress: contractAddress,
               timestamp:
                   '2026-06-01T12:00:${index.toString().padLeft(2, '0')}Z',
               logIndex: index,
@@ -1833,6 +1992,46 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
       final owner = heliusOwner ?? '';
       final other = heliusRecipient ?? '';
       final mint = heliusMint ?? '';
+      if (heliusUseAccountData && mint.isEmpty) {
+        return _jsonResponse([
+          {
+            'signature': 'helius-sol-account-data',
+            'timestamp': 1700000000,
+            'slot': 123,
+            'fee': 5000,
+            'transactionError': null,
+            'nativeTransfers': [],
+            'accountData': [
+              {'account': owner, 'nativeBalanceChange': -250000000},
+            ],
+          },
+        ]);
+      }
+      if (heliusUseAccountData && mint.isNotEmpty) {
+        return _jsonResponse([
+          {
+            'signature': 'helius-token-account-data',
+            'timestamp': 1700000000,
+            'slot': 123,
+            'fee': 5000,
+            'transactionError': null,
+            'tokenTransfers': [],
+            'accountData': [
+              {
+                'account': owner,
+                'nativeBalanceChange': 0,
+                'tokenBalanceChanges': [
+                  {
+                    'userAccount': owner,
+                    'mint': mint,
+                    'rawTokenAmount': {'tokenAmount': '2500000', 'decimals': 6},
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
+      }
       if (mint.isNotEmpty) {
         final count = heliusFullPage ? 50 : 1;
         return _jsonResponse(

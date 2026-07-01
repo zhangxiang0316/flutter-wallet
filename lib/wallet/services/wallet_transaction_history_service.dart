@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
+import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
@@ -16,9 +17,11 @@ import 'wallet_transfer_service.dart';
 
 part 'transaction_history/transaction_history_provider_helpers.dart';
 part 'transaction_history/evm_transaction_history_provider.dart';
-part 'transaction_history/moralis_bsc_transaction_history_provider.dart';
+part 'transaction_history/moralis_evm_transaction_history_provider.dart';
 part 'transaction_history/tron_transaction_history_provider.dart';
 part 'transaction_history/solana_transaction_history_provider.dart';
+
+const int _transactionHistoryPageSize = 10;
 
 enum TransactionHistoryFailureKind { provider, rateLimited }
 
@@ -113,7 +116,7 @@ class WalletTransactionHistoryService {
       dio: _dio,
       apiConfig: _apiConfig,
     );
-    _moralisBscProvider = _MoralisBscTransactionHistoryProvider(
+    _moralisEvmProvider = _MoralisEvmTransactionHistoryProvider(
       dio: _dio,
       apiConfig: _apiConfig,
     );
@@ -133,7 +136,7 @@ class WalletTransactionHistoryService {
   final WalletHistoryApiConfig _apiConfig;
 
   late final _EvmTransactionHistoryProvider _evmProvider;
-  late final _MoralisBscTransactionHistoryProvider _moralisBscProvider;
+  late final _MoralisEvmTransactionHistoryProvider _moralisEvmProvider;
   late final _TronTransactionHistoryProvider _tronProvider;
   late final _SolanaTransactionHistoryProvider _solanaProvider;
 
@@ -158,13 +161,13 @@ class WalletTransactionHistoryService {
   }) async {
     final chain = asset.chainRef;
     if (chain.isEvm) {
-      final canUseMoralisBsc =
-          chain.id == WalletChain.bsc.id &&
+      final canUseMoralisEvm =
+          _moralisEvmProvider.supportsChain(chain) &&
           _apiConfig.hasMoralisApiKey &&
           (cursor == null || cursor.moralisCursor != null);
-      if (canUseMoralisBsc) {
+      if (canUseMoralisEvm) {
         try {
-          final result = await _moralisBscProvider.loadRecordPage(
+          final result = await _moralisEvmProvider.loadRecordPage(
             walletId: walletId,
             asset: asset,
             cursor: cursor,
@@ -174,7 +177,8 @@ class WalletTransactionHistoryService {
           }
         } catch (error) {
           developer.log(
-            'Moralis BSC history failed; falling back to EVM providers: $error',
+            'Moralis ${chain.name} history failed; '
+            'falling back to EVM providers: $error',
             name: 'WalletTransactionHistoryService',
           );
         }

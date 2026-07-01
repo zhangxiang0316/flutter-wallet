@@ -23,7 +23,6 @@ class WalletHistoryApiConfig {
   );
   static const String _moralisApiKey = String.fromEnvironment(
     'MORALIS_API_KEY',
-    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjVjMDVlNzYyLTFiYTItNGI3NS1iYzcxLWZkNjMxZjg5MTAwMiIsIm9yZ0lkIjoiNTIyNDE4IiwidXNlcklkIjoiNTM3NjM5IiwidHlwZUlkIjoiNWQ2MWViNDktZGYzMC00NWQ3LTkxNjgtZTNkN2VkNWE3ZmNmIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3ODI4OTA3NjgsImV4cCI6NDkzODY1MDc2OH0.gy9pZRHJbPMOuZ49papnKPQ-qbmwPeo1ETvcXiCezNo'
   );
   static const String _moralisBaseUrl = String.fromEnvironment(
     'MORALIS_BASE_URL',

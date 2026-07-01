@@ -1,8 +1,8 @@
 part of '../wallet_transaction_history_service.dart';
 
-class _MoralisBscTransactionHistoryProvider
+class _MoralisEvmTransactionHistoryProvider
     with _TransactionHistoryProviderHelpers {
-  _MoralisBscTransactionHistoryProvider({
+  _MoralisEvmTransactionHistoryProvider({
     required this.dio,
     required this.apiConfig,
   });
@@ -13,14 +13,25 @@ class _MoralisBscTransactionHistoryProvider
   @override
   final WalletHistoryApiConfig apiConfig;
 
-  static const int _historyLimit = 30;
-  static const String _chain = 'bsc';
+  static const int _historyLimit = _transactionHistoryPageSize;
+  static const Map<String, String> _supportedChains = {
+    'bsc': 'bsc',
+    'arbitrum': 'arbitrum',
+  };
+
+  bool supportsChain(WalletChainRef chain) {
+    return _supportedChains.containsKey(chain.id);
+  }
 
   Future<TransactionHistoryPageResult> loadRecordPage({
     required String walletId,
     required ChainBalance asset,
     TransactionHistoryCursor? cursor,
   }) async {
+    final moralisChain = _supportedChains[asset.chainRef.id];
+    if (moralisChain == null) {
+      throw StateError('${asset.chainRef.name} is not supported by Moralis');
+    }
     final moralisCursor = cursor?.moralisCursor;
     final baseUrl = apiConfig.moralisBaseUrl.trim().replaceAll(
       RegExp(r'/+$'),
@@ -30,7 +41,7 @@ class _MoralisBscTransactionHistoryProvider
         ? Uri.encodeComponent(asset.address)
         : '${Uri.encodeComponent(asset.address)}/erc20/transfers';
     final queryParameters = <String, dynamic>{
-      'chain': _chain,
+      'chain': moralisChain,
       'limit': _historyLimit,
       'order': 'DESC',
       if (moralisCursor != null && moralisCursor.isNotEmpty)
@@ -47,7 +58,7 @@ class _MoralisBscTransactionHistoryProvider
     );
     final data = response.data;
     if (data is! Map) {
-      throw StateError('Invalid Moralis BSC history response');
+      throw StateError('Invalid Moralis EVM history response');
     }
 
     final result = data['result'];
@@ -55,7 +66,7 @@ class _MoralisBscTransactionHistoryProvider
       final message =
           data['message']?.toString() ??
           data['error']?.toString() ??
-          'Invalid Moralis BSC history result';
+          'Invalid Moralis EVM history result';
       throw StateError(message);
     }
 

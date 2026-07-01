@@ -9,7 +9,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
   @override
   final WalletHistoryApiConfig apiConfig;
 
-  static const int _historyLimit = 30;
+  static const int _historyLimit = _transactionHistoryPageSize;
   static const int _bscExplorerPageSize = 100;
   static const int _bscExplorerMaxScanPages = 3;
   static const int _evmLogChunkSize = 50000;

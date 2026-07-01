@@ -14,7 +14,7 @@ HELIUS_API_KEY=your_helius_key
 MORALIS_API_KEY=your_moralis_key
 ```
 
-如果 `.env.local` 不存在，脚本仍会继续构建，但 EVM/TRON/Solana/BSC
+如果 `.env.local` 不存在，脚本仍会继续构建，但 EVM/TRON/Solana/BSC/Arbitrum
 交易历史会退回公共数据源，部分链的历史记录可能变慢或不完整。
 
 ### APK（直接安装）

@@ -13,7 +13,7 @@ class _SolanaTransactionHistoryProvider
   @override
   final WalletHistoryApiConfig apiConfig;
 
-  static const int _historyLimit = 30;
+  static const int _historyLimit = _transactionHistoryPageSize;
   static const int _heliusPageLimit = 50;
   static const int _heliusMaxScanPages = 3;
 
@@ -222,7 +222,12 @@ class _SolanaTransactionHistoryProvider
         ),
       );
     }
-    return records;
+    if (records.isNotEmpty) return records;
+    return _solanaHeliusNativeBalanceRecordsFromTransaction(
+      walletId: walletId,
+      asset: asset,
+      transaction: transaction,
+    );
   }
 
   List<WalletTransactionRecord> _solanaHeliusTokenRecordsFromTransaction({
@@ -261,6 +266,112 @@ class _SolanaTransactionHistoryProvider
           ),
         ),
       );
+    }
+    if (records.isNotEmpty) return records;
+    return _solanaHeliusTokenBalanceRecordsFromTransaction(
+      walletId: walletId,
+      asset: asset,
+      transaction: transaction,
+    );
+  }
+
+  List<WalletTransactionRecord>
+  _solanaHeliusNativeBalanceRecordsFromTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> transaction,
+  }) {
+    final accountData = transaction['accountData'];
+    if (accountData is! List) return const [];
+    final records = <WalletTransactionRecord>[];
+    for (var index = 0; index < accountData.length; index++) {
+      final item = accountData[index];
+      if (item is! Map || item['account']?.toString() != asset.address) {
+        continue;
+      }
+      final change =
+          BigInt.tryParse(item['nativeBalanceChange']?.toString() ?? '') ??
+          BigInt.zero;
+      if (change == BigInt.zero) continue;
+      final direction = change > BigInt.zero
+          ? WalletTransactionDirection.incoming
+          : WalletTransactionDirection.outgoing;
+      records.add(
+        _solanaRecord(
+          walletId: walletId,
+          asset: asset,
+          transaction: transaction,
+          index: index,
+          from: direction == WalletTransactionDirection.outgoing
+              ? asset.address
+              : '',
+          to: direction == WalletTransactionDirection.incoming
+              ? asset.address
+              : '',
+          amount: WalletTransferService.rawUnitsToAmount(change.abs(), 9),
+          decimals: 9,
+          direction: direction,
+        ),
+      );
+    }
+    return records;
+  }
+
+  List<WalletTransactionRecord>
+  _solanaHeliusTokenBalanceRecordsFromTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> transaction,
+  }) {
+    final accountData = transaction['accountData'];
+    if (accountData is! List) return const [];
+    final mint = asset.contractAddress?.trim() ?? '';
+    final records = <WalletTransactionRecord>[];
+    for (
+      var accountIndex = 0;
+      accountIndex < accountData.length;
+      accountIndex++
+    ) {
+      final item = accountData[accountIndex];
+      if (item is! Map) continue;
+      final changes = item['tokenBalanceChanges'];
+      if (changes is! List) continue;
+      for (var changeIndex = 0; changeIndex < changes.length; changeIndex++) {
+        final change = changes[changeIndex];
+        if (change is! Map) continue;
+        if (mint.isNotEmpty && change['mint']?.toString() != mint) continue;
+        if (!_solanaHeliusTokenChangeTouchesWallet(change, asset.address)) {
+          continue;
+        }
+        final amount = _solanaHeliusSignedTokenRawAmount(
+          change,
+          asset.decimals,
+        );
+        if (amount == null || amount == BigInt.zero) continue;
+        final direction = amount > BigInt.zero
+            ? WalletTransactionDirection.incoming
+            : WalletTransactionDirection.outgoing;
+        records.add(
+          _solanaRecord(
+            walletId: walletId,
+            asset: asset,
+            transaction: transaction,
+            index: accountIndex * 1000 + changeIndex,
+            from: direction == WalletTransactionDirection.outgoing
+                ? asset.address
+                : '',
+            to: direction == WalletTransactionDirection.incoming
+                ? asset.address
+                : '',
+            amount: WalletTransferService.rawUnitsToAmount(
+              amount.abs(),
+              _solanaHeliusTokenChangeDecimals(change, asset.decimals),
+            ),
+            decimals: _solanaHeliusTokenChangeDecimals(change, asset.decimals),
+            direction: direction,
+          ),
+        );
+      }
     }
     return records;
   }
@@ -319,6 +430,48 @@ class _SolanaTransactionHistoryProvider
     final value = transfer['tokenAmount'];
     if (value == null) return null;
     return _normalizeDecimalString(value.toString());
+  }
+
+  bool _solanaHeliusTokenChangeTouchesWallet(
+    Map<dynamic, dynamic> change,
+    String walletAddress,
+  ) {
+    final normalizedWallet = walletAddress.trim();
+    return change['userAccount']?.toString() == normalizedWallet ||
+        change['owner']?.toString() == normalizedWallet ||
+        change['account']?.toString() == normalizedWallet ||
+        change['tokenAccount']?.toString() == normalizedWallet;
+  }
+
+  BigInt? _solanaHeliusSignedTokenRawAmount(
+    Map<dynamic, dynamic> change,
+    int decimals,
+  ) {
+    final raw = change['rawTokenAmount'];
+    if (raw is Map) {
+      return BigInt.tryParse(raw['tokenAmount']?.toString() ?? '');
+    }
+    final nativeRaw = change['rawAmount'] ?? change['amount'];
+    final rawAmount = BigInt.tryParse(nativeRaw?.toString() ?? '');
+    if (rawAmount != null) return rawAmount;
+
+    final uiAmount = Decimal.tryParse(
+      change['tokenAmount']?.toString() ?? change['uiAmount']?.toString() ?? '',
+    );
+    if (uiAmount == null) return null;
+    final multiplier = Decimal.fromBigInt(BigInt.from(10).pow(decimals));
+    return BigInt.tryParse((uiAmount * multiplier).toStringAsFixed(0));
+  }
+
+  int _solanaHeliusTokenChangeDecimals(
+    Map<dynamic, dynamic> change,
+    int fallback,
+  ) {
+    final raw = change['rawTokenAmount'];
+    if (raw is Map) {
+      return int.tryParse(raw['decimals']?.toString() ?? '') ?? fallback;
+    }
+    return int.tryParse(change['decimals']?.toString() ?? '') ?? fallback;
   }
 
   String? _solanaHeliusFeeAmount(Map<dynamic, dynamic> transaction) {
