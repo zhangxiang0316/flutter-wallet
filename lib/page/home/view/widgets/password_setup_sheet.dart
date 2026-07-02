@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
-import '../../../../wallet/services/wallet_backup_status_service.dart';
+import '../../../../wallet/services/config/wallet_backup_status_service.dart';
 import '../../controller/home_controller.dart';
 import 'wallet_sheet_styles.dart';
 

@@ -4,9 +4,9 @@ import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_account.dart';
-import '../../../wallet/services/wallet_backup_status_service.dart';
+import '../../../wallet/services/config/wallet_backup_status_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
-import '../../../wallet/services/wallet_secret_store.dart';
+import '../../../wallet/services/crypto/wallet_secret_store.dart';
 
 /// 钱包详情页控制器。
 ///

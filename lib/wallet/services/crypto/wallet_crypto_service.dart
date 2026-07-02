@@ -12,7 +12,7 @@ import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/api.dart' as pc;
 
-import '../constants/crypto_constants.dart';
+import '../../constants/crypto_constants.dart';
 
 /// 钱包密钥和地址派生服务。
 ///

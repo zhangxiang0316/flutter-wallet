@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:omnicast/wallet/services/wallet_backup_status_service.dart';
+import 'package:omnicast/wallet/services/config/wallet_backup_status_service.dart';
 
 void main() {
   group('WalletBackupStatusService', () {

@@ -6,8 +6,8 @@ import 'package:solana/solana.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
-import 'wallet_chain_config_service.dart';
-import 'wallet_custom_asset_service.dart';
+import 'config/wallet_chain_config_service.dart';
+import 'config/wallet_custom_asset_service.dart';
 
 part 'balance/chain_balance_routes.dart';
 part 'balance/evm_chain_balance.dart';

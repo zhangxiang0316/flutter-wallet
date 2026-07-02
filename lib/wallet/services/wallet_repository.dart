@@ -1,7 +1,7 @@
 import '../../utils/storage.dart';
 import '../models/wallet_account.dart';
-import 'wallet_crypto_service.dart';
-import 'wallet_secret_store.dart';
+import 'crypto/wallet_crypto_service.dart';
+import 'crypto/wallet_secret_store.dart';
 
 /// 钱包仓储服务。
 ///

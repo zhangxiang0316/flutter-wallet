@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-import '../models/wallet_chain.dart';
+import '../../models/wallet_chain.dart';
 
 /// 单个 RPC 节点健康检查结果。
 class WalletRpcHealthResult {

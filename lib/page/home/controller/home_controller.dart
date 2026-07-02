@@ -12,12 +12,12 @@ import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/asset_valuation_service.dart';
 import '../../../wallet/services/chain_balance_cache.dart';
 import '../../../wallet/services/chain_balance_service.dart';
-import '../../../wallet/services/wallet_asset_visibility_service.dart';
-import '../../../wallet/services/wallet_backup_status_service.dart';
-import '../../../wallet/services/wallet_chain_config_service.dart';
-import '../../../wallet/services/wallet_crypto_service.dart';
+import '../../../wallet/services/config/wallet_asset_visibility_service.dart';
+import '../../../wallet/services/config/wallet_backup_status_service.dart';
+import '../../../wallet/services/config/wallet_chain_config_service.dart';
+import '../../../wallet/services/crypto/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
-import '../../../wallet/services/wallet_secret_store.dart';
+import '../../../wallet/services/crypto/wallet_secret_store.dart';
 
 /// 首页控制器。
 ///

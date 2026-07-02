@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../generated/l10n.dart';
-import '../../../../wallet/services/wallet_rpc_health_service.dart';
+import '../../../../wallet/services/config/wallet_rpc_health_service.dart';
 
 /// RPC 连接状态标签。
 ///

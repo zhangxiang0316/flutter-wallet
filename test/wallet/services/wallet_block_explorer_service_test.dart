@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
-import 'package:omnicast/wallet/services/wallet_block_explorer_service.dart';
+import 'package:omnicast/wallet/services/transaction/wallet_block_explorer_service.dart';
 
 void main() {
   group('WalletBlockExplorerService', () {

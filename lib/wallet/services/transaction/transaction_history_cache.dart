@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/wallet_transaction_record.dart';
+import '../../models/wallet_transaction_record.dart';
 
 /// 交易历史缓存服务。
 ///

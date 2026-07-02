@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
-import '../models/wallet_chain.dart';
-import '../models/wallet_transaction_record.dart';
+import '../../models/wallet_chain.dart';
+import '../../models/wallet_transaction_record.dart';
 
 /// 单笔交易状态查询服务。
 ///

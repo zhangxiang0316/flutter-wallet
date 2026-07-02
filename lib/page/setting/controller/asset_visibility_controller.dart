@@ -5,9 +5,9 @@ import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_asset.dart';
 import '../../../wallet/models/wallet_chain.dart';
-import '../../../wallet/services/wallet_asset_visibility_service.dart';
-import '../../../wallet/services/wallet_chain_config_service.dart';
-import '../../../wallet/services/wallet_custom_asset_service.dart';
+import '../../../wallet/services/config/wallet_asset_visibility_service.dart';
+import '../../../wallet/services/config/wallet_chain_config_service.dart';
+import '../../../wallet/services/config/wallet_custom_asset_service.dart';
 import '../../home/controller/home_controller.dart';
 
 /// 资产显示设置控制器。

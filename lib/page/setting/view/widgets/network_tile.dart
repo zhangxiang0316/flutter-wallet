@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/wallet_chain.dart';
-import '../../../../wallet/services/wallet_rpc_health_service.dart';
+import '../../../../wallet/services/config/wallet_rpc_health_service.dart';
 import 'network_status_widgets.dart';
 import 'network_styles.dart';
 

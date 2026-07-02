@@ -7,7 +7,7 @@ import '../../../generated/route_table.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_transaction_record.dart';
-import '../../../wallet/services/wallet_block_explorer_service.dart';
+import '../../../wallet/services/transaction/wallet_block_explorer_service.dart';
 import '../../browser/controller/block_explorer_controller.dart';
 
 /// 交易详情页面参数。

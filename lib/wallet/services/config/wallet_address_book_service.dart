@@ -1,5 +1,5 @@
-import '../../utils/storage.dart';
-import '../models/wallet_address_book_entry.dart';
+import '../../../utils/storage.dart';
+import '../../models/wallet_address_book_entry.dart';
 
 /// 本地地址簿服务。
 class WalletAddressBookService {

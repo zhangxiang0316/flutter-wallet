@@ -1,5 +1,5 @@
-import '../models/chain_balance.dart';
-import '../models/wallet_chain.dart';
+import '../../models/chain_balance.dart';
+import '../../models/wallet_chain.dart';
 
 /// 区块浏览器地址构造服务。
 ///

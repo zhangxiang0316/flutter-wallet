@@ -1,4 +1,4 @@
-import '../../utils/storage.dart';
+import '../../../utils/storage.dart';
 
 /// 钱包助记词备份状态服务。
 class WalletBackupStatusService {
