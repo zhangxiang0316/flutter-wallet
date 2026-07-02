@@ -1,489 +1,270 @@
 # Flutter Wallet
 
-<div align="center">
-  <img src="assets/images/app_icon.png" alt="Omnicast Wallet" width="120" height="120" />
-  
-  <p>
-    <strong>一个现代化、安全、高性能的多链加密货币钱包</strong>
-  </p>
-  
-  <p>
-    <img src="https://img.shields.io/badge/Flutter-3.24+-blue.svg" alt="Flutter" />
-    <img src="https://img.shields.io/badge/Dart-3.5+-blue.svg" alt="Dart" />
-    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
-  </p>
-</div>
+一个基于 Flutter + GetX 的多链本地热钱包。项目当前定位为测试和学习用途，覆盖钱包创建/导入、多链资产、转账收款、交易历史、网络管理、资产显示控制、主题和语言切换等核心能力。
 
----
+English: [README_EN.md](./README_EN.md)
 
-## ✨ 功能特性
+## 功能清单
 
-### 🆕 新增功能
+### 钱包与安全
 
-#### Phase 1: 安全转账审查 ✅
-- **智能风险检测** - 大额转账、新地址、高手续费警告
-- **两步确认** - 审查交易详情后再签名
-- **交易预览** - 清晰显示转账信息、金额和手续费
+- 创建钱包：生成 12 位助记词。
+- 导入钱包：支持助记词和私钥导入。
+- 多钱包管理：支持新增、切换、重命名和删除钱包。
+- 多链地址：同一钱包派生 EVM、TRON、Solana 地址。
+- 本地加密：助记词和私钥使用钱包密码加密后存储在设备本地。
+- 敏感操作校验：查看私钥/助记词、转账签名等操作需要密码验证。
+- 密码缓存设置：支持配置密码缓存时长。
+- 备份状态：记录助记词是否已备份，并在钱包详情中展示。
 
-#### Phase 2: 消息签名 ✅
-- **EIP-191/EIP-712** - Ethereum 标准消息签名
-- **Solana/TRON** - 多链消息签名支持
-- **精美确认界面** - 清晰展示签名内容
+### 支持的链
 
-### 🔐 安全性
-- ✅ **生物识别认证** - 支持指纹和面容识别
-- ✅ **密码缓存控制** - 用户可自定义密码缓存时间（5分钟/30分钟/永不）
-- ✅ **截屏保护** - 敏感页面自动禁用截屏
-- ✅ **加密存储** - 助记词和私钥本地加密存储
-- ✅ **安全警告** - 导出私钥前的多重确认
+内置链：
 
-### ⚡ 性能优化
-- ✅ **骨架屏加载** - 优化感知性能 +40%
-- ✅ **交易历史缓存与分页** - 速度提升 10-100x
-  - 首次加载：1-3秒（原 10-30秒）
-  - 重复查看：0.1秒（原 10-30秒）
-  - 离线可查看历史记录
-- ✅ **交易历史数据源升级** - 支持 Etherscan V2 / TronGrid API Key
-  - EVM 链优先使用 Etherscan V2 多链接口
-  - TRON 请求自动携带 TronGrid API Key
-  - Arbitrum 避免长时间 RPC logs 扫块，使用短超时兜底
-- ✅ **图片缓存** - 减少网络请求，节省流量 70%
-- ✅ **智能错误处理** - 自动重试机制，成功率 +60%
+- Ethereum
+- BNB Smart Chain
+- Arbitrum
+- X Layer
+- Solana
+- TRON
 
-### 🌐 多链支持
-- ✅ **EVM 兼容链**
-  - Ethereum (ETH)
-  - BSC (BNB)
-  - Polygon (MATIC)
-  - Arbitrum (ARB)
-  - Optimism (OP)
-  - Base
-- ✅ **Solana (SOL)**
-- ✅ **TRON (TRX)**
+网络管理：
 
-### 🎨 用户体验
-- ✅ **首次启动引导** - 友好的新用户体验
-- ✅ **亮色/暗色主题** - 自动跟随系统或手动切换
-- ✅ **紧凑 UI 设计** - 优化空间利用，视觉专业
-- ✅ **多语言支持** - 中文 / English
-- ✅ **流畅动画** - 细腻的交互反馈
+- 支持编辑内置链 RPC 列表。
+- 支持添加自定义 EVM 网络。
+- 支持 RPC 延迟检测、可用性检测和手动测速。
+- 支持启用、禁用、编辑和删除自定义网络。
 
-### 💰 核心功能
-- ✅ **多钱包管理** - 创建/导入/切换多个钱包
-- ✅ **资产概览** - 实时显示总资产估值（USD）
-- ✅ **转账收款** - 支持所有主流链
-- ✅ **交易历史** - 完整的交易记录查询
-- ✅ **Token 管理** - 自动识别和管理代币
+### 资产与余额
 
----
+- 首页按链展示资产。
+- 支持原生币和默认 Token 余额查询。
+- 支持添加自定义 Token。
+- 自定义 EVM Token 自动读取 symbol/name/decimals。
+- 支持 Token logo 和热门 Token 快速添加。
+- 支持隐藏 0 余额资产。
+- 支持本地余额缓存，先显示缓存再后台刷新。
+- 支持 USD 估值，价格源包含 Binance、OKX、CoinGecko、DeFiLlama、CoinPaprika、CryptoCompare 等兜底路径。
 
-## 📱 截图预览
+### 转账与收款
 
-<div align="center">
-  <table>
-    <tr>
-      <td><img src="docs/1.jpg" width="200" alt="首页" /></td>
-      <td><img src="docs/2.jpg" width="200" alt="钱包切换" /></td>
-      <td><img src="docs/3.jpg" width="200" alt="钱包管理" /></td>
-      <td><img src="docs/4.jpg" width="200" alt="转账" /></td>
-    </tr>
-    <tr>
-      <td align="center">首页</td>
-      <td align="center">钱包切换</td>
-      <td align="center">钱包管理</td>
-      <td align="center">转账</td>
-    </tr>
-  </table>
+- 支持 EVM 原生币和 ERC20 转账。
+- 支持 TRON TRX 和 TRC20 转账。
+- 支持 Solana SOL 和 SPL Token 转账。
+- 支持收款二维码和地址复制。
+- 支持扫码填充转账地址。
+- 转账前进行安全检查：地址格式、金额、余额、手续费、大额转账、新地址等。
+- 转账提交后记录本地 pending 交易，并支持交易状态刷新。
+- 交易详情支持跳转区块浏览器。
 
-  <table>
-    <tr>
-      <td><img src="docs/5.jpg" width="200" alt="收款" /></td>
-      <td><img src="docs/6.jpg" width="200" alt="交易历史" /></td>
-      <td><img src="docs/7.jpg" width="200" alt="设置" /></td>
-      <td><img src="docs/8.jpg" width="200" alt="资产管理" /></td>
-    </tr>
-    <tr>
-      <td align="center">收款</td>
-      <td align="center">交易历史</td>
-      <td align="center">设置</td>
-      <td align="center">资产管理</td>
-    </tr>
-  </table>
+### 交易历史
 
-  <table>
-    <tr>
-      <td><img src="docs/9.jpg" width="200" alt="网络管理" /></td>
-      <td><img src="docs/10.jpg" width="200" alt="主题切换" /></td>
-      <td><img src="docs/11.jpg" width="200" alt="语言切换" /></td>
-      <td><img src="docs/12.jpg" width="200" alt="钱包详情" /></td>
-    </tr>
-    <tr>
-      <td align="center">网络管理</td>
-      <td align="center">主题切换</td>
-      <td align="center">语言切换</td>
-      <td align="center">钱包详情</td>
-    </tr>
-  </table>
+- 默认每页加载 10 条，支持加载更多。
+- 支持本地缓存，优先展示缓存记录。
+- 支持本地 pending 交易与链上记录合并展示。
+- EVM 数据源：
+  - BSC 和 Arbitrum 优先使用 Moralis。
+  - Ethereum 支持 Etherscan V2 和 Blockscout 兜底。
+  - X Layer Token 交易通过 RPC logs 分页兜底；X Layer 原生 OKB 交易需要 indexer，普通 RPC 无法完整查询。
+- Solana 数据源：
+  - 配置 Helius 后优先使用 Helius Enhanced Transactions。
+  - 支持 SOL 和 SPL Token。
+  - 支持 `nativeTransfers`、`tokenTransfers` 以及 `accountData` 余额变化解析。
+  - Helius 不可用时回退 Solana RPC。
+- TRON 数据源：
+  - 配置 TronGrid API Key 后请求会携带 `TRON-PRO-API-KEY`。
+  - 支持 TRX 和 TRC20 历史记录。
 
-  <table>
-    <tr>
-      <td><img src="docs/13.jpg" width="200" alt="私钥查看" /></td>
-      <td><img src="docs/14.jpg" width="200" alt="助记词" /></td>
-      <td><img src="docs/15.jpg" width="200" alt="创建钱包" /></td>
-      <td><img src="docs/16.jpg" width="200" alt="导入钱包" /></td>
-    </tr>
-    <tr>
-      <td align="center">私钥查看</td>
-      <td align="center">助记词</td>
-      <td align="center">创建钱包</td>
-      <td align="center">导入钱包</td>
-    </tr>
-  </table>
+### 用户体验
 
-  <table>
-    <tr>
-      <td><img src="docs/17.jpg" width="200" alt="扫码" /></td>
-    </tr>
-    <tr>
-      <td align="center">扫码</td>
-    </tr>
-  </table>
-</div>
+- 中文和英文国际化。
+- 亮色/暗色主题切换。
+- 地址簿管理。
+- 内置区块浏览器 WebView，支持返回、前进、刷新、复制链接和外部浏览器打开。
+- 资产显示管理。
+- 网络管理页面。
 
----
+## API Key 与环境变量
 
-## 🚀 快速开始
+交易历史在没有 API Key 时会尽量走公共 RPC 或公开 Explorer 兜底，但稳定性和完整性会下降。建议开发和测试时配置 `.env.local`。
 
-### 前置要求
+### 创建本地配置
 
-- **Flutter SDK**: 3.24.0 或更高版本
-- **Dart SDK**: 3.5.0 或更高版本
-- **Android Studio** 或 **Xcode**（用于构建）
-
-### 安装步骤
-
-1. **克隆项目**
-   ```bash
-   git clone https://github.com/zhangxiang0316/flutter-wallet.git
-   cd flutter-wallet
-   ```
-
-2. **安装依赖**
-   ```bash
-   flutter pub get
-   ```
-
-3. **生成代码**（路由和 JSON 序列化）
-   ```bash
-   flutter pub run build_runner build
-   ```
-
-4. **配置交易历史 API Key**（推荐）
-
-   复制示例配置并填写本地 key：
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   `.env.local` 支持：
-
-   ```bash
-   ETHERSCAN_API_KEY=your_etherscan_v2_key
-   TRONGRID_API_KEY=your_trongrid_key
-   HELIUS_API_KEY=your_helius_key
-   MORALIS_API_KEY=your_moralis_key
-   ```
-
-   `.env.local` 已被 `.gitignore` 忽略，不要提交真实 key。
-
-5. **运行应用**
-   ```bash
-   # 开发模式（不注入交易历史 API Key）
-   flutter run
-
-   # 推荐：读取 .env.local 并注入交易历史 API Key
-   scripts/flutter_run_with_env.sh
-   
-   # 发布模式
-   flutter run --release
-   ```
-
-### 构建发布包
-
-#### Android
 ```bash
-# 推荐：脚本会读取 .env.local 并注入交易历史 API Key
-scripts/build_android.sh
+cp .env.example .env.local
+```
 
-# 或构建 App Bundle
+`.env.local` 支持：
+
+```bash
+ETHERSCAN_API_KEY=your_etherscan_v2_key
+TRONGRID_API_KEY=your_trongrid_key
+HELIUS_API_KEY=your_helius_key
+MORALIS_API_KEY=your_moralis_key
+```
+
+### 变量用途和申请地址
+
+| 变量 | 用途 | 申请位置 |
+|------|------|----------|
+| `ETHERSCAN_API_KEY` | Ethereum 等 EVM Explorer API；Etherscan V2 使用同一个 key 通过 `chainid` 区分多链 | Etherscan 注册账号后，在 API Dashboard 创建 key：https://etherscan.io/myapikey |
+| `TRONGRID_API_KEY` | TRON/TRC20 历史记录和 TRON API 稳定访问 | TronGrid Dashboard：https://www.trongrid.io |
+| `HELIUS_API_KEY` | Solana/SPL 交易历史，优先使用 Helius Enhanced Transactions | Helius Dashboard：https://dashboard.helius.dev |
+| `MORALIS_API_KEY` | BSC 和 Arbitrum 原生交易、ERC20/BEP20 Token 历史记录 | Moralis Dashboard：https://admin.moralis.com |
+
+### 运行时注入
+
+推荐使用项目脚本读取 `.env.local`：
+
+```bash
+scripts/flutter_run_with_env.sh
+```
+
+Android 构建脚本也会读取 `.env.local`：
+
+```bash
+scripts/build_android.sh
 scripts/build_android_bundle.sh
 ```
 
-#### iOS
+如果你直接在 Android Studio 点 Run，`.env.local` 不会自动生效，需要在 Run Configuration 的 Additional run args 中手动添加：
+
 ```bash
-flutter pub run flutter_launcher_icons:main
-flutter clean
+--dart-define=ETHERSCAN_API_KEY=...
+--dart-define=TRONGRID_API_KEY=...
+--dart-define=HELIUS_API_KEY=...
+--dart-define=MORALIS_API_KEY=...
+```
+
+注意：
+
+- `.env.local` 已被 `.gitignore` 忽略，不要提交真实 key。
+- 不要把真实 API Key 写入 Dart 源码、README 或测试文件。
+- `String.fromEnvironment` 只在启动/编译时读取，修改 `.env.local` 后必须完全重启或重新打包，Hot Reload 不会更新 key。
+
+## 快速开始
+
+### 环境要求
+
+- Flutter SDK 3.24 或更高版本
+- Dart SDK 3.5 或更高版本
+- Android Studio 或 Xcode
+
+### 安装依赖
+
+```bash
+flutter pub get
+```
+
+### 生成代码
+
+```bash
+flutter pub run build_runner build
+flutter pub run intl_utils:generate
+```
+
+### 运行
+
+```bash
+flutter run
+
+# 推荐：带 API key 注入
+scripts/flutter_run_with_env.sh
+```
+
+### 构建
+
+```bash
+# Android APK
+scripts/build_android.sh
+
+# Android App Bundle
+scripts/build_android_bundle.sh
+
+# iOS
 flutter build ipa --release
 ```
 
----
+## 项目结构
 
-## 🏗️ 项目架构
-
-### 技术栈
-- **框架**: Flutter 3.24+
-- **状态管理**: GetX
-- **路由**: GetX + build_runner（注解驱动）
-- **网络**: Dio
-- **存储**: SharedPreferences + flutter_secure_storage
-- **国际化**: flutter_localizations + intl
-
-### 目录结构
-```
+```text
 lib/
-├── base/                      # 基类（BaseController, BasePage）
-├── common/                    # 通用工具
-│   ├── net/                  # 网络层（DioClient）
-│   ├── theme/                # 主题配置
-│   └── utils/                # 工具类
-├── generated/                 # 自动生成的代码
-│   ├── l10n/                 # 国际化文本
-│   └── route_table.dart      # 路由表
-├── models/                    # 数据模型
-├── page/                      # 页面模块
-│   ├── home/                 # 首页
-│   ├── wallet/               # 钱包管理
-│   ├── transfer/             # 转账
-│   ├── transaction/          # 交易历史
-│   └── setting/              # 设置
-├── wallet/                    # 钱包核心服务
-│   ├── models/               # 钱包模型
-│   ├── services/             # 钱包服务
-│   │   ├── balance/          # 余额查询
-│   │   ├── transaction/      # 交易处理
-│   │   └── transaction_history/  # 交易历史
-│   └── utils/                # 钱包工具
-└── widget/                    # 通用组件
+├── base/                         # BaseController / BasePage
+├── common/                       # 通用主题、网络和模型
+├── generated/                    # 生成的路由和国际化代码
+├── l10n/                         # ARB 国际化源文件
+├── page/                         # 页面、Controller、Widget
+├── utils/                        # 通用工具
+├── widget/                       # 通用组件
+└── wallet/
+    ├── constants/                # 钱包常量
+    ├── models/                   # 钱包和链模型
+    ├── utils/                    # 钱包工具
+    └── services/
+        ├── balance/              # 余额查询 part 实现
+        ├── config/               # 链配置、地址簿、自定义资产、显示设置
+        ├── crypto/               # 密钥派生和安全存储
+        ├── transaction/          # 交易缓存、区块浏览器、交易状态
+        ├── transaction_history/  # 交易历史 Provider
+        ├── transfer/             # 转账 part 实现
+        ├── chain_balance_service.dart
+        ├── wallet_repository.dart
+        ├── wallet_transfer_service.dart
+        └── wallet_transaction_history_service.dart
 ```
 
-### 核心架构模式
-
-#### 1. 基类层级
-所有页面和控制器继承自基类，提供统一的生命周期管理：
-
-```dart
-BaseController (GetX SuperController)
-    ├── PageLifeState mixin (生命周期钩子)
-    └── EventBus (事件总线)
-
-BasePage<T> (GetView<T>)
-    └── BaseScaffoldPage<T> (带 Scaffold 结构)
-```
-
-#### 2. 路由系统
-使用注解驱动的路由生成：
-
-```dart
-@GetXRoutePage('/home')
-class HomePage extends BaseScaffoldPage<HomeController> { }
-```
-
-运行 `flutter pub run build_runner build` 自动生成路由表。
-
-#### 3. 状态管理
-使用 GetX 响应式变量和控制器：
-
-```dart
-class HomeController extends BaseController {
-  final totalAssets = 0.0.obs;  // 响应式变量
-  
-  void updateAssets() {
-    totalAssets.value = calculateTotal();  // 自动更新 UI
-  }
-}
-```
-
-#### 4. 网络层
-封装的 Dio 客户端，统一错误处理：
-
-```dart
-final client = DioClient();
-final response = await client.get('/api/balance');
-```
-
----
-
-## 🔑 API 密钥配置
-
-交易历史默认可以使用公共 RPC/Explorer 兜底，但生产或稳定测试建议配置 API Key。
-
-### 本地配置
-
-1. 复制配置模板：
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-2. 填写本地密钥：
-
-   ```bash
-   ETHERSCAN_API_KEY=your_etherscan_v2_key
-   TRONGRID_API_KEY=your_trongrid_key
-   HELIUS_API_KEY=your_helius_key
-   MORALIS_API_KEY=your_moralis_key
-   ```
-
-3. 使用带环境注入的运行脚本：
-
-   ```bash
-   scripts/flutter_run_with_env.sh
-   ```
-
-### 支持的数据源
-
-- **Etherscan V2**：用于 EVM 链交易历史。内置 EVM 链会优先使用 `https://api.etherscan.io/v2/api`，并通过 `chainid` 区分 Ethereum、BSC、Arbitrum 等链。
-- **TronGrid**：用于 TRON/TRC20 交易历史。配置后请求会自动携带 `TRON-PRO-API-KEY`。
-- **Helius**：用于 Solana/SPL 交易历史。配置 `HELIUS_API_KEY` 后会优先使用 Helius Enhanced Transactions，支持 SOL 和 SPL token 分页；未配置或数据源失败时回退到 Solana RPC。
-- **Moralis**：用于 BSC 和 Arbitrum 交易历史。配置 `MORALIS_API_KEY` 后会优先查询 Moralis 的原生交易和 ERC20/BEP20 Token 转账，并使用 cursor 做分页；Moralis 失败时回退到现有 EVM/RPC 数据源。
-- **Solana RPC**：作为 Helius 不可用时的兜底路径，公共 RPC 可能限流或超时，不建议作为主要历史记录数据源。
-
-### 注意事项
-
-- 不要把真实 API Key 写入 Dart 源码或 README。
-- `.env.local` 已被 `.gitignore` 忽略。
-- `String.fromEnvironment` 只在启动/编译时读取，修改 `.env.local` 后必须重新运行或重新打包，Hot Reload 不会生效。
-- 如果 Arbitrum 历史记录很慢或直接为空，先确认日志中出现：
-
-  ```text
-  Using Etherscan V2 history provider for Arbitrum chainId=42161
-  ```
-
----
-
-## 🧪 测试
+## 常用命令
 
 ```bash
-# 运行所有测试
+flutter pub get
+dart format lib test
+flutter analyze
 flutter test
-
-# 运行单个测试文件
-flutter test test/widget_test.dart
-
-# 生成测试覆盖率报告
-flutter test --coverage
+flutter test test/wallet_crypto_service_test.dart
+flutter pub run build_runner build
+flutter pub run intl_utils:generate
 ```
 
----
+## 测试
 
-## 📖 开发指南
+当前测试重点覆盖：
 
-### 添加新的链支持
+- 钱包密钥派生和地址生成
+- 地址簿
+- 助记词备份状态
+- 区块浏览器链接
+- 余额与自定义资产逻辑
+- 转账编码和提交逻辑
+- BSC / Arbitrum / X Layer / TRON / Solana 交易历史 Provider
 
-1. 在 `lib/wallet/models/wallet_chain.dart` 添加链定义
-2. 实现对应的 TransactionProvider
-3. 在 `TransactionHistoryService` 中注册
+## 安全说明
 
-### 添加新页面
+这是本地热钱包项目，不等同于硬件钱包或多签钱包。开发和测试时请注意：
 
-1. 在 `lib/page/` 下创建模块目录
-2. 创建 Controller（继承 `BaseController`）
-3. 创建 Page（继承 `BasePage` 或 `BaseScaffoldPage`）
-4. 添加 `@GetXRoutePage` 注解
-5. 运行 `flutter pub run build_runner build`
+- 不要提交真实私钥、助记词、API Key 或生产钱包数据。
+- 不要在日志中打印私钥、助记词、签名材料。
+- 转账相关代码属于高风险逻辑，修改后必须重点验证地址、金额、链选择、手续费和错误处理。
+- 建议使用测试钱包和少量资金验证。
 
-### 国际化
+## 当前限制
 
-1. 编辑 `lib/l10n/intl_en.arb`（英文）和 `intl_zh.arb`（中文）
-2. 运行 `flutter pub run build_runner build`
-3. 使用 `S.of(context).yourKey` 访问
+- 动态添加网络目前只支持 EVM 兼容链。
+- Solana/TRON 作为内置链存在，暂不支持用户动态添加同类网络。
+- X Layer 原生 OKB 历史记录缺少稳定 indexer，普通 RPC 无法完整查询地址历史。
+- 资产估值和交易历史依赖第三方 API，可用性受 API 限流、套餐和服务状态影响。
 
----
+## 截图
 
-## 🤝 贡献指南
+截图位于 `docs/` 目录：
 
-我们欢迎所有形式的贡献！
+| 首页 | 钱包切换 | 钱包管理 | 转账 |
+|------|----------|----------|------|
+| <img src="docs/1.jpg" width="180"> | <img src="docs/2.jpg" width="180"> | <img src="docs/3.jpg" width="180"> | <img src="docs/4.jpg" width="180"> |
 
-### 贡献方式
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'feat: add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+| 收款 | 交易历史 | 设置 | 资产管理 |
+|------|----------|------|----------|
+| <img src="docs/5.jpg" width="180"> | <img src="docs/6.jpg" width="180"> | <img src="docs/7.jpg" width="180"> | <img src="docs/8.jpg" width="180"> |
 
-### 提交规范
-我们使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+## 许可证
 
-- `feat`: 新功能
-- `fix`: 修复 Bug
-- `refactor`: 重构代码
-- `docs`: 文档更新
-- `test`: 添加测试
-- `chore`: 构建/工具变动
-- `perf`: 性能优化
-
----
-
-## 📋 更新日志
-
-### v1.0.0 (2024-06-14)
-
-#### ✨ 新功能
-- 🎉 完整的多链钱包功能
-- 🔐 生物识别认证
-- 💰 实时资产估值
-- 📊 交易历史查询
-- 🌓 亮色/暗色主题
-- 🌍 多语言支持（中文/英文）
-
-#### ⚡ 性能优化
-- 骨架屏加载（感知性能 +40%）
-- 交易历史缓存（速度 +10-100x）
-- 智能错误处理（成功率 +60%）
-- 紧凑 UI 设计（空间节省 30%）
-
-#### 🔧 技术改进
-- 使用 GetX 状态管理
-- 注解驱动的路由系统
-- 完善的错误处理机制
-- 类型安全的代码实现
-
----
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
----
-
-## 📞 联系方式
-
-- **项目主页**: https://github.com/zhangxiang0316/flutter-wallet
-- **问题反馈**: https://github.com/zhangxiang0316/flutter-wallet/issues
-- **作者**: Zhang Xiang - [GitHub](https://github.com/zhangxiang0316)
-
----
-
-## 🙏 致谢
-
-感谢以下开源项目：
-
-- [Flutter](https://flutter.dev/) - Google 的 UI 工具包
-- [GetX](https://pub.dev/packages/get) - 状态管理和路由
-- [Dio](https://pub.dev/packages/dio) - HTTP 客户端
-- [web3dart](https://pub.dev/packages/web3dart) - Ethereum 客户端
-- [bip39](https://pub.dev/packages/bip39) - 助记词生成
-
-以及所有贡献者！
-
----
-
-<div align="center">
-  <p>
-    用 ❤️ 和 Flutter 构建
-  </p>
-  <p>
-    如果这个项目对你有帮助，请给我们一个 ⭐️
-  </p>
-</div>
+本项目仅用于学习和研究。
