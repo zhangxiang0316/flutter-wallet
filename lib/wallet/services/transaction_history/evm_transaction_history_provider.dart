@@ -23,33 +23,6 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
   static const String _evmTransferEventTopic =
       CryptoConstants.evmTransferEventTopic;
 
-  static const Map<String, String> _evmExplorerApiUrls = {
-    'bsc': 'https://api.bscscan.com/api',
-    'ethereum': 'https://api.etherscan.io/api',
-  };
-
-  static const String _etherscanV2ApiUrl = 'https://api.etherscan.io/v2/api';
-
-  static const Map<String, List<String>> _evmBlockscoutBaseUrls = {
-    'ethereum': ['https://eth.blockscout.com'],
-  };
-
-  static const Map<String, List<String>> _evmRpcFallbacks = {
-    'bsc': [
-      'https://bsc-dataseed.bnbchain.org',
-      'https://bsc-rpc.publicnode.com',
-    ],
-    'ethereum': [
-      'https://ethereum-rpc.publicnode.com',
-      'https://eth.llamarpc.com',
-    ],
-    'x-layer': ['https://rpc.xlayer.tech', 'https://xlayerrpc.okx.com'],
-    'arbitrum': [
-      'https://arb1.arbitrum.io/rpc',
-      'https://arbitrum-one-rpc.publicnode.com',
-    ],
-  };
-
   Future<TransactionHistoryPageResult> loadRecordPage({
     required String walletId,
     required ChainBalance asset,
@@ -67,7 +40,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       );
     }
 
-    for (final provider in _evmHistoryProviders(asset.chainRef)) {
+    for (final provider in this._evmHistoryProviders(asset.chainRef)) {
       if (cursor?.evmPage != null &&
           provider.type != _EvmHistoryProviderType.etherscanCompatible) {
         continue;
@@ -255,7 +228,8 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
           'page': currentPage,
           'offset': requestLimit,
           'sort': 'desc',
-          if (_isEtherscanV2Api(apiUrl) && asset.chainRef.evmChainId != null)
+          if (this._isEtherscanV2Api(apiUrl) &&
+              asset.chainRef.evmChainId != null)
             'chainid': asset.chainRef.evmChainId,
           if (normalizedApiKey.isNotEmpty) 'apikey': normalizedApiKey,
         },
@@ -345,7 +319,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     required ChainBalance asset,
     String? cursor,
   }) async {
-    final apiBase = _blockscoutApiBase(baseUrl);
+    final apiBase = this._blockscoutApiBase(baseUrl);
     final path = asset.isNative ? 'transactions' : 'token-transfers';
     var queryParameters =
         _decodeBlockscoutCursor(cursor) ??
@@ -819,7 +793,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     try {
       final data = await RpcRetryHelper.executeJsonRpc(
         dio: dio,
-        rpcUrls: _evmRpcUrls(chain),
+        rpcUrls: this._evmRpcUrls(chain),
         method: method,
         params: params,
         chainName: chain.name,
@@ -912,134 +886,5 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     final normalizedLeft = _normalizeEvmCompareAddress(left);
     final normalizedRight = _normalizeEvmCompareAddress(right);
     return normalizedLeft.isNotEmpty && normalizedLeft == normalizedRight;
-  }
-
-  List<String> _evmRpcUrls(WalletChainRef chain) {
-    final fallback = _evmRpcFallbacks[chain.id] ?? const [];
-    if (chain is WalletChainConfig) {
-      return _mergeUrls(chain.rpcUrls, fallback);
-    }
-    return _mergeUrls([chain.rpcUrl], fallback);
-  }
-
-  List<_EvmHistoryProvider> _evmHistoryProviders(WalletChainRef chain) {
-    final providers = <_EvmHistoryProvider>[];
-    final apiKey = _configuredExplorerApiKey(chain);
-    final configuredApiUrl = _configuredExplorerApiUrl(chain);
-
-    final canUseEtherscanV2 =
-        apiConfig.hasEtherscanApiKey &&
-        chain.evmChainId != null &&
-        chain.id != WalletChain.bsc.id &&
-        chain.id != WalletChain.xLayer.id;
-    if (canUseEtherscanV2) {
-      developer.log(
-        'Using Etherscan V2 history provider for ${chain.name} '
-        'chainId=${chain.evmChainId}',
-        name: 'WalletTransactionHistoryService',
-      );
-      providers.add(
-        _EvmHistoryProvider(
-          url: _etherscanV2ApiUrl,
-          apiKey: apiConfig.etherscanApiKey,
-          type: _EvmHistoryProviderType.etherscanCompatible,
-        ),
-      );
-    } else if (chain.id == WalletChain.arbitrum.id) {
-      developer.log(
-        'Etherscan V2 API key is not injected for Arbitrum history',
-        name: 'WalletTransactionHistoryService',
-      );
-    }
-
-    if (configuredApiUrl != null) {
-      providers.add(_evmProviderFromUrl(configuredApiUrl, apiKey: apiKey));
-    }
-
-    for (final baseUrl in _evmBlockscoutBaseUrls[chain.id] ?? const []) {
-      providers.add(
-        _EvmHistoryProvider(
-          url: baseUrl,
-          type: _EvmHistoryProviderType.blockscoutV2,
-        ),
-      );
-    }
-
-    final legacyApiUrl = _evmExplorerApiUrls[chain.id];
-    if (legacyApiUrl != null) {
-      providers.add(
-        _EvmHistoryProvider(
-          url: legacyApiUrl,
-          apiKey: apiKey,
-          type: _EvmHistoryProviderType.etherscanCompatible,
-        ),
-      );
-    }
-
-    final seen = <String>{};
-    return providers
-        .where((provider) {
-          final key = [
-            provider.type.name,
-            _normalizeExplorerUrl(provider.url),
-            provider.apiKey ?? '',
-          ].join(':');
-          return seen.add(key);
-        })
-        .toList(growable: false);
-  }
-
-  _EvmHistoryProvider _evmProviderFromUrl(String apiUrl, {String? apiKey}) {
-    final type = _looksLikeBlockscoutUrl(apiUrl)
-        ? _EvmHistoryProviderType.blockscoutV2
-        : _EvmHistoryProviderType.etherscanCompatible;
-    return _EvmHistoryProvider(url: apiUrl, apiKey: apiKey, type: type);
-  }
-
-  String? _configuredExplorerApiUrl(WalletChainRef chain) {
-    if (chain is WalletChainConfig) {
-      final value = chain.explorerApiUrl?.trim() ?? '';
-      if (value.isNotEmpty) {
-        return value;
-      }
-    }
-    return null;
-  }
-
-  String? _configuredExplorerApiKey(WalletChainRef chain) {
-    if (chain is WalletChainConfig) {
-      final value = chain.explorerApiKey?.trim() ?? '';
-      if (value.isNotEmpty) {
-        return value;
-      }
-    }
-    return null;
-  }
-
-  bool _looksLikeBlockscoutUrl(String value) {
-    final uri = Uri.tryParse(value.trim());
-    if (uri == null) return false;
-    return uri.host.toLowerCase().contains('blockscout') ||
-        uri.path.toLowerCase().contains('/api/v2');
-  }
-
-  String _blockscoutApiBase(String value) {
-    final normalized = _normalizeExplorerUrl(value);
-    const marker = '/api/v2';
-    final markerIndex = normalized.toLowerCase().indexOf(marker);
-    if (markerIndex >= 0) {
-      return normalized.substring(0, markerIndex + marker.length);
-    }
-    return '$normalized$marker';
-  }
-
-  bool _isEtherscanV2Api(String value) {
-    final uri = Uri.tryParse(value.trim());
-    if (uri == null) return false;
-    return uri.path.toLowerCase().contains('/v2/api');
-  }
-
-  String _normalizeExplorerUrl(String value) {
-    return value.trim().replaceAll(RegExp(r'/+$'), '');
   }
 }

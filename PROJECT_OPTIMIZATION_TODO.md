@@ -24,11 +24,12 @@
   - 第一阶段已完成：
     - `lib/page/transfer/view/widgets/transfer_form_panel.dart` 已拆出交易审查流程和密码弹窗，主文件从约 601 行降到约 136 行。
     - `lib/page/transfer/controller/transfer_controller.dart` 已拆出资产 key/去重、扫码地址解析、输入校验，主文件从约 623 行降到约 524 行。
-  - `lib/wallet/services/transaction_history/evm_transaction_history_provider.dart` 约 1045 行。
-  - `lib/wallet/services/transaction_history/solana_transaction_history_provider.dart` 约 847 行。
+  - 第二阶段已完成：
+    - `lib/wallet/services/transaction_history/evm_transaction_history_provider.dart` 已拆出 provider/rpc URL 路由逻辑，主文件从约 1045 行降到约 891 行。
+    - `lib/wallet/services/transaction_history/solana_transaction_history_provider.dart` 已拆出 Helius 纯解析 helper，主文件从约 847 行降到约 776 行。
   - `lib/page/home/controller/home_controller.dart` 约 745 行。
   - `lib/wallet/services/config/wallet_custom_asset_service.dart` 约 632 行。
-  - 后续建议继续拆 `evm_transaction_history_provider.dart` 和 `solana_transaction_history_provider.dart`。
+  - 后续建议继续拆 `home_controller.dart` 和 `wallet_custom_asset_service.dart`。
 
 - [ ] 转账服务错误类型标准化
   - 当前 EVM / TRON / Solana 转账逻辑仍有较多 `StateError`。
