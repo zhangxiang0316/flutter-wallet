@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -20,6 +19,9 @@ import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/crypto/wallet_secret_store.dart';
 import '../../../wallet/services/transaction/wallet_transaction_status_service.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
+import 'transfer_asset_utils.dart';
+import 'transfer_input_validator.dart';
+import 'transfer_scan_address_parser.dart';
 
 /// 转账页面的路由参数。
 ///
@@ -172,7 +174,11 @@ class TransferController extends BaseController {
   void selectAsset(ChainBalance asset) {
     if (isSubmitting) return;
     final current = currentAsset;
-    if (current != null && _assetKey(current) == _assetKey(asset)) return;
+    if (current != null &&
+        TransferAssetUtils.assetKey(current) ==
+            TransferAssetUtils.assetKey(asset)) {
+      return;
+    }
     selectedAsset = asset;
     _resetEstimateAndSubmittedState();
     update();
@@ -185,7 +191,10 @@ class TransferController extends BaseController {
   /// `solana:<address>?amount=...` 这类 URI。这里会优先按当前链格式提取地址，
   /// 找不到时再退回到 URI/path/query 中的地址片段。
   void fillRecipientAddressFromScan(String rawValue) {
-    final address = _extractAddressFromScan(rawValue);
+    final address = TransferScanAddressParser.extract(
+      rawValue,
+      currentAsset?.chainConfig ?? currentAsset?.chain?.config,
+    );
     if (address == null || address.isEmpty) {
       Toast.show(S.current.scanNoAddressFound);
       return;
@@ -223,7 +232,10 @@ class TransferController extends BaseController {
         amountController.text.trim(),
         asset.decimals,
       );
-      _validateAddress(asset, addressController.text.trim());
+      TransferInputValidator.validateAddress(
+        asset,
+        addressController.text.trim(),
+      );
     } catch (_) {
       Toast.show(S.current.transferInputInvalid);
       return false;
@@ -284,23 +296,6 @@ class TransferController extends BaseController {
     }
   }
 
-  /// 根据链类型校验收款地址格式。
-  void _validateAddress(ChainBalance asset, String address) {
-    if (asset.chainRef.isEvm) {
-      WalletTransferService.normalizeEvmAddress(address);
-      return;
-    }
-    if (asset.chainRef.isTron) {
-      WalletTransferService.tronAddressToHex(address);
-      return;
-    }
-    if (asset.chainRef.isSolana) {
-      WalletTransferService.normalizeSolanaAddress(address);
-      return;
-    }
-    throw FormatException('Unsupported chain ${asset.chainId}');
-  }
-
   /// 延迟触发手续费估算，减少用户输入时的 RPC 请求量。
   void _scheduleFeeEstimate() {
     _feeDebounce?.cancel();
@@ -326,13 +321,11 @@ class TransferController extends BaseController {
     }
 
     try {
-      WalletTransferService.amountToRawUnits(amount, asset.decimals);
-      _validateAddress(asset, address);
-
-      // ✅ 检查余额是否充足（转账前验证）
-      final amountDecimal = Decimal.parse(amount);
-      final balanceDecimal = Decimal.parse(asset.amount);
-      if (amountDecimal > balanceDecimal) {
+      if (!TransferInputValidator.canEstimateFee(
+        asset: asset,
+        address: address,
+        amount: amount,
+      )) {
         Toast.show(S.current.transferFailed);
         feeEstimate = null;
         feeEstimateUnavailable = false;
@@ -422,27 +415,15 @@ class TransferController extends BaseController {
   /// 初始化路由参数，并整理页面内可切换资产列表。
   void _applyArguments(TransferPageArguments value) {
     arguments = value;
-    availableAssets = _deduplicateAssets(
+    availableAssets = TransferAssetUtils.deduplicateAssets(
       value.assets.isEmpty ? [value.asset] : [...value.assets, value.asset],
     );
     selectedAsset = availableAssets.firstWhere(
-      (asset) => _assetKey(asset) == _assetKey(value.asset),
+      (asset) =>
+          TransferAssetUtils.assetKey(asset) ==
+          TransferAssetUtils.assetKey(value.asset),
       orElse: () => value.asset,
     );
-  }
-
-  /// 去重资产列表。
-  ///
-  /// 同一条链上的同一合约只保留一条，避免下拉框出现重复币种。
-  List<ChainBalance> _deduplicateAssets(List<ChainBalance> assets) {
-    final keys = <String>{};
-    final result = <ChainBalance>[];
-    for (final asset in assets) {
-      if (keys.add(_assetKey(asset))) {
-        result.add(asset);
-      }
-    }
-    return result;
   }
 
   /// 清理和当前资产强相关的临时状态。
@@ -455,19 +436,6 @@ class TransferController extends BaseController {
     transactionHash = '';
     submittedStatus = WalletTransactionStatus.unknown;
     _stopSubmittedStatusTracking();
-  }
-
-  /// 构建资产唯一 key。
-  String _assetKey(ChainBalance asset) {
-    final contract = asset.contractAddress?.trim() ?? '';
-    final normalizedContract = asset.chainRef.isEvm
-        ? contract.toLowerCase()
-        : contract;
-    return [
-      asset.chainId,
-      normalizedContract.isEmpty ? 'native' : normalizedContract,
-      asset.symbol.toUpperCase(),
-    ].join(':');
   }
 
   Future<void> _saveSubmittedTransaction(
@@ -543,73 +511,6 @@ class TransferController extends BaseController {
   void _stopSubmittedStatusTracking() {
     _submittedStatusTimer?.cancel();
     _submittedStatusTimer = null;
-  }
-
-  /// 从扫码内容中提取当前链可用的钱包地址。
-  String? _extractAddressFromScan(String rawValue) {
-    final value = rawValue.trim();
-    if (value.isEmpty) return null;
-
-    final chain = currentAsset?.chainConfig ?? currentAsset?.chain?.config;
-    final chainMatchedAddress = _extractAddressByChain(value, chain);
-    if (chainMatchedAddress != null) return chainMatchedAddress;
-
-    final uri = Uri.tryParse(value);
-    final queryAddress = _extractAddressFromQuery(uri, chain);
-    if (queryAddress != null) return queryAddress;
-
-    final pathAddress = _normalizeScannedAddressCandidate(
-      uri == null || uri.scheme.isEmpty ? value : uri.path,
-    );
-    if (pathAddress == null) return null;
-    return _extractAddressByChain(pathAddress, chain) ?? pathAddress;
-  }
-
-  /// 按当前链地址格式从任意文本中提取地址。
-  String? _extractAddressByChain(String value, WalletChainConfig? chain) {
-    if (chain?.isEvm ?? false) {
-      return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
-    }
-    switch (chain?.builtinChain) {
-      case WalletChain.bsc:
-      case WalletChain.ethereum:
-      case WalletChain.xLayer:
-      case WalletChain.arbitrum:
-        return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
-      case WalletChain.tron:
-        return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
-      case WalletChain.solana:
-        return RegExp(
-          r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
-        ).firstMatch(value)?.group(0);
-      case null:
-        return null;
-    }
-  }
-
-  /// 从 URI query 参数中提取常见地址字段。
-  String? _extractAddressFromQuery(Uri? uri, WalletChainConfig? chain) {
-    if (uri == null) return null;
-    const keys = ['address', 'to', 'recipient'];
-    for (final key in keys) {
-      final candidate = _normalizeScannedAddressCandidate(
-        uri.queryParameters[key],
-      );
-      if (candidate == null) continue;
-      return _extractAddressByChain(candidate, chain) ?? candidate;
-    }
-    return null;
-  }
-
-  /// 清理扫码候选文本。
-  String? _normalizeScannedAddressCandidate(String? value) {
-    final trimmed = value?.trim();
-    if (trimmed == null || trimmed.isEmpty) return null;
-    final firstLine = trimmed.split(RegExp(r'\s+')).first.trim();
-    final withoutNetwork = firstLine.split('@').first;
-    final withoutPath = withoutNetwork.split('/').first;
-    final withoutQuery = withoutPath.split('?').first;
-    return withoutQuery.isEmpty ? null : withoutQuery;
   }
 
   @override

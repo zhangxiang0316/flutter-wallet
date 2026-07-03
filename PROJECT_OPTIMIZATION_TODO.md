@@ -21,13 +21,14 @@
 ## P1 结构优化
 
 - [ ] 继续拆分大文件
+  - 第一阶段已完成：
+    - `lib/page/transfer/view/widgets/transfer_form_panel.dart` 已拆出交易审查流程和密码弹窗，主文件从约 601 行降到约 136 行。
+    - `lib/page/transfer/controller/transfer_controller.dart` 已拆出资产 key/去重、扫码地址解析、输入校验，主文件从约 623 行降到约 524 行。
   - `lib/wallet/services/transaction_history/evm_transaction_history_provider.dart` 约 1045 行。
   - `lib/wallet/services/transaction_history/solana_transaction_history_provider.dart` 约 847 行。
   - `lib/page/home/controller/home_controller.dart` 约 745 行。
   - `lib/wallet/services/config/wallet_custom_asset_service.dart` 约 632 行。
-  - `lib/page/transfer/controller/transfer_controller.dart` 约 623 行。
-  - `lib/page/transfer/view/widgets/transfer_form_panel.dart` 约 601 行。
-  - 建议优先拆 `transfer_controller.dart` 和 `transfer_form_panel.dart`，后续优化转账体验会更容易。
+  - 后续建议继续拆 `evm_transaction_history_provider.dart` 和 `solana_transaction_history_provider.dart`。
 
 - [ ] 转账服务错误类型标准化
   - 当前 EVM / TRON / Solana 转账逻辑仍有较多 `StateError`。
