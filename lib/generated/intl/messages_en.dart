@@ -390,14 +390,22 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Transaction hash"),
         "transactionHistory":
             MessageLookupByLibrary.simpleMessage("Transactions"),
+        "transactionHistoryApiKeyInvalid": MessageLookupByLibrary.simpleMessage(
+            "Transaction history API key is invalid or lacks permission. Check the configuration."),
+        "transactionHistoryApiKeyMissing": MessageLookupByLibrary.simpleMessage(
+            "Transaction history API key is not configured. Check environment variables."),
         "transactionHistoryEmpty":
             MessageLookupByLibrary.simpleMessage("No transactions"),
         "transactionHistoryExplorerHint": MessageLookupByLibrary.simpleMessage(
             "No in-app records found. View this address in a block explorer."),
+        "transactionHistoryNoRecords": MessageLookupByLibrary.simpleMessage(
+            "No on-chain transactions yet"),
         "transactionHistoryProviderFailed": MessageLookupByLibrary.simpleMessage(
             "Transaction history provider is unavailable. Try again later or view the block explorer."),
         "transactionHistoryRateLimited": MessageLookupByLibrary.simpleMessage(
             "Transaction history API is rate limited. Try again later."),
+        "transactionHistoryTimeout": MessageLookupByLibrary.simpleMessage(
+            "Transaction history API timed out. Try again later."),
         "transactionIncoming": MessageLookupByLibrary.simpleMessage("Received"),
         "transactionLoadFailed": MessageLookupByLibrary.simpleMessage(
             "Failed to load transactions. Try again later."),

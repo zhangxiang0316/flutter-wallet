@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
@@ -7,6 +8,14 @@ import 'package:dio/dio.dart';
 import '../models/chain_balance.dart';
 
 part 'asset_valuation/price_source_constants.dart';
+part 'asset_valuation/price_provider.dart';
+part 'asset_valuation/price_provider_dispatcher.dart';
+part 'asset_valuation/binance_price_provider.dart';
+part 'asset_valuation/okx_price_provider.dart';
+part 'asset_valuation/coingecko_price_provider.dart';
+part 'asset_valuation/defillama_price_provider.dart';
+part 'asset_valuation/coinpaprika_price_provider.dart';
+part 'asset_valuation/cryptocompare_price_provider.dart';
 
 /// 资产 USD 估值服务。
 ///
@@ -31,12 +40,31 @@ class AssetValuationService {
               sendTimeout: _requestTimeout,
               headers: _requestHeaders,
             ),
-          );
+          ) {
+    _priceProviderDispatcher = AssetPriceProviderDispatcher(
+      primaryProviders: [
+        _DefiLlamaPriceProvider(_dio),
+        _CoinGeckoPriceProvider(_dio),
+        _CoinPaprikaPriceProvider(_dio),
+        _OkxPriceProvider(_dio),
+      ],
+      fallbackProviders: [
+        _CryptoComparePriceProvider(_dio),
+        _BinancePriceProvider(_dio),
+      ],
+      timeout: _priceSourceTimeout,
+      onProviderResult: _logPriceSourceResult,
+      onProviderError: _logPriceSourceError,
+    );
+  }
 
   /// 行情接口客户端。
   ///
   /// 这里只负责价格请求，不复用业务接口的 Dio，避免拦截器或 baseUrl 影响第三方接口。
   final Dio _dio;
+
+  /// 统一调度多个价格源的查询顺序、超时和错误处理。
+  late final AssetPriceProviderDispatcher _priceProviderDispatcher;
 
   /// 单个 HTTP 请求的整体超时时间。
   static const Duration _requestTimeout = Duration(seconds: 8);
@@ -129,50 +157,8 @@ class AssetValuationService {
       return cachedUsdPrices;
     }
 
-    final prices = <String, Decimal>{};
     _logPriceRequest(requestedSymbols);
-
-    // 优先使用覆盖面较广且接口返回结构稳定的聚合价格源。
-    await _mergePriceSource(
-      prices,
-      source: 'DeFiLlama',
-      requestedSymbols: requestedSymbols,
-      loader: _loadDefiLlamaUsdPrices,
-    );
-    await _mergePriceSource(
-      prices,
-      source: 'CoinGecko',
-      requestedSymbols: _missingSymbols(requestedSymbols, prices),
-      loader: _loadCoinGeckoUsdPrices,
-    );
-    await _mergePriceSource(
-      prices,
-      source: 'CoinPaprika',
-      requestedSymbols: _missingSymbols(requestedSymbols, prices),
-      loader: _loadCoinPaprikaUsdPrices,
-    );
-    await _mergePriceSource(
-      prices,
-      source: 'OKX',
-      requestedSymbols: _missingSymbols(requestedSymbols, prices),
-      loader: _loadOkxUsdtPrices,
-    );
-
-    // 最后的 fallback 并行请求两个交易所/数据源，缩短缺失价格的等待时间。
-    var missingSymbols = _missingSymbols(requestedSymbols, prices);
-    if (missingSymbols.isNotEmpty) {
-      final fallbackResults = await Future.wait([
-        _loadCryptoCompareUsdPrices(
-          missingSymbols,
-        ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
-        _loadBinanceUsdPrices(
-          missingSymbols,
-        ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
-      ]);
-      for (final result in fallbackResults) {
-        prices.addAll(result);
-      }
-    }
+    final prices = await _priceProviderDispatcher.load(requestedSymbols);
 
     // 只有拿到至少一个新价格时才刷新缓存时间，避免失败请求把旧缓存误标为新缓存。
     if (prices.isNotEmpty) {
@@ -184,259 +170,6 @@ class AssetValuationService {
     return cachedUsdPrices;
   }
 
-  /// 合并单个价格源的查询结果。
-  ///
-  /// 该方法统一处理单源超时和日志记录。具体接口异常由各 loader 内部吞掉，
-  /// 这里主要负责把结果叠加到当前价格表。
-  Future<void> _mergePriceSource(
-    Map<String, Decimal> prices, {
-    required String source,
-    required List<String> requestedSymbols,
-    required Future<Map<String, Decimal>> Function(List<String> symbols) loader,
-  }) async {
-    if (requestedSymbols.isEmpty) {
-      return;
-    }
-    final result = await loader(
-      requestedSymbols,
-    ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{});
-    if (result.isNotEmpty) {
-      prices.addAll(result);
-    }
-    _logPriceSourceResult(source, requestedSymbols, result);
-  }
-
-  /// 返回尚未从任何价格源解析到价格的币种。
-  List<String> _missingSymbols(
-    List<String> requestedSymbols,
-    Map<String, Decimal> prices,
-  ) {
-    return requestedSymbols
-        .where((symbol) => !prices.containsKey(symbol))
-        .toList(growable: false);
-  }
-
-  /// 从 Binance 读取 USDT 交易对价格。
-  ///
-  /// 先尝试批量接口；如果批量请求失败，再按单个交易对逐个重试。这样 Binance
-  /// 对某些地区或参数格式返回错误时，仍有机会拿到部分币种价格。
-  Future<Map<String, Decimal>> _loadBinanceUsdPrices(
-    List<String> requestedSymbols,
-  ) async {
-    final tickerSymbols = requestedSymbols
-        .map((symbol) => _binanceTickerSymbols[symbol])
-        .whereType<String>()
-        .toSet()
-        .toList(growable: false);
-    if (tickerSymbols.isEmpty) {
-      return {};
-    }
-
-    final prices = <String, Decimal>{};
-
-    try {
-      final response = await _dio.get(
-        'https://api.binance.com/api/v3/ticker/price',
-        queryParameters: {'symbols': jsonEncode(tickerSymbols)},
-      );
-      prices.addAll(parseBinancePrices(response.data, requestedSymbols));
-    } catch (error) {
-      _logPriceSourceError('Binance batch', error);
-      for (final symbol in requestedSymbols) {
-        final ticker = _binanceTickerSymbols[symbol];
-        if (ticker == null) continue;
-        try {
-          final response = await _dio.get(
-            'https://api.binance.com/api/v3/ticker/price',
-            queryParameters: {'symbol': ticker},
-          );
-          prices.addAll(parseBinancePrices(response.data, [symbol]));
-        } catch (error) {
-          _logPriceSourceError('Binance $symbol', error);
-          // Keep trying other symbols and fallback sources.
-        }
-      }
-    }
-
-    return prices;
-  }
-
-  Future<Map<String, Decimal>> _loadOkxUsdtPrices(
-    List<String> requestedSymbols,
-  ) async {
-    // OKX 全量现货 ticker 可以一次覆盖多个交易对，先用它减少请求次数。
-    final prices = <String, Decimal>{};
-    try {
-      final response = await _dio.get(
-        'https://www.okx.com/api/v5/market/tickers',
-        queryParameters: {'instType': 'SPOT'},
-      );
-      prices.addAll(parseOkxPrices(response.data, requestedSymbols));
-    } catch (error) {
-      _logPriceSourceError('OKX all tickers', error);
-    }
-
-    // 全量接口没覆盖到的交易对，再用单交易对接口补查。
-    var missingSymbols = requestedSymbols
-        .where((symbol) => !prices.containsKey(symbol))
-        .toList(growable: false);
-    if (missingSymbols.isNotEmpty) {
-      final symbolPrices = await Future.wait(
-        missingSymbols.map(
-          (symbol) => _loadOkxSymbolPrice(
-            symbol,
-          ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
-        ),
-      );
-      for (final price in symbolPrices) {
-        prices.addAll(price);
-      }
-    }
-
-    return prices;
-  }
-
-  /// 从 OKX 单交易对接口读取一个币种价格。
-  Future<Map<String, Decimal>> _loadOkxSymbolPrice(String symbol) async {
-    final ticker = _okxTickerSymbols[symbol];
-    if (ticker == null) {
-      return {};
-    }
-    try {
-      final response = await _dio.get(
-        'https://www.okx.com/api/v5/market/ticker',
-        queryParameters: {'instId': ticker},
-      );
-      return parseOkxPrices(response.data, [symbol]);
-    } catch (error) {
-      _logPriceSourceError('OKX $symbol', error);
-      return {};
-    }
-  }
-
-  /// 从 CryptoCompare 读取 USD 报价。
-  ///
-  /// CryptoCompare 支持一次传入多个符号，返回形如 `{ BTC: { USD: ... } }`。
-  Future<Map<String, Decimal>> _loadCryptoCompareUsdPrices(
-    List<String> requestedSymbols,
-  ) async {
-    final symbols = requestedSymbols
-        .map((symbol) => _cryptoCompareSymbols[symbol])
-        .whereType<String>()
-        .toSet()
-        .join(',');
-    if (symbols.isEmpty) {
-      return {};
-    }
-
-    try {
-      final response = await _dio.get(
-        'https://min-api.cryptocompare.com/data/pricemulti',
-        queryParameters: {'fsyms': symbols, 'tsyms': 'USD'},
-      );
-      return parseCryptoComparePrices(response.data, requestedSymbols);
-    } catch (error) {
-      _logPriceSourceError('CryptoCompare', error);
-      return {};
-    }
-  }
-
-  /// 从 CoinGecko simple price 接口读取 USD 报价。
-  Future<Map<String, Decimal>> _loadCoinGeckoUsdPrices(
-    List<String> requestedSymbols,
-  ) async {
-    final ids = requestedSymbols
-        .map((symbol) => _coingeckoIds[symbol])
-        .whereType<String>()
-        .toSet()
-        .join(',');
-    if (ids.isEmpty) {
-      return {};
-    }
-
-    try {
-      final response = await _dio.get(
-        'https://api.coingecko.com/api/v3/simple/price',
-        queryParameters: {'ids': ids, 'vs_currencies': 'usd'},
-      );
-      return parseCoinGeckoPrices(response.data, requestedSymbols);
-    } catch (error) {
-      _logPriceSourceError('CoinGecko', error);
-      return {};
-    }
-  }
-
-  /// 从 DeFiLlama 当前价格接口读取 USD 报价。
-  ///
-  /// DeFiLlama 使用 `coingecko:<id>` 作为资产标识，因此复用 [_coingeckoIds]。
-  Future<Map<String, Decimal>> _loadDefiLlamaUsdPrices(
-    List<String> requestedSymbols,
-  ) async {
-    final coins = requestedSymbols
-        .map((symbol) => _coingeckoIds[symbol])
-        .whereType<String>()
-        .map((id) => 'coingecko:$id')
-        .toSet()
-        .join(',');
-    if (coins.isEmpty) {
-      return {};
-    }
-
-    try {
-      final response = await _dio.get(
-        'https://coins.llama.fi/prices/current/$coins',
-      );
-      return parseDefiLlamaPrices(response.data, requestedSymbols);
-    } catch (error) {
-      _logPriceSourceError('DeFiLlama', error);
-      return {};
-    }
-  }
-
-  /// 从 CoinPaprika 按资产 ID 并发读取 USD 报价。
-  ///
-  /// 多个应用内符号可能指向同一个底层资产，例如 BTCB/WBTC 都按 BTC 价格处理。
-  /// 因此这里先按 CoinPaprika assetId 分组，再将同一价格回填给多个符号。
-  Future<Map<String, Decimal>> _loadCoinPaprikaUsdPrices(
-    List<String> requestedSymbols,
-  ) async {
-    final symbolsById = <String, List<String>>{};
-    for (final symbol in requestedSymbols) {
-      final id = _coinPaprikaIds[symbol];
-      if (id == null) continue;
-      symbolsById.putIfAbsent(id, () => <String>[]).add(symbol);
-    }
-    if (symbolsById.isEmpty) {
-      return {};
-    }
-
-    final symbolPrices = await Future.wait(
-      symbolsById.entries.map(
-        (entry) => _loadCoinPaprikaAssetPrice(
-          assetId: entry.key,
-          symbols: entry.value,
-        ).timeout(_priceSourceTimeout, onTimeout: () => <String, Decimal>{}),
-      ),
-    );
-    return {for (final prices in symbolPrices) ...prices};
-  }
-
-  /// 请求 CoinPaprika 单个资产详情并解析为应用内符号价格。
-  Future<Map<String, Decimal>> _loadCoinPaprikaAssetPrice({
-    required String assetId,
-    required List<String> symbols,
-  }) async {
-    try {
-      final response = await _dio.get(
-        'https://api.coinpaprika.com/v1/tickers/$assetId',
-      );
-      return parseCoinPaprikaPrices(response.data, symbols);
-    } catch (error) {
-      _logPriceSourceError('CoinPaprika $assetId', error);
-      return {};
-    }
-  }
-
   /// 解析 Binance ticker price 响应。
   ///
   /// 批量接口返回 List，单交易对接口返回 Map。这里统一转换成 List 后处理。
@@ -445,31 +178,7 @@ class AssetValuationService {
     dynamic data,
     Iterable<String> requestedSymbols,
   ) {
-    if (data is Map) {
-      return parseBinancePrices([data], requestedSymbols);
-    }
-    if (data is! List) {
-      return {};
-    }
-
-    final normalizedSymbols = requestedSymbols
-        .map((symbol) => symbol.toUpperCase())
-        .toSet();
-    final tickerPrices = <String, Decimal>{};
-    for (final item in data) {
-      if (item is! Map) continue;
-      final ticker = item['symbol']?.toString();
-      final price = Decimal.tryParse(item['price']?.toString() ?? '');
-      if (ticker == null || price == null) continue;
-      tickerPrices[ticker] = price;
-    }
-
-    return {
-      for (final entry in _binanceTickerSymbols.entries)
-        if (normalizedSymbols.contains(entry.key) &&
-            tickerPrices[entry.value] != null)
-          entry.key: tickerPrices[entry.value]!,
-    };
+    return _BinancePriceProvider.parsePrices(data, requestedSymbols);
   }
 
   /// 解析 OKX ticker 响应。
@@ -480,28 +189,7 @@ class AssetValuationService {
     dynamic data,
     Iterable<String> requestedSymbols,
   ) {
-    if (data is! Map || data['data'] is! List) {
-      return {};
-    }
-
-    final normalizedSymbols = requestedSymbols
-        .map((symbol) => symbol.toUpperCase())
-        .toSet();
-    final tickerPrices = <String, Decimal>{};
-    for (final item in data['data'] as List) {
-      if (item is! Map) continue;
-      final ticker = item['instId']?.toString();
-      final price = Decimal.tryParse(item['last']?.toString() ?? '');
-      if (ticker == null || price == null) continue;
-      tickerPrices[ticker] = price;
-    }
-
-    return {
-      for (final entry in _okxTickerSymbols.entries)
-        if (normalizedSymbols.contains(entry.key) &&
-            tickerPrices[entry.value] != null)
-          entry.key: tickerPrices[entry.value]!,
-    };
+    return _OkxPriceProvider.parsePrices(data, requestedSymbols);
   }
 
   /// 解析 CoinGecko simple price 响应。
@@ -511,20 +199,7 @@ class AssetValuationService {
     dynamic data,
     Iterable<String> requestedSymbols,
   ) {
-    if (data is! Map) {
-      return {};
-    }
-
-    final prices = <String, Decimal>{};
-    for (final symbol in requestedSymbols.map((value) => value.toUpperCase())) {
-      final id = _coingeckoIds[symbol];
-      final item = id == null ? null : data[id];
-      if (item is! Map) continue;
-      final price = Decimal.tryParse(item['usd']?.toString() ?? '');
-      if (price == null) continue;
-      prices[symbol] = price;
-    }
-    return prices;
+    return _CoinGeckoPriceProvider.parsePrices(data, requestedSymbols);
   }
 
   /// 解析 DeFiLlama 当前价格响应。
@@ -534,30 +209,7 @@ class AssetValuationService {
     dynamic data,
     Iterable<String> requestedSymbols,
   ) {
-    if (data is! Map || data['coins'] is! Map) {
-      return {};
-    }
-
-    final coinPrices = <String, Decimal>{};
-    final coins = data['coins'] as Map;
-    for (final entry in coins.entries) {
-      final key = entry.key.toString();
-      final item = entry.value;
-      if (item is! Map) continue;
-      final price = Decimal.tryParse(item['price']?.toString() ?? '');
-      if (price == null) continue;
-      coinPrices[key] = price;
-    }
-
-    final normalizedSymbols = requestedSymbols
-        .map((symbol) => symbol.toUpperCase())
-        .toSet();
-    return {
-      for (final entry in _coingeckoIds.entries)
-        if (normalizedSymbols.contains(entry.key) &&
-            coinPrices['coingecko:${entry.value}'] != null)
-          entry.key: coinPrices['coingecko:${entry.value}']!,
-    };
+    return _DefiLlamaPriceProvider.parsePrices(data, requestedSymbols);
   }
 
   /// 解析 CoinPaprika ticker 响应。
@@ -568,29 +220,7 @@ class AssetValuationService {
     dynamic data,
     Iterable<String> requestedSymbols,
   ) {
-    final items = data is List ? data : [data];
-    final tickerPrices = <String, Decimal>{};
-    for (final item in items) {
-      if (item is! Map) continue;
-      final id = item['id']?.toString();
-      final quotes = item['quotes'];
-      final usdQuote = quotes is Map ? quotes['USD'] : null;
-      final price = usdQuote is Map
-          ? Decimal.tryParse(usdQuote['price']?.toString() ?? '')
-          : null;
-      if (id == null || price == null) continue;
-      tickerPrices[id] = price;
-    }
-
-    final normalizedSymbols = requestedSymbols
-        .map((symbol) => symbol.toUpperCase())
-        .toSet();
-    return {
-      for (final entry in _coinPaprikaIds.entries)
-        if (normalizedSymbols.contains(entry.key) &&
-            tickerPrices[entry.value] != null)
-          entry.key: tickerPrices[entry.value]!,
-    };
+    return _CoinPaprikaPriceProvider.parsePrices(data, requestedSymbols);
   }
 
   /// 解析 CryptoCompare 多币种价格响应。
@@ -600,20 +230,7 @@ class AssetValuationService {
     dynamic data,
     Iterable<String> requestedSymbols,
   ) {
-    if (data is! Map) {
-      return {};
-    }
-
-    final prices = <String, Decimal>{};
-    for (final symbol in requestedSymbols.map((value) => value.toUpperCase())) {
-      final ticker = _cryptoCompareSymbols[symbol];
-      final item = ticker == null ? null : data[ticker];
-      if (item is! Map) continue;
-      final price = Decimal.tryParse(item['USD']?.toString() ?? '');
-      if (price == null) continue;
-      prices[symbol] = price;
-    }
-    return prices;
+    return _CryptoComparePriceProvider.parsePrices(data, requestedSymbols);
   }
 
   /// 计算余额列表的总 USD 估值。

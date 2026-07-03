@@ -315,14 +315,22 @@ class MessageLookup extends MessageLookupByLibrary {
         "transactionFrom": MessageLookupByLibrary.simpleMessage("发送方"),
         "transactionHash": MessageLookupByLibrary.simpleMessage("交易哈希"),
         "transactionHistory": MessageLookupByLibrary.simpleMessage("交易记录"),
+        "transactionHistoryApiKeyInvalid": MessageLookupByLibrary.simpleMessage(
+            "交易记录 API Key 无效或权限不足，请重新检查配置"),
+        "transactionHistoryApiKeyMissing":
+            MessageLookupByLibrary.simpleMessage("交易记录 API Key 未配置，请检查环境变量"),
         "transactionHistoryEmpty":
             MessageLookupByLibrary.simpleMessage("暂无交易记录"),
         "transactionHistoryExplorerHint":
             MessageLookupByLibrary.simpleMessage("应用内暂未查到记录，可到区块浏览器查看该地址。"),
+        "transactionHistoryNoRecords":
+            MessageLookupByLibrary.simpleMessage("暂无链上交易记录"),
         "transactionHistoryProviderFailed":
             MessageLookupByLibrary.simpleMessage("交易记录数据源暂不可用，请稍后重试或查看区块浏览器"),
         "transactionHistoryRateLimited":
             MessageLookupByLibrary.simpleMessage("交易记录接口请求过于频繁，请稍后再试"),
+        "transactionHistoryTimeout":
+            MessageLookupByLibrary.simpleMessage("交易记录接口响应超时，请稍后重试"),
         "transactionIncoming": MessageLookupByLibrary.simpleMessage("转入"),
         "transactionLoadFailed":
             MessageLookupByLibrary.simpleMessage("交易记录加载失败，请稍后重试"),

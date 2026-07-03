@@ -30,7 +30,16 @@ class _MoralisEvmTransactionHistoryProvider
   }) async {
     final moralisChain = _supportedChains[asset.chainRef.id];
     if (moralisChain == null) {
-      throw StateError('${asset.chainRef.name} is not supported by Moralis');
+      throw _historyLoadException(
+        '${asset.chainRef.name} is not supported by Moralis',
+        null,
+      );
+    }
+    if (!apiConfig.hasMoralisApiKey) {
+      throw const TransactionHistoryLoadException(
+        TransactionHistoryFailureKind.apiKeyMissing,
+        'Moralis API key is missing',
+      );
     }
     final moralisCursor = cursor?.moralisCursor;
     final baseUrl = apiConfig.moralisBaseUrl.trim().replaceAll(
@@ -51,14 +60,21 @@ class _MoralisEvmTransactionHistoryProvider
         'contract_addresses': [asset.contractAddress!.trim()],
     };
 
-    final response = await dio.get(
-      '$baseUrl/$path',
-      queryParameters: queryParameters,
-      options: Options(headers: {'X-API-Key': apiConfig.moralisApiKey.trim()}),
-    );
+    final Response<dynamic> response;
+    try {
+      response = await dio.get(
+        '$baseUrl/$path',
+        queryParameters: queryParameters,
+        options: Options(
+          headers: {'X-API-Key': apiConfig.moralisApiKey.trim()},
+        ),
+      );
+    } catch (error) {
+      throw _historyLoadException('Moralis EVM history request failed', error);
+    }
     final data = response.data;
     if (data is! Map) {
-      throw StateError('Invalid Moralis EVM history response');
+      throw _historyLoadException('Invalid Moralis EVM history response', data);
     }
 
     final result = data['result'];
@@ -67,7 +83,7 @@ class _MoralisEvmTransactionHistoryProvider
           data['message']?.toString() ??
           data['error']?.toString() ??
           'Invalid Moralis EVM history result';
-      throw StateError(message);
+      throw _historyLoadException(message, message);
     }
 
     final records = <WalletTransactionRecord>[];
@@ -95,6 +111,9 @@ class _MoralisEvmTransactionHistoryProvider
       records: records.take(_historyLimit).toList(growable: false),
       nextCursor: nextCursor.isNotEmpty
           ? TransactionHistoryCursor.moralisCursor(nextCursor)
+          : null,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
           : null,
     );
   }

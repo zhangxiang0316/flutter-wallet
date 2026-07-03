@@ -24,7 +24,14 @@ part 'transaction_history/solana_transaction_history_provider.dart';
 
 const int _transactionHistoryPageSize = 10;
 
-enum TransactionHistoryFailureKind { provider, rateLimited }
+enum TransactionHistoryFailureKind {
+  noRecords,
+  rateLimited,
+  apiKeyMissing,
+  apiKeyInvalid,
+  timeout,
+  providerFailed,
+}
 
 class TransactionHistoryLoadException implements Exception {
   const TransactionHistoryLoadException(this.kind, this.message, [this.cause]);
@@ -87,6 +94,7 @@ class TransactionHistoryPageResult {
   const TransactionHistoryPageResult({
     required this.records,
     required this.nextCursor,
+    this.emptyReason,
   });
 
   /// 当前页交易记录。
@@ -94,6 +102,9 @@ class TransactionHistoryPageResult {
 
   /// 下一页游标；为 null 表示当前数据源没有更多可取记录。
   final TransactionHistoryCursor? nextCursor;
+
+  /// 空列表原因；仅在成功请求但没有记录时使用。
+  final TransactionHistoryFailureKind? emptyReason;
 
   bool get hasMore => nextCursor != null;
 }
@@ -177,6 +188,11 @@ class WalletTransactionHistoryService {
             return result;
           }
         } catch (error) {
+          if (error is TransactionHistoryLoadException &&
+              (error.kind == TransactionHistoryFailureKind.rateLimited ||
+                  error.kind == TransactionHistoryFailureKind.apiKeyInvalid)) {
+            rethrow;
+          }
           developer.log(
             'Moralis ${chain.name} history failed; '
             'falling back to EVM providers: $error',
@@ -204,7 +220,11 @@ class WalletTransactionHistoryService {
         cursor: cursor,
       );
     }
-    return const TransactionHistoryPageResult(records: [], nextCursor: null);
+    return const TransactionHistoryPageResult(
+      records: [],
+      nextCursor: null,
+      emptyReason: TransactionHistoryFailureKind.noRecords,
+    );
   }
 
   bool _isTronChain(WalletChainRef chain) {

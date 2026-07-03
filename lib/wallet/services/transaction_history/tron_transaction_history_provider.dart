@@ -41,7 +41,7 @@ class _TronTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         final data = response.data;
         final values = data is Map ? data['data'] : null;
         if (values is! List) {
-          throw StateError('Invalid TRON history response');
+          throw _historyLoadException('Invalid TRON history response', data);
         }
         final records = values
             .whereType<Map>()
@@ -74,6 +74,9 @@ class _TronTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
                   records.length >= _historyLimit
               ? TransactionHistoryCursor.tronFingerprint(nextFingerprint)
               : null,
+          emptyReason: records.isEmpty
+              ? TransactionHistoryFailureKind.noRecords
+              : null,
         );
       } catch (error) {
         lastError = error;
@@ -83,7 +86,7 @@ class _TronTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         );
       }
     }
-    throw StateError('TRON history failed: ${lastError ?? 'unknown error'}');
+    throw _historyLoadException('TRON history failed', lastError);
   }
 
   Options? _tronGridOptions(String apiUrl) {

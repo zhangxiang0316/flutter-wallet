@@ -114,6 +114,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         return const TransactionHistoryPageResult(
           records: [],
           nextCursor: null,
+          emptyReason: TransactionHistoryFailureKind.noRecords,
         );
       }
       if (_nativeHistoryCanBeEmpty(asset.chainRef)) {
@@ -126,11 +127,12 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         return const TransactionHistoryPageResult(
           records: [],
           nextCursor: null,
+          emptyReason: TransactionHistoryFailureKind.noRecords,
         );
       }
-      throw StateError(
-        '${asset.chainRef.name} native history failed: '
-        '${lastExplorerError ?? 'no explorer provider'}',
+      throw _historyLoadException(
+        '${asset.chainRef.name} native history failed',
+        lastExplorerError,
       );
     }
 
@@ -139,6 +141,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         return const TransactionHistoryPageResult(
           records: [],
           nextCursor: null,
+          emptyReason: TransactionHistoryFailureKind.noRecords,
         );
       }
       if (_supportsEvmTokenLogPaging(asset)) {
@@ -155,15 +158,25 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
               return const <WalletTransactionRecord>[];
             },
           );
-      return TransactionHistoryPageResult(records: records, nextCursor: null);
+      return TransactionHistoryPageResult(
+        records: records,
+        nextCursor: null,
+        emptyReason: records.isEmpty
+            ? TransactionHistoryFailureKind.noRecords
+            : null,
+      );
     } catch (error) {
       if (hasSuccessfulExplorer) {
         return const TransactionHistoryPageResult(
           records: [],
           nextCursor: null,
+          emptyReason: TransactionHistoryFailureKind.noRecords,
         );
       }
-      rethrow;
+      throw _historyLoadException(
+        '${asset.chainRef.name} token history failed',
+        error,
+      );
     }
   }
 
@@ -187,7 +200,11 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         : BigInt.from(beforeBlock);
     final toBlock = latestBlock.toInt();
     if (toBlock <= 0) {
-      return const TransactionHistoryPageResult(records: [], nextCursor: null);
+      return const TransactionHistoryPageResult(
+        records: [],
+        nextCursor: null,
+        emptyReason: TransactionHistoryFailureKind.noRecords,
+      );
     }
 
     final fromBlock = math.max(
@@ -205,6 +222,9 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       records: records,
       nextCursor: fromBlock > 0
           ? TransactionHistoryCursor.evmLogBeforeBlock(fromBlock - 1)
+          : null,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
           : null,
     );
   }
@@ -242,7 +262,10 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       );
       final data = response.data;
       if (data is! Map) {
-        throw StateError('Invalid ${asset.chainRef.name} explorer response');
+        throw _historyLoadException(
+          'Invalid ${asset.chainRef.name} explorer response',
+          data,
+        );
       }
 
       final result = data['result'];
@@ -284,10 +307,13 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         hasMoreRawPages = false;
         break;
       }
-      throw StateError(
-        data['result']?.toString() ??
-            data['message']?.toString() ??
-            'Explorer request failed',
+      final errorText =
+          data['result']?.toString() ??
+          data['message']?.toString() ??
+          'Explorer request failed';
+      throw _historyLoadException(
+        '${asset.chainRef.name} explorer request failed',
+        errorText,
       );
     }
 
@@ -296,6 +322,9 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       records: records.take(_historyLimit).toList(growable: false),
       nextCursor: hasMoreRawPages
           ? TransactionHistoryCursor.evmExplorerPage(currentPage + 1)
+          : null,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
           : null,
     );
   }
@@ -340,12 +369,18 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       );
       final data = response.data;
       if (data is! Map) {
-        throw StateError('Invalid ${asset.chainRef.name} Blockscout response');
+        throw _historyLoadException(
+          'Invalid ${asset.chainRef.name} Blockscout response',
+          data,
+        );
       }
 
       final items = data['items'];
       if (items is! List) {
-        throw StateError('Invalid ${asset.chainRef.name} Blockscout items');
+        throw _historyLoadException(
+          'Invalid ${asset.chainRef.name} Blockscout items',
+          data,
+        );
       }
       for (final item in items.whereType<Map>()) {
         final record = asset.isNative
@@ -386,6 +421,9 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     return TransactionHistoryPageResult(
       records: records.take(_historyLimit).toList(growable: false),
       nextCursor: nextCursor,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
+          : null,
     );
   }
 
@@ -790,12 +828,12 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         if (data is Map && data.containsKey('result')) {
           return data['result'];
         }
-        throw StateError(data is Map ? data.toString() : 'Invalid RPC data');
+        throw _historyLoadException('Invalid ${chain.name} RPC data', data);
       } catch (error) {
         lastError = error;
       }
     }
-    throw StateError('${chain.name} RPC failed: ${lastError ?? 'unknown'}');
+    throw _historyLoadException('${chain.name} RPC failed', lastError);
   }
 
   Future<BigInt> _evmRpcBigInt(
@@ -815,7 +853,10 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     if (result is Map) {
       return result;
     }
-    throw StateError('Invalid ${chain.name} $method response');
+    throw _historyLoadException(
+      'Invalid ${chain.name} $method response',
+      result,
+    );
   }
 
   Future<List<dynamic>> _evmGetLogs(

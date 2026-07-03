@@ -42,7 +42,8 @@ class _SolanaTransactionHistoryProvider
           name: 'WalletTransactionHistoryService',
         );
         if (error is TransactionHistoryLoadException &&
-            error.kind == TransactionHistoryFailureKind.rateLimited) {
+            (error.kind == TransactionHistoryFailureKind.rateLimited ||
+                error.kind == TransactionHistoryFailureKind.apiKeyInvalid)) {
           rethrow;
         }
       }
@@ -56,8 +57,7 @@ class _SolanaTransactionHistoryProvider
           cursor: cursor,
         );
       } catch (error) {
-        throw TransactionHistoryLoadException(
-          TransactionHistoryFailureKind.provider,
+        throw _historyLoadException(
           'Solana history provider failed',
           heliusError ?? error,
         );
@@ -70,8 +70,7 @@ class _SolanaTransactionHistoryProvider
         cursor: cursor,
       );
     } catch (error) {
-      throw TransactionHistoryLoadException(
-        TransactionHistoryFailureKind.provider,
+      throw _historyLoadException(
         'Solana token history provider failed',
         heliusError ?? error,
       );
@@ -94,7 +93,13 @@ class _SolanaTransactionHistoryProvider
         before: before,
       );
       if (transactions.isEmpty) {
-        return TransactionHistoryPageResult(records: records, nextCursor: null);
+        return TransactionHistoryPageResult(
+          records: records,
+          nextCursor: null,
+          emptyReason: records.isEmpty
+              ? TransactionHistoryFailureKind.noRecords
+              : null,
+        );
       }
 
       for (final transaction in transactions.whereType<Map>()) {
@@ -126,6 +131,9 @@ class _SolanaTransactionHistoryProvider
       nextCursor: hasMore && nextBefore != null && nextBefore.isNotEmpty
           ? TransactionHistoryCursor.solanaBefore(nextBefore)
           : null,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
+          : null,
     );
   }
 
@@ -148,11 +156,7 @@ class _SolanaTransactionHistoryProvider
       );
       final data = response.data;
       if (data is List) return data;
-      throw TransactionHistoryLoadException(
-        TransactionHistoryFailureKind.provider,
-        'Invalid Solana history API response',
-        data,
-      );
+      throw _historyLoadException('Invalid Solana history API response', data);
     } on DioException catch (error) {
       if (error.response?.statusCode == 429) {
         throw const TransactionHistoryLoadException(
@@ -160,11 +164,7 @@ class _SolanaTransactionHistoryProvider
           'Solana history API rate limited',
         );
       }
-      throw TransactionHistoryLoadException(
-        TransactionHistoryFailureKind.provider,
-        'Solana history API request failed',
-        error,
-      );
+      throw _historyLoadException('Solana history API request failed', error);
     }
   }
 
@@ -500,6 +500,9 @@ class _SolanaTransactionHistoryProvider
       nextCursor: records.length >= _historyLimit
           ? TransactionHistoryCursor.solanaBefore(records.last.txHash)
           : null,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
+          : null,
     );
   }
 
@@ -534,6 +537,9 @@ class _SolanaTransactionHistoryProvider
       records: records.take(_historyLimit).toList(growable: false),
       nextCursor: signatures.length >= _historyLimit
           ? TransactionHistoryCursor.solanaBefore(signatures.last)
+          : null,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
           : null,
     );
   }
@@ -807,7 +813,7 @@ class _SolanaTransactionHistoryProvider
         if (data is Map && data.containsKey('result')) {
           return data['result'];
         }
-        throw StateError(data is Map ? data.toString() : 'Invalid RPC data');
+        throw _historyLoadException('Invalid Solana RPC data', data);
       } catch (error) {
         if (error is DioException && error.response?.statusCode == 429) {
           throw const TransactionHistoryLoadException(
@@ -818,7 +824,7 @@ class _SolanaTransactionHistoryProvider
         lastError = error;
       }
     }
-    throw StateError('Solana RPC failed: ${lastError ?? 'unknown'}');
+    throw _historyLoadException('Solana RPC failed', lastError);
   }
 
   WalletTransactionStatus _solanaStatus(Map<dynamic, dynamic> transaction) {

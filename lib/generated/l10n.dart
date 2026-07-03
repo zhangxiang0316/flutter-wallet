@@ -2260,6 +2260,16 @@ class S {
     );
   }
 
+  /// `No on-chain transactions yet`
+  String get transactionHistoryNoRecords {
+    return Intl.message(
+      'No on-chain transactions yet',
+      name: 'transactionHistoryNoRecords',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Transaction history provider is unavailable. Try again later or view the block explorer.`
   String get transactionHistoryProviderFailed {
     return Intl.message(
@@ -2275,6 +2285,36 @@ class S {
     return Intl.message(
       'Transaction history API is rate limited. Try again later.',
       name: 'transactionHistoryRateLimited',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction history API key is not configured. Check environment variables.`
+  String get transactionHistoryApiKeyMissing {
+    return Intl.message(
+      'Transaction history API key is not configured. Check environment variables.',
+      name: 'transactionHistoryApiKeyMissing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction history API key is invalid or lacks permission. Check the configuration.`
+  String get transactionHistoryApiKeyInvalid {
+    return Intl.message(
+      'Transaction history API key is invalid or lacks permission. Check the configuration.',
+      name: 'transactionHistoryApiKeyInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction history API timed out. Try again later.`
+  String get transactionHistoryTimeout {
+    return Intl.message(
+      'Transaction history API timed out. Try again later.',
+      name: 'transactionHistoryTimeout',
       desc: '',
       args: [],
     );

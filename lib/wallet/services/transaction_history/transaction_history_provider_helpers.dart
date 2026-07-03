@@ -5,6 +5,108 @@ mixin _TransactionHistoryProviderHelpers {
 
   WalletHistoryApiConfig get apiConfig;
 
+  TransactionHistoryLoadException _historyLoadException(
+    String message,
+    Object? error, {
+    TransactionHistoryFailureKind? fallbackKind,
+  }) {
+    return TransactionHistoryLoadException(
+      _historyFailureKindFromError(error) ??
+          fallbackKind ??
+          TransactionHistoryFailureKind.providerFailed,
+      message,
+      error,
+    );
+  }
+
+  TransactionHistoryFailureKind? _historyFailureKindFromError(Object? error) {
+    if (error is TransactionHistoryLoadException) {
+      return error.kind;
+    }
+    if (error is DioException) {
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.sendTimeout ||
+          error.type == DioExceptionType.receiveTimeout) {
+        return TransactionHistoryFailureKind.timeout;
+      }
+      final statusCode = error.response?.statusCode;
+      if (statusCode == 429) {
+        return TransactionHistoryFailureKind.rateLimited;
+      }
+      if (statusCode == 401 || statusCode == 403) {
+        return TransactionHistoryFailureKind.apiKeyInvalid;
+      }
+      final text = _historyErrorText(error);
+      if (_looksLikeRateLimit(text)) {
+        return TransactionHistoryFailureKind.rateLimited;
+      }
+      if (_looksLikeApiKeyMissing(text)) {
+        return TransactionHistoryFailureKind.apiKeyMissing;
+      }
+      if (_looksLikeApiKeyInvalid(text)) {
+        return TransactionHistoryFailureKind.apiKeyInvalid;
+      }
+    }
+
+    final text = _historyErrorText(error);
+    if (_looksLikeRateLimit(text)) {
+      return TransactionHistoryFailureKind.rateLimited;
+    }
+    if (_looksLikeApiKeyMissing(text)) {
+      return TransactionHistoryFailureKind.apiKeyMissing;
+    }
+    if (_looksLikeApiKeyInvalid(text)) {
+      return TransactionHistoryFailureKind.apiKeyInvalid;
+    }
+    if (_looksLikeTimeout(text)) {
+      return TransactionHistoryFailureKind.timeout;
+    }
+    return null;
+  }
+
+  String _historyErrorText(Object? error) {
+    if (error == null) return '';
+    if (error is DioException) {
+      return [
+        error.message,
+        error.response?.statusMessage,
+        error.response?.data,
+      ].whereType<Object>().map((value) => value.toString()).join(' ');
+    }
+    return error.toString();
+  }
+
+  bool _looksLikeRateLimit(String value) {
+    final text = value.toLowerCase();
+    return text.contains('rate limit') ||
+        text.contains('too many requests') ||
+        text.contains('max rate') ||
+        text.contains('429');
+  }
+
+  bool _looksLikeApiKeyMissing(String value) {
+    final text = value.toLowerCase();
+    return text.contains('missing api key') ||
+        text.contains('apikey is missing') ||
+        text.contains('api key is missing') ||
+        text.contains('no api key');
+  }
+
+  bool _looksLikeApiKeyInvalid(String value) {
+    final text = value.toLowerCase();
+    return text.contains('invalid api key') ||
+        text.contains('invalid apikey') ||
+        text.contains('invalid api-key') ||
+        text.contains('api key invalid') ||
+        text.contains('unauthorized') ||
+        text.contains('forbidden');
+  }
+
+  bool _looksLikeTimeout(String value) {
+    final text = value.toLowerCase();
+    return text.contains('timeout') || text.contains('timed out');
+  }
+
   WalletTransactionDirection _directionForAddress({
     required String walletAddress,
     required String fromAddress,

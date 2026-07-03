@@ -594,8 +594,37 @@ void main() {
 
         expect(result.records, isEmpty);
         expect(result.hasMore, isFalse);
+        expect(result.emptyReason, TransactionHistoryFailureKind.noRecords);
       },
     );
+
+    test('classifies Moralis invalid API key errors', () async {
+      final adapter = _FallbackRpcAdapter(failMoralisInvalidApiKey: true);
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(moralisApiKey: 'bad-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'BNB',
+        name: 'BNB',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        decimals: 18,
+      );
+
+      expect(
+        () => service.loadAssetRecordPage(walletId: 'wallet-1', asset: asset),
+        throwsA(
+          isA<TransactionHistoryLoadException>().having(
+            (error) => error.kind,
+            'kind',
+            TransactionHistoryFailureKind.apiKeyInvalid,
+          ),
+        ),
+      );
+    });
 
     test(
       'returns empty X Layer native history without an indexed provider',
@@ -1883,6 +1912,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     this.heliusMint,
     this.heliusFullPage = false,
     this.failHeliusRateLimit = false,
+    this.failMoralisInvalidApiKey = false,
     this.heliusUseAccountData = false,
     this.bscScanResultsByPage,
     this.moralisTokenFullPage = false,
@@ -1901,6 +1931,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   final String? heliusMint;
   final bool heliusFullPage;
   final bool failHeliusRateLimit;
+  final bool failMoralisInvalidApiKey;
   final bool heliusUseAccountData;
   final Map<int, List<Map<String, dynamic>>>? bscScanResultsByPage;
   final bool moralisTokenFullPage;
@@ -1926,6 +1957,9 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     calls.add(origin);
 
     if (origin == 'https://deep-index.moralis.io') {
+      if (failMoralisInvalidApiKey) {
+        return _jsonResponse({'message': 'invalid api key'}, statusCode: 403);
+      }
       moralisChains.add(options.uri.queryParameters['chain'] ?? '');
       final cursor = options.uri.queryParameters['cursor'] ?? '';
       moralisCursors.add(cursor);

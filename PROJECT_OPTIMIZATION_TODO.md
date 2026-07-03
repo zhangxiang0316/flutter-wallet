@@ -14,9 +14,9 @@
   - 建议所有第三方 API Key 只通过 `--dart-define` 或 `.env.local` 注入，不再写入源码默认值。
   - 目的：避免真实 key 被打进包体或误提交。
 
-- [ ] 清理 iOS 构建缓存进入工作区的问题
-  - 当前 `scripts/build/ios/XCBuildData/PIFCache/` 下有大量未跟踪文件。
-  - 建议在 `.gitignore` 中忽略 `scripts/build/ios/XCBuildData/`。
+- [x] 清理 iOS 构建缓存进入工作区的问题
+  - 已在 `.gitignore` 中忽略 `scripts/build/ios/XCBuildData/`。
+  - 该目录下的 PIFCache 本地文件不会再出现在 Git 未跟踪列表中。
   - 目的：避免后续提交时误带入本地构建缓存。
 
 - [x] 收敛交易历史旧实现
@@ -39,21 +39,15 @@
   - 已将 EVM 历史 Provider 的 provider type 小类型拆到 `transaction_history/evm_history_provider_types.dart`。
   - `home_controller.dart` 和 `evm_transaction_history_provider.dart` 的深层拆分需要进一步改为 mixin/service 边界，否则 Dart 不支持 partial class，直接搬方法会破坏私有成员解析。
 
-- [ ] 资产估值服务拆 Provider
-  - 当前 `asset_valuation_service.dart` 包含多个价格源 fallback。
-  - 建议按 Binance、OKX、CoinGecko、DeFiLlama、CoinPaprika、CryptoCompare 等拆成独立 provider。
-  - 再增加统一调度器、缓存策略和错误类型。
+- [x] 资产估值服务拆 Provider
+  - 已按 Binance、OKX、CoinGecko、DeFiLlama、CoinPaprika、CryptoCompare 拆为独立 provider。
+  - 已增加 `AssetPriceProviderDispatcher` 统一调度主价格源、fallback、超时和错误日志。
+  - 已增加 `AssetPriceProviderException` / `AssetPriceFailureKind`，主服务保留缓存策略和对外估值 API。
 
-- [ ] 交易历史 Provider 标准化
-  - 当前 EVM / Moralis / TRON / Solana 已拆分，但错误类型仍可继续细化。
-  - 建议统一返回：
-    - `noRecords`
-    - `rateLimited`
-    - `apiKeyMissing`
-    - `apiKeyInvalid`
-    - `timeout`
-    - `providerFailed`
-  - 目的：让 UI 能区分“确实没有记录”和“接口失败”。
+- [x] 交易历史 Provider 标准化
+  - 已统一 `TransactionHistoryFailureKind`：`noRecords`、`rateLimited`、`apiKeyMissing`、`apiKeyInvalid`、`timeout`、`providerFailed`。
+  - 已让 EVM / Moralis / TRON / Solana provider 使用统一异常分类和空记录原因。
+  - 已补充交易历史页中英文错误提示，让 UI 能区分“确实没有记录”和“接口失败”。
 
 - [ ] 统一 RPC fallback 工具
   - 项目已有 `lib/wallet/utils/rpc_retry_helper.dart`。

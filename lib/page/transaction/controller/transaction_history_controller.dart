@@ -189,9 +189,17 @@ class TransactionHistoryController extends BaseController {
   String _historyLoadErrorMessage(Object error, {bool isLoadMore = false}) {
     if (error is TransactionHistoryLoadException) {
       return switch (error.kind) {
+        TransactionHistoryFailureKind.noRecords =>
+          S.current.transactionHistoryNoRecords,
         TransactionHistoryFailureKind.rateLimited =>
           S.current.transactionHistoryRateLimited,
-        TransactionHistoryFailureKind.provider =>
+        TransactionHistoryFailureKind.apiKeyMissing =>
+          S.current.transactionHistoryApiKeyMissing,
+        TransactionHistoryFailureKind.apiKeyInvalid =>
+          S.current.transactionHistoryApiKeyInvalid,
+        TransactionHistoryFailureKind.timeout =>
+          S.current.transactionHistoryTimeout,
+        TransactionHistoryFailureKind.providerFailed =>
           S.current.transactionHistoryProviderFailed,
       };
     }
