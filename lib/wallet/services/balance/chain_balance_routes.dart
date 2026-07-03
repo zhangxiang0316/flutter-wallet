@@ -5,32 +5,32 @@ extension _ChainBalanceRoutes on ChainBalanceService {
     required WalletChainRef chain,
     required Map<String, dynamic> data,
   }) async {
-    Object? lastError;
-    for (final rpcUrl in _evmRpcUrls(chain)) {
-      try {
+    return RpcRetryHelper.execute<Map<dynamic, dynamic>>(
+      rpcUrls: _evmRpcUrls(chain),
+      chainName: chain.name,
+      operation: data['method']?.toString() ?? 'EVM RPC',
+      logName: 'ChainBalanceService',
+      request: (rpcUrl) async {
         final response = await _dio.post(
           rpcUrl,
           data: data,
           options: Options(headers: {'content-type': 'application/json'}),
         );
         final responseData = response.data;
-        if (responseData is Map && responseData['result'] is String) {
+        if (responseData is Map) {
           return responseData;
         }
-        if (responseData is Map && responseData['error'] != null) {
-          throw StateError('${chain.name} RPC error: ${responseData['error']}');
-        }
         throw StateError('Invalid ${chain.name} RPC response');
-      } catch (error) {
-        lastError = error;
-        developer.log(
-          '${chain.name} RPC request failed at $rpcUrl: $error',
-          name: 'ChainBalanceService',
-        );
-      }
-    }
-    throw StateError(
-      '${chain.name} RPC request failed: ${lastError ?? 'unknown error'}',
+      },
+      validator: (responseData) => responseData['result'] is String,
+      invalidResponseError: (_, responseData) {
+        if (responseData['error'] != null) {
+          return StateError(
+            '${chain.name} RPC error: ${responseData['error']}',
+          );
+        }
+        return StateError('Invalid ${chain.name} RPC response');
+      },
     );
   }
 
@@ -44,7 +44,7 @@ extension _ChainBalanceRoutes on ChainBalanceService {
       return ChainBalanceService._evmRpcFallbacks[chain]!;
     }
     if (chain is WalletChainConfig && chain.builtinChain != null) {
-      return _rpcUrlsWithFallbacks(
+      return RpcRetryHelper.mergeRpcUrls(
         chain.rpcUrls,
         ChainBalanceService._evmRpcFallbacks[chain.builtinChain] ?? const [],
       );
@@ -67,24 +67,9 @@ extension _ChainBalanceRoutes on ChainBalanceService {
     return builtin.config;
   }
 
-  /// 合并用户配置 RPC 与内置备用 RPC，并保持顺序去重。
-  List<String> _rpcUrlsWithFallbacks(
-    List<String> rpcUrls,
-    List<String> fallbackRpcUrls,
-  ) {
-    final values = <String>{};
-    for (final url in [...rpcUrls, ...fallbackRpcUrls]) {
-      final normalized = url.trim();
-      if (normalized.isNotEmpty) {
-        values.add(normalized);
-      }
-    }
-    return values.isEmpty ? const [] : values.toList(growable: false);
-  }
-
   /// 返回 TRON 链可尝试的 HTTP/RPC 地址。
   List<String> _tronRpcUrls(WalletChainConfig chain) {
-    return _rpcUrlsWithFallbacks(
+    return RpcRetryHelper.mergeRpcUrls(
       chain.rpcUrls,
       ChainBalanceService._tronRpcFallbacks,
     );
@@ -92,7 +77,7 @@ extension _ChainBalanceRoutes on ChainBalanceService {
 
   /// 返回 Solana 链可尝试的 JSON-RPC 地址。
   List<String> _solanaRpcUrls(WalletChainConfig chain) {
-    return _rpcUrlsWithFallbacks(
+    return RpcRetryHelper.mergeRpcUrls(
       chain.rpcUrls,
       ChainBalanceService._solanaRpcFallbacks,
     );
@@ -105,9 +90,12 @@ extension _ChainBalanceRoutes on ChainBalanceService {
     WalletChainConfig chain,
     String address,
   ) async {
-    Object? lastError;
-    for (final rpcUrl in _tronRpcUrls(chain)) {
-      try {
+    return RpcRetryHelper.execute<Map<dynamic, dynamic>>(
+      rpcUrls: _tronRpcUrls(chain),
+      chainName: 'TRON',
+      operation: 'account request',
+      logName: 'ChainBalanceService',
+      request: (rpcUrl) async {
         final response = await _dio.post(
           '$rpcUrl/wallet/getaccount',
           data: {'address': address, 'visible': true},
@@ -115,24 +103,17 @@ extension _ChainBalanceRoutes on ChainBalanceService {
         );
         final responseData = response.data;
         if (responseData is Map) {
-          if (responseData['Error'] != null || responseData['error'] != null) {
-            throw StateError(
-              'TRON RPC error: ${responseData['Error'] ?? responseData['error']}',
-            );
-          }
           return responseData;
         }
         throw StateError('Invalid TRON response');
-      } catch (error) {
-        lastError = error;
-        developer.log(
-          'TRON account request failed at $rpcUrl: $error',
-          name: 'ChainBalanceService',
+      },
+      validator: (responseData) =>
+          responseData['Error'] == null && responseData['error'] == null,
+      invalidResponseError: (_, responseData) {
+        return StateError(
+          'TRON RPC error: ${responseData['Error'] ?? responseData['error']}',
         );
-      }
-    }
-    throw StateError(
-      'TRON account request failed: ${lastError ?? 'unknown error'}',
+      },
     );
   }
 
@@ -144,9 +125,12 @@ extension _ChainBalanceRoutes on ChainBalanceService {
     required Map<String, dynamic> data,
     bool Function(Object? error)? returnErrorWhen,
   }) async {
-    Object? lastError;
-    for (final rpcUrl in _solanaRpcUrls(chain)) {
-      try {
+    return RpcRetryHelper.execute<Map<dynamic, dynamic>>(
+      rpcUrls: _solanaRpcUrls(chain),
+      chainName: 'Solana',
+      operation: data['method']?.toString() ?? 'RPC request',
+      logName: 'ChainBalanceService',
+      request: (rpcUrl) async {
         final response = await _dio.post(
           rpcUrl,
           data: data,
@@ -158,28 +142,26 @@ extension _ChainBalanceRoutes on ChainBalanceService {
           ),
         );
         final responseData = response.data;
-        if (responseData is Map && responseData['result'] != null) {
+        if (responseData is Map) {
           return responseData;
         }
-        if (responseData is Map && responseData['error'] != null) {
-          final rpcError = responseData['error'];
-          if (returnErrorWhen?.call(rpcError) ?? false) {
-            return responseData;
-          }
-          throw StateError('Solana RPC error: $rpcError');
-        }
         throw StateError('Invalid Solana RPC response');
-      } catch (error) {
-        lastError = error;
-        final method = data['method']?.toString() ?? 'unknown';
-        developer.log(
-          'Solana RPC $method request failed at $rpcUrl: $error',
-          name: 'ChainBalanceService',
-        );
-      }
-    }
-    throw StateError(
-      'Solana RPC request failed: ${lastError ?? 'unknown error'}',
+      },
+      validator: (responseData) {
+        if (responseData['result'] != null) {
+          return true;
+        }
+        if (responseData['error'] != null) {
+          return returnErrorWhen?.call(responseData['error']) ?? false;
+        }
+        return false;
+      },
+      invalidResponseError: (_, responseData) {
+        if (responseData['error'] != null) {
+          return StateError('Solana RPC error: ${responseData['error']}');
+        }
+        return StateError('Invalid Solana RPC response');
+      },
     );
   }
 

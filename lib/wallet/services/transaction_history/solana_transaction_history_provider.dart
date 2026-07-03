@@ -801,30 +801,22 @@ class _SolanaTransactionHistoryProvider
     String method,
     List<dynamic> params,
   ) async {
-    Object? lastError;
-    for (final rpcUrl in _solanaRpcUrls(chain)) {
-      try {
-        final response = await dio.post(
-          rpcUrl,
-          data: {'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params},
-          options: Options(headers: {'content-type': 'application/json'}),
-        );
-        final data = response.data;
-        if (data is Map && data.containsKey('result')) {
-          return data['result'];
-        }
-        throw _historyLoadException('Invalid Solana RPC data', data);
-      } catch (error) {
-        if (error is DioException && error.response?.statusCode == 429) {
-          throw const TransactionHistoryLoadException(
-            TransactionHistoryFailureKind.rateLimited,
-            'Solana RPC rate limited',
-          );
-        }
-        lastError = error;
+    try {
+      final data = await RpcRetryHelper.executeJsonRpc(
+        dio: dio,
+        rpcUrls: _solanaRpcUrls(chain),
+        method: method,
+        params: params,
+        chainName: 'Solana',
+        logName: 'WalletTransactionHistoryService',
+      );
+      if (data.containsKey('result')) {
+        return data['result'];
       }
+      throw _historyLoadException('Invalid Solana RPC data', data);
+    } catch (error) {
+      throw _historyLoadException('Solana RPC failed', error);
     }
-    throw _historyLoadException('Solana RPC failed', lastError);
   }
 
   WalletTransactionStatus _solanaStatus(Map<dynamic, dynamic> transaction) {

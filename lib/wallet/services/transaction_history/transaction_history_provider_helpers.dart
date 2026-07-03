@@ -126,14 +126,7 @@ mixin _TransactionHistoryProviderHelpers {
   }
 
   List<String> _mergeUrls(List<String> primary, List<String> fallback) {
-    final values = <String>{};
-    for (final url in [...primary, ...fallback]) {
-      final normalized = url.trim();
-      if (normalized.isNotEmpty) {
-        values.add(normalized);
-      }
-    }
-    return values.toList(growable: false);
+    return RpcRetryHelper.mergeRpcUrls(primary, fallback);
   }
 
   String _recordId(String walletId, ChainBalance asset, String txHash) {

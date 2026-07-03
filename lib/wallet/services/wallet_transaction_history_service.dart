@@ -12,6 +12,7 @@ import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_transaction_record.dart';
+import '../utils/rpc_retry_helper.dart';
 import 'wallet_history_api_config.dart';
 import 'wallet_transfer_service.dart';
 

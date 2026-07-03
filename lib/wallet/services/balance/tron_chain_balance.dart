@@ -100,62 +100,67 @@ extension _TronChainBalance on ChainBalanceService {
     required List<WalletAsset> customAssets,
   }) async {
     Object? lastError;
-    for (final rpcUrl in _tronRpcUrls(chain)) {
-      try {
-        final response = await _dio.get(
-          '$rpcUrl/v1/accounts/$address',
-          options: Options(headers: {'content-type': 'application/json'}),
-        );
-        final data = response.data;
-        if (data is! Map ||
-            data['data'] is! List ||
-            (data['data'] as List).isEmpty) {
-          return [];
-        }
-        final account = (data['data'] as List).first;
-        if (account is! Map || account['trc20'] is! List) {
-          return [];
-        }
-        final configuredAssets =
-            WalletAssetRegistry.mergeCustomAssetsForChainConfig(
-              chain,
-              customAssets,
-            );
-        final assetsByContract = {
-          for (final asset in configuredAssets)
-            if (asset.contractAddress != null) asset.contractAddress!: asset,
-        };
-        final balances = <ChainBalance>[];
-        for (final item in account['trc20'] as List) {
-          if (item is! Map || item.isEmpty) continue;
-          final contractAddress = item.keys.first.toString();
-          final rawValue = item.values.first.toString();
-          final asset = assetsByContract[contractAddress];
-          final decimals = asset?.decimals ?? 6;
-          balances.add(
-            ChainBalance.config(
-              chainConfig: chain,
-              symbol: asset?.symbol ?? 'TRC20',
-              name: asset?.name ?? contractAddress,
-              amount: _formatUnits(
-                BigInt.tryParse(rawValue) ?? BigInt.zero,
-                decimals,
-              ),
-              address: address,
-              contractAddress: contractAddress,
-              logoUrl: asset?.logoUrl,
-              decimals: decimals,
-            ),
+    try {
+      final data = await RpcRetryHelper.execute<Map<dynamic, dynamic>>(
+        rpcUrls: _tronRpcUrls(chain),
+        chainName: 'TRON',
+        operation: 'token request',
+        logName: 'ChainBalanceService',
+        request: (rpcUrl) async {
+          final response = await _dio.get(
+            '$rpcUrl/v1/accounts/$address',
+            options: Options(headers: {'content-type': 'application/json'}),
           );
-        }
-        return balances;
-      } catch (error) {
-        lastError = error;
-        developer.log(
-          'TRON token request failed at $rpcUrl: $error',
-          name: 'ChainBalanceService',
+          final data = response.data;
+          if (data is Map) {
+            return data;
+          }
+          throw StateError('Invalid TRON token response');
+        },
+        validator: (_) => true,
+      );
+      if (data['data'] is! List || (data['data'] as List).isEmpty) {
+        return [];
+      }
+      final account = (data['data'] as List).first;
+      if (account is! Map || account['trc20'] is! List) {
+        return [];
+      }
+      final configuredAssets =
+          WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+            chain,
+            customAssets,
+          );
+      final assetsByContract = {
+        for (final asset in configuredAssets)
+          if (asset.contractAddress != null) asset.contractAddress!: asset,
+      };
+      final balances = <ChainBalance>[];
+      for (final item in account['trc20'] as List) {
+        if (item is! Map || item.isEmpty) continue;
+        final contractAddress = item.keys.first.toString();
+        final rawValue = item.values.first.toString();
+        final asset = assetsByContract[contractAddress];
+        final decimals = asset?.decimals ?? 6;
+        balances.add(
+          ChainBalance.config(
+            chainConfig: chain,
+            symbol: asset?.symbol ?? 'TRC20',
+            name: asset?.name ?? contractAddress,
+            amount: _formatUnits(
+              BigInt.tryParse(rawValue) ?? BigInt.zero,
+              decimals,
+            ),
+            address: address,
+            contractAddress: contractAddress,
+            logoUrl: asset?.logoUrl,
+            decimals: decimals,
+          ),
         );
       }
+      return balances;
+    } catch (error) {
+      lastError = error;
     }
     final errorMessage =
         'TRC20 balance lookup failed: ${lastError ?? 'unknown error'}';

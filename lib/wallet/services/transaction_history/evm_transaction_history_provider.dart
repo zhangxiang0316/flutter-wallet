@@ -816,24 +816,22 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     String method,
     List<dynamic> params,
   ) async {
-    Object? lastError;
-    for (final rpcUrl in _evmRpcUrls(chain)) {
-      try {
-        final response = await dio.post(
-          rpcUrl,
-          data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
-          options: Options(headers: {'content-type': 'application/json'}),
-        );
-        final data = response.data;
-        if (data is Map && data.containsKey('result')) {
-          return data['result'];
-        }
-        throw _historyLoadException('Invalid ${chain.name} RPC data', data);
-      } catch (error) {
-        lastError = error;
+    try {
+      final data = await RpcRetryHelper.executeJsonRpc(
+        dio: dio,
+        rpcUrls: _evmRpcUrls(chain),
+        method: method,
+        params: params,
+        chainName: chain.name,
+        logName: 'WalletTransactionHistoryService',
+      );
+      if (data.containsKey('result')) {
+        return data['result'];
       }
+      throw _historyLoadException('Invalid ${chain.name} RPC data', data);
+    } catch (error) {
+      throw _historyLoadException('${chain.name} RPC failed', error);
     }
-    throw _historyLoadException('${chain.name} RPC failed', lastError);
   }
 
   Future<BigInt> _evmRpcBigInt(

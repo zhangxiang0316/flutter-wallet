@@ -8,6 +8,7 @@ import 'package:pointycastle/digests/keccak.dart';
 import '../../../utils/storage.dart';
 import '../../models/wallet_asset.dart';
 import '../../models/wallet_chain.dart';
+import '../../utils/rpc_retry_helper.dart';
 import 'wallet_chain_config_service.dart';
 import '../wallet_transfer_service.dart';
 
@@ -230,32 +231,22 @@ class WalletCustomAssetService {
     required String to,
     required String data,
   }) async {
-    Object? lastError;
-    for (final rpcUrl in _evmRpcUrls(chain)) {
-      try {
-        final response = await _dio.post(
-          rpcUrl,
-          data: {
-            'jsonrpc': '2.0',
-            'method': 'eth_call',
-            'params': [
-              {'to': to, 'data': data},
-              'latest',
-            ],
-            'id': 1,
-          },
-          options: Options(headers: {'content-type': 'application/json'}),
-        );
-        final responseData = response.data;
-        if (responseData is Map && responseData['result'] is String) {
-          return responseData['result'] as String;
-        }
-        throw StateError(responseData.toString());
-      } catch (error) {
-        lastError = error;
-      }
+    final responseData = await RpcRetryHelper.executeJsonRpc(
+      dio: _dio,
+      rpcUrls: _evmRpcUrls(chain),
+      method: 'eth_call',
+      params: [
+        {'to': to, 'data': data},
+        'latest',
+      ],
+      chainName: chain.name,
+      logName: 'WalletCustomAssetService',
+    );
+    final result = responseData['result'];
+    if (result is String) {
+      return result;
     }
-    throw StateError(lastError?.toString() ?? 'EVM metadata lookup failed');
+    throw StateError(responseData.toString());
   }
 
   /// 解析 ABI string 返回值。
@@ -606,27 +597,12 @@ class WalletCustomAssetService {
       return _evmRpcFallbacks[chain]!;
     }
     if (chain is WalletChainConfig && chain.builtinChain != null) {
-      return _rpcUrlsWithFallbacks(
+      return RpcRetryHelper.mergeRpcUrls(
         chain.rpcUrls,
         _evmRpcFallbacks[chain.builtinChain] ?? const [],
       );
     }
     return [chain.rpcUrl];
-  }
-
-  /// 合并用户配置 RPC 和内置备用 RPC，按顺序去重。
-  List<String> _rpcUrlsWithFallbacks(
-    List<String> rpcUrls,
-    List<String> fallbackRpcUrls,
-  ) {
-    final values = <String>{};
-    for (final url in [...rpcUrls, ...fallbackRpcUrls]) {
-      final normalized = url.trim();
-      if (normalized.isNotEmpty) {
-        values.add(normalized);
-      }
-    }
-    return values.isEmpty ? const [] : values.toList(growable: false);
   }
 }
 

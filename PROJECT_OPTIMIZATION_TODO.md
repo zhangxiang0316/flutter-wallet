@@ -49,10 +49,10 @@
   - 已让 EVM / Moralis / TRON / Solana provider 使用统一异常分类和空记录原因。
   - 已补充交易历史页中英文错误提示，让 UI 能区分“确实没有记录”和“接口失败”。
 
-- [ ] 统一 RPC fallback 工具
-  - 项目已有 `lib/wallet/utils/rpc_retry_helper.dart`。
-  - 余额、交易历史、自定义资产、RPC 健康检测中仍存在各自 fallback 逻辑。
-  - 建议逐步复用统一 helper，减少重复错误处理和日志格式。
+- [x] 统一 RPC fallback 工具
+  - 已增强 `lib/wallet/utils/rpc_retry_helper.dart`，支持 RPC URL 合并、统一日志、JSON-RPC 错误校验和 fallback 调度。
+  - 已在余额查询、交易历史 EVM/Solana RPC、自定义资产 EVM 元数据读取中复用统一 helper。
+  - RPC 健康检测保留逐个节点测速逻辑，避免把测速语义改成“成功即停止”的 fallback 调度。
 
 ## P2 稳定性与体验
 
