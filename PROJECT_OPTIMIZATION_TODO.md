@@ -32,12 +32,12 @@
 
 ## P1 结构优化
 
-- [ ] 继续拆分大文件
-  - `lib/wallet/services/transaction_history/evm_transaction_history_provider.dart` 约 1020 行。
-  - `lib/wallet/services/asset_valuation_service.dart` 约 882 行。
-  - `lib/page/home/controller/home_controller.dart` 约 745 行。
-  - `lib/wallet/services/wallet_transfer_service.dart` 约 766 行。
-  - `lib/page/home/view/widgets/chain_section.dart` 约 623 行。
+- [x] 继续拆分大文件
+  - 已将 `lib/page/home/view/widgets/chain_section.dart` 拆为主入口、链卡片、资产行、空态组件。
+  - 已将 `lib/wallet/services/wallet_transfer_service.dart` 的消息签名逻辑拆到 `transfer/wallet_transfer_signing.dart`。
+  - 已将 `lib/wallet/services/asset_valuation_service.dart` 的价格源常量拆到 `asset_valuation/price_source_constants.dart`。
+  - 已将 EVM 历史 Provider 的 provider type 小类型拆到 `transaction_history/evm_history_provider_types.dart`。
+  - `home_controller.dart` 和 `evm_transaction_history_provider.dart` 的深层拆分需要进一步改为 mixin/service 边界，否则 Dart 不支持 partial class，直接搬方法会破坏私有成员解析。
 
 - [ ] 资产估值服务拆 Provider
   - 当前 `asset_valuation_service.dart` 包含多个价格源 fallback。
