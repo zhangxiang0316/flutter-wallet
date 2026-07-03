@@ -11,7 +11,6 @@ class WalletHistoryApiConfig {
 
   static const String _etherscanApiKey = String.fromEnvironment(
     'ETHERSCAN_API_KEY',
-    defaultValue: '5NIP6PR3N1AXX8GDH83QGBQ87HPPPCFN6C',
   );
   static const String _tronGridApiKey = String.fromEnvironment(
     'TRONGRID_API_KEY',
