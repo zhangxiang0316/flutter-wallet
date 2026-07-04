@@ -9,6 +9,7 @@ import '../models/wallet_chain.dart';
 import '../utils/rpc_retry_helper.dart';
 import 'config/wallet_chain_config_service.dart';
 import 'config/wallet_custom_asset_service.dart';
+import 'wallet_history_api_config.dart';
 
 part 'balance/chain_balance_routes.dart';
 part 'balance/evm_chain_balance.dart';
@@ -33,6 +34,7 @@ class ChainBalanceService {
     Dio? dio,
     WalletCustomAssetService? customAssetService,
     WalletChainConfigService? chainConfigService,
+    WalletHistoryApiConfig? apiConfig,
   }) : _dio =
            dio ??
            Dio(
@@ -43,7 +45,8 @@ class ChainBalanceService {
              ),
            ),
        _customAssetService = customAssetService ?? WalletCustomAssetService(),
-       _chainConfigService = chainConfigService ?? WalletChainConfigService();
+       _chainConfigService = chainConfigService ?? WalletChainConfigService(),
+       _apiConfig = apiConfig ?? const WalletHistoryApiConfig();
 
   /// RPC/HTTP 请求客户端。
   final Dio _dio;
@@ -54,18 +57,21 @@ class ChainBalanceService {
   /// 动态链配置服务，用于把用户添加的 EVM 网络纳入余额查询。
   final WalletChainConfigService _chainConfigService;
 
+  /// 第三方 API 配置。余额服务目前复用 Helius RPC 和 TronGrid Key。
+  final WalletHistoryApiConfig _apiConfig;
+
   /// 常规链 RPC 请求超时时间。
   static const Duration _requestTimeout = Duration(seconds: 12);
 
   /// Solana 单次 RPC 请求超时时间。
   ///
   /// Solana 公共节点偶尔响应较慢，单次请求设置得更短，避免拖慢整个首页刷新。
-  static const Duration _solanaRequestTimeout = Duration(seconds: 6);
+  static const Duration _solanaRequestTimeout = Duration(seconds: 3);
 
   /// Solana 整条链余额查询的总超时时间。
   ///
   /// 超时后会返回 Solana 资产的 0 余额兜底列表，避免页面一直 loading。
-  static const Duration _solanaChainTimeout = Duration(seconds: 14);
+  static const Duration _solanaChainTimeout = Duration(seconds: 10);
 
   /// EVM 链 RPC 备用节点。
   ///
@@ -89,9 +95,10 @@ class ChainBalanceService {
       'https://xlayerrpc.okx.com',
     ],
     WalletChain.arbitrum: [
-      'https://arb1.arbitrum.io/rpc',
-      'https://rpc.ankr.com/arbitrum', // Ankr - 稳定
       'https://arbitrum-one-rpc.publicnode.com',
+      'https://arbitrum.llamarpc.com',
+      'https://rpc.ankr.com/arbitrum',
+      'https://arb1.arbitrum.io/rpc',
     ],
   };
 
@@ -105,10 +112,10 @@ class ChainBalanceService {
   ///
   /// 优先使用快速稳定的节点，官方节点作为备用。
   static const List<String> _solanaRpcFallbacks = [
-    'https://solana-mainnet.rpc.extrnode.com', // Extrnode - 快速
-    'https://rpc.ankr.com/solana', // Ankr - 稳定
-    'https://api.mainnet-beta.solana.com', // 官方备用
+    'https://solana-mainnet.rpc.extrnode.com',
+    'https://rpc.ankr.com/solana',
     'https://solana-rpc.publicnode.com',
+    'https://api.mainnet-beta.solana.com',
   ];
 
   /// Solana SPL Token Program 地址。
@@ -134,41 +141,83 @@ class ChainBalanceService {
     final solanaChain = _builtinChainConfig(enabledChains, WalletChain.solana);
     final tronChain = _builtinChainConfig(enabledChains, WalletChain.tron);
     final results = await Future.wait([
-      ...evmChains.map(
-        (chain) => _loadEvmBalances(
+      ...evmChains.map((chain) {
+        final assets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+          chain,
+          customAssets,
+        );
+        return _loadEvmBalances(
           chain: chain,
-          assets: WalletAssetRegistry.mergeCustomAssetsForChainConfig(
-            chain,
-            customAssets,
-          ),
+          assets: assets,
           address: bscAddress,
-        ),
-      ),
-      _loadSolanaBalances(
-        chain: solanaChain,
-        address: solanaAddress,
-        customAssets: customAssets,
-      ).timeout(
-        _solanaChainTimeout,
-        onTimeout: () {
-          const error = 'Solana balance lookup timed out';
+        ).catchError((error) {
           developer.log(
-            '$error; using zero fallback balances',
+            '${chain.name} balance lookup failed; using zero fallback balances',
+            error: error,
             name: 'ChainBalanceService',
           );
-          return _fallbackSolanaBalances(
+          return _fallbackBalancesForAssets(
+            chain: chain,
+            assets: assets,
+            address: bscAddress,
+            error: error.toString(),
+          );
+        });
+      }),
+      _loadSolanaBalances(
             chain: solanaChain,
             address: solanaAddress,
             customAssets: customAssets,
-            error: error,
-          );
-        },
-      ),
+          )
+          .timeout(
+            _solanaChainTimeout,
+            onTimeout: () {
+              const error = 'Solana balance lookup timed out';
+              developer.log(
+                '$error; using zero fallback balances',
+                name: 'ChainBalanceService',
+              );
+              return _fallbackSolanaBalances(
+                chain: solanaChain,
+                address: solanaAddress,
+                customAssets: customAssets,
+                error: error,
+              );
+            },
+          )
+          .catchError((error) {
+            developer.log(
+              'Solana balance lookup failed; using zero fallback balances',
+              error: error,
+              name: 'ChainBalanceService',
+            );
+            return _fallbackSolanaBalances(
+              chain: solanaChain,
+              address: solanaAddress,
+              customAssets: customAssets,
+              error: error.toString(),
+            );
+          }),
       _loadTronBalances(
         chain: tronChain,
         address: tronAddress,
         customAssets: customAssets,
-      ),
+      ).catchError((error) {
+        developer.log(
+          'TRON balance lookup failed; using zero fallback balances',
+          error: error,
+          name: 'ChainBalanceService',
+        );
+        return _fallbackBalancesForAssets(
+          chain: tronChain,
+          assets: WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+            tronChain,
+            customAssets,
+          ),
+          address: tronAddress,
+          error: error.toString(),
+        );
+      }),
     ]);
     final balances = results.expand((items) => items).toList();
     _printLoadedBalances(results, balances);

@@ -42,7 +42,11 @@ extension HomeControllerValuation on HomeController {
   List<ChainBalance> get displayBalances {
     if (!hideZeroBalances) return visibleBalances;
     return visibleBalances
-        .where((balance) => !HomeControllerUtils.isZeroAmount(balance.amount))
+        .where(
+          (balance) =>
+              balance.hasError ||
+              !HomeControllerUtils.isZeroAmount(balance.amount),
+        )
         .toList(growable: false);
   }
 

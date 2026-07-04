@@ -45,8 +45,8 @@ extension _ChainBalanceRoutes on ChainBalanceService {
     }
     if (chain is WalletChainConfig && chain.builtinChain != null) {
       return RpcRetryHelper.mergeRpcUrls(
-        chain.rpcUrls,
         ChainBalanceService._evmRpcFallbacks[chain.builtinChain] ?? const [],
+        chain.rpcUrls,
       );
     }
     return [chain.rpcUrl];
@@ -77,10 +77,17 @@ extension _ChainBalanceRoutes on ChainBalanceService {
 
   /// 返回 Solana 链可尝试的 JSON-RPC 地址。
   List<String> _solanaRpcUrls(WalletChainConfig chain) {
-    return RpcRetryHelper.mergeRpcUrls(
-      chain.rpcUrls,
-      ChainBalanceService._solanaRpcFallbacks,
-    );
+    final heliusRpcUrl = _heliusSolanaRpcUrl();
+    return RpcRetryHelper.mergeRpcUrls([
+      if (heliusRpcUrl != null) heliusRpcUrl,
+      ...ChainBalanceService._solanaRpcFallbacks,
+    ], chain.rpcUrls);
+  }
+
+  String? _heliusSolanaRpcUrl() {
+    final apiKey = _apiConfig.heliusApiKey.trim();
+    if (apiKey.isEmpty) return null;
+    return 'https://mainnet.helius-rpc.com/?api-key=${Uri.encodeQueryComponent(apiKey)}';
   }
 
   /// 查询 TRON 账号基础信息。
@@ -99,7 +106,7 @@ extension _ChainBalanceRoutes on ChainBalanceService {
         final response = await _dio.post(
           '$rpcUrl/wallet/getaccount',
           data: {'address': address, 'visible': true},
-          options: Options(headers: {'content-type': 'application/json'}),
+          options: Options(headers: _tronHeaders(rpcUrl)),
         );
         final responseData = response.data;
         if (responseData is Map) {
@@ -117,6 +124,15 @@ extension _ChainBalanceRoutes on ChainBalanceService {
     );
   }
 
+  Map<String, String> _tronHeaders(String rpcUrl) {
+    final apiKey = _apiConfig.tronGridApiKey.trim();
+    return {
+      'content-type': 'application/json',
+      if (apiKey.isNotEmpty && rpcUrl.contains('trongrid.io'))
+        'TRON-PRO-API-KEY': apiKey,
+    };
+  }
+
   /// 向 Solana 节点发送 JSON-RPC 请求。
   ///
   /// Solana 使用更短的单请求超时，并在多个公共节点之间 fallback。
@@ -131,16 +147,18 @@ extension _ChainBalanceRoutes on ChainBalanceService {
       operation: data['method']?.toString() ?? 'RPC request',
       logName: 'ChainBalanceService',
       request: (rpcUrl) async {
-        final response = await _dio.post(
-          rpcUrl,
-          data: data,
-          options: Options(
-            headers: {'content-type': 'application/json'},
-            connectTimeout: ChainBalanceService._solanaRequestTimeout,
-            sendTimeout: ChainBalanceService._solanaRequestTimeout,
-            receiveTimeout: ChainBalanceService._solanaRequestTimeout,
-          ),
-        );
+        final response = await _dio
+            .post(
+              rpcUrl,
+              data: data,
+              options: Options(
+                headers: {'content-type': 'application/json'},
+                connectTimeout: ChainBalanceService._solanaRequestTimeout,
+                sendTimeout: ChainBalanceService._solanaRequestTimeout,
+                receiveTimeout: ChainBalanceService._solanaRequestTimeout,
+              ),
+            )
+            .timeout(ChainBalanceService._solanaRequestTimeout);
         final responseData = response.data;
         if (responseData is Map) {
           return responseData;
@@ -196,4 +214,26 @@ extension _ChainBalanceRoutes on ChainBalanceService {
   }
 
   /// 查询某条 EVM 链下所有默认资产和自定义资产余额。
+  List<ChainBalance> _fallbackBalancesForAssets({
+    required WalletChainConfig chain,
+    required List<WalletAsset> assets,
+    required String address,
+    required String error,
+  }) {
+    return assets
+        .map(
+          (asset) => ChainBalance.config(
+            chainConfig: chain,
+            symbol: asset.symbol,
+            name: asset.name,
+            amount: '0',
+            address: address,
+            contractAddress: asset.contractAddress,
+            logoUrl: asset.logoUrl,
+            decimals: asset.decimals,
+            error: error,
+          ),
+        )
+        .toList(growable: false);
+  }
 }

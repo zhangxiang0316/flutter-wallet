@@ -1240,6 +1240,43 @@ void main() {
       expect(adapter.calls, contains('https://tron-rpc.publicnode.com'));
     });
 
+    test('sends TronGrid API key when loading TRON balances', () async {
+      final dio = Dio();
+      final adapter = _FallbackRpcAdapter();
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(tronGridApiKey: 'tron-key'),
+      );
+
+      await service.loadBalances(
+        bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        solanaAddress: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+      );
+
+      expect(adapter.tronGridHeaders['TRON-PRO-API-KEY'], 'tron-key');
+    });
+
+    test('uses Helius RPC first when loading Solana balances', () async {
+      final dio = Dio();
+      final adapter = _FallbackRpcAdapter();
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(heliusApiKey: 'helius-key'),
+      );
+
+      await service.loadBalances(
+        bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        solanaAddress: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+      );
+
+      expect(adapter.calls, contains('https://mainnet.helius-rpc.com'));
+      expect(adapter.solanaRpcApiKeys, contains('helius-key'));
+    });
+
     test('does not block all balances when Solana RPC hangs', () async {
       final dio = Dio();
       final adapter = _FallbackRpcAdapter(hangSolana: true);
@@ -1945,6 +1982,8 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   final xLayerLogRanges = <(int, int)>[];
   final etherscanV2ChainIds = <String>[];
   final solanaMethods = <String>[];
+  final solanaRpcApiKeys = <String>[];
+  Map<String, dynamic> tronGridHeaders = const {};
   String? lastSolanaTransactionBase64;
 
   @override
@@ -2299,6 +2338,8 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     }
 
     if (origin == 'https://ethereum-rpc.publicnode.com' ||
+        origin == 'https://arbitrum-one-rpc.publicnode.com' ||
+        origin == 'https://arbitrum.llamarpc.com' ||
         origin == 'https://arb1.arbitrum.io') {
       return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x0'});
     }
@@ -2327,9 +2368,17 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
       });
     }
 
-    if (origin == 'https://api.mainnet-beta.solana.com') {
+    if (origin == 'https://solana-mainnet.rpc.extrnode.com' ||
+        origin == 'https://rpc.ankr.com' ||
+        origin == 'https://solana-rpc.publicnode.com' ||
+        origin == 'https://api.mainnet-beta.solana.com' ||
+        origin == 'https://mainnet.helius-rpc.com') {
       if (hangSolana) {
-        return Completer<ResponseBody>().future;
+        throw TimeoutException('Solana balance lookup timed out');
+      }
+      final apiKey = options.uri.queryParameters['api-key'];
+      if (apiKey != null && apiKey.isNotEmpty) {
+        solanaRpcApiKeys.add(apiKey);
       }
       final method = _solanaMethod(options.data);
       if (method != null) {
@@ -2436,6 +2485,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
 
     if (origin == 'https://api.trongrid.io' &&
         options.uri.path == '/wallet/getaccount') {
+      tronGridHeaders = options.headers;
       if (failTronGridAccount) {
         return _jsonResponse({
           'Error': 'temporary upstream error',
