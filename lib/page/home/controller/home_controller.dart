@@ -18,6 +18,10 @@ import '../../../wallet/services/config/wallet_chain_config_service.dart';
 import '../../../wallet/services/crypto/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/crypto/wallet_secret_store.dart';
+import 'home_controller_utils.dart';
+
+part 'home_controller_valuation.dart';
+part 'home_controller_balance.dart';
 
 /// 首页控制器。
 ///
@@ -128,7 +132,9 @@ class HomeController extends BaseController {
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
+    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+      wallet,
+    );
     update();
     if (wallet != null) {
       _startBalanceRefreshTimer();
@@ -153,7 +159,9 @@ class HomeController extends BaseController {
             orElse: () => wallet!,
           );
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
+    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+      wallet,
+    );
     _refreshTotalAssetsFromCachedPrices();
     _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
     _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
@@ -165,7 +173,7 @@ class HomeController extends BaseController {
     final mnemonic = _cryptoService.generateMnemonic();
     final keyPair = _cryptoService.importMnemonic(mnemonic);
     final nextWallet = WalletAccount(
-      id: _createWalletId(keyPair.bscAddress),
+      id: HomeControllerUtils.createWalletId(keyPair.bscAddress),
       name: 'Wallet ${wallets.length + 1}',
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
@@ -229,7 +237,9 @@ class HomeController extends BaseController {
         walletIds: legacyWalletIds,
       );
       needsSecretMigration = false;
-      needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
+      needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+        wallet,
+      );
       Toast.show(S.current.walletSecurityMigrated);
       update();
       return true;
@@ -270,245 +280,6 @@ class HomeController extends BaseController {
     }
   }
 
-  /// 查询多条链的资产余额。
-  ///
-  /// 优化策略：
-  /// 1. 立即显示缓存余额（< 50ms）- 用户感知速度提升 50x
-  /// 2. 后台静默更新最新数据
-  /// 3. 更新完成后刷新 UI 并保存新缓存
-  Future<void> refreshBalances() async {
-    final currentWallet = wallet;
-    if (currentWallet == null) return;
-
-    // 防止重复请求
-    if (isLoading) return;
-
-    final requestId = ++_balanceRequestId;
-
-    // ✅ 步骤 1: 立即显示缓存余额（如果有）
-    final cachedBalances = await _balanceCache.load(currentWallet.id);
-    if (cachedBalances != null && cachedBalances.isNotEmpty) {
-      balances = cachedBalances;
-      hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
-      chains = await _chainConfigService.loadEnabledChains();
-      _applyAssetVisibility();
-      _refreshTotalAssetsFromCachedPrices();
-      _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
-      _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
-      update(); // 立即显示缓存数据，用户感知 < 100ms
-    }
-
-    // ✅ 步骤 2: 后台加载最新余额
-    isLoading = true;
-    update();
-
-    try {
-      final nextBalances = await _balanceService.loadBalances(
-        bscAddress: currentWallet.bscAddress,
-        tronAddress: currentWallet.tronAddress,
-        solanaAddress: currentWallet.solanaAddress,
-      );
-      if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
-        return;
-      }
-
-      balances = nextBalances;
-
-      // ✅ 步骤 3: 保存新缓存
-      await _balanceCache.save(currentWallet.id, nextBalances);
-
-      hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
-      chains = await _chainConfigService.loadEnabledChains();
-      _applyAssetVisibility();
-      _refreshTotalAssetsFromCachedPrices();
-      _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
-      _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
-      isLoading = false;
-      update();
-
-      final latestPrices = await _valuationService
-          .loadUsdPrices(visibleBalances)
-          .catchError((_) => _valuationService.cachedUsdPrices);
-      if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
-        return;
-      }
-      final totalValue = _valuationService.calculateTotalUsdValue(
-        visibleBalances,
-        prices: latestPrices,
-      );
-      totalAssetsText = _valuationService.formatUsdValue(totalValue);
-      _refreshAssetStableValueTexts(latestPrices);
-      _refreshChainUsdValueTexts(latestPrices);
-      _logValuationUiState(latestPrices);
-      update();
-    } catch (_) {
-      if (requestId != _balanceRequestId || wallet?.id != currentWallet.id) {
-        return;
-      }
-      Toast.show(S.current.balanceLoadFailed);
-    } finally {
-      if (requestId == _balanceRequestId && wallet?.id == currentWallet.id) {
-        isLoading = false;
-        update();
-      }
-    }
-  }
-
-  /// 根据当前余额计算美元估值，并更新首页头部展示。
-  Future<void> refreshTotalAssets() async {
-    final totalValue = await _valuationService.loadTotalUsdValue(
-      visibleBalances,
-    );
-    totalAssetsText = _valuationService.formatUsdValue(totalValue);
-    update();
-  }
-
-  /// 使用缓存价格立即刷新总资产估值。
-  ///
-  /// 余额刷新后先用缓存价格更新 UI，再等待网络价格返回，减少总资产长时间空白。
-  void _refreshTotalAssetsFromCachedPrices() {
-    final totalValue = _valuationService.calculateTotalUsdValue(
-      visibleBalances,
-      prices: _valuationService.cachedUsdPrices,
-    );
-    totalAssetsText = _valuationService.formatUsdValue(totalValue);
-  }
-
-  /// 获取单个非稳定币资产的稳定币估值文本。
-  ///
-  /// 稳定币本身不需要额外换算，可能返回 null。
-  String? stableValueTextFor(ChainBalance balance) {
-    return assetStableValueTexts[_assetStableValueKey(balance)];
-  }
-
-  /// 获取单条链的 USD 汇总估值文本。
-  String chainUsdValueTextFor(WalletChainConfig chain) {
-    return chainUsdValueTexts[chain.id] ?? '--';
-  }
-
-  /// 首页最终展示的资产列表。
-  ///
-  /// [visibleBalances] 只受资产显示设置影响；这里再叠加隐藏 0 余额，
-  /// 避免临时展示过滤影响总资产估值和转账可选资产范围。
-  List<ChainBalance> get displayBalances {
-    if (!hideZeroBalances) return visibleBalances;
-    return visibleBalances
-        .where((balance) => !_isZeroAmount(balance.amount))
-        .toList(growable: false);
-  }
-
-  /// 首页最终展示的链列表。
-  List<WalletChainConfig> get displayChains {
-    final displayChainIds = displayBalances
-        .map((balance) => balance.chainId)
-        .toSet();
-    if (!hideZeroBalances) {
-      return chains;
-    }
-    return chains
-        .where((chain) => displayChainIds.contains(chain.id))
-        .toList(growable: false);
-  }
-
-  void setHideZeroBalances(bool value) {
-    hideZeroBalances = value;
-    if (value) {
-      expandedChainIds
-        ..clear()
-        ..addAll(displayChains.map((chain) => chain.id));
-    }
-    update();
-  }
-
-  /// 刷新非稳定币资产换算后的稳定币估值文本。
-  void _refreshAssetStableValueTexts(Map<String, Decimal> prices) {
-    // ✅ 优化：只更新价格变化的资产
-    for (final balance in visibleBalances) {
-      final symbol = balance.symbol;
-      final newPrice = prices[symbol];
-      final key = _assetStableValueKey(balance);
-
-      // 只在价格变化或新资产时重新计算
-      if (newPrice != null && _cachedPrices[symbol] != newPrice) {
-        final valueText = _valuationService.formatNonStableUsdValue(
-          balance,
-          prices: prices,
-        );
-        if (valueText != null) {
-          assetStableValueTexts[key] = valueText;
-        }
-        _cachedPrices[symbol] = newPrice;
-      }
-    }
-
-    // 移除不再可见的资产
-    assetStableValueTexts.removeWhere(
-      (key, _) => !visibleBalances.any((b) => _assetStableValueKey(b) == key),
-    );
-  }
-
-  /// 按链汇总当前可见资产的 USD 估值。
-  void _refreshChainUsdValueTexts(Map<String, Decimal> prices) {
-    chainUsdValueTexts.clear();
-    for (final chain in chains) {
-      final chainBalances = visibleBalances
-          .where((balance) => balance.chainId == chain.id)
-          .toList(growable: false);
-      final totalValue = _valuationService.calculateTotalUsdValue(
-        chainBalances,
-        prices: prices,
-      );
-      chainUsdValueTexts[chain.id] = _valuationService.formatUsdValue(
-        totalValue,
-      );
-    }
-  }
-
-  /// 生成单个资产估值缓存 key。
-  ///
-  /// 同一条链上可能存在相同 symbol 的自定义资产，因此优先纳入合约地址区分。
-  String _assetStableValueKey(ChainBalance balance) {
-    return [
-      balance.chainId,
-      balance.contractAddress ?? 'native',
-      balance.symbol,
-    ].join(':');
-  }
-
-  /// 输出估值 UI 状态，便于排查移动端价格缺失或总资产异常。
-  void _logValuationUiState(Map<String, Decimal> prices) {
-    final buffer = StringBuffer()
-      ..writeln('----- HomeController valuation UI -----')
-      ..writeln('prices=$prices')
-      ..writeln('totalAssetsText=$totalAssetsText')
-      ..writeln('assetStableValueTexts=$assetStableValueTexts')
-      ..writeln('chainUsdValueTexts=$chainUsdValueTexts');
-
-    for (final balance in visibleBalances) {
-      if (_valuationService.isStableSymbol(balance.symbol)) {
-        continue;
-      }
-      buffer.writeln(
-        '${balance.chainId}/${balance.symbol} amount=${balance.amount} '
-        'text=${stableValueTextFor(balance) ?? '-'}',
-      );
-    }
-    developer.log(buffer.toString(), name: 'HomeController');
-  }
-
-  /// 展开或收起指定链下的币种列表。
-  void toggleChainExpanded(WalletChainConfig chain) {
-    if (!expandedChainIds.add(chain.id)) {
-      expandedChainIds.remove(chain.id);
-    }
-    update();
-  }
-
-  /// 判断指定链是否已展开。
-  bool isChainExpanded(WalletChainConfig chain) {
-    return expandedChainIds.contains(chain.id);
-  }
-
   /// 切换当前钱包。
   ///
   /// 切换后会清空旧余额、重启 30 秒刷新定时器，并立即请求新钱包余额。
@@ -516,7 +287,9 @@ class HomeController extends BaseController {
     if (wallet?.id == nextWallet.id) return;
     await _repository.setCurrentWalletId(nextWallet.id);
     wallet = nextWallet;
-    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(nextWallet);
+    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+      nextWallet,
+    );
     _resetWalletState();
     update();
     _startBalanceRefreshTimer();
@@ -533,7 +306,9 @@ class HomeController extends BaseController {
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
+    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+      wallet,
+    );
     if (removedCurrentWallet) {
       _resetWalletState();
       update();
@@ -560,7 +335,9 @@ class HomeController extends BaseController {
       orElse: () => nextWallet,
     );
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
+    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+      wallet,
+    );
     _resetWalletState();
     update();
     _startBalanceRefreshTimer();
@@ -579,7 +356,7 @@ class HomeController extends BaseController {
           wallet.bscAddress.toLowerCase() == keyPair.bscAddress.toLowerCase(),
     );
     final nextWallet = WalletAccount(
-      id: _createWalletId(keyPair.bscAddress),
+      id: HomeControllerUtils.createWalletId(keyPair.bscAddress),
       name: existingIndex >= 0
           ? wallets[existingIndex].name
           : 'Wallet ${wallets.length + 1}',
@@ -597,53 +374,6 @@ class HomeController extends BaseController {
     await _saveAndSelectWallet(nextWallet);
     Toast.show(S.current.walletImported);
     return true;
-  }
-
-  /// 清空当前钱包相关 UI 状态。
-  ///
-  /// 切换或删除钱包时调用，防止旧钱包余额和估值短暂显示在新钱包下。
-  void _resetWalletState() {
-    _balanceRequestId++;
-    balances = [];
-    visibleBalances = [];
-    assetStableValueTexts.clear();
-    chainUsdValueTexts.clear();
-    expandedChainIds.clear();
-    hideZeroBalances = false;
-    totalAssetsText = '--';
-    isLoading = false;
-  }
-
-  /// 根据用户资产显示配置过滤余额列表。
-  void _applyAssetVisibility() {
-    visibleBalances = balances
-        .where(
-          (balance) => _assetVisibilityService.isBalanceVisible(
-            balance,
-            hiddenAssetKeys,
-          ),
-        )
-        .toList(growable: false);
-  }
-
-  bool _isZeroAmount(String value) {
-    return _amountDecimal(value) == Decimal.zero;
-  }
-
-  Decimal _amountDecimal(String value) {
-    return Decimal.tryParse(value.trim()) ?? Decimal.zero;
-  }
-
-  /// 当前项目使用 EVM 地址小写形式作为钱包 ID。
-  String _createWalletId(String evmAddress) {
-    return evmAddress.toLowerCase();
-  }
-
-  /// 判断当前钱包是否需要补全 Solana 地址。
-  bool _needsSolanaAddressUpgrade(WalletAccount? wallet) {
-    return wallet != null &&
-        wallet.solanaAddress.trim().isEmpty &&
-        !wallet.needsSecretMigration;
   }
 
   /// 遍历本地钱包并补全缺失的 Solana 地址。
@@ -682,7 +412,9 @@ class HomeController extends BaseController {
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = _needsSolanaAddressUpgrade(wallet);
+    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+      wallet,
+    );
   }
 
   /// 启动 60 秒余额定时刷新。

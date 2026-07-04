@@ -20,6 +20,7 @@ part 'transaction_history/transaction_history_provider_helpers.dart';
 part 'transaction_history/evm_history_provider_types.dart';
 part 'transaction_history/evm_history_provider_routing.dart';
 part 'transaction_history/evm_transaction_history_provider.dart';
+part 'transaction_history/evm_transaction_record_parsers.dart';
 part 'transaction_history/moralis_evm_transaction_history_provider.dart';
 part 'transaction_history/tron_transaction_history_provider.dart';
 part 'transaction_history/solana_helius_history_helpers.dart';

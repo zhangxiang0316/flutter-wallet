@@ -27,9 +27,13 @@
   - 第二阶段已完成：
     - `lib/wallet/services/transaction_history/evm_transaction_history_provider.dart` 已拆出 provider/rpc URL 路由逻辑，主文件从约 1045 行降到约 891 行。
     - `lib/wallet/services/transaction_history/solana_transaction_history_provider.dart` 已拆出 Helius 纯解析 helper，主文件从约 847 行降到约 776 行。
-  - `lib/page/home/controller/home_controller.dart` 约 745 行。
-  - `lib/wallet/services/config/wallet_custom_asset_service.dart` 约 632 行。
-  - 后续建议继续拆 `home_controller.dart` 和 `wallet_custom_asset_service.dart`。
+  - 第三阶段已完成：
+    - `lib/wallet/services/config/wallet_custom_asset_service.dart` 已拆出热门资产列表、地址/RPC 工具方法、EVM metadata RPC 读取与 ABI 解码，主文件从约 632 行降到 218 行。
+    - `lib/page/home/controller/home_controller.dart` 已拆出无状态工具方法，主文件从约 745 行降到 733 行。
+  - 第四阶段已完成：
+    - `lib/page/home/controller/home_controller.dart` 已拆出余额刷新流程和估值/展示过滤逻辑，主文件降到 477 行。
+    - `lib/wallet/services/transaction_history/evm_transaction_history_provider.dart` 已拆出 Explorer/Blockscout 记录解析逻辑，主文件从约 890 行降到 625 行。
+  - 后续建议继续拆 `solana_transaction_history_provider.dart` 的 Helius 解析和分页请求流程。
 
 - [ ] 转账服务错误类型标准化
   - 当前 EVM / TRON / Solana 转账逻辑仍有较多 `StateError`。
