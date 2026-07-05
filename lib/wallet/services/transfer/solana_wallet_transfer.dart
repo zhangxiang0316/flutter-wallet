@@ -232,9 +232,7 @@ extension _SolanaWalletTransfer on WalletTransferService {
           ? BigInt.tryParse(tokenAmount['amount']?.toString() ?? '')
           : null;
       if (rawAmount == null) {
-        throw StateError(
-          'Unable to parse Solana token account balance for address: $pubkey',
-        );
+        continue;
       }
       parsedAnyAmount = true;
       if (rawAmount >= minimumAmount) {
