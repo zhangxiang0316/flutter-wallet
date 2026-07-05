@@ -71,9 +71,9 @@ class WalletCustomAssetService {
   /// 只保留带合约地址的资产，原生币不允许作为自定义资产重复添加。
   Future<List<WalletAsset>> loadCustomAssets() async {
     try {
-      final value = await _storage.getStorage(_customAssetsKey);
-      if (value is List) {
-        final assets = value
+      final customAssetsJson = await _storage.getJsonList(_customAssetsKey);
+      if (customAssetsJson != null) {
+        final assets = customAssetsJson
             .whereType<Map>()
             .map(
               (item) => WalletAsset.fromJson(Map<String, dynamic>.from(item)),
@@ -92,7 +92,7 @@ class WalletCustomAssetService {
   ///
   /// 资产会转换成 JSON 兼容结构写入本地存储。
   Future<void> saveCustomAssets(List<WalletAsset> assets) {
-    return _storage.setStorage(
+    return _storage.setJsonList(
       _customAssetsKey,
       assets.map((asset) => asset.toJson()).toList(growable: false),
     );

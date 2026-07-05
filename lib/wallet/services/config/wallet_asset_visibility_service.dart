@@ -23,9 +23,9 @@ class WalletAssetVisibilityService {
   ///
   /// 老数据或异常数据不是 List 时，返回空集合，表示所有资产默认展示。
   Future<Set<String>> loadHiddenAssetKeys() async {
-    final value = await _storage.getStorage(_hiddenAssetsKey);
-    if (value is List) {
-      return value.map((item) => item.toString()).toSet();
+    final hiddenAssetKeys = await _storage.getJsonList(_hiddenAssetsKey);
+    if (hiddenAssetKeys != null) {
+      return hiddenAssetKeys.map((item) => item.toString()).toSet();
     }
     return {};
   }
@@ -34,7 +34,7 @@ class WalletAssetVisibilityService {
   ///
   /// Set 会转成 List 存储，因为底层 storage 通常只支持 JSON 兼容类型。
   Future<void> saveHiddenAssetKeys(Set<String> keys) {
-    return _storage.setStorage(_hiddenAssetsKey, keys.toList(growable: false));
+    return _storage.setJsonList(_hiddenAssetsKey, keys.toList(growable: false));
   }
 
   /// 设置某个资产是否可见。

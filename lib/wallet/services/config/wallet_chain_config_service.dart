@@ -80,11 +80,11 @@ class WalletChainConfigService {
 
   /// 读取用户添加的 EVM 链。
   Future<List<WalletChainConfig>> loadCustomChains() async {
-    final value = await _storage.getStorage(_customChainsKey);
-    if (value is! List) {
+    final customChainsJson = await _storage.getJsonList(_customChainsKey);
+    if (customChainsJson == null) {
       return [];
     }
-    return value
+    return customChainsJson
         .whereType<Map>()
         .map(
           (item) => WalletChainConfig.fromJson(Map<String, dynamic>.from(item)),
@@ -99,18 +99,18 @@ class WalletChainConfigService {
         .where(_isValidCustomEvmChain)
         .map((chain) => chain.toJson())
         .toList(growable: false);
-    return _storage.setStorage(_customChainsKey, values);
+    return _storage.setJsonList(_customChainsKey, values);
   }
 
   /// 读取内置链覆盖配置。
   Future<Map<String, WalletChainConfig>> _loadBuiltinChainOverrides() async {
-    final value = await _storage.getStorage(_builtinChainOverridesKey);
-    if (value is! List) {
+    final overridesJson = await _storage.getJsonList(_builtinChainOverridesKey);
+    if (overridesJson == null) {
       return {};
     }
     final builtinIds = WalletChain.values.map((chain) => chain.id).toSet();
     final overrides = <String, WalletChainConfig>{};
-    for (final item in value.whereType<Map>()) {
+    for (final item in overridesJson.whereType<Map>()) {
       final config = WalletChainConfig.fromJson(
         Map<String, dynamic>.from(item),
       );
@@ -131,7 +131,7 @@ class WalletChainConfigService {
         if (builtinIds.contains(chain.id) && chain.rpcUrls.isNotEmpty)
           chain.toJson(),
     ];
-    return _storage.setStorage(_builtinChainOverridesKey, values);
+    return _storage.setJsonList(_builtinChainOverridesKey, values);
   }
 
   /// 根据 ID 查找链配置。

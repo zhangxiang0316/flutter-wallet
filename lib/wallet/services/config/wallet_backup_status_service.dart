@@ -10,9 +10,9 @@ class WalletBackupStatusService {
   static const String _backedUpWalletsKey = 'wallet_mnemonic_backed_up_ids';
 
   Future<Set<String>> loadBackedUpWalletIds() async {
-    final value = await _storage.getStorage(_backedUpWalletsKey);
-    if (value is List) {
-      return value.map((item) => item.toString()).toSet();
+    final backedUpWalletIds = await _storage.getJsonList(_backedUpWalletsKey);
+    if (backedUpWalletIds != null) {
+      return backedUpWalletIds.map((item) => item.toString()).toSet();
     }
     return {};
   }
@@ -29,7 +29,10 @@ class WalletBackupStatusService {
     if (id.isEmpty) return;
     final ids = await loadBackedUpWalletIds();
     ids.add(id);
-    await _storage.setStorage(_backedUpWalletsKey, ids.toList(growable: false));
+    await _storage.setJsonList(
+      _backedUpWalletsKey,
+      ids.toList(growable: false),
+    );
   }
 
   Future<void> clearMnemonicBackedUp(String walletId) async {
@@ -37,6 +40,9 @@ class WalletBackupStatusService {
     if (id.isEmpty) return;
     final ids = await loadBackedUpWalletIds();
     ids.remove(id);
-    await _storage.setStorage(_backedUpWalletsKey, ids.toList(growable: false));
+    await _storage.setJsonList(
+      _backedUpWalletsKey,
+      ids.toList(growable: false),
+    );
   }
 }

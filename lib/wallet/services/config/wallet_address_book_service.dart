@@ -11,12 +11,12 @@ class WalletAddressBookService {
   static const String _entriesKey = 'wallet_address_book_entries';
 
   Future<List<WalletAddressBookEntry>> loadEntries() async {
-    final value = await _storage.getStorage(_entriesKey);
-    if (value is! List) {
+    final entriesJson = await _storage.getJsonList(_entriesKey);
+    if (entriesJson == null) {
       return [];
     }
     final entries = <WalletAddressBookEntry>[];
-    for (final item in value.whereType<Map>()) {
+    for (final item in entriesJson.whereType<Map>()) {
       final entry = WalletAddressBookEntry.fromJson(
         Map<String, dynamic>.from(item),
       );
@@ -83,7 +83,7 @@ class WalletAddressBookService {
 
   Future<void> _saveEntries(List<WalletAddressBookEntry> entries) {
     entries.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return _storage.setStorage(
+    return _storage.setJsonList(
       _entriesKey,
       entries.map((entry) => entry.toJson()).toList(growable: false),
     );

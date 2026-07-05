@@ -48,9 +48,9 @@ class WalletRepository {
   /// 优先读取新版本多钱包列表；如果不存在，则尝试读取旧版本单钱包数据，方便旧用户
   /// 进入迁移流程。这里不会读取私钥或助记词。
   Future<List<WalletAccount>> loadWallets() async {
-    final value = await _storage.getStorage(_walletsKey);
-    if (value is List) {
-      return value
+    final walletsJson = await _storage.getJsonList(_walletsKey);
+    if (walletsJson != null) {
+      return walletsJson
           .whereType<Map>()
           .map(
             (item) => WalletAccount.fromJson(Map<String, dynamic>.from(item)),
@@ -82,9 +82,9 @@ class WalletRepository {
 
   /// 读取当前钱包 ID。
   Future<String?> loadCurrentWalletId() async {
-    final value = await _storage.getStorage(_currentWalletIdKey);
-    if (value is String && value.isNotEmpty) {
-      return value;
+    final currentWalletId = await _storage.getString(_currentWalletIdKey);
+    if (currentWalletId != null && currentWalletId.isNotEmpty) {
+      return currentWalletId;
     }
     return null;
   }
@@ -102,7 +102,7 @@ class WalletRepository {
         wallets.any((wallet) => wallet.needsSecretMigration)) {
       throw StateError('Legacy wallet secrets must be migrated before saving');
     }
-    await _storage.setStorage(
+    await _storage.setJsonList(
       _walletsKey,
       wallets.map((wallet) => wallet.toJson()).toList(),
     );
@@ -260,12 +260,12 @@ class WalletRepository {
       currentWalletId: await loadCurrentWalletId() ?? wallets.first.id,
       allowDroppingLegacySecrets: true,
     );
-    await _storage.removeStorage(_walletKey);
+    await _storage.remove(_walletKey);
   }
 
   /// 设置当前钱包 ID。
   Future<void> setCurrentWalletId(String walletId) {
-    return _storage.setStorage(_currentWalletIdKey, walletId);
+    return _storage.setString(_currentWalletIdKey, walletId);
   }
 
   /// 删除钱包。
@@ -283,7 +283,7 @@ class WalletRepository {
     await saveWallets(wallets, currentWalletId: nextCurrentId);
     await _secretStore.removePrivateKey(walletId);
     if (nextCurrentId == null) {
-      await _storage.removeStorage(_currentWalletIdKey);
+      await _storage.remove(_currentWalletIdKey);
     }
   }
 
@@ -291,9 +291,9 @@ class WalletRepository {
   ///
   /// 仅作为兼容入口，不会再向该 key 写入新数据。
   Future<WalletAccount?> _loadLegacyWallet() async {
-    final value = await _storage.getStorage(_walletKey);
-    if (value is Map) {
-      return WalletAccount.fromJson(Map<String, dynamic>.from(value));
+    final walletJson = await _storage.getJsonMap(_walletKey);
+    if (walletJson != null) {
+      return WalletAccount.fromJson(walletJson);
     }
     return null;
   }

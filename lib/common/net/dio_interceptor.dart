@@ -15,7 +15,7 @@ class DioInterceptor extends InterceptorsWrapper {
     RequestInterceptorHandler handler,
   ) async {
     late var intlLocalization = Intl.defaultLocale; // 获取当前语言环境
-    options.headers['token'] = await Storage().getStorage('token');
+    options.headers['token'] = await Storage().getString('token') ?? '';
     options.headers['Accept-Language'] = intlLocalization;
 
     _logRequest(options);

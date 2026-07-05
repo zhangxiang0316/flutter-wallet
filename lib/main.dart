@@ -29,7 +29,7 @@ class ThemeController extends GetxController {
 
   // 从本地存储恢复主题模式
   Future<void> _loadSavedTheme() async {
-    final savedTheme = await _storage.getStorage(_themeKey);
+    final savedTheme = await _storage.getString(_themeKey);
     if (savedTheme != null && savedTheme.isNotEmpty) {
       themeMode.value = _getThemeModeFromString(savedTheme);
     }
@@ -38,7 +38,7 @@ class ThemeController extends GetxController {
   // 切换主题并持久化
   Future<void> setThemeMode(ThemeMode mode) async {
     themeMode.value = mode;
-    await _storage.setStorage(_themeKey, mode.toString());
+    await _storage.setString(_themeKey, mode.toString());
   }
 
   // 切换主题并持久化 (Legacy)
@@ -94,8 +94,8 @@ void main() async {
 ///
 /// 语言读取依赖 SharedPreferences，冷启动时如果放在 runApp 前会让原生白屏停留更久。
 Future<void> _restoreSavedLanguage() async {
-  final savedLanguage = await Storage().getStorage('app_language');
-  if (savedLanguage is String && savedLanguage.isNotEmpty) {
+  final savedLanguage = await Storage().getString('app_language');
+  if (savedLanguage != null && savedLanguage.isNotEmpty) {
     await Get.updateLocale(Locale(savedLanguage));
   }
 }

@@ -23,7 +23,7 @@ class LanguageController extends BaseController {
 
   /// 加载保存的语言设置。
   Future<void> _loadSavedLanguage() async {
-    final savedLanguage = await _storage.getStorage(_languageKey);
+    final savedLanguage = await _storage.getString(_languageKey);
     if (savedLanguage != null && savedLanguage.isNotEmpty) {
       final locale = _getLocaleFromString(savedLanguage);
       await Get.updateLocale(locale);
@@ -35,10 +35,11 @@ class LanguageController extends BaseController {
 
   /// 切换语言。
   Future<void> switchLanguage(String languageCode) async {
-    final newLocale =
-        languageCode == 'zh' ? const Locale('zh') : const Locale('en');
+    final newLocale = languageCode == 'zh'
+        ? const Locale('zh')
+        : const Locale('en');
     await Get.updateLocale(newLocale);
-    await _storage.setStorage(_languageKey, newLocale.languageCode);
+    await _storage.setString(_languageKey, newLocale.languageCode);
     _updateLanguageDisplay(newLocale);
   }
 
