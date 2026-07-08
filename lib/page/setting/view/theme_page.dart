@@ -24,11 +24,11 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
 
   /// 页面顶部导航栏。
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -38,16 +38,16 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
         onPressed: back,
       ),
       title: Text(
-        S.of(context!).themeSettings,
+        S.of(context).themeSettings,
         style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
       ),
       centerTitle: true,
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -56,7 +56,7 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
 
   /// 主题选项列表。
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     final themeController = Get.find<ThemeController>();
 
     return SingleChildScrollView(
@@ -64,7 +64,7 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Theme.of(context!).cardColor,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10.r),
         ),
         child: Column(
@@ -76,7 +76,7 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text(S.of(context!).themeSystem),
+                    Text(S.of(context).themeSystem),
                     const Spacer(),
                     Obx(
                       () => Visibility(
@@ -96,7 +96,7 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text(S.of(context!).themeLight),
+                    Text(S.of(context).themeLight),
                     const Spacer(),
                     Obx(
                       () => Visibility(
@@ -116,7 +116,7 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                 padding: EdgeInsets.all(5.h),
                 child: Row(
                   children: [
-                    Text(S.of(context!).themeDark),
+                    Text(S.of(context).themeDark),
                     const Spacer(),
                     Obx(
                       () => Visibility(

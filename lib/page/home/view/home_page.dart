@@ -34,11 +34,11 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// 首页顶部标题栏，当前钱包模块只展示应用名称。
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       centerTitle: true,
       elevation: 0,
       leadingWidth: 52.w,
@@ -51,7 +51,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         child: Center(
           child: Semantics(
             button: controller.wallet != null,
-            label: S.of(context!).walletDetails,
+            label: S.of(context).walletDetails,
             child: InkWell(
               onTap: controller.wallet == null ? null : _openWalletDetailPage,
               borderRadius: BorderRadius.circular(8.r),
@@ -77,7 +77,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         ),
       ),
       title: Text(
-        S.of(context!).appName,
+        S.of(context).appName,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
@@ -85,9 +85,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       actions: [
         Semantics(
           button: true,
-          label: S.of(context!).settings,
+          label: S.of(context).settings,
           child: IconButton(
-            tooltip: S.of(context!).settings,
+            tooltip: S.of(context).settings,
             icon: const Icon(Icons.tune_rounded),
             color: colorScheme.onSurface.withValues(alpha: 0.82),
             iconSize: 20.w,
@@ -101,10 +101,10 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       ],
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -113,10 +113,10 @@ class HomePage extends BaseScaffoldPage<HomeController> {
 
   /// 根据本地是否已有钱包，切换空钱包引导或钱包资产面板。
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     final wallet = controller.wallet;
-    _scheduleLegacyMigrationSheet();
-    _scheduleSolanaAddressUpgradeSheet();
+    _scheduleLegacyMigrationSheet(context);
+    _scheduleSolanaAddressUpgradeSheet(context);
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
@@ -128,8 +128,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
             ? [
                 HomeEntranceItem(
                   child: EmptyWalletCard(
-                    onCreateWallet: _showCreateWalletSheet,
-                    onImportWallet: _showImportSheet,
+                    onCreateWallet: () => _showCreateWalletSheet(context),
+                    onImportWallet: () => _showImportSheet(context),
                   ),
                 ),
               ]
@@ -141,7 +141,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                     totalAssetsText: controller.totalAssetsText,
                     onWalletSelected: controller.switchWallet,
                     onWalletRemoved: controller.removeWallet,
-                    onAddWallet: _showAddWalletSheet,
+                    onAddWallet: () => _showAddWalletSheet(context),
                     onReceivePressed: _openReceivePage,
                     onTransferPressed: _openTransferPage,
                   ),
@@ -184,8 +184,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       return HomeBackground(child: content);
     }
     return RefreshIndicator(
-      backgroundColor: Theme.of(context!).cardColor,
-      color: Theme.of(context!).colorScheme.primary,
+      backgroundColor: Theme.of(context).cardColor,
+      color: Theme.of(context).colorScheme.primary,
       displacement: 20.h,
       edgeOffset: 2.h,
       onRefresh: controller.refreshBalances,
@@ -194,9 +194,9 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   }
 
   /// 导入私钥的底部弹窗，提交后由控制器校验并持久化钱包。
-  void _showImportSheet() {
+  void _showImportSheet(BuildContext context) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
@@ -209,23 +209,24 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   }
 
   /// 打开创建钱包密码设置流程。
-  void _showCreateWalletSheet() {
+  void _showCreateWalletSheet(BuildContext context) {
     _showPasswordSetupSheet(
-      title: S.of(context!).createWallet,
-      submitLabel: S.of(context!).createWallet,
+      context: context,
+      title: S.of(context).createWallet,
+      submitLabel: S.of(context).createWallet,
       onSubmit: controller.createWallet,
     );
   }
 
   /// 打开添加钱包选择面板。
-  void _showAddWalletSheet() {
+  void _showAddWalletSheet(BuildContext context) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => AddWalletSheet(
-        onCreateWallet: _showCreateWalletSheet,
-        onImportWallet: _showImportSheet,
+        onCreateWallet: () => _showCreateWalletSheet(context),
+        onImportWallet: () => _showImportSheet(context),
       ),
     );
   }
@@ -234,13 +235,14 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   ///
   /// 创建钱包和旧钱包安全迁移共用该方法，通过 [onSubmit] 区分实际业务。
   void _showPasswordSetupSheet({
+    required BuildContext context,
     required String title,
     required String submitLabel,
     required Future<Object?> Function(String password) onSubmit,
     bool isDismissible = true,
   }) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       isDismissible: isDismissible,
       enableDrag: isDismissible,
@@ -259,20 +261,21 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   /// 在旧钱包仍含明文私钥时，安排安全迁移弹窗。
   ///
   /// 弹窗在当前帧绘制完成后出现，避免在 build 过程中直接打开 BottomSheet。
-  void _scheduleLegacyMigrationSheet() {
+  void _scheduleLegacyMigrationSheet(BuildContext context) {
     if (!controller.needsSecretMigration || _legacyMigrationSheetVisible) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!controller.needsSecretMigration ||
           _legacyMigrationSheetVisible ||
-          context == null) {
+          !context.mounted) {
         return;
       }
       _legacyMigrationSheetVisible = true;
       _showPasswordSetupSheet(
-        title: S.of(context!).walletSecurityUpgrade,
-        submitLabel: S.of(context!).encryptWallet,
+        context: context,
+        title: S.of(context).walletSecurityUpgrade,
+        submitLabel: S.of(context).encryptWallet,
         isDismissible: false,
         onSubmit: controller.migrateLegacySecrets,
       );
@@ -280,7 +283,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   }
 
   /// 在旧钱包缺少 Solana 地址时，安排地址升级弹窗。
-  void _scheduleSolanaAddressUpgradeSheet() {
+  void _scheduleSolanaAddressUpgradeSheet(BuildContext context) {
     if (controller.needsSecretMigration ||
         !controller.needsSolanaAddressUpgrade ||
         _solanaAddressUpgradeSheetVisible) {
@@ -290,14 +293,15 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       if (controller.needsSecretMigration ||
           !controller.needsSolanaAddressUpgrade ||
           _solanaAddressUpgradeSheetVisible ||
-          context == null) {
+          !context.mounted) {
         return;
       }
       _solanaAddressUpgradeSheetVisible = true;
       _showPasswordUnlockSheet(
-        title: S.of(context!).walletSolanaAddressUpgrade,
-        detail: S.of(context!).walletSolanaAddressUpgradeDetail,
-        submitLabel: S.of(context!).walletSolanaAddressUpgradeAction,
+        context: context,
+        title: S.of(context).walletSolanaAddressUpgrade,
+        detail: S.of(context).walletSolanaAddressUpgradeDetail,
+        submitLabel: S.of(context).walletSolanaAddressUpgradeAction,
         onSubmit: controller.upgradeMissingSolanaAddresses,
       );
     });
@@ -307,13 +311,14 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   ///
   /// 当前用于补全 Solana 地址等需要读取加密私钥的维护流程。
   void _showPasswordUnlockSheet({
+    required BuildContext context,
     required String title,
     required String detail,
     required String submitLabel,
     required Future<bool> Function(String password) onSubmit,
   }) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,

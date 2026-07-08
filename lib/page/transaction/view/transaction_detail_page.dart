@@ -20,11 +20,11 @@ class TransactionDetailPage
   }
 
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -35,22 +35,22 @@ class TransactionDetailPage
       ),
       centerTitle: true,
       title: Text(
-        S.of(context!).transactionDetail,
+        S.of(context).transactionDetail,
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
         IconButton(
-          tooltip: S.of(context!).openBlockExplorer,
+          tooltip: S.of(context).openBlockExplorer,
           onPressed: controller.openTransactionExplorer,
           icon: Icon(Icons.open_in_browser_rounded, size: 20.w),
         ).marginOnly(right: 4.w),
       ],
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -58,19 +58,19 @@ class TransactionDetailPage
   }
 
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     final record = controller.record;
     if (record == null) {
       return Center(
         child: Text(
-          S.of(context!).transactionNoAsset,
+          S.of(context).transactionNoAsset,
           style: TextStyle(fontSize: 13.sp),
         ),
       );
     }
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
@@ -78,53 +78,53 @@ class TransactionDetailPage
           _TransactionDetailHeader(record: record),
           SizedBox(height: 12.h),
           _DetailSection(
-            title: S.of(context!).transactionOverview,
+            title: S.of(context).transactionOverview,
             children: [
               _DetailRow(
-                label: S.of(context!).transactionStatus,
-                value: _statusText(context!, record.status),
-                valueColor: _statusColor(context!, record.status),
+                label: S.of(context).transactionStatus,
+                value: _statusText(context, record.status),
+                valueColor: _statusColor(context, record.status),
               ),
               _DetailRow(
-                label: S.of(context!).transactionDirection,
-                value: _directionText(context!, record.direction),
+                label: S.of(context).transactionDirection,
+                value: _directionText(context, record.direction),
               ),
               _DetailRow(
-                label: S.of(context!).transactionAmount,
+                label: S.of(context).transactionAmount,
                 value:
                     '${_amountPrefix(record)}${record.amount} '
                     '${record.symbol}',
-                valueColor: _directionColor(context!, record.direction),
+                valueColor: _directionColor(context, record.direction),
               ),
               if (record.feeAmount?.isNotEmpty ?? false)
                 _DetailRow(
-                  label: S.of(context!).networkFee,
+                  label: S.of(context).networkFee,
                   value: '${record.feeAmount} ${record.feeSymbol ?? ''}'.trim(),
                 ),
               _DetailRow(
-                label: S.of(context!).transactionSource,
-                value: _sourceText(context!, record.source),
+                label: S.of(context).transactionSource,
+                value: _sourceText(context, record.source),
               ),
             ],
           ),
           SizedBox(height: 12.h),
           _DetailSection(
-            title: S.of(context!).transactionAddresses,
+            title: S.of(context).transactionAddresses,
             children: [
               _DetailRow(
-                label: S.of(context!).transactionFrom,
+                label: S.of(context).transactionFrom,
                 value: record.fromAddress,
                 copyable: true,
                 onCopy: () => controller.copyText(record.fromAddress),
               ),
               _DetailRow(
-                label: S.of(context!).transactionTo,
+                label: S.of(context).transactionTo,
                 value: record.toAddress,
                 copyable: true,
                 onCopy: () => controller.copyText(record.toAddress),
               ),
               _DetailRow(
-                label: S.of(context!).transactionWalletAddress,
+                label: S.of(context).transactionWalletAddress,
                 value: record.walletAddress,
                 copyable: true,
                 onCopy: () => controller.copyText(record.walletAddress),
@@ -133,36 +133,33 @@ class TransactionDetailPage
           ),
           SizedBox(height: 12.h),
           _DetailSection(
-            title: S.of(context!).transactionChainInfo,
+            title: S.of(context).transactionChainInfo,
             children: [
-              _DetailRow(
-                label: S.of(context!).network,
-                value: record.chainName,
-              ),
-              _DetailRow(label: S.of(context!).asset, value: record.assetName),
+              _DetailRow(label: S.of(context).network, value: record.chainName),
+              _DetailRow(label: S.of(context).asset, value: record.assetName),
               if (record.contractAddress?.isNotEmpty ?? false)
                 _DetailRow(
-                  label: S.of(context!).contractAddress,
+                  label: S.of(context).contractAddress,
                   value: record.contractAddress!,
                   copyable: true,
                   onCopy: () => controller.copyText(record.contractAddress!),
                 ),
               _DetailRow(
-                label: S.of(context!).blockNumber,
+                label: S.of(context).blockNumber,
                 value: record.blockNumber?.toString() ?? '-',
               ),
               _DetailRow(
-                label: S.of(context!).transactionTime,
-                value: _formattedTime(context!, record.timestamp),
+                label: S.of(context).transactionTime,
+                value: _formattedTime(context, record.timestamp),
               ),
             ],
           ),
           SizedBox(height: 12.h),
           _DetailSection(
-            title: S.of(context!).transactionHash,
+            title: S.of(context).transactionHash,
             children: [
               _DetailRow(
-                label: S.of(context!).transactionHash,
+                label: S.of(context).transactionHash,
                 value: record.txHash,
                 copyable: true,
                 onCopy: () => controller.copyText(record.txHash),
@@ -173,7 +170,7 @@ class TransactionDetailPage
           FilledButton.icon(
             onPressed: controller.openTransactionExplorer,
             icon: const Icon(Icons.open_in_browser_rounded),
-            label: Text(S.of(context!).openBlockExplorer),
+            label: Text(S.of(context).openBlockExplorer),
           ),
         ],
       ),

@@ -22,11 +22,11 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
 
   /// 页面顶部导航栏。
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -42,10 +42,10 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
       ),
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -54,13 +54,13 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
 
   /// 语言选项列表。
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Theme.of(context!).cardColor,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10.r),
         ),
         child: Column(

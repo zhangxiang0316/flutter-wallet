@@ -24,9 +24,9 @@ class PasswordCacheSettingsPage
   }
 
   @override
-  PreferredSizeWidget? getAppBar() {
+  PreferredSizeWidget? getAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -37,17 +37,17 @@ class PasswordCacheSettingsPage
       ),
       centerTitle: true,
       title: Text(
-        S.of(context!).securitySettings,
+        S.of(context).securitySettings,
         style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
       ),
     );
   }
 
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: Obx(() {
         if (controller.isLoading.value) {
@@ -59,8 +59,8 @@ class PasswordCacheSettingsPage
             CellGroup(
               children: [
                 SwitchCell(
-                  title: S.of(context!).passwordCache,
-                  subtitle: S.of(context!).passwordCacheDesc,
+                  title: S.of(context).passwordCache,
+                  subtitle: S.of(context).passwordCacheDesc,
                   value: controller.isEnabled.value,
                   onChanged: controller.toggleEnabled,
                 ),
@@ -74,25 +74,25 @@ class PasswordCacheSettingsPage
               child: controller.isEnabled.value
                   ? CellGroup(
                       key: const ValueKey('expiry-options'),
-                      title: S.of(context!).passwordCacheExpiry,
+                      title: S.of(context).passwordCacheExpiry,
                       children: [
                         ExpiryOption(
-                          title: S.of(context!).passwordCacheExpiry1,
+                          title: S.of(context).passwordCacheExpiry1,
                           selected: controller.expiryMinutes.value == 1,
                           onTap: () => controller.setExpiryMinutes(1),
                         ),
                         ExpiryOption(
-                          title: S.of(context!).passwordCacheExpiry5,
+                          title: S.of(context).passwordCacheExpiry5,
                           selected: controller.expiryMinutes.value == 5,
                           onTap: () => controller.setExpiryMinutes(5),
                         ),
                         ExpiryOption(
-                          title: S.of(context!).passwordCacheExpiry10,
+                          title: S.of(context).passwordCacheExpiry10,
                           selected: controller.expiryMinutes.value == 10,
                           onTap: () => controller.setExpiryMinutes(10),
                         ),
                         ExpiryOption(
-                          title: S.of(context!).passwordCacheExpiry30,
+                          title: S.of(context).passwordCacheExpiry30,
                           selected: controller.expiryMinutes.value == 30,
                           onTap: () => controller.setExpiryMinutes(30),
                         ),
@@ -102,13 +102,11 @@ class PasswordCacheSettingsPage
             ),
             SizedBox(height: 12.h),
             CellGroup(
-              title: S.of(context!).passwordCacheSecurityNoteTitle,
+              title: S.of(context).passwordCacheSecurityNoteTitle,
               children: [
-                NoteCell(text: S.of(context!).passwordCacheMemoryOnly),
-                NoteCell(text: S.of(context!).passwordCacheClearedOnExit),
-                NoteCell(
-                  text: S.of(context!).passwordCacheExpiresAutomatically,
-                ),
+                NoteCell(text: S.of(context).passwordCacheMemoryOnly),
+                NoteCell(text: S.of(context).passwordCacheClearedOnExit),
+                NoteCell(text: S.of(context).passwordCacheExpiresAutomatically),
               ],
             ),
           ],

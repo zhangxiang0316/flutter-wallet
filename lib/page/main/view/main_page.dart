@@ -14,7 +14,7 @@ import '../../home/view/home_page.dart';
 class MainPage extends BasePage<MainController> {
   /// 构建当前主页面内容。
   @override
-  Widget buildWidget(MainController controller) {
+  Widget buildWidget(BuildContext context, MainController controller) {
     return HomePage();
   }
 

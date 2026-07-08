@@ -1,22 +1,22 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get_utils/src/extensions/widget_extensions.dart';
-import 'package:omnicast/base/base_page.dart';
-
-import '../base/base_controller.dart';
 
 /// 列表项
-class LineItem extends BasePage<LineController> {
+class LineItem extends StatelessWidget {
+  const LineItem({
+    super.key,
+    required this.title,
+    required this.value,
+    this.onTap,
+  });
+
   final String title;
   final String value;
   final VoidCallback? onTap;
 
-  LineItem({required this.title, required this.value, this.onTap});
-
   @override
-  Widget buildWidget(LineController controller) {
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -36,11 +36,4 @@ class LineItem extends BasePage<LineController> {
       ),
     );
   }
-
-  @override
-  LineController generateController() {
-    return LineController();
-  }
 }
-
-class LineController extends BaseController {}

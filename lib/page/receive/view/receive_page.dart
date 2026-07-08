@@ -28,11 +28,11 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
 
   /// 页面顶部导航栏。
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -43,15 +43,15 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
       ),
       centerTitle: true,
       title: Text(
-        S.of(context!).receive,
+        S.of(context).receive,
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -63,13 +63,13 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
   /// 当钱包或币种缺失时展示兜底提示；正常情况下依次展示收款摘要、
   /// 链选择、币种选择、二维码和地址复制区域。
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     final wallet = controller.wallet;
     final asset = controller.selectedAsset;
     if (wallet == null || asset == null) {
       return Center(
         child: Text(
-          S.of(context!).receiveUnavailable,
+          S.of(context).receiveUnavailable,
           style: TextStyle(fontSize: 13.sp),
         ),
       );
@@ -77,8 +77,8 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
 
     final address = controller.currentAddress();
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: ListView(
         physics: const BouncingScrollPhysics(),

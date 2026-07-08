@@ -43,10 +43,10 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
   }
 
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -57,13 +57,13 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
       ),
       centerTitle: true,
       title: Text(
-        S.of(context!).addressBook,
+        S.of(context).addressBook,
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
         IconButton(
-          tooltip: S.of(context!).addAddressBookEntry,
-          onPressed: () => _showEntrySheet(),
+          tooltip: S.of(context).addAddressBookEntry,
+          onPressed: () => _showEntrySheet(context),
           icon: Icon(Icons.add_rounded, size: 22.w, color: colorScheme.primary),
         ),
       ],
@@ -71,10 +71,10 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
   }
 
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
@@ -90,7 +90,7 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
               child: Center(child: CircularProgressIndicator(strokeWidth: 2.w)),
             )
           else if (controller.visibleEntries.isEmpty)
-            AddressBookEmptyCard(onAddPressed: () => _showEntrySheet())
+            AddressBookEmptyCard(onAddPressed: () => _showEntrySheet(context))
           else
             ...controller.visibleEntries.map(
               (entry) => AddressBookEntryTile(
@@ -99,7 +99,7 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
                 onTap: controller.selectable
                     ? () => Get.back(result: entry.address)
                     : null,
-                onMorePressed: () => _showActionSheet(entry),
+                onMorePressed: () => _showActionSheet(context, entry),
               ).marginOnly(bottom: 10.h),
             ),
         ],
@@ -107,9 +107,9 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
     );
   }
 
-  void _showEntrySheet({WalletAddressBookEntry? entry}) {
+  void _showEntrySheet(BuildContext context, {WalletAddressBookEntry? entry}) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
@@ -122,34 +122,37 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
     );
   }
 
-  void _showActionSheet(WalletAddressBookEntry entry) {
+  void _showActionSheet(BuildContext context, WalletAddressBookEntry entry) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (_) => AddressBookActionSheet(
-        cancelText: S.of(context!).cancel,
+        cancelText: S.of(context).cancel,
         actions: [
           AddressBookAction(
-            label: S.of(context!).editAddressBookEntry,
+            label: S.of(context).editAddressBookEntry,
             icon: Icons.edit_outlined,
-            onTap: () => _showEntrySheet(entry: entry),
+            onTap: () => _showEntrySheet(context, entry: entry),
           ),
           AddressBookAction(
-            label: S.of(context!).removeContact,
+            label: S.of(context).removeContact,
             icon: Icons.delete_outline_rounded,
-            color: Theme.of(context!).colorScheme.error,
-            onTap: () => _confirmRemove(entry),
+            color: Theme.of(context).colorScheme.error,
+            onTap: () => _confirmRemove(context, entry),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _confirmRemove(WalletAddressBookEntry entry) async {
+  Future<void> _confirmRemove(
+    BuildContext context,
+    WalletAddressBookEntry entry,
+  ) async {
     await showDialog<bool>(
-      context: context!,
+      context: context,
       builder: (dialogContext) => AddressBookConfirmDialog(
         title: S.of(dialogContext).removeContact,
         message: S.of(dialogContext).removeContactConfirm(entry.name),

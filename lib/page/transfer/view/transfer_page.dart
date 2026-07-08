@@ -31,21 +31,23 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
 
   /// 顶部 AppBar，提供页面标题、默认返回和扫码填地址能力。
   @override
-  PreferredSizeWidget? getAppBar() {
+  PreferredSizeWidget? getAppBar(BuildContext context) {
     return AppBar(
       title: Text(
-        S.of(context!).transfer,
+        S.of(context).transfer,
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
         IconButton(
-          tooltip: S.of(context!).chooseFromAddressBook,
+          tooltip: S.of(context).chooseFromAddressBook,
           onPressed: controller.isSubmitting ? null : _chooseRecipientAddress,
           icon: Icon(Icons.contacts_rounded, size: 21.w),
         ),
         IconButton(
-          tooltip: S.of(context!).scanRecipientAddress,
-          onPressed: controller.isSubmitting ? null : _scanRecipientAddress,
+          tooltip: S.of(context).scanRecipientAddress,
+          onPressed: controller.isSubmitting
+              ? null
+              : () => _scanRecipientAddress(context),
           icon: Icon(Icons.qr_code_scanner_rounded, size: 21.w),
         ),
       ],
@@ -57,7 +59,7 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
   /// 如果路由参数缺失则展示不可用提示；参数有效时按顺序展示 Hero、表单、
   /// 手续费估算和提交成功面板。
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     final args = controller.arguments;
     final asset = controller.currentAsset;
     if (args == null || asset == null) {
@@ -65,8 +67,8 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
     }
 
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
@@ -98,8 +100,8 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
   }
 
   /// 打开扫码页面，并把扫码结果写入收款地址输入框。
-  Future<void> _scanRecipientAddress() async {
-    final result = await Navigator.of(context!).push<String>(
+  Future<void> _scanRecipientAddress(BuildContext context) async {
+    final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => const TransferAddressScannerPage(),
         fullscreenDialog: true,

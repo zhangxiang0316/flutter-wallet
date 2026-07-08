@@ -25,11 +25,11 @@ class TransactionHistoryPage
 
   /// 顶部导航栏。
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -40,22 +40,22 @@ class TransactionHistoryPage
       ),
       centerTitle: true,
       title: Text(
-        S.of(context!).transactionHistory,
+        S.of(context).transactionHistory,
         style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
         IconButton(
-          tooltip: S.of(context!).refreshBalance,
+          tooltip: S.of(context).refreshBalance,
           onPressed: controller.isLoading ? null : controller.loadRecords,
           icon: Icon(Icons.refresh_rounded, size: 20.w),
         ).marginOnly(right: 4.w),
       ],
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -64,19 +64,19 @@ class TransactionHistoryPage
 
   /// 页面主体。
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     final args = controller.arguments;
     if (args == null) {
-      return TransactionEmptyState(message: S.of(context!).transactionNoAsset);
+      return TransactionEmptyState(message: S.of(context).transactionNoAsset);
     }
 
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: RefreshIndicator(
-        backgroundColor: Theme.of(context!).cardColor,
-        color: Theme.of(context!).colorScheme.primary,
+        backgroundColor: Theme.of(context).cardColor,
+        color: Theme.of(context).colorScheme.primary,
         onRefresh: controller.loadRecords,
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(
@@ -84,7 +84,7 @@ class TransactionHistoryPage
           ),
           padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
           itemCount: _historyItemCount(),
-          itemBuilder: (context, index) => _buildHistoryItem(index),
+          itemBuilder: (context, index) => _buildHistoryItem(context, index),
         ),
       ),
     );
@@ -95,7 +95,7 @@ class TransactionHistoryPage
     return controller.records.length + 3;
   }
 
-  Widget _buildHistoryItem(int index) {
+  Widget _buildHistoryItem(BuildContext context, int index) {
     final args = controller.arguments;
     if (args == null) {
       return const SizedBox.shrink();
@@ -109,32 +109,32 @@ class TransactionHistoryPage
 
     if (controller.records.isEmpty) {
       if (controller.isLoading) {
-        return TransactionEmptyState.loading(message: S.of(context!).loading);
+        return TransactionEmptyState.loading(message: S.of(context).loading);
       }
       if (controller.errorMessage.isNotEmpty) {
         return TransactionEmptyState(
           message: controller.errorMessage,
-          actionLabel: S.of(context!).openBlockExplorer,
+          actionLabel: S.of(context).openBlockExplorer,
           onAction: controller.openBlockExplorer,
         );
       }
       if (controller.hasMore) {
         return TransactionEmptyState(
-          message: S.of(context!).transactionHistoryExplorerHint,
-          actionLabel: S.of(context!).transactionLoadMore,
+          message: S.of(context).transactionHistoryExplorerHint,
+          actionLabel: S.of(context).transactionLoadMore,
           onAction: controller.loadMoreRecords,
         );
       }
       return TransactionEmptyState(
-        message: S.of(context!).transactionHistoryExplorerHint,
-        actionLabel: S.of(context!).openBlockExplorer,
+        message: S.of(context).transactionHistoryExplorerHint,
+        actionLabel: S.of(context).openBlockExplorer,
         onAction: controller.openBlockExplorer,
       );
     }
 
     final recordIndex = index - 2;
     if (recordIndex >= controller.records.length) {
-      return _buildPaginationFooter();
+      return _buildPaginationFooter(context);
     }
 
     final record = controller.records[recordIndex];
@@ -147,8 +147,8 @@ class TransactionHistoryPage
     ).marginOnly(bottom: 10.h);
   }
 
-  Widget _buildPaginationFooter() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  Widget _buildPaginationFooter(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (controller.isLoading || controller.isLoadingMore) {
       return Padding(
         padding: EdgeInsets.only(top: 2.h, bottom: 4.h),
@@ -172,7 +172,7 @@ class TransactionHistoryPage
           child: TextButton.icon(
             onPressed: controller.loadMoreRecords,
             icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18.w),
-            label: Text(S.of(context!).transactionLoadMore),
+            label: Text(S.of(context).transactionLoadMore),
             style: TextButton.styleFrom(
               foregroundColor: colorScheme.primary,
               minimumSize: Size(0, 34.h),
@@ -191,7 +191,7 @@ class TransactionHistoryPage
       padding: EdgeInsets.only(top: 4.h, bottom: 2.h),
       child: Center(
         child: Text(
-          S.of(context!).transactionNoMoreRecords,
+          S.of(context).transactionNoMoreRecords,
           style: TextStyle(
             color: colorScheme.onSurface.withValues(alpha: 0.42),
             fontSize: 11.sp,

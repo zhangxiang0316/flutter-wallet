@@ -25,11 +25,11 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
 
   /// 设置页顶部导航栏。
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -44,15 +44,15 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
           }),
       centerTitle: true,
       title: Text(
-        S.of(context!).settings,
+        S.of(context).settings,
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800),
       ),
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -63,8 +63,8 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
   ///
   /// 每个设置项使用统一 tile 样式，点击后进入对应子页面。
   @override
-  Widget? getBody() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  Widget? getBody(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(12.w, 14.h, 12.w, 24.h),
       child: Column(
@@ -72,7 +72,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             decoration: BoxDecoration(
-              color: Theme.of(context!).cardColor,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(8.r),
               border: Border.all(
                 color: colorScheme.outline.withValues(alpha: 0.1),
@@ -83,7 +83,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 Obx(
                   () => _SettingActionTile(
                     icon: Icons.translate_rounded,
-                    title: S.of(context!).language,
+                    title: S.of(context).language,
                     value: controller.currentLanguage.value,
                     onTap: () => Get.toNamed(RouteTable.language),
                   ),
@@ -97,7 +97,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 Obx(
                   () => _SettingActionTile(
                     icon: Icons.dark_mode_outlined,
-                    title: S.of(context!).theme,
+                    title: S.of(context).theme,
                     value: controller.theme.value,
                     onTap: () => Get.toNamed(RouteTable.theme),
                   ),
@@ -110,7 +110,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 ),
                 _SettingActionTile(
                   icon: Icons.security,
-                  title: S.of(context!).securitySettings,
+                  title: S.of(context).securitySettings,
                   value: '',
                   onTap: () async {
                     await Get.to(() => PasswordCacheSettingsPage());
@@ -125,7 +125,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 ),
                 _SettingActionTile(
                   icon: Icons.contacts_rounded,
-                  title: S.of(context!).addressBook,
+                  title: S.of(context).addressBook,
                   value: '',
                   onTap: () async {
                     await Get.toNamed(RouteTable.addressBook);
@@ -140,7 +140,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 ),
                 _SettingActionTile(
                   icon: Icons.visibility_outlined,
-                  title: S.of(context!).assetVisibility,
+                  title: S.of(context).assetVisibility,
                   value: '',
                   onTap: () async {
                     await Get.toNamed(RouteTable.assetVisibility);
@@ -155,7 +155,7 @@ class SettingPage extends BaseScaffoldPage<SettingController> {
                 ),
                 _SettingActionTile(
                   icon: Icons.hub_outlined,
-                  title: S.of(context!).networkManagement,
+                  title: S.of(context).networkManagement,
                   value: '',
                   onTap: () async {
                     await Get.toNamed(RouteTable.networkManagement);

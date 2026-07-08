@@ -26,10 +26,10 @@ class NetworkManagementPage
   }
 
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -40,13 +40,13 @@ class NetworkManagementPage
       ),
       centerTitle: true,
       title: Text(
-        S.of(context!).networkManagement,
+        S.of(context).networkManagement,
         style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
       ),
       actions: [
         IconButton(
-          tooltip: S.of(context!).addNetwork,
-          onPressed: _showAddNetworkSheet,
+          tooltip: S.of(context).addNetwork,
+          onPressed: () => _showAddNetworkSheet(context),
           icon: Icon(Icons.add_rounded, size: 22.w, color: colorScheme.primary),
         ),
       ],
@@ -54,10 +54,10 @@ class NetworkManagementPage
   }
 
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
@@ -72,10 +72,10 @@ class NetworkManagementPage
               onEnabledChanged: chain.isBuiltin
                   ? null
                   : (enabled) => controller.setEnabled(chain, enabled),
-              onEditPressed: () => _showEditNetworkSheet(chain),
+              onEditPressed: () => _showEditNetworkSheet(context, chain),
               onRemovePressed: chain.isBuiltin
                   ? null
-                  : () => _confirmRemoveChain(chain),
+                  : () => _confirmRemoveChain(context, chain),
               onTestPressed: () => controller.testNetwork(chain),
               onSwitchRpcPressed: (rpcUrl) =>
                   controller.switchPrimaryRpc(chain, rpcUrl),
@@ -86,9 +86,9 @@ class NetworkManagementPage
     );
   }
 
-  void _showAddNetworkSheet() {
+  void _showAddNetworkSheet(BuildContext context) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
@@ -96,9 +96,9 @@ class NetworkManagementPage
     );
   }
 
-  void _showEditNetworkSheet(WalletChainConfig chain) {
+  void _showEditNetworkSheet(BuildContext context, WalletChainConfig chain) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
@@ -126,9 +126,12 @@ class NetworkManagementPage
     );
   }
 
-  Future<void> _confirmRemoveChain(WalletChainConfig chain) async {
+  Future<void> _confirmRemoveChain(
+    BuildContext context,
+    WalletChainConfig chain,
+  ) async {
     await showDialog<bool>(
-      context: context!,
+      context: context,
       builder: (dialogContext) => AddressBookConfirmDialog(
         title: S.of(dialogContext).removeNetwork,
         message: S.of(dialogContext).removeNetworkConfirm(chain.name),

@@ -24,11 +24,11 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
   }
 
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
@@ -39,15 +39,15 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
       ),
       centerTitle: true,
       title: Text(
-        S.of(context!).assetVisibility,
+        S.of(context).assetVisibility,
         style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
       ),
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -55,10 +55,10 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
   }
 
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     return ColoredBox(
-      color: Theme.of(context!).brightness == Brightness.dark
-          ? Theme.of(context!).scaffoldBackgroundColor
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).scaffoldBackgroundColor
           : const Color(0xFFF7F8FA),
       child: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
@@ -71,7 +71,7 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
               assets: controller.assetsForChain(chain),
               isVisible: controller.isAssetVisible,
               onChanged: controller.setAssetVisible,
-              onAddPressed: () => _showAddAssetSheet(chain),
+              onAddPressed: () => _showAddAssetSheet(context, chain),
               onRemovePressed: controller.removeCustomAsset,
             ).marginOnly(bottom: 12.h),
           ),
@@ -80,9 +80,9 @@ class AssetVisibilityPage extends BaseScaffoldPage<AssetVisibilityController> {
     );
   }
 
-  void _showAddAssetSheet(WalletChainConfig chain) {
+  void _showAddAssetSheet(BuildContext context, WalletChainConfig chain) {
     showModalBottomSheet(
-      context: context!,
+      context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,

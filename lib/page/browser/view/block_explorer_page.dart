@@ -23,17 +23,17 @@ class BlockExplorerPage extends BaseScaffoldPage<BlockExplorerController> {
 
   /// 页面顶部导航栏。
   @override
-  PreferredSizeWidget? getAppBar() {
-    final colorScheme = Theme.of(context!).colorScheme;
+  PreferredSizeWidget? getAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final dividerColor = colorScheme.outline.withValues(alpha: 0.12);
     return AppBar(
-      backgroundColor: Theme.of(context!).cardColor,
+      backgroundColor: Theme.of(context).cardColor,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
       toolbarHeight: 52.h,
       leading: IconButton(
-        tooltip: S.of(context!).backToWallet,
+        tooltip: S.of(context).backToWallet,
         icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18.w),
         onPressed: controller.goBack,
       ),
@@ -43,7 +43,7 @@ class BlockExplorerPage extends BaseScaffoldPage<BlockExplorerController> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            controller.arguments?.title ?? S.of(context!).blockExplorer,
+            controller.arguments?.title ?? S.of(context).blockExplorer,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w900),
@@ -63,17 +63,17 @@ class BlockExplorerPage extends BaseScaffoldPage<BlockExplorerController> {
       ),
       actions: [
         IconButton(
-          tooltip: S.of(context!).blockExplorerBack,
+          tooltip: S.of(context).blockExplorerBack,
           onPressed: controller.canGoBack ? controller.goBack : null,
           icon: Icon(Icons.chevron_left_rounded, size: 22.w),
         ),
         IconButton(
-          tooltip: S.of(context!).blockExplorerForward,
+          tooltip: S.of(context).blockExplorerForward,
           onPressed: controller.canGoForward ? controller.goForward : null,
           icon: Icon(Icons.chevron_right_rounded, size: 22.w),
         ),
         PopupMenuButton<_BrowserAction>(
-          tooltip: S.of(context!).more,
+          tooltip: S.of(context).more,
           icon: Icon(Icons.more_horiz_rounded, size: 22.w),
           onSelected: _handleBrowserAction,
           itemBuilder: (context) => [
@@ -103,10 +103,10 @@ class BlockExplorerPage extends BaseScaffoldPage<BlockExplorerController> {
       ],
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(
-          1 / MediaQuery.of(context!).devicePixelRatio,
+          1 / MediaQuery.of(context).devicePixelRatio,
         ),
         child: Container(
-          height: 1 / MediaQuery.of(context!).devicePixelRatio,
+          height: 1 / MediaQuery.of(context).devicePixelRatio,
           color: dividerColor,
         ),
       ),
@@ -115,7 +115,7 @@ class BlockExplorerPage extends BaseScaffoldPage<BlockExplorerController> {
 
   /// 页面主体。
   @override
-  Widget? getBody() {
+  Widget? getBody(BuildContext context) {
     final webViewController = controller.webViewController;
     if (webViewController == null) {
       return _BrowserErrorState(
@@ -144,9 +144,9 @@ class BlockExplorerPage extends BaseScaffoldPage<BlockExplorerController> {
                   ? null
                   : controller.progress.clamp(0, 100) / 100,
               minHeight: 2.h,
-              color: Theme.of(context!).colorScheme.primary,
+              color: Theme.of(context).colorScheme.primary,
               backgroundColor: Theme.of(
-                context!,
+                context,
               ).colorScheme.primary.withValues(alpha: 0.08),
             ),
           ),
