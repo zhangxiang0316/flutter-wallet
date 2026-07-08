@@ -337,7 +337,8 @@ class WalletTransferService {
   ///
   /// solana Dart 指令 API 使用 int，超出安全范围或非正数时直接拒绝。
   static int _solanaU64Amount(BigInt value, String label) {
-    if (value <= BigInt.zero || value > BigInt.from(0x7fffffffffffffff)) {
+    final maxSignedInt64 = (BigInt.one << 63) - BigInt.one;
+    if (value <= BigInt.zero || value > maxSignedInt64) {
       throw FormatException('Invalid $label');
     }
     return value.toInt();
