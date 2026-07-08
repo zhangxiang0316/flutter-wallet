@@ -40,7 +40,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       );
     }
 
-    for (final provider in this._evmHistoryProviders(asset.chainRef)) {
+    for (final provider in _evmHistoryProviders(asset.chainRef)) {
       if (cursor?.evmPage != null &&
           provider.type != _EvmHistoryProviderType.etherscanCompatible) {
         continue;
@@ -118,7 +118,10 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         );
       }
       if (_supportsEvmTokenLogPaging(asset)) {
-        return _loadEvmTokenLogRecordPage(walletId: walletId, asset: asset);
+        return await _loadEvmTokenLogRecordPage(
+          walletId: walletId,
+          asset: asset,
+        );
       }
       final records = await _loadEvmTokenLogs(walletId: walletId, asset: asset)
           .timeout(
@@ -139,7 +142,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
             : null,
       );
     } catch (error) {
-      if (hasSuccessfulExplorer) {
+      if (hasSuccessfulExplorer || _tokenHistoryCanBeEmpty(asset.chainRef)) {
         return const TransactionHistoryPageResult(
           records: [],
           nextCursor: null,
@@ -153,6 +156,36 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     }
   }
 
+  Future<WalletTransactionRecord?> loadRecordByTransactionHash({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) async {
+    final normalizedHash = txHash.trim();
+    if (normalizedHash.isEmpty) return null;
+
+    try {
+      if (asset.isNative) {
+        return _loadEvmNativeRecordByHash(
+          walletId: walletId,
+          asset: asset,
+          txHash: normalizedHash,
+        );
+      }
+      return _loadEvmTokenRecordByHash(
+        walletId: walletId,
+        asset: asset,
+        txHash: normalizedHash,
+      );
+    } catch (error) {
+      developer.log(
+        '${asset.chainRef.name} transaction hash lookup failed: $error',
+        name: 'WalletTransactionHistoryService',
+      );
+      return null;
+    }
+  }
+
   bool _supportsEvmTokenLogPaging(ChainBalance asset) {
     return asset.chainRef.isEvm &&
         !asset.isNative &&
@@ -160,6 +193,10 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
   }
 
   bool _nativeHistoryCanBeEmpty(WalletChainRef chain) {
+    return chain.id == WalletChain.bsc.id || chain.id == WalletChain.xLayer.id;
+  }
+
+  bool _tokenHistoryCanBeEmpty(WalletChainRef chain) {
     return chain.id == WalletChain.bsc.id || chain.id == WalletChain.xLayer.id;
   }
 
@@ -228,8 +265,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
           'page': currentPage,
           'offset': requestLimit,
           'sort': 'desc',
-          if (this._isEtherscanV2Api(apiUrl) &&
-              asset.chainRef.evmChainId != null)
+          if (_isEtherscanV2Api(apiUrl) && asset.chainRef.evmChainId != null)
             'chainid': asset.chainRef.evmChainId,
           if (normalizedApiKey.isNotEmpty) 'apikey': normalizedApiKey,
         },
@@ -319,7 +355,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     required ChainBalance asset,
     String? cursor,
   }) async {
-    final apiBase = this._blockscoutApiBase(baseUrl);
+    final apiBase = _blockscoutApiBase(baseUrl);
     final path = asset.isNative ? 'transactions' : 'token-transfers';
     var queryParameters =
         _decodeBlockscoutCursor(cursor) ??
@@ -512,36 +548,64 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     final topics = log['topics'];
     if (txHash.isEmpty || topics is! List || topics.length < 3) return null;
 
-    final from = _evmAddressFromTopic(topics[1]?.toString() ?? '');
-    final to = _evmAddressFromTopic(topics[2]?.toString() ?? '');
-    final rawValue = _parseHexQuantity(log['data']?.toString() ?? '0x0');
-    final blockHex = log['blockNumber']?.toString() ?? '0x0';
-    final blockNumber = _parseHexQuantity(blockHex).toInt();
     final receipt = await _evmRpcMap(
       asset.chainRef,
       'eth_getTransactionReceipt',
       [txHash],
     );
-    final block = await _evmRpcMap(asset.chainRef, 'eth_getBlockByNumber', [
-      blockHex,
-      false,
-    ]);
-    final gasUsed = _parseHexQuantity(receipt['gasUsed']?.toString() ?? '0x0');
-    final gasPrice = _parseHexQuantity(
-      receipt['effectiveGasPrice']?.toString() ??
-          receipt['gasPrice']?.toString() ??
-          '0x0',
+
+    return _evmTokenRecordFromReceiptLog(
+      walletId: walletId,
+      asset: asset,
+      receipt: receipt,
+      log: log,
+      txHash: txHash,
+    );
+  }
+
+  Future<WalletTransactionRecord?> _loadEvmNativeRecordByHash({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) async {
+    final receipt = await _evmRpcNullableMap(
+      asset.chainRef,
+      'eth_getTransactionReceipt',
+      [txHash],
+    );
+    if (receipt == null) return null;
+
+    final transaction = await _evmRpcNullableMap(
+      asset.chainRef,
+      'eth_getTransactionByHash',
+      [txHash],
+    );
+    if (transaction == null) return null;
+
+    final actualTxHash =
+        transaction['hash']?.toString() ??
+        receipt['transactionHash']?.toString() ??
+        txHash;
+    final from = _normalizeEvmDisplayAddress(
+      transaction['from']?.toString() ?? receipt['from']?.toString() ?? '',
+    );
+    final to = _normalizeEvmDisplayAddress(
+      transaction['to']?.toString() ?? receipt['to']?.toString() ?? '',
+    );
+    final rawValue = _rpcQuantityToBigInt(transaction['value']);
+    final blockNumber = _hexIntFromObject(
+      transaction['blockNumber'] ?? receipt['blockNumber'],
     );
 
     return WalletTransactionRecord(
-      id: _recordId(walletId, asset, '$txHash:$blockNumber:${log['logIndex']}'),
+      id: _recordId(walletId, asset, actualTxHash),
       walletId: walletId,
       chainId: asset.chainId,
       chainName: asset.chainRef.name,
       symbol: asset.symbol,
       assetName: asset.name,
       walletAddress: asset.address,
-      txHash: txHash,
+      txHash: actualTxHash,
       fromAddress: from,
       toAddress: to,
       amount: WalletTransferService.rawUnitsToAmount(rawValue, asset.decimals),
@@ -552,20 +616,205 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         toAddress: to,
         normalize: _normalizeEvmCompareAddress,
       ),
-      status: receipt['status']?.toString() == '0x0'
-          ? WalletTransactionStatus.failed
-          : WalletTransactionStatus.success,
+      status: _evmReceiptStatus(receipt),
       source: WalletTransactionSource.remote,
-      contractAddress: asset.contractAddress,
-      feeAmount: gasUsed > BigInt.zero && gasPrice > BigInt.zero
-          ? WalletTransferService.rawUnitsToAmount(gasUsed * gasPrice, 18)
-          : null,
+      feeAmount: _evmReceiptFeeAmount(
+        receipt,
+        fallbackGasPrice: transaction['gasPrice'],
+      ),
       feeSymbol: asset.chainRef.symbol,
       blockNumber: blockNumber,
-      timestamp: _dateTimeFromSeconds(
-        _parseHexQuantity(block['timestamp']?.toString() ?? '0x0').toString(),
+      timestamp: await _evmReceiptTimestamp(asset.chainRef, receipt: receipt),
+    );
+  }
+
+  Future<WalletTransactionRecord?> _loadEvmTokenRecordByHash({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) async {
+    final receipt = await _evmRpcNullableMap(
+      asset.chainRef,
+      'eth_getTransactionReceipt',
+      [txHash],
+    );
+    if (receipt == null) return null;
+
+    final logs = receipt['logs'];
+    if (logs is! List) return null;
+
+    for (final log in logs.whereType<Map>()) {
+      final record = await _evmTokenRecordFromReceiptLog(
+        walletId: walletId,
+        asset: asset,
+        receipt: receipt,
+        log: log,
+        txHash: txHash,
+      );
+      if (record != null) return record;
+    }
+
+    return null;
+  }
+
+  Future<WalletTransactionRecord?> _evmTokenRecordFromReceiptLog({
+    required String walletId,
+    required ChainBalance asset,
+    required Map<dynamic, dynamic> receipt,
+    required Map<dynamic, dynamic> log,
+    required String txHash,
+  }) async {
+    if (!_isMatchingEvmTransferLog(asset, log)) return null;
+
+    final topics = log['topics'];
+    if (topics is! List || topics.length < 3) return null;
+
+    final from = _evmAddressFromTopic(topics[1]?.toString() ?? '');
+    final to = _evmAddressFromTopic(topics[2]?.toString() ?? '');
+    final direction = _directionForAddress(
+      walletAddress: asset.address,
+      fromAddress: from,
+      toAddress: to,
+      normalize: _normalizeEvmCompareAddress,
+    );
+    if (direction == WalletTransactionDirection.unknown) return null;
+
+    final actualTxHash =
+        log['transactionHash']?.toString() ??
+        receipt['transactionHash']?.toString() ??
+        txHash;
+    final rawValue = _rpcQuantityToBigInt(log['data']);
+    final blockNumber = _hexIntFromObject(
+      log['blockNumber'] ?? receipt['blockNumber'],
+    );
+    final logIndex = log['logIndex']?.toString() ?? '';
+
+    return WalletTransactionRecord(
+      id: _recordId(
+        walletId,
+        asset,
+        '$actualTxHash:${blockNumber ?? ''}:$logIndex',
+      ),
+      walletId: walletId,
+      chainId: asset.chainId,
+      chainName: asset.chainRef.name,
+      symbol: asset.symbol,
+      assetName: asset.name,
+      walletAddress: asset.address,
+      txHash: actualTxHash,
+      fromAddress: from,
+      toAddress: to,
+      amount: WalletTransferService.rawUnitsToAmount(rawValue, asset.decimals),
+      decimals: asset.decimals,
+      direction: direction,
+      status: _evmReceiptStatus(receipt),
+      source: WalletTransactionSource.remote,
+      contractAddress: asset.contractAddress,
+      feeAmount: _evmReceiptFeeAmount(receipt),
+      feeSymbol: asset.chainRef.symbol,
+      blockNumber: blockNumber,
+      timestamp: await _evmReceiptTimestamp(
+        asset.chainRef,
+        receipt: receipt,
+        log: log,
       ),
     );
+  }
+
+  bool _isMatchingEvmTransferLog(
+    ChainBalance asset,
+    Map<dynamic, dynamic> log,
+  ) {
+    final logAddress = log['address']?.toString() ?? '';
+    if (logAddress.isNotEmpty &&
+        !_sameEvmAddress(logAddress, asset.contractAddress ?? '')) {
+      return false;
+    }
+
+    final topics = log['topics'];
+    if (topics is! List || topics.length < 3) return false;
+    return topics.first.toString().toLowerCase() ==
+        _evmTransferEventTopic.toLowerCase();
+  }
+
+  WalletTransactionStatus _evmReceiptStatus(Map<dynamic, dynamic> receipt) {
+    final status = receipt['status']?.toString().toLowerCase() ?? '';
+    if (status == '0x0' || status == '0') {
+      return WalletTransactionStatus.failed;
+    }
+    if (status == '0x1' || status == '1') {
+      return WalletTransactionStatus.success;
+    }
+    return WalletTransactionStatus.unknown;
+  }
+
+  String? _evmReceiptFeeAmount(
+    Map<dynamic, dynamic> receipt, {
+    Object? fallbackGasPrice,
+  }) {
+    final gasUsed = _rpcQuantityToBigInt(receipt['gasUsed']);
+    final gasPrice = _rpcQuantityToBigInt(
+      receipt['effectiveGasPrice'] ?? receipt['gasPrice'] ?? fallbackGasPrice,
+    );
+    if (gasUsed <= BigInt.zero || gasPrice <= BigInt.zero) return null;
+    return WalletTransferService.rawUnitsToAmount(gasUsed * gasPrice, 18);
+  }
+
+  Future<DateTime?> _evmReceiptTimestamp(
+    WalletChainRef chain, {
+    required Map<dynamic, dynamic> receipt,
+    Map<dynamic, dynamic>? log,
+  }) async {
+    final inlineTimestamp = _dateTimeFromRpcSeconds(
+      log?['blockTimestamp'] ?? receipt['blockTimestamp'],
+    );
+    if (inlineTimestamp != null) return inlineTimestamp;
+
+    final blockNumber = _rpcQuantityParam(
+      log?['blockNumber'] ?? receipt['blockNumber'],
+    );
+    if (blockNumber == null) return null;
+
+    final block = await _evmRpcNullableMap(chain, 'eth_getBlockByNumber', [
+      blockNumber,
+      false,
+    ]);
+    if (block == null) return null;
+    return _dateTimeFromRpcSeconds(block['timestamp']);
+  }
+
+  DateTime? _dateTimeFromRpcSeconds(Object? value) {
+    final seconds = _hexIntFromObject(value);
+    if (seconds == null || seconds <= 0) return null;
+    return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+  }
+
+  int? _hexIntFromObject(Object? value) {
+    if (value is int) return value;
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return null;
+    if (text.toLowerCase().startsWith('0x')) {
+      return _parseHexQuantity(text).toInt();
+    }
+    return int.tryParse(text);
+  }
+
+  BigInt _rpcQuantityToBigInt(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return BigInt.zero;
+    if (text.toLowerCase().startsWith('0x')) {
+      return _parseHexQuantity(text);
+    }
+    return BigInt.tryParse(text) ?? BigInt.zero;
+  }
+
+  String? _rpcQuantityParam(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return null;
+    if (text.toLowerCase().startsWith('0x')) return text;
+    final decimal = BigInt.tryParse(text);
+    if (decimal == null) return null;
+    return _hexQuantity(decimal);
   }
 
   Future<dynamic> _evmRpc(
@@ -576,7 +825,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     try {
       final data = await RpcRetryHelper.executeJsonRpc(
         dio: dio,
-        rpcUrls: this._evmRpcUrls(chain),
+        rpcUrls: _evmRpcUrls(chain),
         method: method,
         params: params,
         chainName: chain.name,
@@ -605,6 +854,22 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     List<dynamic> params,
   ) async {
     final result = await _evmRpc(chain, method, params);
+    if (result is Map) {
+      return result;
+    }
+    throw _historyLoadException(
+      'Invalid ${chain.name} $method response',
+      result,
+    );
+  }
+
+  Future<Map<dynamic, dynamic>?> _evmRpcNullableMap(
+    WalletChainRef chain,
+    String method,
+    List<dynamic> params,
+  ) async {
+    final result = await _evmRpc(chain, method, params);
+    if (result == null) return null;
     if (result is Map) {
       return result;
     }

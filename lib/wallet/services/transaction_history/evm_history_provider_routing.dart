@@ -3,6 +3,7 @@ part of '../wallet_transaction_history_service.dart';
 const Map<String, String> _evmExplorerApiUrls = {
   'bsc': 'https://api.bscscan.com/api',
   'ethereum': 'https://api.etherscan.io/api',
+  'arbitrum': 'https://api.arbiscan.io/api',
 };
 
 const String _etherscanV2ApiUrl = 'https://api.etherscan.io/v2/api';
@@ -81,10 +82,11 @@ extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
 
     final legacyApiUrl = _evmExplorerApiUrls[chain.id];
     if (legacyApiUrl != null) {
+      final legacyApiKey = _legacyExplorerApiKey(chain) ?? apiKey;
       providers.add(
         _EvmHistoryProvider(
           url: legacyApiUrl,
-          apiKey: apiKey,
+          apiKey: legacyApiKey,
           type: _EvmHistoryProviderType.etherscanCompatible,
         ),
       );
@@ -126,6 +128,13 @@ extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
       if (value.isNotEmpty) {
         return value;
       }
+    }
+    return null;
+  }
+
+  String? _legacyExplorerApiKey(WalletChainRef chain) {
+    if (chain.id == WalletChain.arbitrum.id && apiConfig.hasEtherscanApiKey) {
+      return apiConfig.etherscanApiKey.trim();
     }
     return null;
   }

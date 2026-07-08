@@ -169,6 +169,23 @@ class WalletTransactionHistoryService {
     return result.records;
   }
 
+  /// 按交易 hash 读取单条链上交易记录。
+  Future<WalletTransactionRecord?> loadTransactionRecordByHash({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) async {
+    final chain = asset.chainRef;
+    if (chain.isEvm) {
+      return _evmProvider.loadRecordByTransactionHash(
+        walletId: walletId,
+        asset: asset,
+        txHash: txHash,
+      );
+    }
+    return null;
+  }
+
   /// 分页读取某个资产的链上交易记录。
   Future<TransactionHistoryPageResult> loadAssetRecordPage({
     required String walletId,
@@ -188,7 +205,7 @@ class WalletTransactionHistoryService {
             asset: asset,
             cursor: cursor,
           );
-          if (result.records.isNotEmpty || result.hasMore || cursor != null) {
+          if (result.records.isNotEmpty || cursor != null) {
             return result;
           }
         } catch (error) {
