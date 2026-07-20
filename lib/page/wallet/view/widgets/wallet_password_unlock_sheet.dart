@@ -14,11 +14,14 @@ import '../../../../utils/toast_util.dart';
 class WalletPasswordUnlockSheet extends StatefulWidget {
   const WalletPasswordUnlockSheet({
     super.key,
+    required this.walletId,
     required this.title,
     required this.onSubmit,
     this.enableBiometric = true,
-    this.cachedPassword,
   });
+
+  /// 当前要解锁的钱包 ID，用于隔离密码缓存。
+  final String walletId;
 
   /// 弹窗标题，例如查看私钥或查看助记词。
   final String title;
@@ -28,9 +31,6 @@ class WalletPasswordUnlockSheet extends StatefulWidget {
 
   /// 是否启用生物识别，默认为 true。
   final bool enableBiometric;
-
-  /// 缓存的密码（生物识别成功后使用）。
-  final String? cachedPassword;
 
   @override
   State<WalletPasswordUnlockSheet> createState() =>
@@ -69,8 +69,18 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
       return;
     }
 
+    final hasCachedPassword = await PasswordCacheService.hasCachedPassword(
+      widget.walletId,
+    );
+    if (!mounted) return;
+    if (!hasCachedPassword) {
+      setState(() => _showPasswordField = true);
+      return;
+    }
+
     // 详细检查生物识别可用性
     final canCheck = await BiometricAuth.canCheckBiometrics();
+    if (!mounted) return;
     if (!canCheck) {
       // 设备硬件不支持
       setState(() => _showPasswordField = true);
@@ -78,6 +88,7 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
     }
 
     final types = await BiometricAuth.getAvailableBiometrics();
+    if (!mounted) return;
     if (types.isEmpty) {
       // 硬件支持但用户未注册
       setState(() => _showPasswordField = true);
@@ -87,6 +98,7 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
     }
 
     final available = await BiometricAuth.isAvailable();
+    if (!mounted) return;
     setState(() => _biometricAvailable = available);
 
     if (available) {
@@ -107,11 +119,14 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
     if (!mounted) return;
 
     if (authenticated) {
-      // 生物识别成功
-      if (widget.cachedPassword != null) {
+      final cachedPassword = await PasswordCacheService.getCachedPassword(
+        widget.walletId,
+      );
+      if (!mounted) return;
+      if (cachedPassword != null) {
         // 有缓存密码，直接使用
         setState(() => _isSubmitting = true);
-        final ok = await widget.onSubmit(widget.cachedPassword!);
+        final ok = await widget.onSubmit(cachedPassword);
         if (!mounted) return;
 
         if (ok) {
@@ -232,7 +247,11 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
     if (!mounted) return;
     if (ok) {
       // 密码验证成功，缓存密码以便下次生物识别后自动使用
-      await PasswordCacheService.cachePassword(password);
+      await PasswordCacheService.cachePassword(
+        walletId: widget.walletId,
+        password: password,
+      );
+      if (!mounted) return;
       Navigator.of(context).pop();
       return;
     }

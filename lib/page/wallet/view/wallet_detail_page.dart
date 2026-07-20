@@ -5,7 +5,6 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
-import '../../../utils/password_cache_service.dart';
 import '../../../widget/secure_screen.dart';
 import '../controller/wallet_detail_controller.dart';
 import 'widgets/rename_wallet_sheet.dart';
@@ -101,11 +100,13 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
               isUnlockingMnemonic: controller.isUnlockingMnemonic,
               onUnlockPrivateKey: () => _showPasswordUnlockSheet(
                 context: context,
+                walletId: wallet.id,
                 title: S.of(context).viewPrivateKey,
                 onSubmit: controller.unlockPrivateKey,
               ),
               onUnlockMnemonic: () => _showPasswordUnlockSheet(
                 context: context,
+                walletId: wallet.id,
                 title: S.of(context).viewMnemonic,
                 onSubmit: controller.unlockMnemonic,
               ),
@@ -135,21 +136,19 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
   /// 私钥和助记词共用该弹窗，具体解锁动作由控制器回调决定。
   void _showPasswordUnlockSheet({
     required BuildContext context,
+    required String walletId,
     required String title,
     required Future<bool> Function(String password) onSubmit,
-  }) async {
-    final cachedPassword = await PasswordCacheService.getCachedPassword();
-    if (!context.mounted) return;
-
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => WalletPasswordUnlockSheet(
+        walletId: walletId,
         title: title,
         onSubmit: onSubmit,
-        cachedPassword: cachedPassword,
       ),
     );
   }

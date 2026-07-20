@@ -7,11 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 提供内存级密码缓存，用于生物识别成功后自动解锁。
 /// 缓存仅保存在内存中，过期时间可配置（1/5/10/30分钟）。
 class PasswordCacheService {
-  /// 缓存的密码（仅内存存储）。
-  static String? _cachedPassword;
-
-  /// 缓存时间。
-  static DateTime? _cacheTime;
+  /// 按钱包隔离的内存缓存。
+  ///
+  /// key 为 walletId，避免多钱包使用不同密码时相互串用。
+  static final Map<String, _CachedPassword> _cachedPasswords = {};
 
   /// SharedPreferences 键名。
   static const String _enabledKey = 'password_cache_enabled';
@@ -53,15 +52,24 @@ class PasswordCacheService {
   /// 缓存密码。
   ///
   /// 密码仅保存在内存中，应用重启后消失。
-  static Future<void> cachePassword(String password) async {
+  static Future<void> cachePassword({
+    required String walletId,
+    required String password,
+  }) async {
+    final normalizedWalletId = walletId.trim();
+    if (normalizedWalletId.isEmpty || password.isEmpty) {
+      return;
+    }
     final enabled = await isEnabled();
     if (!enabled) {
       developer.log('Password cache is disabled, not caching');
       return;
     }
 
-    _cachedPassword = password;
-    _cacheTime = DateTime.now();
+    _cachedPasswords[normalizedWalletId] = _CachedPassword(
+      password: password,
+      cachedAt: DateTime.now(),
+    );
     final expiryMinutes = await getExpiryMinutes();
     developer.log('Password cached, expires in $expiryMinutes minutes');
   }
@@ -69,59 +77,80 @@ class PasswordCacheService {
   /// 获取缓存的密码。
   ///
   /// 如果密码不存在、已过期或功能被禁用，返回 null。
-  static Future<String?> getCachedPassword() async {
+  static Future<String?> getCachedPassword(String walletId) async {
+    final normalizedWalletId = walletId.trim();
+    if (normalizedWalletId.isEmpty) {
+      return null;
+    }
     final enabled = await isEnabled();
     if (!enabled) {
       return null;
     }
 
-    if (_cachedPassword == null || _cacheTime == null) {
+    final cached = _cachedPasswords[normalizedWalletId];
+    if (cached == null) {
       return null;
     }
 
     // 检查是否过期
     final expiryMinutes = await getExpiryMinutes();
-    final elapsed = DateTime.now().difference(_cacheTime!);
+    final elapsed = DateTime.now().difference(cached.cachedAt);
     if (elapsed > Duration(minutes: expiryMinutes)) {
       developer.log('Password cache expired');
-      clearCache();
+      clearCache(walletId: normalizedWalletId);
       return null;
     }
 
     final remaining = Duration(minutes: expiryMinutes) - elapsed;
     developer.log('Password cache valid, expires in ${remaining.inSeconds}s');
-    return _cachedPassword;
+    return cached.password;
   }
 
   /// 清除缓存的密码。
-  static void clearCache() {
-    _cachedPassword = null;
-    _cacheTime = null;
-    developer.log('Password cache cleared');
+  static void clearCache({String? walletId}) {
+    if (walletId == null) {
+      _cachedPasswords.clear();
+      developer.log('All password caches cleared');
+      return;
+    }
+    final normalizedWalletId = walletId.trim();
+    if (normalizedWalletId.isEmpty) return;
+    _cachedPasswords.remove(normalizedWalletId);
+    developer.log('Password cache cleared for wallet');
   }
 
   /// 检查是否有有效的缓存密码。
-  static Future<bool> hasCachedPassword() async {
-    return await getCachedPassword() != null;
+  static Future<bool> hasCachedPassword(String walletId) async {
+    return await getCachedPassword(walletId) != null;
   }
 
   /// 获取缓存剩余时间（秒）。
   ///
   /// 如果没有缓存或已禁用，返回 0。
-  static Future<int> getRemainingSeconds() async {
+  static Future<int> getRemainingSeconds(String walletId) async {
+    final normalizedWalletId = walletId.trim();
     final enabled = await isEnabled();
-    if (!enabled || _cachedPassword == null || _cacheTime == null) {
+    final cached = _cachedPasswords[normalizedWalletId];
+    if (!enabled || normalizedWalletId.isEmpty || cached == null) {
       return 0;
     }
 
     final expiryMinutes = await getExpiryMinutes();
-    final elapsed = DateTime.now().difference(_cacheTime!);
+    final elapsed = DateTime.now().difference(cached.cachedAt);
     final expiry = Duration(minutes: expiryMinutes);
 
     if (elapsed > expiry) {
+      clearCache(walletId: normalizedWalletId);
       return 0;
     }
 
     return (expiry - elapsed).inSeconds;
   }
+}
+
+class _CachedPassword {
+  const _CachedPassword({required this.password, required this.cachedAt});
+
+  final String password;
+  final DateTime cachedAt;
 }

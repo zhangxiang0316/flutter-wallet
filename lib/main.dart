@@ -12,6 +12,7 @@ import 'common/theme/app_theme_extension.dart';
 import 'generated/l10n.dart';
 import 'generated/route_table.dart';
 import 'utils/log_util.dart';
+import 'utils/password_cache_service.dart';
 import 'utils/storage.dart';
 
 // 应用主题切换与持久化控制器
@@ -101,8 +102,41 @@ Future<void> _restoreSavedLanguage() async {
 }
 
 // 应用入口 Widget
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        PasswordCacheService.clearCache();
+        break;
+      case AppLifecycleState.resumed:
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    PasswordCacheService.clearCache();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
