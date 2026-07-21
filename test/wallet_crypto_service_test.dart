@@ -413,6 +413,38 @@ void main() {
       expect(adapter.moralisChains.single, 'arbitrum');
     });
 
+    test('routes Arbitrum config chain transactions to Moralis', () async {
+      final adapter = _FallbackRpcAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(moralisApiKey: 'moralis-key'),
+      );
+      final asset = ChainBalance.config(
+        chainConfig: WalletChainConfig.customEvm(
+          id: 'arbitrum-one',
+          name: 'Arbitrum One',
+          symbol: 'ETH',
+          rpcUrls: const ['https://arb1.arbitrum.io/rpc'],
+          evmChainId: 42161,
+        ),
+        symbol: 'ETH',
+        name: 'Ethereum',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        decimals: 18,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(1));
+      expect(result.records.single.txHash, '0xmoralisnative');
+      expect(adapter.moralisChains.single, 'arbitrum');
+    });
+
     test('paginates Arbitrum token transactions from Moralis', () async {
       final adapter = _FallbackRpcAdapter(moralisTokenFullPage: true);
       final dio = Dio()..httpClientAdapter = adapter;
@@ -449,6 +481,33 @@ void main() {
         adapter.moralisContractFilters,
         everyElement(['0xaf88d065e77c8cC2239327C5EDb3A432268e5831']),
       );
+    });
+
+    test('continues Moralis token pages after filtered empty page', () async {
+      final adapter = _FallbackRpcAdapter(moralisWrongTokenFirstPage: true);
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(moralisApiKey: 'moralis-key'),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.arbitrum,
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        decimals: 6,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records.single.txHash, '0xmoralis-token-next');
+      expect(adapter.moralisCursors, ['', 'moralis-next']);
+      expect(adapter.moralisChains, ['arbitrum', 'arbitrum']);
     });
 
     test('loads EVM token transactions from explorer API', () async {
@@ -1953,6 +2012,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
     this.heliusUseAccountData = false,
     this.bscScanResultsByPage,
     this.moralisTokenFullPage = false,
+    this.moralisWrongTokenFirstPage = false,
     this.xLayerTokenLogFullPage = false,
   });
 
@@ -1972,6 +2032,7 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
   final bool heliusUseAccountData;
   final Map<int, List<Map<String, dynamic>>>? bscScanResultsByPage;
   final bool moralisTokenFullPage;
+  final bool moralisWrongTokenFirstPage;
   final bool xLayerTokenLogFullPage;
   final calls = <String>[];
   final bscScanPages = <int>[];
@@ -2011,6 +2072,22 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
         moralisContractFilters.add(contractFilters);
       }
       if (options.uri.path.endsWith('/erc20/transfers')) {
+        if (moralisWrongTokenFirstPage && cursor.isEmpty) {
+          return _jsonResponse({
+            'result': List.generate(
+              10,
+              (index) => _moralisTokenTxItem(
+                hash: '0xmoralis-wrong-token-$index',
+                value: '2000000',
+                contractAddress: '0x9999999999999999999999999999999999999999',
+                timestamp:
+                    '2026-06-01T12:00:${index.toString().padLeft(2, '0')}Z',
+                logIndex: index,
+              ),
+            ),
+            'cursor': 'moralis-next',
+          });
+        }
         if (cursor == 'moralis-next') {
           return _jsonResponse({
             'result': [

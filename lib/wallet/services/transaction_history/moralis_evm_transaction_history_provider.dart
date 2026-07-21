@@ -14,13 +14,18 @@ class _MoralisEvmTransactionHistoryProvider
   final WalletHistoryApiConfig apiConfig;
 
   static const int _historyLimit = _transactionHistoryPageSize;
+  static const int _maxScanPages = 5;
   static const Map<String, String> _supportedChains = {
     'bsc': 'bsc',
     'arbitrum': 'arbitrum',
   };
+  static const Map<int, String> _supportedEvmChainIds = {
+    56: 'bsc',
+    42161: 'arbitrum',
+  };
 
   bool supportsChain(WalletChainRef chain) {
-    return _supportedChains.containsKey(chain.id);
+    return _moralisChain(chain) != null;
   }
 
   Future<TransactionHistoryPageResult> loadRecordPage({
@@ -28,7 +33,7 @@ class _MoralisEvmTransactionHistoryProvider
     required ChainBalance asset,
     TransactionHistoryCursor? cursor,
   }) async {
-    final moralisChain = _supportedChains[asset.chainRef.id];
+    final moralisChain = _moralisChain(asset.chainRef);
     if (moralisChain == null) {
       throw _historyLoadException(
         '${asset.chainRef.name} is not supported by Moralis',
@@ -42,6 +47,81 @@ class _MoralisEvmTransactionHistoryProvider
       );
     }
     final moralisCursor = cursor?.moralisCursor;
+    var currentCursor = moralisCursor;
+    String? nextCursor;
+    final records = <WalletTransactionRecord>[];
+    final seenIds = <String>{};
+    final seenCursors = {
+      if (currentCursor != null && currentCursor.isNotEmpty) currentCursor,
+    };
+
+    for (var scanPage = 0; scanPage < _maxScanPages; scanPage++) {
+      final data = await _loadMoralisPage(
+        asset: asset,
+        moralisChain: moralisChain,
+        moralisCursor: currentCursor,
+      );
+      final result = data['result'];
+      if (result is! List) {
+        final message =
+            data['message']?.toString() ??
+            data['error']?.toString() ??
+            'Invalid Moralis EVM history result';
+        throw _historyLoadException(message, message);
+      }
+
+      for (final item in result.whereType<Map>()) {
+        final record = asset.isNative
+            ? _nativeRecordFromMoralis(
+                walletId: walletId,
+                asset: asset,
+                item: item,
+              )
+            : _tokenRecordFromMoralis(
+                walletId: walletId,
+                asset: asset,
+                item: item,
+              );
+        if (record != null && seenIds.add(record.id)) {
+          records.add(record);
+        }
+      }
+      records.sort(_compareRecordTimeDesc);
+
+      final responseCursor = data['cursor']?.toString() ?? '';
+      nextCursor = responseCursor.isNotEmpty ? responseCursor : null;
+      if (records.length >= _historyLimit || nextCursor == null) {
+        break;
+      }
+      if (!seenCursors.add(nextCursor)) {
+        nextCursor = null;
+        break;
+      }
+      currentCursor = nextCursor;
+    }
+
+    records.sort(_compareRecordTimeDesc);
+    return TransactionHistoryPageResult(
+      records: records.take(_historyLimit).toList(growable: false),
+      nextCursor: nextCursor != null
+          ? TransactionHistoryCursor.moralisCursor(nextCursor)
+          : null,
+      emptyReason: records.isEmpty
+          ? TransactionHistoryFailureKind.noRecords
+          : null,
+    );
+  }
+
+  String? _moralisChain(WalletChainRef chain) {
+    return _supportedChains[chain.id] ??
+        _supportedEvmChainIds[chain.evmChainId];
+  }
+
+  Future<Map<dynamic, dynamic>> _loadMoralisPage({
+    required ChainBalance asset,
+    required String moralisChain,
+    required String? moralisCursor,
+  }) async {
     final baseUrl = apiConfig.moralisBaseUrl.trim().replaceAll(
       RegExp(r'/+$'),
       '',
@@ -57,7 +137,7 @@ class _MoralisEvmTransactionHistoryProvider
         'cursor': moralisCursor,
       if (!asset.isNative &&
           (asset.contractAddress?.trim().isNotEmpty ?? false))
-        'contract_addresses': [asset.contractAddress!.trim()],
+        'contract_addresses': asset.contractAddress!.trim(),
     };
 
     final Response<dynamic> response;
@@ -76,46 +156,7 @@ class _MoralisEvmTransactionHistoryProvider
     if (data is! Map) {
       throw _historyLoadException('Invalid Moralis EVM history response', data);
     }
-
-    final result = data['result'];
-    if (result is! List) {
-      final message =
-          data['message']?.toString() ??
-          data['error']?.toString() ??
-          'Invalid Moralis EVM history result';
-      throw _historyLoadException(message, message);
-    }
-
-    final records = <WalletTransactionRecord>[];
-    final seenIds = <String>{};
-    for (final item in result.whereType<Map>()) {
-      final record = asset.isNative
-          ? _nativeRecordFromMoralis(
-              walletId: walletId,
-              asset: asset,
-              item: item,
-            )
-          : _tokenRecordFromMoralis(
-              walletId: walletId,
-              asset: asset,
-              item: item,
-            );
-      if (record != null && seenIds.add(record.id)) {
-        records.add(record);
-      }
-    }
-    records.sort(_compareRecordTimeDesc);
-
-    final nextCursor = data['cursor']?.toString() ?? '';
-    return TransactionHistoryPageResult(
-      records: records.take(_historyLimit).toList(growable: false),
-      nextCursor: nextCursor.isNotEmpty
-          ? TransactionHistoryCursor.moralisCursor(nextCursor)
-          : null,
-      emptyReason: records.isEmpty
-          ? TransactionHistoryFailureKind.noRecords
-          : null,
-    );
+    return data;
   }
 
   WalletTransactionRecord? _nativeRecordFromMoralis({

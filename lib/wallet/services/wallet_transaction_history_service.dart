@@ -200,6 +200,11 @@ class WalletTransactionHistoryService {
           (cursor == null || cursor.moralisCursor != null);
       if (canUseMoralisEvm) {
         try {
+          developer.log(
+            'Using Moralis EVM history provider for ${chain.name} '
+            'chainId=${chain.evmChainId}',
+            name: 'WalletTransactionHistoryService',
+          );
           final result = await _moralisEvmProvider.loadRecordPage(
             walletId: walletId,
             asset: asset,
