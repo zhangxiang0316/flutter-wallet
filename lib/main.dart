@@ -146,6 +146,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
+      // 全局收紧应用字号：标题/正文缩小约 14%，小号辅助文字仅缩小约 5%。
+      // 分级处理可以统一视觉密度，同时避免 9～10sp 的说明文字过小。
+      fontSizeResolver: (fontSize, screenUtil) {
+        final baseSize = screenUtil.setWidth(fontSize);
+        return baseSize * (fontSize >= 12 ? 0.86 : 0.95);
+      },
       // 在 macOS 和桌面平台上也使用相同的设计尺寸
       ensureScreenSize: true,
       // 根据响应式主题状态重建 MaterialApp
@@ -178,6 +184,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             scaffoldBackgroundColor: const Color(0xFFF5F5F5),
             // 卡片/组件背景色 - 白色
             cardColor: Colors.white,
+            // 未显式设置字号的 Material 组件也使用紧凑字体层级。
+            textTheme: ThemeData(
+              useMaterial3: true,
+              brightness: Brightness.light,
+            ).textTheme.apply(fontSizeFactor: 0.86),
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.blue,
               brightness: Brightness.light,
@@ -203,8 +214,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               backgroundColor: Colors.white,
               selectedItemColor: Colors.blue,
               unselectedItemColor: Colors.grey,
-              selectedLabelStyle: TextStyle(fontSize: 14),
-              unselectedLabelStyle: TextStyle(fontSize: 14),
+              selectedLabelStyle: TextStyle(fontSize: 12),
+              unselectedLabelStyle: TextStyle(fontSize: 12),
             ),
             // AppBar 主题
             appBarTheme: const AppBarTheme(
@@ -223,6 +234,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             scaffoldBackgroundColor: const Color(0xFF121212),
             // 卡片/组件背景色 - 稍浅的深色
             cardColor: const Color(0xFF1E1E1E),
+            textTheme: ThemeData(
+              useMaterial3: true,
+              brightness: Brightness.dark,
+            ).textTheme.apply(fontSizeFactor: 0.86),
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.blue,
               brightness: Brightness.dark,
@@ -248,8 +263,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               backgroundColor: Color(0xFF1E1E1E),
               selectedItemColor: Colors.blueAccent,
               unselectedItemColor: Colors.grey,
-              selectedLabelStyle: TextStyle(fontSize: 14),
-              unselectedLabelStyle: TextStyle(fontSize: 14),
+              selectedLabelStyle: TextStyle(fontSize: 12),
+              unselectedLabelStyle: TextStyle(fontSize: 12),
             ),
             // AppBar 主题
             appBarTheme: const AppBarTheme(

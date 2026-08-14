@@ -40,9 +40,11 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m9(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
 
-  static String m10(symbol) => "转账 ${symbol}";
+  static String m10(count) => "${count} 个网络";
 
-  static String m11(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
+  static String m11(symbol) => "转账 ${symbol}";
+
+  static String m12(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -155,9 +157,11 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("未备份"),
         "mnemonicWordNumber": m1,
         "more": MessageLookupByLibrary.simpleMessage("更多"),
+        "nativeAsset": MessageLookupByLibrary.simpleMessage("原生资产"),
         "network": MessageLookupByLibrary.simpleMessage("网络"),
         "networkAdded": MessageLookupByLibrary.simpleMessage("网络已添加"),
         "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
+        "networkDistribution": MessageLookupByLibrary.simpleMessage("网络分布"),
         "networkDuplicate": MessageLookupByLibrary.simpleMessage("该网络已存在"),
         "networkErrorMessage":
             MessageLookupByLibrary.simpleMessage("网络连接失败，请检查网络设置"),
@@ -215,6 +219,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "openInExternalBrowser":
             MessageLookupByLibrary.simpleMessage("外部浏览器打开"),
         "orUsePassword": MessageLookupByLibrary.simpleMessage("或使用密码"),
+        "partialNetworkError":
+            MessageLookupByLibrary.simpleMessage("部分网络余额暂时不可用，当前合计仅包含可用网络。"),
         "passwordCache": MessageLookupByLibrary.simpleMessage("密码缓存"),
         "passwordCacheClearedOnExit":
             MessageLookupByLibrary.simpleMessage("应用退出后自动清除缓存"),
@@ -305,6 +311,10 @@ class MessageLookup extends MessageLookupByLibrary {
         "themeLight": MessageLookupByLibrary.simpleMessage("浅色主题"),
         "themeSettings": MessageLookupByLibrary.simpleMessage("主题设置"),
         "themeSystem": MessageLookupByLibrary.simpleMessage("跟随系统"),
+        "tokenAssets": MessageLookupByLibrary.simpleMessage("代币资产"),
+        "tokenContractAsset": MessageLookupByLibrary.simpleMessage("代币合约"),
+        "tokenDetails": MessageLookupByLibrary.simpleMessage("代币详情"),
+        "tokenNetworkCount": m10,
         "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("合计"),
         "transactionAddresses": MessageLookupByLibrary.simpleMessage("地址信息"),
@@ -365,7 +375,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("钱包地址"),
         "transfer": MessageLookupByLibrary.simpleMessage("转账"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-        "transferAsset": m10,
+        "transferAsset": m11,
         "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
         "transferFailed":
             MessageLookupByLibrary.simpleMessage("转账失败，请检查地址、数量和链上余额"),
@@ -376,7 +386,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("收款地址是常见销毁或系统地址，转入后大概率无法找回。"),
         "transferRiskClipboardMismatch":
             MessageLookupByLibrary.simpleMessage("剪贴板中存在另一个地址，请确认收款地址没有被意外替换。"),
-        "transferRiskEvmNetworkConfirm": m11,
+        "transferRiskEvmNetworkConfirm": m12,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "暂未获取到网络手续费，请确认钱包中仍有足够原生币支付手续费。"),
         "transferRiskSelfTransfer":

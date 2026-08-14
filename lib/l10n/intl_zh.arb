@@ -127,6 +127,20 @@
   "viewMnemonic": "查看助记词",
   "unlockToView": "输入钱包密码后查看",
   "totalAssets": "总资产估值",
+  "tokenAssets": "代币资产",
+  "tokenDetails": "代币详情",
+  "networkDistribution": "网络分布",
+  "partialNetworkError": "部分网络余额暂时不可用，当前合计仅包含可用网络。",
+  "nativeAsset": "原生资产",
+  "tokenContractAsset": "代币合约",
+  "tokenNetworkCount": "{count} 个网络",
+  "@tokenNetworkCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "refreshBalance": "刷新余额",
   "removeWallet": "移除钱包",
   "removeWalletConfirmMessage": "确定要移除「{name}」吗？本地保存的钱包信息会被删除。",

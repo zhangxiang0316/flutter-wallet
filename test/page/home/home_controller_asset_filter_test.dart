@@ -50,9 +50,13 @@ void main() {
         controller.displayBalances.map((balance) => balance.symbol),
         isNot(contains('USDT')),
       );
+      expect(
+        controller.tokenPortfolioItems.map((item) => item.symbol),
+        isNot(contains('USDT')),
+      );
     });
 
-    test('removes empty chains when zero balances are hidden', () {
+    test('removes zero token portfolios when zero balances are hidden', () {
       controller.visibleBalances = const [
         ChainBalance(
           chain: WalletChain.ethereum,
@@ -72,8 +76,8 @@ void main() {
       ];
       controller.setHideZeroBalances(true);
 
-      expect(controller.displayChains.map((chain) => chain.id).toList(), [
-        'solana',
+      expect(controller.tokenPortfolioItems.map((item) => item.symbol), [
+        'SOL',
       ]);
     });
   });

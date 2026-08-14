@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 
 import 'package:decimal/decimal.dart';
 
@@ -8,11 +7,13 @@ import '../../../generated/l10n.dart';
 import '../../../utils/password_cache_service.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
+import '../../../wallet/models/token_portfolio.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/asset_valuation_service.dart';
 import '../../../wallet/services/chain_balance_cache.dart';
 import '../../../wallet/services/chain_balance_service.dart';
+import '../../../wallet/services/token_portfolio_service.dart';
 import '../../../wallet/services/config/wallet_asset_visibility_service.dart';
 import '../../../wallet/services/config/wallet_backup_status_service.dart';
 import '../../../wallet/services/config/wallet_chain_config_service.dart';
@@ -38,6 +39,7 @@ class HomeController extends BaseController {
     WalletBackupStatusService? backupStatusService,
     WalletChainConfigService? chainConfigService,
     ChainBalanceCache? balanceCache,
+    TokenPortfolioService? tokenPortfolioService,
   }) : _repository = repository ?? WalletRepository(),
        _cryptoService = cryptoService ?? WalletCryptoService(),
        _balanceService = balanceService ?? ChainBalanceService(),
@@ -47,7 +49,9 @@ class HomeController extends BaseController {
        _backupStatusService =
            backupStatusService ?? WalletBackupStatusService(),
        _chainConfigService = chainConfigService ?? WalletChainConfigService(),
-       _balanceCache = balanceCache ?? ChainBalanceCache();
+       _balanceCache = balanceCache ?? ChainBalanceCache(),
+       _tokenPortfolioService =
+           tokenPortfolioService ?? TokenPortfolioService();
 
   final WalletRepository _repository;
   final WalletCryptoService _cryptoService;
@@ -57,6 +61,7 @@ class HomeController extends BaseController {
   final WalletBackupStatusService _backupStatusService;
   final WalletChainConfigService _chainConfigService;
   final ChainBalanceCache _balanceCache;
+  final TokenPortfolioService _tokenPortfolioService;
 
   /// 本地保存的钱包列表。
   List<WalletAccount> wallets = [];
@@ -75,6 +80,9 @@ class HomeController extends BaseController {
   /// 首页链资产区域和总资产估值都基于该列表计算，隐藏资产不会参与展示和汇总。
   List<ChainBalance> visibleBalances = [];
 
+  /// 首页按可信代币身份聚合后的资产组合。
+  List<TokenPortfolioItem> tokenPortfolioItems = [];
+
   /// 当前被用户隐藏的资产 key 集合。
   ///
   /// key 的生成规则由 [WalletAssetVisibilityService] 维护，控制器只负责读取和传递。
@@ -82,15 +90,6 @@ class HomeController extends BaseController {
 
   /// 已格式化的总资产估值文本。价格源不可用时显示 `--`。
   String totalAssetsText = '--';
-
-  /// 非稳定币按当前价格换算成稳定币后的展示文本。
-  final Map<String, String> assetStableValueTexts = {};
-
-  /// 每条链按当前价格汇总后的 USD 估值文本。
-  final Map<String, String> chainUsdValueTexts = {};
-
-  /// ✅ 缓存的价格数据，用于优化价格计算
-  final Map<String, Decimal> _cachedPrices = {};
 
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
@@ -106,9 +105,6 @@ class HomeController extends BaseController {
 
   /// 是否正在为旧钱包补全 Solana 地址。
   bool isUpgradingSolanaAddresses = false;
-
-  /// 当前已展开的链。默认空集合，首页只展示链信息。
-  final Set<String> expandedChainIds = {};
 
   /// 是否隐藏 0 余额资产。
   bool hideZeroBalances = false;
@@ -163,9 +159,7 @@ class HomeController extends BaseController {
     needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
       wallet,
     );
-    _refreshTotalAssetsFromCachedPrices();
-    _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
-    _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
+    _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
     update();
   }
 

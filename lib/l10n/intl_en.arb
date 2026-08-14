@@ -127,6 +127,20 @@
   "viewMnemonic": "View mnemonic",
   "unlockToView": "Unlock with wallet password to view",
   "totalAssets": "Total assets",
+  "tokenAssets": "Tokens",
+  "tokenDetails": "Token details",
+  "networkDistribution": "Network distribution",
+  "partialNetworkError": "Some network balances are temporarily unavailable. Totals include available networks only.",
+  "nativeAsset": "Native asset",
+  "tokenContractAsset": "Token contract",
+  "tokenNetworkCount": "{count} networks",
+  "@tokenNetworkCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "refreshBalance": "Refresh",
   "removeWallet": "Remove wallet",
   "removeWalletConfirmMessage": "Remove \"{name}\"? The wallet data saved on this device will be deleted.",

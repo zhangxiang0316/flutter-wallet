@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 
-import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_account.dart';
 
 /// 首页控制器使用的纯工具方法。
@@ -8,17 +7,6 @@ import '../../../wallet/models/wallet_account.dart';
 /// 这里不持有页面状态，便于后续继续拆分余额刷新、估值和钱包迁移流程。
 class HomeControllerUtils {
   const HomeControllerUtils._();
-
-  /// 生成单个资产估值缓存 key。
-  ///
-  /// 同一条链上可能存在相同 symbol 的自定义资产，因此优先纳入合约地址区分。
-  static String assetStableValueKey(ChainBalance balance) {
-    return [
-      balance.chainId,
-      balance.contractAddress ?? 'native',
-      balance.symbol,
-    ].join(':');
-  }
 
   static bool isZeroAmount(String value) {
     return amountDecimal(value) == Decimal.zero;

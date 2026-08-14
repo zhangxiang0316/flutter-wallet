@@ -40,14 +40,7 @@ extension HomeControllerBalance on HomeController {
       if (!_isActiveBalanceRequest(requestId, currentWallet)) {
         return;
       }
-      final totalValue = _valuationService.calculateTotalUsdValue(
-        visibleBalances,
-        prices: latestPrices,
-      );
-      totalAssetsText = _valuationService.formatUsdValue(totalValue);
-      _refreshAssetStableValueTexts(latestPrices);
-      _refreshChainUsdValueTexts(latestPrices);
-      _logValuationUiState(latestPrices);
+      _refreshTokenPortfolioItems(latestPrices);
       update();
     } catch (_) {
       if (_isActiveBalanceRequest(requestId, currentWallet)) {
@@ -75,9 +68,7 @@ extension HomeControllerBalance on HomeController {
     hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
     chains = await _chainConfigService.loadEnabledChains();
     _applyAssetVisibility();
-    _refreshTotalAssetsFromCachedPrices();
-    _refreshAssetStableValueTexts(_valuationService.cachedUsdPrices);
-    _refreshChainUsdValueTexts(_valuationService.cachedUsdPrices);
+    _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
   }
 
   bool _isActiveBalanceRequest(int requestId, WalletAccount currentWallet) {
@@ -91,9 +82,7 @@ extension HomeControllerBalance on HomeController {
     _balanceRequestId++;
     balances = [];
     visibleBalances = [];
-    assetStableValueTexts.clear();
-    chainUsdValueTexts.clear();
-    expandedChainIds.clear();
+    tokenPortfolioItems = [];
     hideZeroBalances = false;
     totalAssetsText = '--';
     isLoading = false;

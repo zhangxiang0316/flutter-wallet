@@ -6,14 +6,14 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
 import '../../../generated/route_table.dart';
-import '../../../page/transaction/controller/transaction_history_controller.dart';
 import '../../../page/transfer/controller/transfer_controller.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/chain_balance.dart';
+import '../../../wallet/models/token_portfolio.dart';
+import '../../token_portfolio/controller/token_portfolio_detail_controller.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/add_wallet_sheet.dart';
 import 'widgets/asset_filter_bar.dart';
-import 'widgets/chain_section.dart';
 import 'widgets/empty_wallet_card.dart';
 import 'widgets/home_background.dart';
 import 'widgets/home_motion.dart';
@@ -21,6 +21,7 @@ import 'widgets/import_wallet_sheet.dart';
 import 'widgets/password_setup_sheet.dart';
 import 'widgets/password_unlock_sheet.dart';
 import 'widgets/private_key_notice.dart';
+import 'widgets/token_portfolio_section.dart';
 import 'widgets/wallet_overview_card.dart';
 
 @GetXRoutePage('/home')
@@ -159,16 +160,10 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                 HomeEntranceItem(
                   delay: const Duration(milliseconds: 90),
                   initialOffset: const Offset(0, 0.06),
-                  child: ChainSection(
-                    wallet: wallet,
-                    chains: controller.displayChains,
-                    balances: controller.displayBalances,
+                  child: TokenPortfolioSection(
+                    items: controller.tokenPortfolioItems,
                     isLoading: controller.isLoading,
-                    stableValueTextFor: controller.stableValueTextFor,
-                    chainUsdValueTextFor: controller.chainUsdValueTextFor,
-                    isChainExpanded: controller.isChainExpanded,
-                    onChainToggle: controller.toggleChainExpanded,
-                    onAssetTap: _openTransactionHistoryPage,
+                    onTokenTap: _openTokenPortfolioDetailPage,
                   ),
                 ),
                 SizedBox(height: 16.h),
@@ -372,15 +367,15 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     }
   }
 
-  /// 打开当前币种交易记录页面。
-  Future<void> _openTransactionHistoryPage(ChainBalance balance) async {
+  /// 打开代币的多链资产详情。
+  Future<void> _openTokenPortfolioDetailPage(TokenPortfolioItem item) async {
     final currentWallet = controller.wallet;
     if (currentWallet == null) return;
     await Get.toNamed(
-      RouteTable.transactionHistory,
-      arguments: TransactionHistoryPageArguments(
+      RouteTable.tokenPortfolioDetail,
+      arguments: TokenPortfolioDetailPageArguments(
         walletId: currentWallet.id,
-        asset: balance,
+        item: item,
       ),
     );
   }

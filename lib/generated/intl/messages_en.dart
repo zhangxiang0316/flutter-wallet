@@ -44,9 +44,11 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m9(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m10(symbol) => "Transfer ${symbol}";
+  static String m10(count) => "${count} networks";
 
-  static String m11(network) =>
+  static String m11(symbol) => "Transfer ${symbol}";
+
+  static String m12(network) =>
       "EVM addresses can be reused across networks. Confirm the recipient expects funds on ${network}.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -189,9 +191,12 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Not backed up"),
         "mnemonicWordNumber": m1,
         "more": MessageLookupByLibrary.simpleMessage("More"),
+        "nativeAsset": MessageLookupByLibrary.simpleMessage("Native asset"),
         "network": MessageLookupByLibrary.simpleMessage("Network"),
         "networkAdded": MessageLookupByLibrary.simpleMessage("Network added"),
         "networkChainId": MessageLookupByLibrary.simpleMessage("Chain ID"),
+        "networkDistribution":
+            MessageLookupByLibrary.simpleMessage("Network distribution"),
         "networkDuplicate":
             MessageLookupByLibrary.simpleMessage("This network already exists"),
         "networkErrorMessage": MessageLookupByLibrary.simpleMessage(
@@ -260,6 +265,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Open externally"),
         "orUsePassword":
             MessageLookupByLibrary.simpleMessage("Or use password"),
+        "partialNetworkError": MessageLookupByLibrary.simpleMessage(
+            "Some network balances are temporarily unavailable. Totals include available networks only."),
         "passwordCache": MessageLookupByLibrary.simpleMessage("Password Cache"),
         "passwordCacheClearedOnExit": MessageLookupByLibrary.simpleMessage(
             "Cache is cleared automatically after app exit"),
@@ -374,6 +381,11 @@ class MessageLookup extends MessageLookupByLibrary {
         "themeLight": MessageLookupByLibrary.simpleMessage("Light"),
         "themeSettings": MessageLookupByLibrary.simpleMessage("Theme Settings"),
         "themeSystem": MessageLookupByLibrary.simpleMessage("System"),
+        "tokenAssets": MessageLookupByLibrary.simpleMessage("Tokens"),
+        "tokenContractAsset":
+            MessageLookupByLibrary.simpleMessage("Token contract"),
+        "tokenDetails": MessageLookupByLibrary.simpleMessage("Token details"),
+        "tokenNetworkCount": m10,
         "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("Total"),
         "transactionAddresses":
@@ -450,7 +462,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Wallet address"),
         "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-        "transferAsset": m10,
+        "transferAsset": m11,
         "transferDetails":
             MessageLookupByLibrary.simpleMessage("Transfer details"),
         "transferFailed": MessageLookupByLibrary.simpleMessage(
@@ -463,7 +475,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "The recipient is a known burn or system address. Funds sent there are likely unrecoverable."),
         "transferRiskClipboardMismatch": MessageLookupByLibrary.simpleMessage(
             "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly."),
-        "transferRiskEvmNetworkConfirm": m11,
+        "transferRiskEvmNetworkConfirm": m12,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "Network fee is not available yet. Confirm you still have enough native balance before continuing."),
         "transferRiskSelfTransfer": MessageLookupByLibrary.simpleMessage(

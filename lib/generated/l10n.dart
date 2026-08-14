@@ -1070,6 +1070,76 @@ class S {
     );
   }
 
+  /// `Tokens`
+  String get tokenAssets {
+    return Intl.message(
+      'Tokens',
+      name: 'tokenAssets',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Token details`
+  String get tokenDetails {
+    return Intl.message(
+      'Token details',
+      name: 'tokenDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network distribution`
+  String get networkDistribution {
+    return Intl.message(
+      'Network distribution',
+      name: 'networkDistribution',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Some network balances are temporarily unavailable. Totals include available networks only.`
+  String get partialNetworkError {
+    return Intl.message(
+      'Some network balances are temporarily unavailable. Totals include available networks only.',
+      name: 'partialNetworkError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Native asset`
+  String get nativeAsset {
+    return Intl.message(
+      'Native asset',
+      name: 'nativeAsset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Token contract`
+  String get tokenContractAsset {
+    return Intl.message(
+      'Token contract',
+      name: 'tokenContractAsset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} networks`
+  String tokenNetworkCount(int count) {
+    return Intl.message(
+      '$count networks',
+      name: 'tokenNetworkCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
   /// `Refresh`
   String get refreshBalance {
     return Intl.message(

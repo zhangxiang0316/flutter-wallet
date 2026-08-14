@@ -32,7 +32,7 @@ class BaseEasyRefresh extends StatelessWidget {
       footer: CupertinoFooter(
         foregroundColor: Theme.of(context).primaryColor,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        emptyWidget: const Text('没有更多数据了', style: TextStyle(fontSize: 14)),
+        emptyWidget: const Text('没有更多数据了', style: TextStyle(fontSize: 12)),
       ),
       onRefresh: onRefresh,
       onLoad: onLoad,
