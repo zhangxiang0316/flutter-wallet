@@ -83,7 +83,6 @@ extension HomeControllerBalance on HomeController {
     balances = [];
     visibleBalances = [];
     tokenPortfolioItems = [];
-    hideZeroBalances = false;
     totalAssetsText = '--';
     isLoading = false;
   }

@@ -340,16 +340,6 @@ class S {
     );
   }
 
-  /// `Hide zero`
-  String get hideZeroBalances {
-    return Intl.message(
-      'Hide zero',
-      name: 'hideZeroBalances',
-      desc: '',
-      args: [],
-    );
-  }
-
   /// `No matching assets`
   String get assetFilterNoResults {
     return Intl.message(

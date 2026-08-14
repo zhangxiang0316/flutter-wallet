@@ -14,6 +14,7 @@ import 'generated/route_table.dart';
 import 'utils/log_util.dart';
 import 'utils/password_cache_service.dart';
 import 'utils/storage.dart';
+import 'utils/text_theme_util.dart';
 
 // 应用主题切换与持久化控制器
 class ThemeController extends GetxController {
@@ -185,10 +186,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             // 卡片/组件背景色 - 白色
             cardColor: Colors.white,
             // 未显式设置字号的 Material 组件也使用紧凑字体层级。
-            textTheme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.light,
-            ).textTheme.apply(fontSizeFactor: 0.86),
+            textTheme: scaleTextThemeFontSizes(
+              ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.light,
+              ).textTheme,
+              0.86,
+            ),
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.blue,
               brightness: Brightness.light,
@@ -234,10 +238,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             scaffoldBackgroundColor: const Color(0xFF121212),
             // 卡片/组件背景色 - 稍浅的深色
             cardColor: const Color(0xFF1E1E1E),
-            textTheme: ThemeData(
-              useMaterial3: true,
-              brightness: Brightness.dark,
-            ).textTheme.apply(fontSizeFactor: 0.86),
+            textTheme: scaleTextThemeFontSizes(
+              ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.dark,
+              ).textTheme,
+              0.86,
+            ),
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.blue,
               brightness: Brightness.dark,

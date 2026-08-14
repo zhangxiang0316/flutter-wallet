@@ -33,7 +33,6 @@ class TokenPortfolioService {
     required List<ChainBalance> balances,
     required List<WalletChainConfig> chains,
     Map<String, Decimal> prices = const {},
-    bool hideZeroBalances = false,
   }) {
     final groups = <String, _TokenGroupBuilder>{};
 
@@ -52,10 +51,7 @@ class TokenPortfolioService {
       );
     }
 
-    final result = groups.values
-        .map((group) => group.build())
-        .where((item) => !hideZeroBalances || !item.isZeroBalance)
-        .toList();
+    final result = groups.values.map((group) => group.build()).toList();
     result.sort(_compareItems);
     return result;
   }

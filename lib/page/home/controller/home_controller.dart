@@ -106,9 +106,6 @@ class HomeController extends BaseController {
   /// 是否正在为旧钱包补全 Solana 地址。
   bool isUpgradingSolanaAddresses = false;
 
-  /// 是否隐藏 0 余额资产。
-  bool hideZeroBalances = false;
-
   Timer? _balanceRefreshTimer;
 
   /// 余额请求版本号。

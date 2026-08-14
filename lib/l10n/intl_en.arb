@@ -34,7 +34,6 @@
   "contactInvalid": "Check the contact name, network, and address",
   "chooseFromAddressBook": "Choose from address book",
   "assetVisibility": "Asset display",
-  "hideZeroBalances": "Hide zero",
   "assetFilterNoResults": "No matching assets",
   "networkManagement": "Networks",
   "networkManagementTip": "Add EVM-compatible networks only. Custom networks reuse the wallet EVM address and support native coin and token balance lookup.",

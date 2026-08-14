@@ -132,7 +132,6 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("暂时无法查询手续费，请稍后重试。"),
         "fetchTokenInfo": MessageLookupByLibrary.simpleMessage("自动识别币种信息"),
         "getStarted": MessageLookupByLibrary.simpleMessage("开始使用"),
-        "hideZeroBalances": MessageLookupByLibrary.simpleMessage("隐藏 0 余额"),
         "importMnemonic": MessageLookupByLibrary.simpleMessage("导入助记词"),
         "importPrivateKey": MessageLookupByLibrary.simpleMessage("导入私钥"),
         "importWallet": MessageLookupByLibrary.simpleMessage("导入钱包"),

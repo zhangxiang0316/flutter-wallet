@@ -127,7 +127,7 @@ void main() {
       expect(result.single.totalUsdValue, Decimal.parse('18000'));
     });
 
-    test('hides successful zero groups but keeps groups with errors', () {
+    test('keeps error state separate from successful zero balances', () {
       final result = service.build(
         balances: const [
           ChainBalance(
@@ -147,12 +147,12 @@ void main() {
           ),
         ],
         chains: [WalletChain.bsc.config, WalletChain.solana.config],
-        hideZeroBalances: true,
       );
 
-      expect(result.map((item) => item.symbol), ['SOL']);
-      expect(result.single.hasPartialError, isTrue);
-      expect(result.single.totalUsdValue, isNull);
+      expect(result.map((item) => item.symbol), ['BNB', 'SOL']);
+      final sol = result.singleWhere((item) => item.symbol == 'SOL');
+      expect(sol.hasPartialError, isTrue);
+      expect(sol.totalUsdValue, isNull);
     });
 
     test('sorts priced portfolios by descending USD value', () {

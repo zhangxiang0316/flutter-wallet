@@ -159,7 +159,6 @@ class MessageLookup extends MessageLookupByLibrary {
         "fetchTokenInfo":
             MessageLookupByLibrary.simpleMessage("Detect token info"),
         "getStarted": MessageLookupByLibrary.simpleMessage("Get Started"),
-        "hideZeroBalances": MessageLookupByLibrary.simpleMessage("Hide zero"),
         "importMnemonic":
             MessageLookupByLibrary.simpleMessage("Import mnemonic"),
         "importPrivateKey":

@@ -43,13 +43,4 @@ class TokenPortfolioItem {
 
   bool get hasPartialError =>
       positions.any((position) => position.balance.hasError);
-
-  /// 只有所有链都成功且余额均为 0 时，才属于可隐藏的零余额组合。
-  bool get isZeroBalance {
-    if (hasPartialError) return false;
-    return positions.every((position) {
-      return (Decimal.tryParse(position.balance.amount) ?? Decimal.zero) ==
-          Decimal.zero;
-    });
-  }
 }

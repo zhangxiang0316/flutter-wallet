@@ -13,7 +13,6 @@ import '../../../wallet/models/token_portfolio.dart';
 import '../../token_portfolio/controller/token_portfolio_detail_controller.dart';
 import '../../home/controller/home_controller.dart';
 import 'widgets/add_wallet_sheet.dart';
-import 'widgets/asset_filter_bar.dart';
 import 'widgets/empty_wallet_card.dart';
 import 'widgets/home_background.dart';
 import 'widgets/home_motion.dart';
@@ -148,15 +147,6 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                   ),
                 ),
                 SizedBox(height: 16.h),
-                HomeEntranceItem(
-                  delay: const Duration(milliseconds: 70),
-                  initialOffset: const Offset(0, 0.05),
-                  child: AssetFilterBar(
-                    hideZeroBalances: controller.hideZeroBalances,
-                    onHideZeroChanged: controller.setHideZeroBalances,
-                  ),
-                ),
-                SizedBox(height: 10.h),
                 HomeEntranceItem(
                   delay: const Duration(milliseconds: 90),
                   initialOffset: const Offset(0, 0.06),

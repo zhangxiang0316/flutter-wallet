@@ -34,7 +34,6 @@
   "contactInvalid": "请检查联系人名称、网络和地址",
   "chooseFromAddressBook": "从地址簿选择",
   "assetVisibility": "资产显示",
-  "hideZeroBalances": "隐藏 0 余额",
   "assetFilterNoResults": "没有匹配的资产",
   "networkManagement": "网络管理",
   "networkManagementTip": "当前仅支持添加 EVM 兼容网络。自定义网络复用钱包 EVM 地址，支持原生币和代币余额查询。",
