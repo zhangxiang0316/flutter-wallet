@@ -40,6 +40,7 @@ class AddCustomAssetSheet extends StatefulWidget {
     required String name,
     required int decimals,
     String? logoUrl,
+    String? canonicalTokenId,
   })
   onSubmit;
 
@@ -68,6 +69,9 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
 
   /// 是否正在提交自定义资产。
   bool _isSubmitting = false;
+
+  /// 用户确认合约可信后，是否将该资产并入首页同名代币。
+  bool _mergeWithSameToken = false;
 
   String? _addingPopularAssetKey;
 
@@ -226,6 +230,33 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
                 ),
+                SizedBox(height: 12.h),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 4.w),
+                  title: Text(
+                    S.of(context).customAssetMergeOnHome,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    S.of(context).customAssetMergeOnHomeTip,
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withValues(alpha: 0.55),
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  value: _mergeWithSameToken,
+                  onChanged: _isSubmitting
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _mergeWithSameToken = value;
+                          });
+                        },
+                ),
                 SizedBox(height: 16.h),
                 SizedBox(
                   width: double.infinity,
@@ -311,6 +342,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
       name: asset.name,
       decimals: asset.decimals,
       logoUrl: asset.logoUrl,
+      canonicalTokenId: asset.canonicalTokenId,
     );
     if (!mounted) return;
     setState(() {
@@ -343,6 +375,9 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
       name: _nameController.text.trim(),
       decimals: decimals,
       logoUrl: _logoUrlController.text.trim(),
+      canonicalTokenId: _mergeWithSameToken
+          ? _symbolController.text.trim().toLowerCase()
+          : null,
     );
     if (!mounted) return;
     setState(() {

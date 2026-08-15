@@ -57,6 +57,7 @@ extension _SolanaChainBalance on ChainBalanceService {
             address: address,
             contractAddress: asset.contractAddress,
             logoUrl: asset.logoUrl,
+            canonicalTokenId: asset.canonicalTokenId,
             decimals: asset.decimals,
             error: error,
           ),
@@ -94,6 +95,7 @@ extension _SolanaChainBalance on ChainBalanceService {
         amount: _formatUnits(lamports, asset.decimals),
         address: address,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -108,6 +110,7 @@ extension _SolanaChainBalance on ChainBalanceService {
         amount: '0',
         address: address,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -189,6 +192,7 @@ extension _SolanaChainBalance on ChainBalanceService {
       address: address,
       contractAddress: asset.contractAddress,
       logoUrl: asset.logoUrl,
+      canonicalTokenId: asset.canonicalTokenId,
       decimals: decimals,
     );
   }
@@ -252,6 +256,7 @@ extension _SolanaChainBalance on ChainBalanceService {
         address: address,
         contractAddress: asset.contractAddress,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: decimals,
       );
     } catch (e) {
@@ -267,6 +272,7 @@ extension _SolanaChainBalance on ChainBalanceService {
         address: address,
         contractAddress: asset.contractAddress,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -287,6 +293,7 @@ extension _SolanaChainBalance on ChainBalanceService {
       address: address,
       contractAddress: asset.contractAddress,
       logoUrl: asset.logoUrl,
+      canonicalTokenId: asset.canonicalTokenId,
       decimals: asset.decimals,
     );
   }
@@ -423,6 +430,7 @@ extension _SolanaChainBalance on ChainBalanceService {
       address: address,
       contractAddress: asset.contractAddress,
       logoUrl: asset.logoUrl,
+      canonicalTokenId: asset.canonicalTokenId,
       decimals: decimals,
     );
   }

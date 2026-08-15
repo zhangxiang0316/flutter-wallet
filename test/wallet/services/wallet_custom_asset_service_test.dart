@@ -1,9 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/config/wallet_custom_asset_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
   group('WalletCustomAssetService', () {
     test('builds manually added assets with normalized EVM addresses', () {
@@ -15,6 +22,7 @@ void main() {
         name: 'PancakeSwap Token',
         decimals: 18,
         logoUrl: 'https://example.com/cake.png',
+        canonicalTokenId: 'cake',
       );
 
       expect(asset.symbol, 'CAKE');
@@ -23,6 +31,7 @@ void main() {
         '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
       );
       expect(asset.logoUrl, 'https://example.com/cake.png');
+      expect(asset.canonicalTokenId, 'cake');
       expect(asset.isCustom, isTrue);
     });
 
@@ -49,7 +58,50 @@ void main() {
 
       expect(assets.map((asset) => asset.symbol), contains('WETH'));
       expect(assets.first.logoUrl, isNotEmpty);
+      expect(assets.first.canonicalTokenId, 'weth');
       expect(assets.every((asset) => asset.isCustom), isTrue);
+    });
+
+    test('persists the Polygon USDC canonical identity migration', () async {
+      final polygon = WalletChainConfig.customEvm(
+        id: 'evm-137',
+        name: 'Polygon',
+        symbol: 'MATIC',
+        rpcUrls: const ['https://polygon-rpc.example'],
+        evmChainId: 137,
+      );
+      SharedPreferences.setMockInitialValues({
+        'wallet_custom_evm_chains': jsonEncode([polygon.toJson()]),
+        'wallet_custom_assets': jsonEncode([
+          {
+            'chainId': 'evm-137',
+            'chainName': 'Polygon',
+            'chainSymbol': 'MATIC',
+            'evmChainId': 137,
+            'symbol': 'USDC',
+            'name': 'USD Coin',
+            'decimals': 6,
+            'contractAddress': '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+            'canonicalTokenId': null,
+            'isCustom': true,
+          },
+        ]),
+      });
+
+      final assets = await WalletCustomAssetService().loadCustomAssets();
+      final stored =
+          jsonDecode(
+                (await SharedPreferences.getInstance()).getString(
+                  'wallet_custom_assets',
+                )!,
+              )
+              as List<dynamic>;
+
+      expect(assets.single.canonicalTokenId, 'usdc');
+      expect(
+        (stored.single as Map<String, dynamic>)['canonicalTokenId'],
+        'usdc',
+      );
     });
   });
 }

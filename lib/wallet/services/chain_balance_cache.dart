@@ -13,7 +13,7 @@ import '../models/wallet_chain.dart';
 /// - 离线时也能查看上次余额
 class ChainBalanceCache {
   /// 缓存键前缀。
-  static const String _keyPrefix = 'cached_balances_v1';
+  static const String _keyPrefix = 'cached_balances_v2';
 
   /// 缓存最大有效期。
   ///
@@ -100,12 +100,16 @@ class ChainBalanceCache {
   Map<String, dynamic> _toJson(ChainBalance balance) {
     return {
       'chainId': balance.chainId,
+      'chainName': balance.chainRef.name,
+      'chainSymbol': balance.chainRef.symbol,
+      'evmChainId': balance.chainRef.evmChainId,
       'symbol': balance.symbol,
       'name': balance.name,
       'amount': balance.amount,
       'address': balance.address,
       'contractAddress': balance.contractAddress,
       'logoUrl': balance.logoUrl,
+      'canonicalTokenId': balance.canonicalTokenId,
       'decimals': balance.decimals,
       'isNative': balance.isNative,
       'error': balance.error,
@@ -133,23 +137,47 @@ class ChainBalanceCache {
         address: json['address'] as String,
         contractAddress: json['contractAddress'] as String?,
         logoUrl: json['logoUrl'] as String?,
+        canonicalTokenId: json['canonicalTokenId'] as String?,
         decimals: json['decimals'] as int,
         error: json['error'] as String?,
       );
-    } else {
-      // 自定义链的余额，暂不支持缓存
-      // 返回一个占位的余额对象
-      return ChainBalance(
-        chain: WalletChain.bsc, // 占位
+    }
+
+    final evmChainId = int.tryParse(json['evmChainId']?.toString() ?? '');
+    if (evmChainId != null) {
+      final chainConfig = WalletChainConfig.customEvm(
+        id: chainId,
+        name: json['chainName'] as String? ?? chainId,
+        symbol: json['chainSymbol'] as String? ?? '',
+        rpcUrls: const ['http://localhost'],
+        evmChainId: evmChainId,
+      );
+      return ChainBalance.config(
+        chainConfig: chainConfig,
         symbol: json['symbol'] as String,
         name: json['name'] as String,
-        amount: '0',
+        amount: json['amount'] as String,
         address: json['address'] as String,
         contractAddress: json['contractAddress'] as String?,
         logoUrl: json['logoUrl'] as String?,
+        canonicalTokenId: json['canonicalTokenId'] as String?,
         decimals: json['decimals'] as int,
-        error: 'Cached data for custom chain',
+        error: json['error'] as String?,
       );
     }
+
+    // 无法识别的旧缓存不参与估值，等待本轮链上查询覆盖。
+    return ChainBalance(
+      chain: WalletChain.bsc,
+      symbol: json['symbol'] as String,
+      name: json['name'] as String,
+      amount: '0',
+      address: json['address'] as String,
+      contractAddress: json['contractAddress'] as String?,
+      logoUrl: json['logoUrl'] as String?,
+      canonicalTokenId: json['canonicalTokenId'] as String?,
+      decimals: json['decimals'] as int,
+      error: 'Unsupported cached chain',
+    );
   }
 }

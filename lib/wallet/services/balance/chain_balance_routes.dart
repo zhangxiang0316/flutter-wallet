@@ -230,6 +230,7 @@ extension _ChainBalanceRoutes on ChainBalanceService {
             address: address,
             contractAddress: asset.contractAddress,
             logoUrl: asset.logoUrl,
+            canonicalTokenId: asset.canonicalTokenId,
             decimals: asset.decimals,
             error: error,
           ),

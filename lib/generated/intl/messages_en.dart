@@ -63,8 +63,6 @@ class MessageLookup extends MessageLookupByLibrary {
             "Save trusted recipient addresses by network. Transfer pages can pick contacts from the current network only."),
         "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
         "asset": MessageLookupByLibrary.simpleMessage("Asset"),
-        "assetFilterNoResults":
-            MessageLookupByLibrary.simpleMessage("No matching assets"),
         "assetVisibility":
             MessageLookupByLibrary.simpleMessage("Asset display"),
         "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
@@ -138,6 +136,10 @@ class MessageLookup extends MessageLookupByLibrary {
         "customAssetInvalid": MessageLookupByLibrary.simpleMessage(
             "Check the contract address, symbol, name, and decimals"),
         "customAssetLogoUrl": MessageLookupByLibrary.simpleMessage("Logo URL"),
+        "customAssetMergeOnHome": MessageLookupByLibrary.simpleMessage(
+            "Merge with the same token on Home"),
+        "customAssetMergeOnHomeTip": MessageLookupByLibrary.simpleMessage(
+            "Enable only after verifying the contract. Assets are never merged by symbol automatically."),
         "customAssetMetadataUnavailable": MessageLookupByLibrary.simpleMessage(
             "Token info is unavailable. Fill it in manually."),
         "customAssetName": MessageLookupByLibrary.simpleMessage("Name"),
@@ -381,6 +383,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "themeSettings": MessageLookupByLibrary.simpleMessage("Theme Settings"),
         "themeSystem": MessageLookupByLibrary.simpleMessage("System"),
         "tokenAssets": MessageLookupByLibrary.simpleMessage("Tokens"),
+        "tokenAssetsEmpty":
+            MessageLookupByLibrary.simpleMessage("No assets yet"),
         "tokenContractAsset":
             MessageLookupByLibrary.simpleMessage("Token contract"),
         "tokenDetails": MessageLookupByLibrary.simpleMessage("Token details"),

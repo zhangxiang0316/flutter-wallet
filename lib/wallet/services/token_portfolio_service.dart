@@ -39,9 +39,7 @@ class TokenPortfolioService {
     for (final balance in balances) {
       final identity = _identityFor(balance);
       final chain = _chainFor(balance, chains);
-      final usdValue = balance.hasError || !identity.isTrusted
-          ? null
-          : _valuationService.calculateTotalUsdValue([balance], prices: prices);
+      final usdValue = _usdValueFor(balance, identity, prices);
       final group = groups.putIfAbsent(
         identity.id,
         () => _TokenGroupBuilder(identity),
@@ -72,6 +70,24 @@ class TokenPortfolioService {
       );
     }
 
+    final assignedId = WalletCanonicalToken.normalizeId(
+      balance.canonicalTokenId,
+    );
+    if (assignedId != null) {
+      final assignedToken = WalletCanonicalToken.fromId(assignedId);
+      final assignedSymbol =
+          assignedToken?.symbol ?? balance.symbol.trim().toUpperCase();
+      return _TokenIdentity(
+        id: assignedId,
+        symbol: assignedSymbol,
+        name:
+            assignedToken?.name ??
+            (balance.name.trim().isEmpty ? assignedSymbol : balance.name),
+        commonRank: _commonRank(assignedSymbol),
+        isTrusted: true,
+      );
+    }
+
     final symbol = balance.symbol.trim().isEmpty
         ? balance.chainRef.symbol.toUpperCase()
         : balance.symbol.trim().toUpperCase();
@@ -82,6 +98,20 @@ class TokenPortfolioService {
       commonRank: _commonRank(symbol),
       isTrusted: false,
     );
+  }
+
+  Decimal? _usdValueFor(
+    ChainBalance balance,
+    _TokenIdentity identity,
+    Map<String, Decimal> prices,
+  ) {
+    if (balance.hasError || !identity.isTrusted) return null;
+    final amount = Decimal.tryParse(balance.amount);
+    final price =
+        _valuationService.priceForSymbol(identity.symbol, prices) ??
+        _valuationService.priceForSymbol(balance.symbol, prices);
+    if (amount == null || price == null) return null;
+    return amount * price;
   }
 
   WalletChainConfig _chainFor(
@@ -152,7 +182,10 @@ class TokenPortfolioService {
         : chain.isEvm
         ? contract.toLowerCase()
         : contract;
-    return '${chain.id}:$normalizedContract';
+    final networkKey = chain.evmChainId == null
+        ? chain.id
+        : 'evm:${chain.evmChainId}';
+    return '$networkKey:$normalizedContract';
   }
 }
 

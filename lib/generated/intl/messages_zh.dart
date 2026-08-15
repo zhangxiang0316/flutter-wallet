@@ -57,7 +57,6 @@ class MessageLookup extends MessageLookupByLibrary {
             "按网络保存可信收款地址。转账时仅可选择当前网络下的联系人。"),
         "appName": MessageLookupByLibrary.simpleMessage("沐晨钱包"),
         "asset": MessageLookupByLibrary.simpleMessage("资产"),
-        "assetFilterNoResults": MessageLookupByLibrary.simpleMessage("没有匹配的资产"),
         "assetVisibility": MessageLookupByLibrary.simpleMessage("资产显示"),
         "assetVisibilityTip": MessageLookupByLibrary.simpleMessage(
             "关闭后，该币种会从首页资产列表和估值中隐藏；链上余额不会被删除，可随时重新开启。"),
@@ -116,6 +115,10 @@ class MessageLookup extends MessageLookupByLibrary {
         "customAssetInvalid":
             MessageLookupByLibrary.simpleMessage("请检查合约地址、简称、名称和精度"),
         "customAssetLogoUrl": MessageLookupByLibrary.simpleMessage("Logo 地址"),
+        "customAssetMergeOnHome":
+            MessageLookupByLibrary.simpleMessage("与首页同名代币合并"),
+        "customAssetMergeOnHomeTip":
+            MessageLookupByLibrary.simpleMessage("请确认合约可信后再开启；系统不会仅凭简称自动合并。"),
         "customAssetMetadataUnavailable":
             MessageLookupByLibrary.simpleMessage("暂时无法识别币种信息，请手动填写"),
         "customAssetName": MessageLookupByLibrary.simpleMessage("币种名称"),
@@ -311,6 +314,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "themeSettings": MessageLookupByLibrary.simpleMessage("主题设置"),
         "themeSystem": MessageLookupByLibrary.simpleMessage("跟随系统"),
         "tokenAssets": MessageLookupByLibrary.simpleMessage("代币资产"),
+        "tokenAssetsEmpty": MessageLookupByLibrary.simpleMessage("暂无资产"),
         "tokenContractAsset": MessageLookupByLibrary.simpleMessage("代币合约"),
         "tokenDetails": MessageLookupByLibrary.simpleMessage("代币详情"),
         "tokenNetworkCount": m10,

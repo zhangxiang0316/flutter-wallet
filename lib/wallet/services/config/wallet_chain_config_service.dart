@@ -163,6 +163,7 @@ class WalletChainConfigService {
             decimals: asset.decimals,
             contractAddress: asset.contractAddress,
             logoUrl: asset.logoUrl,
+            canonicalTokenId: asset.canonicalTokenId,
             isCustom: asset.isCustom,
           );
         })

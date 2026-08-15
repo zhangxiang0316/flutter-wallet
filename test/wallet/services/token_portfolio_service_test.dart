@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
+import 'package:omnicast/wallet/models/wallet_asset.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/token_portfolio_service.dart';
 
@@ -85,11 +86,114 @@ void main() {
         Decimal.parse('10'),
       );
       final customItem = result.singleWhere(
-        (item) => item.canonicalTokenId.startsWith('asset:custom-100:'),
+        (item) => item.canonicalTokenId.startsWith('asset:evm:100:'),
       );
       expect(customItem.totalAmount, Decimal.parse('999'));
       expect(customItem.totalUsdValue, isNull);
     });
+
+    test('merges trusted Polygon USDC as the seventh USDC network', () {
+      final polygon = WalletChainConfig.customEvm(
+        id: 'custom-polygon',
+        name: 'Polygon',
+        symbol: 'MATIC',
+        rpcUrls: const ['https://polygon-rpc.example'],
+        evmChainId: 137,
+      );
+      final builtInUsdcBalances = WalletAssetRegistry.all
+          .where((asset) => asset.symbol == 'USDC')
+          .map(
+            (asset) => ChainBalance(
+              chain: asset.chain!,
+              symbol: asset.symbol,
+              name: asset.name,
+              amount: '0',
+              address: '0x1111111111111111111111111111111111111111',
+              contractAddress: asset.contractAddress,
+              decimals: asset.decimals,
+            ),
+          );
+
+      final result = service.build(
+        balances: [
+          ...builtInUsdcBalances,
+          ChainBalance.config(
+            chainConfig: polygon,
+            symbol: 'USDC',
+            name: 'USD Coin',
+            amount: '0',
+            address: '0x1111111111111111111111111111111111111111',
+            contractAddress: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+            canonicalTokenId: 'usdc',
+            decimals: 6,
+          ),
+        ],
+        chains: [...WalletChain.values.map((chain) => chain.config), polygon],
+      );
+
+      expect(result, hasLength(1));
+      expect(result.single.canonicalTokenId, 'usdc');
+      expect(result.single.positions, hasLength(7));
+      expect(
+        result.single.positions.any(
+          (position) => position.chain.evmChainId == 137,
+        ),
+        isTrue,
+      );
+    });
+
+    test(
+      'supports a user-defined token group without a code registry entry',
+      () {
+        final polygon = WalletChainConfig.customEvm(
+          id: 'evm-137',
+          name: 'Polygon',
+          symbol: 'MATIC',
+          rpcUrls: const ['https://polygon-rpc.example'],
+          evmChainId: 137,
+        );
+        final base = WalletChainConfig.customEvm(
+          id: 'evm-8453',
+          name: 'Base',
+          symbol: 'ETH',
+          rpcUrls: const ['https://base-rpc.example'],
+          evmChainId: 8453,
+        );
+
+        final result = service.build(
+          balances: [
+            ChainBalance.config(
+              chainConfig: polygon,
+              symbol: 'DAI',
+              name: 'Dai Stablecoin',
+              amount: '2',
+              address: '0x1111111111111111111111111111111111111111',
+              contractAddress: '0x1111111111111111111111111111111111111112',
+              canonicalTokenId: 'dai',
+              decimals: 18,
+            ),
+            ChainBalance.config(
+              chainConfig: base,
+              symbol: 'DAI',
+              name: 'Dai Stablecoin',
+              amount: '3',
+              address: '0x1111111111111111111111111111111111111111',
+              contractAddress: '0x1111111111111111111111111111111111111113',
+              canonicalTokenId: 'dai',
+              decimals: 18,
+            ),
+          ],
+          chains: [polygon, base],
+          prices: {'DAI': Decimal.one},
+        );
+
+        expect(result, hasLength(1));
+        expect(result.single.canonicalTokenId, 'dai');
+        expect(result.single.totalAmount, Decimal.fromInt(5));
+        expect(result.single.totalUsdValue, Decimal.fromInt(5));
+        expect(result.single.positions, hasLength(2));
+      },
+    );
 
     test('normalizes trusted BTCB and WBTC into one BTC portfolio', () {
       final result = service.build(

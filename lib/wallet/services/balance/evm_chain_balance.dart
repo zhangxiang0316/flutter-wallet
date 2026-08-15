@@ -55,6 +55,7 @@ extension _EvmChainBalance on ChainBalanceService {
         amount: _formatUnits(wei, asset.decimals),
         address: address,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -65,6 +66,7 @@ extension _EvmChainBalance on ChainBalanceService {
         amount: '0',
         address: address,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -104,6 +106,7 @@ extension _EvmChainBalance on ChainBalanceService {
         address: address,
         contractAddress: asset.contractAddress,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -115,6 +118,7 @@ extension _EvmChainBalance on ChainBalanceService {
         address: address,
         contractAddress: asset.contractAddress,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
         error: e.toString(),
       );

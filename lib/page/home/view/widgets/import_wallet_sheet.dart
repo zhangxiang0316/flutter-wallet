@@ -87,7 +87,7 @@ class _ImportWalletSheetState extends State<ImportWalletSheet> {
               maxLines: _useMnemonic ? 5 : 4,
               decoration: vantInputDecoration(
                 context,
-                label: _useMnemonic
+                labelText: _useMnemonic
                     ? S.of(context).mnemonic
                     : S.of(context).importPrivateKey,
                 hintText: _useMnemonic

@@ -98,6 +98,7 @@ List<WalletAsset> _solanaPopularAssets(WalletChainConfig chain) {
       name: 'Jupiter',
       decimals: 6,
       contractAddress: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
+      canonicalTokenId: 'jup',
       logoUrl:
           'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/assets/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN/logo.png',
       isCustom: true,
@@ -146,6 +147,7 @@ WalletAsset _popularEvmAsset(
     decimals: decimals,
     contractAddress: contractAddress,
     logoUrl: _trustWalletLogo(folder, contractAddress),
+    canonicalTokenId: symbol.toLowerCase(),
     isCustom: true,
   );
 }
@@ -163,6 +165,7 @@ WalletAsset _popularTronAsset(
     name: name,
     decimals: decimals,
     contractAddress: contractAddress,
+    canonicalTokenId: symbol.toLowerCase(),
     logoUrl:
         'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tron/assets/$contractAddress/logo.png',
     isCustom: true,

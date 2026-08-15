@@ -80,7 +80,24 @@ class WalletCustomAssetService {
             )
             .where((asset) => asset.contractAddress?.trim().isNotEmpty ?? false)
             .toList(growable: false);
-        return _chainConfigService.bindAssetsToChains(assets);
+        final boundAssets = await _chainConfigService.bindAssetsToChains(
+          assets,
+        );
+        final needsCanonicalMigration = customAssetsJson.whereType<Map>().any((
+          item,
+        ) {
+          final storedId = WalletCanonicalToken.normalizeId(
+            item['canonicalTokenId']?.toString(),
+          );
+          final migratedId = WalletAsset.fromJson(
+            Map<String, dynamic>.from(item),
+          ).canonicalTokenId;
+          return migratedId != null && migratedId != storedId;
+        });
+        if (needsCanonicalMigration) {
+          await saveCustomAssets(boundAssets);
+        }
+        return boundAssets;
       }
     } catch (_) {
       return [];
@@ -155,6 +172,7 @@ class WalletCustomAssetService {
     required String name,
     required int decimals,
     String? logoUrl,
+    String? canonicalTokenId,
   }) {
     final normalizedAddress = _normalizeAddress(chain, contractAddress);
     if (symbol.trim().isEmpty || name.trim().isEmpty) {
@@ -172,6 +190,7 @@ class WalletCustomAssetService {
       logoUrl:
           _normalizeLogoUrl(logoUrl) ??
           _defaultLogoUrl(chain, normalizedAddress),
+      canonicalTokenId: WalletCanonicalToken.normalizeId(canonicalTokenId),
       isCustom: true,
     );
   }
@@ -187,6 +206,9 @@ class WalletCustomAssetService {
       decimals: asset.decimals,
       contractAddress: _normalizeAddress(asset.chainRef, asset.contractAddress),
       logoUrl: _normalizeLogoUrl(asset.logoUrl),
+      canonicalTokenId: WalletCanonicalToken.normalizeId(
+        asset.canonicalTokenId,
+      ),
       isCustom: true,
     );
   }

@@ -36,6 +36,7 @@ extension _TronChainBalance on ChainBalanceService {
             address: address,
             contractAddress: asset.contractAddress,
             logoUrl: asset.logoUrl,
+            canonicalTokenId: asset.canonicalTokenId,
             decimals: asset.decimals,
           );
     });
@@ -74,6 +75,7 @@ extension _TronChainBalance on ChainBalanceService {
         amount: _formatUnits(sun, asset.decimals),
         address: address,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
       );
     } catch (e) {
@@ -84,6 +86,7 @@ extension _TronChainBalance on ChainBalanceService {
         amount: '0',
         address: address,
         logoUrl: asset.logoUrl,
+        canonicalTokenId: asset.canonicalTokenId,
         decimals: asset.decimals,
         error: e.toString(),
       );
@@ -99,7 +102,7 @@ extension _TronChainBalance on ChainBalanceService {
     required String address,
     required List<WalletAsset> customAssets,
   }) async {
-    Object? lastError;
+    late Object lastError;
     try {
       final data = await RpcRetryHelper.execute<Map<dynamic, dynamic>>(
         rpcUrls: _tronRpcUrls(chain),
@@ -154,6 +157,7 @@ extension _TronChainBalance on ChainBalanceService {
             address: address,
             contractAddress: contractAddress,
             logoUrl: asset?.logoUrl,
+            canonicalTokenId: asset?.canonicalTokenId,
             decimals: decimals,
           ),
         );
@@ -162,8 +166,7 @@ extension _TronChainBalance on ChainBalanceService {
     } catch (error) {
       lastError = error;
     }
-    final errorMessage =
-        'TRC20 balance lookup failed: ${lastError ?? 'unknown error'}';
+    final errorMessage = 'TRC20 balance lookup failed: $lastError';
     return WalletAssetRegistry.mergeCustomAssetsForChainConfig(
           chain,
           customAssets,
@@ -178,6 +181,7 @@ extension _TronChainBalance on ChainBalanceService {
             address: address,
             contractAddress: asset.contractAddress,
             logoUrl: asset.logoUrl,
+            canonicalTokenId: asset.canonicalTokenId,
             decimals: asset.decimals,
             error: errorMessage,
           ),

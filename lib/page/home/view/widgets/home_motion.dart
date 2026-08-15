@@ -11,9 +11,7 @@ class HomeEntranceItem extends StatefulWidget {
     super.key,
     required this.child,
     this.delay = Duration.zero,
-    this.duration = const Duration(milliseconds: 320),
     this.initialOffset = const Offset(0, 0.08),
-    this.curve = Curves.easeOutCubic,
   });
 
   /// 需要播放入场动画的实际内容。
@@ -22,14 +20,8 @@ class HomeEntranceItem extends StatefulWidget {
   /// 入场延迟，用于首页内容分层出现。
   final Duration delay;
 
-  /// 动画时长。
-  final Duration duration;
-
   /// 初始位移，通常只在 Y 轴上轻微下移。
   final Offset initialOffset;
-
-  /// 动画曲线。
-  final Curve curve;
 
   @override
   State<HomeEntranceItem> createState() => _HomeEntranceItemState();
@@ -71,12 +63,12 @@ class _HomeEntranceItemState extends State<HomeEntranceItem> {
   Widget build(BuildContext context) {
     return AnimatedSlide(
       offset: _visible ? Offset.zero : widget.initialOffset,
-      duration: widget.duration,
-      curve: widget.curve,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
       child: AnimatedOpacity(
         opacity: _visible ? 1 : 0,
-        duration: widget.duration,
-        curve: widget.curve,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
         child: widget.child,
       ),
     );

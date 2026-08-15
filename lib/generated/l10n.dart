@@ -340,11 +340,11 @@ class S {
     );
   }
 
-  /// `No matching assets`
-  String get assetFilterNoResults {
+  /// `No assets yet`
+  String get tokenAssetsEmpty {
     return Intl.message(
-      'No matching assets',
-      name: 'assetFilterNoResults',
+      'No assets yet',
+      name: 'tokenAssetsEmpty',
       desc: '',
       args: [],
     );
@@ -765,6 +765,26 @@ class S {
     return Intl.message(
       'Logo URL',
       name: 'customAssetLogoUrl',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Merge with the same token on Home`
+  String get customAssetMergeOnHome {
+    return Intl.message(
+      'Merge with the same token on Home',
+      name: 'customAssetMergeOnHome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enable only after verifying the contract. Assets are never merged by symbol automatically.`
+  String get customAssetMergeOnHomeTip {
+    return Intl.message(
+      'Enable only after verifying the contract. Assets are never merged by symbol automatically.',
+      name: 'customAssetMergeOnHomeTip',
       desc: '',
       args: [],
     );

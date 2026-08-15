@@ -34,11 +34,6 @@ Color homeSubTextColor(BuildContext context) {
   return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58);
 }
 
-/// 首页列表项按压态背景色。
-Color homeCellPressColor(BuildContext context) {
-  return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.035);
-}
-
 /// 首页各条链的品牌识别色。
 Color homeChainColor(WalletChainRef chain) {
   final configColor = chain is WalletChainConfig ? chain.colorValue : null;

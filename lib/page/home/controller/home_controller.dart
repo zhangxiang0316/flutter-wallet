@@ -125,10 +125,7 @@ class HomeController extends BaseController {
     chains = await _chainConfigService.loadEnabledChains();
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
-    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
-      wallet,
-    );
+    _updateWalletMaintenanceState();
     update();
     if (wallet != null) {
       _startBalanceRefreshTimer();
@@ -152,10 +149,7 @@ class HomeController extends BaseController {
             (item) => item.id == currentWalletId,
             orElse: () => wallet!,
           );
-    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
-      wallet,
-    );
+    _updateWalletMaintenanceState();
     _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
     update();
   }
@@ -228,10 +222,6 @@ class HomeController extends BaseController {
         password,
         walletIds: legacyWalletIds,
       );
-      needsSecretMigration = false;
-      needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
-        wallet,
-      );
       Toast.show(S.current.walletSecurityMigrated);
       update();
       return true;
@@ -274,7 +264,7 @@ class HomeController extends BaseController {
 
   /// 切换当前钱包。
   ///
-  /// 切换后会清空旧余额、重启 30 秒刷新定时器，并立即请求新钱包余额。
+  /// 切换后会清空旧余额、重启 60 秒刷新定时器，并立即请求新钱包余额。
   Future<void> switchWallet(WalletAccount nextWallet) async {
     if (wallet?.id == nextWallet.id) return;
     await _repository.setCurrentWalletId(nextWallet.id);
@@ -298,10 +288,7 @@ class HomeController extends BaseController {
     await _backupStatusService.clearMnemonicBackedUp(walletToRemove.id);
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
-    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
-      wallet,
-    );
+    _updateWalletMaintenanceState();
     if (removedCurrentWallet) {
       _resetWalletState();
       update();
@@ -327,10 +314,7 @@ class HomeController extends BaseController {
       (item) => item.id == nextWallet.id,
       orElse: () => nextWallet,
     );
-    needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
-      wallet,
-    );
+    _updateWalletMaintenanceState();
     _resetWalletState();
     update();
     _startBalanceRefreshTimer();
@@ -404,6 +388,11 @@ class HomeController extends BaseController {
     );
     wallets = await _repository.loadWallets();
     wallet = await _repository.loadCurrentWallet();
+    _updateWalletMaintenanceState();
+  }
+
+  /// 根据当前钱包列表更新需要用户处理的兼容性状态。
+  void _updateWalletMaintenanceState() {
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
     needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
       wallet,
@@ -430,22 +419,17 @@ class HomeController extends BaseController {
   @override
   void onPageVisible() {
     super.onPageVisible();
-    // 如果有钱包且定时器未运行，启动定时器
-    if (wallet != null && _balanceRefreshTimer == null) {
+    if (wallet == null) return;
+    if (_balanceRefreshTimer == null) {
       _startBalanceRefreshTimer();
-      // 页面可见时立即刷新一次余额，确保数据最新
-      refreshBalances();
-    } else if (wallet != null && _balanceRefreshTimer != null) {
-      // 如果定时器已在运行（从其他页面返回），也立即刷新一次
-      refreshBalances();
     }
+    refreshBalances();
   }
 
   /// 页面不可见时暂停定时刷新，节省资源。
   @override
   void onPageInVisible() {
     super.onPageInVisible();
-    // 页面不可见时停止定时器
     _stopBalanceRefreshTimer();
   }
 

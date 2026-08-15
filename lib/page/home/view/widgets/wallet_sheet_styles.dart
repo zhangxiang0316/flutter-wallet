@@ -259,9 +259,6 @@ InputDecoration vantInputDecoration(
   /// Material 原生 labelText 参数。
   String? labelText,
 
-  /// 兼容旧调用的 label 参数，优先级低于 [labelText]。
-  String? label,
-
   /// 输入框占位提示。
   String? hintText,
 
@@ -285,7 +282,7 @@ InputDecoration vantInputDecoration(
   return InputDecoration(
     filled: true,
     fillColor: colorScheme.onSurface.withValues(alpha: surfaceAlpha),
-    labelText: labelText ?? label,
+    labelText: labelText,
     hintText: hintText,
     prefixIcon: prefixIcon == null
         ? null

@@ -60,5 +60,36 @@ void main() {
       expect(assets.first.symbol, 'MATIC');
       expect(assets.first.isNative, isTrue);
     });
+
+    test('migrates the existing Polygon USDC to the USDC home group', () {
+      final asset = WalletAsset.fromJson(const {
+        'chainId': 'evm-137',
+        'chainName': 'Polygon',
+        'chainSymbol': 'MATIC',
+        'evmChainId': 137,
+        'symbol': 'USDC',
+        'name': 'USD Coin',
+        'decimals': 6,
+        'contractAddress': '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+        'isCustom': true,
+      });
+
+      expect(asset.canonicalTokenId, 'usdc');
+      expect(asset.toJson()['canonicalTokenId'], 'usdc');
+    });
+
+    test('keeps arbitrary user-defined canonical token IDs', () {
+      const asset = WalletAsset(
+        chain: WalletChain.bsc,
+        symbol: 'DAI',
+        name: 'Dai Stablecoin',
+        decimals: 18,
+        contractAddress: '0x1111111111111111111111111111111111111111',
+        canonicalTokenId: 'dai',
+        isCustom: true,
+      );
+
+      expect(WalletAsset.fromJson(asset.toJson()).canonicalTokenId, 'dai');
+    });
   });
 }

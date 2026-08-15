@@ -109,6 +109,7 @@ class AssetVisibilityController extends BaseController {
     required String name,
     required int decimals,
     String? logoUrl,
+    String? canonicalTokenId,
   }) async {
     try {
       final asset = _customAssetService.buildManualAsset(
@@ -118,6 +119,7 @@ class AssetVisibilityController extends BaseController {
         name: name,
         decimals: decimals,
         logoUrl: logoUrl,
+        canonicalTokenId: canonicalTokenId,
       );
       await _customAssetService.addCustomAsset(asset);
       await _service.setAssetVisible(asset: asset, visible: true);

@@ -225,9 +225,7 @@ class _TokenPortfolioEmptyState extends StatelessWidget {
             ),
           SizedBox(height: 10.h),
           Text(
-            isLoading
-                ? S.of(context).loading
-                : S.of(context).assetFilterNoResults,
+            isLoading ? S.of(context).loading : S.of(context).tokenAssetsEmpty,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: homeSubTextColor(context),
