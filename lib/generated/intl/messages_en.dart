@@ -542,7 +542,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "walletSolanaAddressUpgradeAction":
             MessageLookupByLibrary.simpleMessage("Complete Addresses"),
         "walletSolanaAddressUpgradeDetail": MessageLookupByLibrary.simpleMessage(
-            "This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana or Bitcoin address."),
+            "This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, or Bitcoin address."),
         "walletSolanaAddressUpgradeFailed":
             MessageLookupByLibrary.simpleMessage(
                 "Wallet address completion failed. Please try again."),

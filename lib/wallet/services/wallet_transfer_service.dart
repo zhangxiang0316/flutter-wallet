@@ -12,6 +12,7 @@ import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/signers/ecdsa_signer.dart';
 import 'package:solana/solana.dart';
+import 'package:sui/sui.dart';
 
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
@@ -22,6 +23,7 @@ part 'transfer/evm_wallet_transfer.dart';
 part 'transfer/tron_wallet_transfer.dart';
 part 'transfer/solana_wallet_transfer.dart';
 part 'transfer/bitcoin_wallet_transfer.dart';
+part 'transfer/sui_wallet_transfer.dart';
 part 'transfer/wallet_transfer_signing.dart';
 
 /// 钱包转账服务。
@@ -31,6 +33,7 @@ part 'transfer/wallet_transfer_signing.dart';
 /// - TRON：先由节点创建交易，再对 raw_data 做 secp256k1 签名并广播；
 /// - Solana：使用 solana Dart 包构造 Message，并用 Ed25519 私钥签名发送。
 /// - Bitcoin：查询 UTXO，构造 BIP143 P2WPKH 交易并通过 Esplora 广播。
+/// - Sui：解析 Coin Object，构造 PTB，并用 Ed25519 私钥签名广播。
 ///
 /// 这里不负责读取私钥和密码校验。调用方需要先从 [WalletRepository] 读取对应私钥，
 /// 再把私钥传入 [transfer]。
@@ -77,6 +80,7 @@ class WalletTransferService {
     required String toAddress,
     required String amount,
     List<int>? solanaPrivateKey,
+    List<int>? suiPrivateKey,
   }) {
     if (asset.chainRef.isEvm) {
       return _transferEvm(
@@ -108,6 +112,17 @@ class WalletTransferService {
     if (asset.chainRef.isBitcoin) {
       return _transferBitcoin(
         privateKeyHex: privateKeyHex,
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
+    if (asset.chainRef.isSui) {
+      if (suiPrivateKey == null) {
+        throw StateError('Missing Sui private key');
+      }
+      return _transferSui(
+        suiPrivateKey: suiPrivateKey,
         asset: asset,
         toAddress: toAddress,
         amount: amount,
@@ -148,6 +163,13 @@ class WalletTransferService {
     }
     if (asset.chainRef.isBitcoin) {
       return _estimateBitcoinFee(
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
+    if (asset.chainRef.isSui) {
+      return _estimateSuiFee(
         asset: asset,
         toAddress: toAddress,
         amount: amount,
@@ -347,6 +369,15 @@ class WalletTransferService {
     final decoded = _base58Decode(address);
     if (decoded.length != 32) {
       throw const FormatException('Invalid Solana address');
+    }
+    return address;
+  }
+
+  /// 校验并标准化 Sui 32 字节十六进制地址。
+  static String normalizeSuiAddress(String input) {
+    final address = input.trim().toLowerCase();
+    if (!SuiAccount.isValidAddress(address)) {
+      throw const FormatException('Invalid Sui address');
     }
     return address;
   }

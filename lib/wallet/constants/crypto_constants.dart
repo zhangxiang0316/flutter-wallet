@@ -20,6 +20,9 @@ class CryptoConstants {
   /// 遵循 BIP44 标准，使用 Ed25519 hardened derivation。
   static const String solanaDerivationPath = "m/44'/501'/0'/0'";
 
+  /// Sui Ed25519 默认派生路径。
+  static const String suiDerivationPath = "m/44'/784'/0'/0'/0'";
+
   /// Bitcoin Mainnet BIP84 Native SegWit 首个收款地址派生路径。
   static const String bitcoinDerivationPath = "m/84'/0'/0'/0/0";
 

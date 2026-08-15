@@ -181,6 +181,7 @@ class TransactionRiskChecker {
     required String message,
     required bool isEvm,
     required bool isSolana,
+    bool isSui = false,
   }) {
     final address = recipientAddress.trim();
     final isBurn = isEvm
@@ -188,7 +189,10 @@ class TransactionRiskChecker {
                   '0x0000000000000000000000000000000000000000' ||
               address.toLowerCase() ==
                   '0x000000000000000000000000000000000000dead'
-        : isSolana && address == '11111111111111111111111111111111';
+        : (isSolana && address == '11111111111111111111111111111111') ||
+              (isSui &&
+                  address.toLowerCase() ==
+                      '0x0000000000000000000000000000000000000000000000000000000000000000');
     if (!isBurn) return null;
     return TransactionRisk(
       level: RiskLevel.high,

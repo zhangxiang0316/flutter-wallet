@@ -73,5 +73,31 @@ void main() {
         keyPair.bitcoinAddress,
       );
     });
+
+    test('derives the Sui signing key from a stored mnemonic', () async {
+      const mnemonic =
+          'result crisp session latin must fruit genuine question prevent '
+          'start coconut brave speak student dismiss';
+      const password = 'wallet-password';
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importMnemonic(mnemonic);
+      final repository = WalletRepository(cryptoService: cryptoService);
+
+      await repository.saveWalletSecret(
+        walletId: 'wallet-sui',
+        password: password,
+        privateKeyHex: keyPair.privateKeyHex,
+        mnemonic: mnemonic,
+      );
+
+      final suiPrivateKey = await repository.readWalletSuiPrivateKey(
+        walletId: 'wallet-sui',
+        password: password,
+      );
+      expect(
+        cryptoService.suiAddressFromPrivateKey(suiPrivateKey),
+        keyPair.suiAddress,
+      );
+    });
   });
 }

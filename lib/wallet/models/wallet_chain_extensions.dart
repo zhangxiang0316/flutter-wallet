@@ -10,6 +10,12 @@ extension WalletChainTypeExtension on WalletChainRef {
   /// 判断是否为 Solana 链。
   bool get isSolana => id == 'solana';
 
+  /// 判断是否为 Sui 链。
+  bool get isSui =>
+      id == 'sui' ||
+      (this is WalletChainConfig &&
+          (this as WalletChainConfig).type == WalletChainType.sui);
+
   /// 判断是否为 Bitcoin 主网。
   bool get isBitcoin =>
       id == 'bitcoin' ||

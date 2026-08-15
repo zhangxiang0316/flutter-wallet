@@ -135,6 +135,10 @@ class TransferFormPanel extends StatelessWidget {
         (chain is WalletChainConfig && chain.type == WalletChainType.bitcoin)) {
       return 'bc1q...';
     }
+    if (chain.id == WalletChain.sui.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.sui)) {
+      return '0x + 64 hex';
+    }
     return '0x...';
   }
 }

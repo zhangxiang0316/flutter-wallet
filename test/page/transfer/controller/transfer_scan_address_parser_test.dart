@@ -23,4 +23,26 @@ void main() {
       );
     });
   });
+
+  group('TransferScanAddressParser Sui', () {
+    const address =
+        '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973';
+
+    test('extracts a 32-byte hexadecimal address', () {
+      expect(
+        TransferScanAddressParser.extract(address, WalletChain.sui.config),
+        address,
+      );
+    });
+
+    test('extracts an address from a Sui URI', () {
+      expect(
+        TransferScanAddressParser.extract(
+          'sui:$address?amount=1',
+          WalletChain.sui.config,
+        ),
+        address,
+      );
+    });
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:sui/sui.dart';
 
 import '../../models/wallet_chain.dart';
 
@@ -108,6 +109,7 @@ class WalletRpcHealthService {
         WalletChainType.solana => _checkSolanaRpc(normalizedUrl),
         WalletChainType.tron => _checkTronRpc(normalizedUrl),
         WalletChainType.bitcoin => _checkBitcoinApi(normalizedUrl),
+        WalletChainType.sui => _checkSuiRpc(normalizedUrl),
       };
       stopwatch.stop();
       return WalletRpcHealthResult(
@@ -122,6 +124,17 @@ class WalletRpcHealthService {
         isAvailable: false,
         error: error.toString(),
       );
+    }
+  }
+
+  Future<void> _checkSuiRpc(String rpcUrl) async {
+    final chainId = await SuiGrpcClient(
+      network: SuiNetwork.mainnet,
+      dio: _dio,
+      endpoint: rpcUrl,
+    ).getChainIdentifier();
+    if (chainId.trim().isEmpty) {
+      throw StateError('Invalid Sui gRPC response');
     }
   }
 

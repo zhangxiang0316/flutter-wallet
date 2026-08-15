@@ -443,7 +443,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("补全地址"),
         "walletSolanaAddressUpgradeDetail":
             MessageLookupByLibrary.simpleMessage(
-                "当前钱包创建于支持全部现有网络之前，需要输入钱包密码派生缺失的 Solana 或 Bitcoin 地址。"),
+                "当前钱包创建于支持全部现有网络之前，需要输入钱包密码派生缺失的 Solana、Sui 或 Bitcoin 地址。"),
         "walletSolanaAddressUpgradeFailed":
             MessageLookupByLibrary.simpleMessage("钱包地址补全失败，请重试"),
         "walletSolanaAddressUpgraded":

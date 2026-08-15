@@ -57,7 +57,7 @@ class TransactionHistoryCache {
   ///
   /// 返回 null 表示：
   /// - 缓存不存在
-  /// - 缓存已过期（超过 5 分钟）
+  /// - 缓存已过期且没有可用于离线兜底的记录
   /// - 缓存数据损坏
   Future<List<WalletTransactionRecord>?> load(
     String walletId,
@@ -73,27 +73,34 @@ class TransactionHistoryCache {
         symbol,
         contractAddress: contractAddress,
       );
-      final json =
-          prefs.getString(key) ??
-          prefs.getString(_legacyCacheKey(walletId, chainId, symbol));
-      if (json == null) return null;
+      final candidates = <String?>[
+        prefs.getString(key),
+        prefs.getString(_legacyCacheKey(walletId, chainId, symbol)),
+      ];
+      List<WalletTransactionRecord>? freshEmptyRecords;
+      for (final json in candidates) {
+        if (json == null) continue;
+        try {
+          final data = jsonDecode(json) as Map<String, dynamic>;
+          final timestamp = DateTime.parse(data['timestamp'] as String);
+          final records = (data['records'] as List)
+              .map(
+                (item) => WalletTransactionRecord.fromJson(
+                  item as Map<String, dynamic>,
+                ),
+              )
+              .toList();
 
-      final data = jsonDecode(json) as Map<String, dynamic>;
-      final timestamp = DateTime.parse(data['timestamp'] as String);
-
-      // 检查缓存是否过期
-      if (DateTime.now().difference(timestamp) > _maxAge) {
-        return null;
+          // 非空历史即使过期也可先作为离线兜底，由调用方后台刷新。
+          if (records.isNotEmpty) return records;
+          if (DateTime.now().difference(timestamp) <= _maxAge) {
+            freshEmptyRecords ??= records;
+          }
+        } catch (_) {
+          // 当前格式损坏时继续尝试旧版本缓存。
+        }
       }
-
-      final records = (data['records'] as List)
-          .map(
-            (item) =>
-                WalletTransactionRecord.fromJson(item as Map<String, dynamic>),
-          )
-          .toList();
-
-      return records;
+      return freshEmptyRecords;
     } catch (_) {
       // 缓存损坏，返回 null
       return null;

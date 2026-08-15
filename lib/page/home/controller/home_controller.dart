@@ -164,6 +164,7 @@ class HomeController extends BaseController {
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
       solanaAddress: keyPair.solanaAddress,
+      suiAddress: keyPair.suiAddress,
       bitcoinAddress: keyPair.bitcoinAddress,
       createdAt: DateTime.now(),
     );
@@ -338,6 +339,7 @@ class HomeController extends BaseController {
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
       solanaAddress: keyPair.solanaAddress,
+      suiAddress: keyPair.suiAddress,
       bitcoinAddress: keyPair.bitcoinAddress,
       createdAt: DateTime.now(),
     );
@@ -352,7 +354,7 @@ class HomeController extends BaseController {
     return true;
   }
 
-  /// 遍历本地钱包并补全缺失的 Solana/Bitcoin 地址。
+  /// 遍历本地钱包并补全缺失的 Solana/Sui/Bitcoin 地址。
   ///
   /// [walletIds] 不为空时只处理指定钱包集合；为空时默认只处理当前钱包。
   Future<void> _upgradeMissingChainAddresses(
@@ -365,6 +367,7 @@ class HomeController extends BaseController {
     for (final item in await _repository.loadWallets()) {
       final shouldUpgrade =
           (item.solanaAddress.trim().isEmpty ||
+              item.suiAddress.trim().isEmpty ||
               item.bitcoinAddress.trim().isEmpty) &&
           (walletIds?.contains(item.id) ?? item.id == currentWalletId);
       if (!shouldUpgrade) {
@@ -382,6 +385,17 @@ class HomeController extends BaseController {
               );
         final keyPair = _cryptoService.importPrivateKey(privateKeyHex);
         nextWallet = nextWallet.copyWith(solanaAddress: keyPair.solanaAddress);
+      }
+      if (item.suiAddress.trim().isEmpty) {
+        final suiPrivateKey = item.needsSecretMigration
+            ? _cryptoService.suiPrivateKeyFromPrivateKey(item.privateKeyHex)
+            : await _repository.readWalletSuiPrivateKey(
+                walletId: item.id,
+                password: password,
+              );
+        nextWallet = nextWallet.copyWith(
+          suiAddress: _cryptoService.suiAddressFromPrivateKey(suiPrivateKey),
+        );
       }
       if (item.bitcoinAddress.trim().isEmpty) {
         final bitcoinPrivateKey = item.needsSecretMigration

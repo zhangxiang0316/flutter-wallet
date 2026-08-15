@@ -84,7 +84,8 @@ class ChainAssetVisibilityCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 8.w),
-              if (chain.type != WalletChainType.bitcoin)
+              if (chain.type != WalletChainType.bitcoin &&
+                  chain.type != WalletChainType.sui)
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   constraints: BoxConstraints.tight(Size(32.w, 32.w)),
@@ -132,6 +133,8 @@ class ChainAssetVisibilityCard extends StatelessWidget {
         return const Color(0xFFF7931A);
       case WalletChain.solana:
         return const Color(0xFF14F195);
+      case WalletChain.sui:
+        return const Color(0xFF4DA2FF);
       case WalletChain.tron:
         return const Color(0xFFE50914);
       case null:

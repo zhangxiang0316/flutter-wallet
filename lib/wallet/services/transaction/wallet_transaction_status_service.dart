@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:sui/sui.dart';
 
 import '../../models/wallet_chain.dart';
 import '../../models/wallet_transaction_record.dart';
@@ -38,12 +39,14 @@ class WalletTransactionStatusService {
         WalletChainType.tron => _loadTronStatus(chain, hash),
         WalletChainType.evm => _loadEvmStatus(chain, hash),
         WalletChainType.bitcoin => _loadBitcoinStatus(chain, hash),
+        WalletChainType.sui => _loadSuiStatus(chain, hash),
       };
     }
     return switch (chain.id) {
       'solana' => _loadSolanaStatus(chain, hash),
       'tron' => _loadTronStatus(chain, hash),
       'bitcoin' => _loadBitcoinStatus(chain, hash),
+      'sui' => _loadSuiStatus(chain, hash),
       _ => WalletTransactionStatus.unknown,
     };
   }
@@ -132,6 +135,27 @@ class WalletTransactionStatusService {
     return data['confirmed'] == true
         ? WalletTransactionStatus.success
         : WalletTransactionStatus.pending;
+  }
+
+  Future<WalletTransactionStatus> _loadSuiStatus(
+    WalletChainRef chain,
+    String txHash,
+  ) async {
+    try {
+      final transaction = await SuiGrpcClient(
+        network: SuiNetwork.mainnet,
+        dio: _dio,
+        endpoint: chain.rpcUrl,
+      ).getTransaction(txHash);
+      return transaction.effects.status.success
+          ? WalletTransactionStatus.success
+          : WalletTransactionStatus.failed;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        return WalletTransactionStatus.pending;
+      }
+      rethrow;
+    }
   }
 
   Future<Map<dynamic, dynamic>> _postRpc(

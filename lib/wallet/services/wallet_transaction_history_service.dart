@@ -7,6 +7,7 @@ import 'package:convert/convert.dart';
 import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:pointycastle/digests/sha256.dart';
+import 'package:sui/sui.dart';
 
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
@@ -26,6 +27,7 @@ part 'transaction_history/tron_transaction_history_provider.dart';
 part 'transaction_history/solana_helius_history_helpers.dart';
 part 'transaction_history/solana_transaction_history_provider.dart';
 part 'transaction_history/bitcoin_transaction_history_provider.dart';
+part 'transaction_history/sui_transaction_history_provider.dart';
 
 const int _transactionHistoryPageSize = 10;
 
@@ -74,6 +76,9 @@ class TransactionHistoryCursor {
   const TransactionHistoryCursor.bitcoinLastSeenTxId(String value)
     : this._('bitcoinLastSeenTxId', value);
 
+  const TransactionHistoryCursor.suiGraphqlCursor(String value)
+    : this._('suiGraphqlCursor', value);
+
   /// 游标来源。
   final String source;
 
@@ -98,6 +103,9 @@ class TransactionHistoryCursor {
 
   String? get bitcoinLastSeenTxId =>
       source == 'bitcoinLastSeenTxId' ? value as String : null;
+
+  String? get suiGraphqlCursor =>
+      source == 'suiGraphqlCursor' ? value as String : null;
 }
 
 /// 交易历史分页结果。
@@ -155,6 +163,10 @@ class WalletTransactionHistoryService {
       dio: _dio,
       apiConfig: _apiConfig,
     );
+    _suiProvider = _SuiTransactionHistoryProvider(
+      dio: _dio,
+      apiConfig: _apiConfig,
+    );
   }
 
   /// HTTP/RPC 请求客户端。
@@ -167,6 +179,7 @@ class WalletTransactionHistoryService {
   late final _TronTransactionHistoryProvider _tronProvider;
   late final _SolanaTransactionHistoryProvider _solanaProvider;
   late final _BitcoinTransactionHistoryProvider _bitcoinProvider;
+  late final _SuiTransactionHistoryProvider _suiProvider;
 
   static const Duration _requestTimeout = Duration(seconds: 6);
 
@@ -197,6 +210,13 @@ class WalletTransactionHistoryService {
     }
     if (_isBitcoinChain(chain)) {
       return _bitcoinProvider.loadRecordByTransactionHash(
+        walletId: walletId,
+        asset: asset,
+        txHash: txHash,
+      );
+    }
+    if (_isSuiChain(chain)) {
+      return _suiProvider.loadRecordByTransactionHash(
         walletId: walletId,
         asset: asset,
         txHash: txHash,
@@ -272,6 +292,13 @@ class WalletTransactionHistoryService {
         cursor: cursor,
       );
     }
+    if (_isSuiChain(chain)) {
+      return _suiProvider.loadRecordPage(
+        walletId: walletId,
+        asset: asset,
+        cursor: cursor,
+      );
+    }
     return const TransactionHistoryPageResult(
       records: [],
       nextCursor: null,
@@ -292,5 +319,10 @@ class WalletTransactionHistoryService {
   bool _isBitcoinChain(WalletChainRef chain) {
     return chain.id == WalletChain.bitcoin.id ||
         (chain is WalletChainConfig && chain.type == WalletChainType.bitcoin);
+  }
+
+  bool _isSuiChain(WalletChainRef chain) {
+    return chain.id == WalletChain.sui.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.sui);
   }
 }

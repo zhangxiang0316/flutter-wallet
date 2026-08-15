@@ -194,7 +194,7 @@
   "walletSecurityMigrated": "Wallet private key encrypted",
   "walletSecurityMigrationFailed": "Failed to encrypt wallet private key. Try again.",
   "walletSolanaAddressUpgrade": "Complete Wallet Addresses",
-  "walletSolanaAddressUpgradeDetail": "This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana or Bitcoin address.",
+  "walletSolanaAddressUpgradeDetail": "This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, or Bitcoin address.",
   "walletSolanaAddressUpgradeAction": "Complete Addresses",
   "walletSolanaAddressUpgraded": "Wallet addresses completed",
   "walletSolanaAddressUpgradeFailed": "Wallet address completion failed. Please try again.",

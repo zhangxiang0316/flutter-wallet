@@ -116,6 +116,7 @@ class _WalletOptionRow extends StatelessWidget {
                     _WalletAddressLine(
                       bscAddress: wallet.bscAddress,
                       solanaAddress: wallet.solanaAddress,
+                      suiAddress: wallet.suiAddress,
                       tronAddress: wallet.tronAddress,
                       bitcoinAddress: wallet.bitcoinAddress,
                     ),
@@ -245,6 +246,7 @@ class _WalletAddressLine extends StatelessWidget {
   const _WalletAddressLine({
     required this.bscAddress,
     required this.solanaAddress,
+    required this.suiAddress,
     required this.tronAddress,
     required this.bitcoinAddress,
   });
@@ -254,6 +256,9 @@ class _WalletAddressLine extends StatelessWidget {
 
   /// Solana 链地址。
   final String solanaAddress;
+
+  /// Sui 链地址。
+  final String suiAddress;
 
   /// TRON 链地址。
   final String tronAddress;
@@ -278,6 +283,12 @@ class _WalletAddressLine extends StatelessWidget {
               width: itemWidth,
               label: 'EVM',
               address: _shortWalletAddress(bscAddress),
+              color: textColor,
+            ),
+            _WalletAddressText(
+              width: itemWidth,
+              label: WalletChain.sui.symbol,
+              address: _shortWalletAddress(suiAddress),
               color: textColor,
             ),
             _WalletAddressText(
@@ -357,10 +368,11 @@ class _ChainOverlapTicker extends StatelessWidget {
       WalletChain.arbitrum,
       WalletChain.bitcoin,
       WalletChain.solana,
+      WalletChain.sui,
       WalletChain.tron,
     ];
     return SizedBox(
-      width: 166.w,
+      width: 188.w,
       height: 34.w,
       child: Stack(
         children: chains
@@ -422,6 +434,8 @@ class _ChainCircle extends StatelessWidget {
         return const Color(0xFFF7931A);
       case WalletChain.solana:
         return const Color(0xFF14F195);
+      case WalletChain.sui:
+        return const Color(0xFF4DA2FF);
       case WalletChain.tron:
         return const Color(0xFFE11D48);
     }
@@ -440,6 +454,8 @@ class _ChainCircle extends StatelessWidget {
       case WalletChain.bitcoin:
         return '₿';
       case WalletChain.solana:
+        return 'S';
+      case WalletChain.sui:
         return 'S';
       case WalletChain.tron:
         return 'T';

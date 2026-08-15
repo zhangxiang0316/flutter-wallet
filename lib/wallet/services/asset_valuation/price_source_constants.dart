@@ -34,6 +34,7 @@ const Map<String, String> _binanceTickerSymbols = {
   'WBTC': 'BTCUSDT',
   'OKB': 'OKBUSDT',
   'SOL': 'SOLUSDT',
+  'SUI': 'SUIUSDT',
   'ARB': 'ARBUSDT',
 };
 
@@ -47,6 +48,7 @@ const Map<String, String> _okxTickerSymbols = {
   'WBTC': 'BTC-USDT',
   'OKB': 'OKB-USDT',
   'SOL': 'SOL-USDT',
+  'SUI': 'SUI-USDT',
   'ARB': 'ARB-USDT',
 };
 
@@ -62,6 +64,7 @@ const Map<String, String> _coingeckoIds = {
   'WBTC': 'bitcoin',
   'OKB': 'okb',
   'SOL': 'solana',
+  'SUI': 'sui',
   'ARB': 'arbitrum',
 };
 
@@ -75,6 +78,7 @@ const Map<String, String> _coinPaprikaIds = {
   'WBTC': 'btc-bitcoin',
   'OKB': 'okb-okb',
   'SOL': 'sol-solana',
+  'SUI': 'sui-sui',
   'ARB': 'arb-arbitrum',
 };
 
@@ -88,6 +92,7 @@ const Map<String, String> _cryptoCompareSymbols = {
   'WBTC': 'BTC',
   'OKB': 'OKB',
   'SOL': 'SOL',
+  'SUI': 'SUI',
   'ARB': 'ARB',
 };
 

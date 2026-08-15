@@ -24,6 +24,10 @@ class TransferInputValidator {
       WalletTransferService.normalizeBitcoinAddress(address);
       return;
     }
+    if (asset.chainRef.isSui) {
+      WalletTransferService.normalizeSuiAddress(address);
+      return;
+    }
     throw FormatException('Unsupported chain ${asset.chainId}');
   }
 

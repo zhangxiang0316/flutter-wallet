@@ -19,7 +19,7 @@ dependencies:
   convert: ^3.1.2
   dio: ^5.7.0
   logger: ^2.5.0
-  pointycastle: ^3.9.1
+  pointycastle: ^4.0.0
   ed25519_edwards: ^0.3.1
   bip39_mnemonic: ^4.0.1
   json_annotation: ^4.9.0
@@ -36,6 +36,7 @@ dependencies:
   rational: ^2.2.3
   flutter_secure_storage: ^9.2.4
   solana: ^0.32.0+1
+  sui: ^0.5.0
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.2.0
   url_launcher: ^6.3.2
@@ -68,3 +69,9 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/icons/logo.png"
+
+# `sui` uses PointyCastle 4.x while the current Solana SDK's transitive `bip39`
+# dependency still declares a 3.x range. The APIs used here remain compatible;
+# wallet regression tests cover the override.
+dependency_overrides:
+  pointycastle: ^4.0.0

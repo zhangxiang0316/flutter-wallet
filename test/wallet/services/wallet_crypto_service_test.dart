@@ -13,7 +13,7 @@ void main() {
     });
 
     test(
-      'derives EVM, Solana, TRON, and Bitcoin addresses from a private key',
+      'derives EVM, Solana, Sui, TRON, and Bitcoin addresses from a private key',
       () {
         final keyPair = service.importPrivateKey(
           '0x0000000000000000000000000000000000000000000000000000000000000001',
@@ -25,6 +25,10 @@ void main() {
         );
         expect(keyPair.tronAddress, 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC');
         expect(keyPair.bitcoinAddress, startsWith('bc1q'));
+        expect(
+          WalletTransferService.normalizeSuiAddress(keyPair.suiAddress),
+          keyPair.suiAddress,
+        );
         expect(
           WalletTransferService.normalizeSolanaAddress(keyPair.solanaAddress),
           keyPair.solanaAddress,
@@ -44,10 +48,30 @@ void main() {
       expect(first.bscAddress, second.bscAddress);
       expect(first.tronAddress, second.tronAddress);
       expect(first.solanaAddress, second.solanaAddress);
+      expect(first.suiAddress, second.suiAddress);
       expect(first.bitcoinAddress, second.bitcoinAddress);
       expect(
         WalletTransferService.normalizeSolanaAddress(first.solanaAddress),
         first.solanaAddress,
+      );
+    });
+
+    test('matches the Sui Ed25519 derivation test vector', () {
+      const mnemonic =
+          'result crisp session latin must fruit genuine question prevent '
+          'start coconut brave speak student dismiss';
+
+      final keyPair = service.importMnemonic(mnemonic);
+
+      expect(
+        keyPair.suiAddress,
+        '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973',
+      );
+      expect(
+        service.suiAddressFromPrivateKey(
+          service.suiPrivateKeyFromMnemonic(mnemonic),
+        ),
+        keyPair.suiAddress,
       );
     });
 
@@ -83,6 +107,22 @@ void main() {
       expect(
         service.importPrivateKey(keyPair.privateKeyHex).solanaAddress,
         isNotEmpty,
+      );
+    });
+
+    test('derives Sui signing seed from mnemonic and private key', () {
+      final mnemonic = service.generateMnemonic();
+      final keyPair = service.importMnemonic(mnemonic);
+      final mnemonicSeed = service.suiPrivateKeyFromMnemonic(mnemonic);
+      final privateKeySeed = service.suiPrivateKeyFromPrivateKey(
+        keyPair.privateKeyHex,
+      );
+
+      expect(mnemonicSeed, hasLength(32));
+      expect(privateKeySeed, hasLength(32));
+      expect(
+        service.suiAddressFromPrivateKey(mnemonicSeed),
+        keyPair.suiAddress,
       );
     });
 

@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
@@ -105,6 +109,34 @@ void main() {
       expect(result.records.single.txHash, '0xmoralisnative');
       expect(result.records.single.amount, '1.25');
       expect(adapter.moralisChains.single, 'arbitrum');
+    });
+
+    test('loads Sui transfers without including gas in the amount', () async {
+      final dio = Dio()..httpClientAdapter = _SuiGraphqlAdapter();
+      final service = WalletTransactionHistoryService(dio: dio);
+      const walletAddress =
+          '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973';
+      const asset = ChainBalance(
+        chain: WalletChain.sui,
+        symbol: 'SUI',
+        name: 'Sui',
+        amount: '2',
+        address: walletAddress,
+        decimals: 9,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(1));
+      expect(result.records.single.amount, '1');
+      expect(result.records.single.feeAmount, '0.000005');
+      expect(
+        result.records.single.direction,
+        WalletTransactionDirection.outgoing,
+      );
     });
 
     test('paginates Arbitrum token transactions from Moralis', () async {
@@ -1013,4 +1045,57 @@ void main() {
       expect(result.nextCursor?.bitcoinLastSeenTxId, 'bitcoin-page-24');
     });
   });
+}
+
+class _SuiGraphqlAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    const walletAddress =
+        '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973';
+    const recipientAddress =
+        '0x1111111111111111111111111111111111111111111111111111111111111111';
+    return ResponseBody.fromString(
+      jsonEncode({
+        'data': {
+          'transactions': {
+            'pageInfo': {'hasNextPage': false, 'endCursor': null},
+            'nodes': [
+              {
+                'digest': 'suiTxDigest',
+                'effects': {
+                  'timestamp': '2026-08-15T12:00:00.000Z',
+                  'status': 'SUCCESS',
+                  'balanceChanges': {
+                    'nodes': [
+                      {
+                        'amount': '-1000005000',
+                        'coinType': {'repr': '0x2::sui::SUI'},
+                        'owner': {'address': walletAddress},
+                      },
+                      {
+                        'amount': '1000000000',
+                        'coinType': {'repr': '0x2::sui::SUI'},
+                        'owner': {'address': recipientAddress},
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      }),
+      200,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

@@ -106,6 +106,7 @@ class _CurrentWalletPreview extends StatelessWidget {
                 _WalletAddressLine(
                   bscAddress: wallet.bscAddress,
                   solanaAddress: wallet.solanaAddress,
+                  suiAddress: wallet.suiAddress,
                   tronAddress: wallet.tronAddress,
                   bitcoinAddress: wallet.bitcoinAddress,
                 ),

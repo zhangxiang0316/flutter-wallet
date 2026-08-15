@@ -92,7 +92,7 @@ void main() {
       expect(customItem.totalUsdValue, isNull);
     });
 
-    test('merges trusted Polygon USDC as the seventh USDC network', () {
+    test('merges trusted Sui and Polygon USDC into the USDC portfolio', () {
       final polygon = WalletChainConfig.customEvm(
         id: 'custom-polygon',
         name: 'Polygon',
@@ -133,7 +133,13 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.single.canonicalTokenId, 'usdc');
-      expect(result.single.positions, hasLength(7));
+      expect(result.single.positions, hasLength(8));
+      expect(
+        result.single.positions.any(
+          (position) => position.chain.id == WalletChain.sui.id,
+        ),
+        isTrue,
+      );
       expect(
         result.single.positions.any(
           (position) => position.chain.evmChainId == 137,

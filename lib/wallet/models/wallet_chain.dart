@@ -39,6 +39,12 @@ enum WalletChain implements WalletChainRef {
     symbol: 'SOL',
     rpcUrl: 'https://api.mainnet-beta.solana.com',
   ),
+  sui(
+    id: 'sui',
+    name: 'Sui',
+    symbol: 'SUI',
+    rpcUrl: 'https://fullnode.mainnet.sui.io',
+  ),
   tron(
     id: 'tron',
     name: 'TRON',
@@ -117,6 +123,7 @@ class WalletChainConfig implements WalletChainRef {
           : switch (chain) {
               WalletChain.bitcoin => WalletChainType.bitcoin,
               WalletChain.solana => WalletChainType.solana,
+              WalletChain.sui => WalletChainType.sui,
               WalletChain.tron => WalletChainType.tron,
               _ => throw StateError('Unsupported builtin chain ${chain.id}'),
             },
@@ -274,6 +281,8 @@ class WalletChainConfig implements WalletChainRef {
         return 0xFFF7931A;
       case WalletChain.solana:
         return 0xFF14F195;
+      case WalletChain.sui:
+        return 0xFF4DA2FF;
       case WalletChain.tron:
         return 0xFFE50914;
     }
@@ -291,10 +300,11 @@ class WalletChainConfig implements WalletChainRef {
         return 'https://mempool.space/api';
       case WalletChain.xLayer:
       case WalletChain.solana:
+      case WalletChain.sui:
       case WalletChain.tron:
         return null;
     }
   }
 }
 
-enum WalletChainType { evm, bitcoin, solana, tron }
+enum WalletChainType { evm, bitcoin, solana, sui, tron }

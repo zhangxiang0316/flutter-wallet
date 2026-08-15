@@ -39,6 +39,20 @@ void main() {
       expect(risk!.level, RiskLevel.high);
     });
 
+    test('detects Sui zero burn address', () {
+      final risk = TransactionRiskChecker.checkBurnAddress(
+        recipientAddress:
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        message: 'burn',
+        isEvm: false,
+        isSolana: false,
+        isSui: true,
+      );
+
+      expect(risk, isNotNull);
+      expect(risk!.level, RiskLevel.high);
+    });
+
     test('detects clipboard mismatch', () {
       final risk = TransactionRiskChecker.checkClipboardMismatch(
         recipientAddress: '0x1111111111111111111111111111111111111111',

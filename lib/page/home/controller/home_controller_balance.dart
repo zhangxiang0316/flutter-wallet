@@ -23,6 +23,7 @@ extension HomeControllerBalance on HomeController {
         bscAddress: currentWallet.bscAddress,
         tronAddress: currentWallet.tronAddress,
         solanaAddress: currentWallet.solanaAddress,
+        suiAddress: currentWallet.suiAddress,
         bitcoinAddress: currentWallet.bitcoinAddress,
       );
       if (!_isActiveBalanceRequest(requestId, currentWallet)) {

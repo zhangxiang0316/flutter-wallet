@@ -15,6 +15,7 @@ class HomeControllerUtils {
   static bool needsChainAddressUpgrade(WalletAccount? wallet) {
     return wallet != null &&
         (wallet.solanaAddress.trim().isEmpty ||
+            wallet.suiAddress.trim().isEmpty ||
             wallet.bitcoinAddress.trim().isEmpty) &&
         !wallet.needsSecretMigration;
   }

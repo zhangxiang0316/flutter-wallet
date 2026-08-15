@@ -42,6 +42,25 @@ void main() {
       );
     });
 
+    test('builds Sui address explorer URL', () {
+      const service = WalletBlockExplorerService();
+      const address =
+          '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973';
+      const asset = ChainBalance(
+        chain: WalletChain.sui,
+        symbol: 'SUI',
+        name: 'Sui',
+        amount: '1',
+        address: address,
+        decimals: 9,
+      );
+
+      expect(
+        service.addressUri(asset).toString(),
+        'https://suiscan.xyz/mainnet/account/$address',
+      );
+    });
+
     test('builds explorer URL from custom EVM scan API URL', () {
       const service = WalletBlockExplorerService();
       final chain = WalletChainConfig.customEvm(

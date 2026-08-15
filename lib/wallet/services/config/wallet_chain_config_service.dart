@@ -276,7 +276,7 @@ class WalletChainConfigService {
   /// 更新内置链的覆盖配置。
   ///
   /// 内置链的 id、type 和 evmChainId 固定不变。EVM 内置链会校验 RPC 返回的 chainId；
-  /// Solana/TRON 暂只校验 URL 格式和非空，余额查询会优先使用这里保存的 RPC。
+  /// 非 EVM 内置链暂只校验 URL 格式和非空，余额查询会优先使用这里保存的 RPC。
   Future<WalletChainConfig> updateBuiltinChain({
     required String chainId,
     required String name,

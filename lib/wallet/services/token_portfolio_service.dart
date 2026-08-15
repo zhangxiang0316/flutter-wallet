@@ -23,6 +23,7 @@ class TokenPortfolioService {
     'BTC',
     'BNB',
     'SOL',
+    'SUI',
     'TRX',
   ];
 

@@ -215,6 +215,29 @@ class WalletRepository {
     }
   }
 
+  /// 读取 Sui 转账所需的 Ed25519 私钥 seed。
+  ///
+  /// 助记词钱包按 Sui 的 `m/44'/784'/0'/0'/0'` 路径派生；私钥导入钱包
+  /// 复用导入的 32 字节私钥作为 Ed25519 seed。
+  Future<List<int>> readWalletSuiPrivateKey({
+    required String walletId,
+    required String password,
+  }) async {
+    try {
+      final mnemonic = await readWalletMnemonic(
+        walletId: walletId,
+        password: password,
+      );
+      return _cryptoService.suiPrivateKeyFromMnemonic(mnemonic);
+    } on WalletSecretMissingException {
+      final privateKeyHex = await readWalletPrivateKey(
+        walletId: walletId,
+        password: password,
+      );
+      return _cryptoService.suiPrivateKeyFromPrivateKey(privateKeyHex);
+    }
+  }
+
   /// 读取 Bitcoin P2WPKH 转账所需的 secp256k1 私钥。
   ///
   /// 助记词钱包按 BIP84 路径派生；私钥导入钱包复用导入的原始私钥。

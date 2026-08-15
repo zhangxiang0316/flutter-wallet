@@ -1570,10 +1570,10 @@ class S {
     );
   }
 
-  /// `This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana or Bitcoin address.`
+  /// `This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, or Bitcoin address.`
   String get walletSolanaAddressUpgradeDetail {
     return Intl.message(
-      'This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana or Bitcoin address.',
+      'This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, or Bitcoin address.',
       name: 'walletSolanaAddressUpgradeDetail',
       desc: '',
       args: [],

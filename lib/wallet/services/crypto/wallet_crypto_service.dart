@@ -12,6 +12,7 @@ import 'package:pointycastle/ecc/api.dart';
 import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/api.dart' as pc;
+import 'package:sui/sui.dart' as sui;
 
 import '../../constants/crypto_constants.dart';
 
@@ -38,6 +39,7 @@ class WalletCryptoService {
   static const String evmDerivationPath = CryptoConstants.evmDerivationPath;
   static const String solanaDerivationPath =
       CryptoConstants.solanaDerivationPath;
+  static const String suiDerivationPath = CryptoConstants.suiDerivationPath;
   static const String bitcoinDerivationPath =
       CryptoConstants.bitcoinDerivationPath;
 
@@ -71,10 +73,12 @@ class WalletCryptoService {
       seed,
       solanaDerivationPath,
     );
+    final suiPrivateKey = _deriveEd25519PrivateKey(seed, suiDerivationPath);
     return _keyPairFromPrivateKeys(
       evmPrivateKeyHex: hex.encode(evmPrivateKey),
       bitcoinPrivateKeyHex: hex.encode(bitcoinPrivateKey),
       solanaPrivateKey: solanaPrivateKey,
+      suiPrivateKey: suiPrivateKey,
       mnemonic: mnemonic,
     );
   }
@@ -105,6 +109,7 @@ class WalletCryptoService {
     return _keyPairFromPrivateKeys(
       evmPrivateKeyHex: privateKey,
       solanaPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
+      suiPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
     );
   }
 
@@ -125,6 +130,31 @@ class WalletCryptoService {
   /// Solana seed 使用。
   Uint8List solanaPrivateKeyFromPrivateKey(String input) {
     return Uint8List.fromList(hex.decode(normalizePrivateKey(input)));
+  }
+
+  /// 从助记词按 Sui BIP44/SLIP-0010 路径派生 Ed25519 私钥 seed。
+  Uint8List suiPrivateKeyFromMnemonic(String input) {
+    final mnemonic = normalizeMnemonic(input);
+    final seed = Uint8List.fromList(
+      Mnemonic.fromSentence(mnemonic, Language.english).seed,
+    );
+    return _deriveEd25519PrivateKey(seed, suiDerivationPath);
+  }
+
+  /// 私钥导入钱包在 Sui 上复用同一个 32 字节输入作为 Ed25519 seed。
+  Uint8List suiPrivateKeyFromPrivateKey(String input) {
+    return Uint8List.fromList(hex.decode(normalizePrivateKey(input)));
+  }
+
+  /// 根据 32 字节 Ed25519 seed 生成 Sui 地址。
+  String suiAddressFromPrivateKey(List<int> input) {
+    if (input.length != 32) {
+      throw const FormatException('Sui private key must be 32 bytes');
+    }
+    return sui.SuiAccount.fromPrivateKey(
+      hex.encode(input),
+      sui.SignatureScheme.Ed25519,
+    ).getAddress();
   }
 
   /// 从助记词按 BIP84 路径派生 Bitcoin P2WPKH 私钥。
@@ -171,6 +201,7 @@ class WalletCryptoService {
   WalletKeyPair _keyPairFromPrivateKeys({
     required String evmPrivateKeyHex,
     required Uint8List solanaPrivateKey,
+    required Uint8List suiPrivateKey,
     String? bitcoinPrivateKeyHex,
     String? mnemonic,
   }) {
@@ -180,6 +211,7 @@ class WalletCryptoService {
     final bscAddress = '0x${hex.encode(ethAddressBytes)}';
     final tronPayload = Uint8List.fromList([0x41, ...ethAddressBytes]);
     final solanaAddress = _solanaAddressFromPrivateKey(solanaPrivateKey);
+    final suiAddress = suiAddressFromPrivateKey(suiPrivateKey);
     final bitcoinPrivateKey = Uint8List.fromList(
       hex.decode(normalizePrivateKey(bitcoinPrivateKeyHex ?? privateKey)),
     );
@@ -190,6 +222,7 @@ class WalletCryptoService {
       bscAddress: _toChecksumEthereumAddress(bscAddress),
       tronAddress: _base58CheckEncode(tronPayload),
       solanaAddress: solanaAddress,
+      suiAddress: suiAddress,
       bitcoinAddress: _bitcoinP2wpkhAddress(bitcoinPrivateKey),
     );
   }
@@ -555,6 +588,7 @@ class _DerivationIndex {
 /// - EVM 地址（BSC/Ethereum/X Layer 共用）；
 /// - TRON 地址；
 /// - Solana 地址。
+/// - Sui 地址。
 /// - Bitcoin Native SegWit 地址。
 class WalletKeyPair {
   const WalletKeyPair({
@@ -562,6 +596,7 @@ class WalletKeyPair {
     required this.bscAddress,
     required this.tronAddress,
     required this.solanaAddress,
+    required this.suiAddress,
     required this.bitcoinAddress,
     this.mnemonic,
   });
@@ -582,6 +617,9 @@ class WalletKeyPair {
 
   /// Solana Base58 地址。
   final String solanaAddress;
+
+  /// Sui 32 字节十六进制地址。
+  final String suiAddress;
 
   /// Bitcoin Mainnet Native SegWit 地址。
   final String bitcoinAddress;

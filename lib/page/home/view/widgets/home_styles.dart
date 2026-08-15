@@ -53,6 +53,8 @@ Color homeChainColor(WalletChainRef chain) {
       return const Color(0xFFF7931A);
     case WalletChain.solana:
       return const Color(0xFF14F195);
+    case WalletChain.sui:
+      return const Color(0xFF4DA2FF);
     case WalletChain.tron:
       return const Color(0xFFE50914);
     default:
@@ -83,6 +85,8 @@ Color homeAssetColor(BuildContext context, String symbol) {
       return const Color(0xFF28A0F0);
     case 'SOL':
       return const Color(0xFF14F195);
+    case 'SUI':
+      return const Color(0xFF4DA2FF);
     default:
       return Theme.of(context).colorScheme.primary;
   }

@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
 import 'package:solana/solana.dart';
+import 'package:sui/sui.dart';
 
 import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
@@ -16,6 +17,7 @@ part 'balance/evm_chain_balance.dart';
 part 'balance/tron_chain_balance.dart';
 part 'balance/solana_chain_balance.dart';
 part 'balance/bitcoin_chain_balance.dart';
+part 'balance/sui_chain_balance.dart';
 
 /// 多链余额查询服务。
 ///
@@ -141,6 +143,7 @@ class ChainBalanceService {
     required String bscAddress,
     required String tronAddress,
     required String solanaAddress,
+    String suiAddress = '',
     String bitcoinAddress = '',
   }) async {
     final customAssets = await _customAssetService.loadCustomAssets();
@@ -150,6 +153,9 @@ class ChainBalanceService {
     final tronChain = _builtinChainConfig(enabledChains, WalletChain.tron);
     final bitcoinChains = enabledChains.where(
       (chain) => chain.type == WalletChainType.bitcoin,
+    );
+    final suiChains = enabledChains.where(
+      (chain) => chain.type == WalletChainType.sui,
     );
     final results = await Future.wait([
       ...evmChains.map((chain) {
@@ -242,6 +248,23 @@ class ChainBalanceService {
                   chain: chain,
                   assets: WalletAssetRegistry.assetsForChainConfig(chain),
                   address: bitcoinAddress,
+                  error: error.toString(),
+                );
+              }),
+        ),
+      if (suiAddress.trim().isNotEmpty)
+        ...suiChains.map(
+          (chain) => _loadSuiBalances(chain: chain, address: suiAddress)
+              .catchError((error) {
+                developer.log(
+                  'Sui balance lookup failed; using zero fallback balances',
+                  error: error,
+                  name: 'ChainBalanceService',
+                );
+                return _fallbackBalancesForAssets(
+                  chain: chain,
+                  assets: WalletAssetRegistry.assetsForChainConfig(chain),
+                  address: suiAddress,
                   error: error.toString(),
                 );
               }),

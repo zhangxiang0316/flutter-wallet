@@ -27,6 +27,8 @@ Color receiveChainColor(WalletChainRef chain) {
       return const Color(0xFFF7931A);
     case WalletChain.solana:
       return const Color(0xFF7C3AED);
+    case WalletChain.sui:
+      return const Color(0xFF4DA2FF);
     case WalletChain.tron:
       return const Color(0xFFE11D48);
     default:
@@ -48,6 +50,8 @@ String receiveChainLabel(WalletChainRef chain) {
     case WalletChain.bitcoin:
       return '₿';
     case WalletChain.solana:
+      return 'S';
+    case WalletChain.sui:
       return 'S';
     case WalletChain.tron:
       return 'T';

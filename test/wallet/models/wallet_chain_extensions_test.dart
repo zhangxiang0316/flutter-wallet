@@ -41,5 +41,21 @@ void main() {
       expect(configuredBitcoin.isBitcoin, isTrue);
       expect(configuredBitcoin.isEvm, isFalse);
     });
+
+    test('isSui identifies Sui without treating it as EVM', () {
+      expect(WalletChain.sui.isSui, isTrue);
+      expect(WalletChain.sui.isEvm, isFalse);
+      expect(WalletChain.sui.isSolana, isFalse);
+
+      const configuredSui = WalletChainConfig(
+        id: 'sui-provider',
+        name: 'Sui',
+        symbol: 'SUI',
+        rpcUrls: ['https://fullnode.mainnet.sui.io'],
+        type: WalletChainType.sui,
+      );
+      expect(configuredSui.isSui, isTrue);
+      expect(configuredSui.isEvm, isFalse);
+    });
   });
 }

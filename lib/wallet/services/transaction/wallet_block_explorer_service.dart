@@ -43,6 +43,8 @@ class WalletBlockExplorerService {
         return 'https://tronscan.org/#/address/{address}';
       case 'bitcoin':
         return 'https://mempool.space/address/{address}';
+      case 'sui':
+        return 'https://suiscan.xyz/mainnet/account/{address}';
     }
 
     if (chain is WalletChainConfig) {
@@ -67,6 +69,8 @@ class WalletBlockExplorerService {
         return 'https://tronscan.org/#/transaction/{txHash}';
       case 'bitcoin':
         return 'https://mempool.space/tx/{txHash}';
+      case 'sui':
+        return 'https://suiscan.xyz/mainnet/tx/{txHash}';
     }
 
     if (chain is WalletChainConfig) {

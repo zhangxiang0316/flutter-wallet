@@ -264,6 +264,9 @@ class AddressBookController extends BaseController {
         case WalletChainType.bitcoin:
           WalletTransferService.normalizeBitcoinAddress(address);
           return true;
+        case WalletChainType.sui:
+          WalletTransferService.normalizeSuiAddress(address);
+          return true;
       }
     } catch (_) {
       return false;

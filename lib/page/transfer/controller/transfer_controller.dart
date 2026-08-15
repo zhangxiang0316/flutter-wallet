@@ -278,12 +278,19 @@ class TransferController extends BaseController {
               password: password,
             )
           : null;
+      final suiPrivateKey = asset.chainRef.isSui
+          ? await _repository.readWalletSuiPrivateKey(
+              walletId: args.walletId,
+              password: password,
+            )
+          : null;
       final hash = await _transferService.transfer(
         privateKeyHex: privateKeyHex,
         asset: asset,
         toAddress: addressController.text.trim(),
         amount: amountController.text.trim(),
         solanaPrivateKey: solanaPrivateKey,
+        suiPrivateKey: suiPrivateKey,
       );
       transactionHash = hash;
       submittedStatus = WalletTransactionStatus.pending;

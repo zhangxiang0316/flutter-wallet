@@ -51,6 +51,11 @@ class WalletAddressSection extends StatelessWidget {
           address: wallet.solanaAddress,
         ),
         _AddressTile(
+          chain: WalletChain.sui,
+          label: WalletChain.sui.name,
+          address: wallet.suiAddress,
+        ),
+        _AddressTile(
           chain: WalletChain.tron,
           label: WalletChain.tron.name,
           address: wallet.tronAddress,
@@ -143,6 +148,8 @@ class _ChainBadge extends StatelessWidget {
         return const Color(0xFFF7931A);
       case WalletChain.solana:
         return const Color(0xFF14F195);
+      case WalletChain.sui:
+        return const Color(0xFF4DA2FF);
       case WalletChain.tron:
         return const Color(0xFFE11D48);
     }

@@ -123,6 +123,8 @@ class ReceiveController extends BaseController {
         return currentWallet.bitcoinAddress;
       case WalletChain.solana:
         return currentWallet.solanaAddress;
+      case WalletChain.sui:
+        return currentWallet.suiAddress;
       case WalletChain.tron:
         return currentWallet.tronAddress;
       case null:

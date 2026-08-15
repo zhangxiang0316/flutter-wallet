@@ -33,6 +33,9 @@ class TransferScanAddressParser {
         caseSensitive: false,
       ).firstMatch(value)?.group(0);
     }
+    if (chain?.type == WalletChainType.sui) {
+      return RegExp(r'0x[a-fA-F0-9]{64}').firstMatch(value)?.group(0);
+    }
     switch (chain?.builtinChain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
@@ -50,6 +53,8 @@ class TransferScanAddressParser {
         return RegExp(
           r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
         ).firstMatch(value)?.group(0);
+      case WalletChain.sui:
+        return RegExp(r'0x[a-fA-F0-9]{64}').firstMatch(value)?.group(0);
       case null:
         return null;
     }
