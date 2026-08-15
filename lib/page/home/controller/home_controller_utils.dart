@@ -11,10 +11,11 @@ class HomeControllerUtils {
     return evmAddress.toLowerCase();
   }
 
-  /// 判断当前钱包是否需要补全 Solana 地址。
-  static bool needsSolanaAddressUpgrade(WalletAccount? wallet) {
+  /// 判断当前钱包是否需要补全后续版本新增的链地址。
+  static bool needsChainAddressUpgrade(WalletAccount? wallet) {
     return wallet != null &&
-        wallet.solanaAddress.trim().isEmpty &&
+        (wallet.solanaAddress.trim().isEmpty ||
+            wallet.bitcoinAddress.trim().isEmpty) &&
         !wallet.needsSecretMigration;
   }
 }

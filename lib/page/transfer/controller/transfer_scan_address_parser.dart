@@ -27,12 +27,23 @@ class TransferScanAddressParser {
     if (chain?.isEvm ?? false) {
       return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
     }
+    if (chain?.type == WalletChainType.bitcoin) {
+      return RegExp(
+        r'(?<![02-9ac-hj-np-z])bc1q[02-9ac-hj-np-z]{38}(?![02-9ac-hj-np-z])',
+        caseSensitive: false,
+      ).firstMatch(value)?.group(0);
+    }
     switch (chain?.builtinChain) {
       case WalletChain.bsc:
       case WalletChain.ethereum:
       case WalletChain.xLayer:
       case WalletChain.arbitrum:
         return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
+      case WalletChain.bitcoin:
+        return RegExp(
+          r'(?<![02-9ac-hj-np-z])bc1q[02-9ac-hj-np-z]{38}(?![02-9ac-hj-np-z])',
+          caseSensitive: false,
+        ).firstMatch(value)?.group(0);
       case WalletChain.tron:
         return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
       case WalletChain.solana:

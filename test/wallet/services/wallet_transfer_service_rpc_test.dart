@@ -226,5 +226,115 @@ void main() {
         );
       },
     );
+
+    test('estimates and submits native Bitcoin P2WPKH transfer', () async {
+      const mnemonic =
+          'abandon abandon abandon abandon abandon abandon abandon abandon '
+          'abandon abandon abandon about';
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importMnemonic(mnemonic);
+      final bitcoinPrivateKey = cryptoService.bitcoinPrivateKeyFromMnemonic(
+        mnemonic,
+      );
+      final adapter = FallbackRpcAdapter(
+        bitcoinFeeRate: 5,
+        bitcoinUtxoSats: 100000000,
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+      final asset = ChainBalance(
+        chain: WalletChain.bitcoin,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        amount: '1',
+        address: keyPair.bitcoinAddress,
+        decimals: 8,
+        canonicalTokenId: 'btc',
+      );
+
+      final estimate = await transferService.estimateFee(
+        asset: asset,
+        toAddress: keyPair.bitcoinAddress,
+        amount: '0.1',
+      );
+      final hash = await transferService.transfer(
+        privateKeyHex: bitcoinPrivateKey,
+        asset: asset,
+        toAddress: keyPair.bitcoinAddress,
+        amount: '0.1',
+      );
+
+      expect(estimate.rawAmount, BigInt.from(710));
+      expect(estimate.amount, '0.0000071');
+      expect(estimate.isFallback, isFalse);
+      expect(hash, List.filled(64, 'a').join());
+      expect(adapter.bitcoinBroadcastCount, 1);
+      expect(adapter.lastBitcoinRawTransaction, startsWith('020000000001'));
+      expect(adapter.lastBitcoinRawTransaction, isNotEmpty);
+
+      final raw = adapter.lastBitcoinRawTransaction!;
+      expect(
+        raw,
+        '0200000000010101000000000000000000000000000000000000000000000000'
+        '000000000000000000000000ffffffff028096980000000000160014c0cebcd6'
+        'c3d3ca8c75dc5ec62ebe55330ef910e2ba475d0500000000160014c0cebcd6c3'
+        'd3ca8c75dc5ec62ebe55330ef910e202483045022100b1acb0848f9dafa7ab85'
+        '8a52478a488a8de91403ddd3a654dd1fc716be74b600022016f734ab8f17cc05'
+        '44a0032a141cf917b186b1a13a4a3e1bc554cc39d4d3aea401210330d54fd0dd'
+        '420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c00000000',
+      );
+      expect(raw.substring(96, 98), '02');
+      final sent = _littleEndianHexToInt(raw.substring(98, 114));
+      final change = _littleEndianHexToInt(raw.substring(160, 176));
+      expect(sent, BigInt.from(10000000));
+      expect(BigInt.from(100000000) - sent - change, estimate.rawAmount);
+    });
+
+    test('rejects Bitcoin dust and insufficient balance', () async {
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importPrivateKey(
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
+      );
+      final adapter = FallbackRpcAdapter(bitcoinUtxoSats: 10000);
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+      final asset = ChainBalance(
+        chain: WalletChain.bitcoin,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        amount: '0.0001',
+        address: keyPair.bitcoinAddress,
+        decimals: 8,
+      );
+
+      expect(
+        () => transferService.estimateFee(
+          asset: asset,
+          toAddress: keyPair.bitcoinAddress,
+          amount: '0.000001',
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        () => transferService.estimateFee(
+          asset: asset,
+          toAddress: keyPair.bitcoinAddress,
+          amount: '0.0001',
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(adapter.bitcoinBroadcastCount, 0);
+    });
   });
+}
+
+BigInt _littleEndianHexToInt(String value) {
+  final bytes = <int>[];
+  for (var index = 0; index < value.length; index += 2) {
+    bytes.add(int.parse(value.substring(index, index + 2), radix: 16));
+  }
+  return BigInt.parse(
+    bytes.reversed.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join(),
+    radix: 16,
+  );
 }

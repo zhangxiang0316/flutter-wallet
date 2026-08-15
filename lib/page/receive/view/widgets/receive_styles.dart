@@ -23,6 +23,8 @@ Color receiveChainColor(WalletChainRef chain) {
       return const Color(0xFF10B981);
     case WalletChain.arbitrum:
       return const Color(0xFF28A0F0);
+    case WalletChain.bitcoin:
+      return const Color(0xFFF7931A);
     case WalletChain.solana:
       return const Color(0xFF7C3AED);
     case WalletChain.tron:
@@ -43,6 +45,8 @@ String receiveChainLabel(WalletChainRef chain) {
       return 'O';
     case WalletChain.arbitrum:
       return 'A';
+    case WalletChain.bitcoin:
+      return '₿';
     case WalletChain.solana:
       return 'S';
     case WalletChain.tron:

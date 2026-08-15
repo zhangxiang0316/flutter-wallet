@@ -25,6 +25,7 @@ part 'transaction_history/moralis_evm_transaction_history_provider.dart';
 part 'transaction_history/tron_transaction_history_provider.dart';
 part 'transaction_history/solana_helius_history_helpers.dart';
 part 'transaction_history/solana_transaction_history_provider.dart';
+part 'transaction_history/bitcoin_transaction_history_provider.dart';
 
 const int _transactionHistoryPageSize = 10;
 
@@ -70,6 +71,9 @@ class TransactionHistoryCursor {
   const TransactionHistoryCursor.solanaBefore(String value)
     : this._('solanaBefore', value);
 
+  const TransactionHistoryCursor.bitcoinLastSeenTxId(String value)
+    : this._('bitcoinLastSeenTxId', value);
+
   /// 游标来源。
   final String source;
 
@@ -91,6 +95,9 @@ class TransactionHistoryCursor {
       source == 'tronFingerprint' ? value as String : null;
 
   String? get solanaBefore => source == 'solanaBefore' ? value as String : null;
+
+  String? get bitcoinLastSeenTxId =>
+      source == 'bitcoinLastSeenTxId' ? value as String : null;
 }
 
 /// 交易历史分页结果。
@@ -144,6 +151,10 @@ class WalletTransactionHistoryService {
       dio: _dio,
       apiConfig: _apiConfig,
     );
+    _bitcoinProvider = _BitcoinTransactionHistoryProvider(
+      dio: _dio,
+      apiConfig: _apiConfig,
+    );
   }
 
   /// HTTP/RPC 请求客户端。
@@ -155,6 +166,7 @@ class WalletTransactionHistoryService {
   late final _MoralisEvmTransactionHistoryProvider _moralisEvmProvider;
   late final _TronTransactionHistoryProvider _tronProvider;
   late final _SolanaTransactionHistoryProvider _solanaProvider;
+  late final _BitcoinTransactionHistoryProvider _bitcoinProvider;
 
   static const Duration _requestTimeout = Duration(seconds: 6);
 
@@ -178,6 +190,13 @@ class WalletTransactionHistoryService {
     final chain = asset.chainRef;
     if (chain.isEvm) {
       return _evmProvider.loadRecordByTransactionHash(
+        walletId: walletId,
+        asset: asset,
+        txHash: txHash,
+      );
+    }
+    if (_isBitcoinChain(chain)) {
+      return _bitcoinProvider.loadRecordByTransactionHash(
         walletId: walletId,
         asset: asset,
         txHash: txHash,
@@ -246,6 +265,13 @@ class WalletTransactionHistoryService {
         cursor: cursor,
       );
     }
+    if (_isBitcoinChain(chain)) {
+      return _bitcoinProvider.loadRecordPage(
+        walletId: walletId,
+        asset: asset,
+        cursor: cursor,
+      );
+    }
     return const TransactionHistoryPageResult(
       records: [],
       nextCursor: null,
@@ -261,5 +287,10 @@ class WalletTransactionHistoryService {
   bool _isSolanaChain(WalletChainRef chain) {
     return chain.id == WalletChain.solana.id ||
         (chain is WalletChainConfig && chain.type == WalletChainType.solana);
+  }
+
+  bool _isBitcoinChain(WalletChainRef chain) {
+    return chain.id == WalletChain.bitcoin.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.bitcoin);
   }
 }

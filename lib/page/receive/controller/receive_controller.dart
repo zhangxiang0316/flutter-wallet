@@ -106,7 +106,7 @@ class ReceiveController extends BaseController {
 
   /// 返回当前链对应的钱包地址。
   ///
-  /// EVM 兼容链共用 EVM 地址；Solana 和 TRON 使用各自地址。
+  /// EVM 兼容链共用 EVM 地址；Bitcoin、Solana 和 TRON 使用各自地址。
   String currentAddress() {
     final currentWallet = wallet;
     if (currentWallet == null) return '';
@@ -119,6 +119,8 @@ class ReceiveController extends BaseController {
       case WalletChain.xLayer:
       case WalletChain.arbitrum:
         return currentWallet.bscAddress;
+      case WalletChain.bitcoin:
+        return currentWallet.bitcoinAddress;
       case WalletChain.solana:
         return currentWallet.solanaAddress;
       case WalletChain.tron:

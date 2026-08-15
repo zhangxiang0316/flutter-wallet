@@ -10,8 +10,14 @@ extension WalletChainTypeExtension on WalletChainRef {
   /// 判断是否为 Solana 链。
   bool get isSolana => id == 'solana';
 
+  /// 判断是否为 Bitcoin 主网。
+  bool get isBitcoin =>
+      id == 'bitcoin' ||
+      (this is WalletChainConfig &&
+          (this as WalletChainConfig).type == WalletChainType.bitcoin);
+
   /// 判断是否为 EVM 兼容链。
   ///
   /// 包括 BSC、Ethereum、Arbitrum、X Layer 等所有 EVM 链。
-  bool get isEvm => !isTron && !isSolana;
+  bool get isEvm => evmChainId != null;
 }

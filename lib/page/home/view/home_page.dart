@@ -116,7 +116,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   Widget? getBody(BuildContext context) {
     final wallet = controller.wallet;
     _scheduleLegacyMigrationSheet(context);
-    _scheduleSolanaAddressUpgradeSheet(context);
+    _scheduleChainAddressUpgradeSheet(context);
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
@@ -267,27 +267,27 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     });
   }
 
-  /// 在旧钱包缺少 Solana 地址时，安排地址升级弹窗。
-  void _scheduleSolanaAddressUpgradeSheet(BuildContext context) {
+  /// 在旧钱包缺少新增链地址时，安排地址升级弹窗。
+  void _scheduleChainAddressUpgradeSheet(BuildContext context) {
     if (controller.needsSecretMigration ||
-        !controller.needsSolanaAddressUpgrade ||
-        _solanaAddressUpgradeSheetVisible) {
+        !controller.needsChainAddressUpgrade ||
+        _chainAddressUpgradeSheetVisible) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (controller.needsSecretMigration ||
-          !controller.needsSolanaAddressUpgrade ||
-          _solanaAddressUpgradeSheetVisible ||
+          !controller.needsChainAddressUpgrade ||
+          _chainAddressUpgradeSheetVisible ||
           !context.mounted) {
         return;
       }
-      _solanaAddressUpgradeSheetVisible = true;
+      _chainAddressUpgradeSheetVisible = true;
       _showPasswordUnlockSheet(
         context: context,
         title: S.of(context).walletSolanaAddressUpgrade,
         detail: S.of(context).walletSolanaAddressUpgradeDetail,
         submitLabel: S.of(context).walletSolanaAddressUpgradeAction,
-        onSubmit: controller.upgradeMissingSolanaAddresses,
+        onSubmit: controller.upgradeMissingChainAddresses,
       );
     });
   }
@@ -313,7 +313,7 @@ class HomePage extends BaseScaffoldPage<HomeController> {
         submitLabel: submitLabel,
         onSubmit: onSubmit,
       ),
-    ).whenComplete(() => _solanaAddressUpgradeSheetVisible = false);
+    ).whenComplete(() => _chainAddressUpgradeSheetVisible = false);
   }
 
   /// 校验创建/导入钱包时设置的本地密码。
@@ -390,6 +390,6 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   /// 旧钱包安全迁移弹窗是否正在显示。
   bool _legacyMigrationSheetVisible = false;
 
-  /// Solana 地址升级弹窗是否正在显示。
-  bool _solanaAddressUpgradeSheetVisible = false;
+  /// 新增链地址升级弹窗是否正在显示。
+  bool _chainAddressUpgradeSheetVisible = false;
 }

@@ -84,18 +84,19 @@ class ChainAssetVisibilityCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 8.w),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                constraints: BoxConstraints.tight(Size(32.w, 32.w)),
-                padding: EdgeInsets.zero,
-                onPressed: onAddPressed,
-                icon: Icon(
-                  Icons.add_rounded,
-                  size: 20.w,
-                  color: colorScheme.primary,
+              if (chain.type != WalletChainType.bitcoin)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  constraints: BoxConstraints.tight(Size(32.w, 32.w)),
+                  padding: EdgeInsets.zero,
+                  onPressed: onAddPressed,
+                  icon: Icon(
+                    Icons.add_rounded,
+                    size: 20.w,
+                    color: colorScheme.primary,
+                  ),
+                  tooltip: S.of(context).addCustomAsset,
                 ),
-                tooltip: S.of(context).addCustomAsset,
-              ),
             ],
           ).marginOnly(bottom: 8.h),
           ...assets.map(
@@ -127,6 +128,8 @@ class ChainAssetVisibilityCard extends StatelessWidget {
         return const Color(0xFF111827);
       case WalletChain.arbitrum:
         return const Color(0xFF28A0F0);
+      case WalletChain.bitcoin:
+        return const Color(0xFFF7931A);
       case WalletChain.solana:
         return const Color(0xFF14F195);
       case WalletChain.tron:

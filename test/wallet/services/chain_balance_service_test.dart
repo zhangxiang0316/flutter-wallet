@@ -51,6 +51,29 @@ void main() {
       expect(adapter.calls, contains('https://bsc-rpc.publicnode.com'));
     });
 
+    test('loads native Bitcoin balance from Esplora API', () async {
+      final dio = Dio();
+      final adapter = FallbackRpcAdapter(bitcoinBalanceSats: 123456789);
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(dio: dio);
+
+      final balances = await service.loadBalances(
+        bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        solanaAddress: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+        bitcoinAddress: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+      );
+
+      final bitcoin = balances.singleWhere(
+        (balance) => balance.chainId == WalletChain.bitcoin.id,
+      );
+      expect(bitcoin.symbol, 'BTC');
+      expect(bitcoin.amount, '1.23456789');
+      expect(bitcoin.canonicalTokenId, 'btc');
+      expect(bitcoin.error, isNull);
+      expect(adapter.calls, contains('https://mempool.space'));
+    });
+
     test('falls back to the next TRON RPC when TronGrid fails', () async {
       final dio = Dio();
       final adapter = FallbackRpcAdapter(failTronGridAccount: true);

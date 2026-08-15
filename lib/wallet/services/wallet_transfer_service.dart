@@ -5,6 +5,7 @@ import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:pointycastle/api.dart';
 import 'package:pointycastle/digests/keccak.dart';
+import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/ecc/api.dart';
 import 'package:pointycastle/ecc/curves/secp256k1.dart';
@@ -20,6 +21,7 @@ import '../models/wallet_chain_extensions.dart';
 part 'transfer/evm_wallet_transfer.dart';
 part 'transfer/tron_wallet_transfer.dart';
 part 'transfer/solana_wallet_transfer.dart';
+part 'transfer/bitcoin_wallet_transfer.dart';
 part 'transfer/wallet_transfer_signing.dart';
 
 /// 钱包转账服务。
@@ -28,6 +30,7 @@ part 'transfer/wallet_transfer_signing.dart';
 /// - EVM 链：构造 legacy transaction，RLP 编码后用 secp256k1 私钥签名；
 /// - TRON：先由节点创建交易，再对 raw_data 做 secp256k1 签名并广播；
 /// - Solana：使用 solana Dart 包构造 Message，并用 Ed25519 私钥签名发送。
+/// - Bitcoin：查询 UTXO，构造 BIP143 P2WPKH 交易并通过 Esplora 广播。
 ///
 /// 这里不负责读取私钥和密码校验。调用方需要先从 [WalletRepository] 读取对应私钥，
 /// 再把私钥传入 [transfer]。
@@ -102,6 +105,14 @@ class WalletTransferService {
         amount: amount,
       );
     }
+    if (asset.chainRef.isBitcoin) {
+      return _transferBitcoin(
+        privateKeyHex: privateKeyHex,
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
     throw StateError('Unsupported chain ${asset.chainId}');
   }
 
@@ -130,6 +141,13 @@ class WalletTransferService {
     }
     if (asset.chainRef.isSolana) {
       return _estimateSolanaFee(
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
+    if (asset.chainRef.isBitcoin) {
+      return _estimateBitcoinFee(
         asset: asset,
         toAddress: toAddress,
         amount: amount,
@@ -331,6 +349,111 @@ class WalletTransferService {
       throw const FormatException('Invalid Solana address');
     }
     return address;
+  }
+
+  /// 校验 Bitcoin Mainnet BIP84 P2WPKH 地址并统一为小写。
+  ///
+  /// 首版仅接受 witness version 0、20 字节 witness program 的 `bc1q...` 地址。
+  static String normalizeBitcoinAddress(String input) {
+    final original = input.trim();
+    if (original.isEmpty ||
+        (original != original.toLowerCase() &&
+            original != original.toUpperCase())) {
+      throw const FormatException('Invalid Bitcoin address casing');
+    }
+    final address = original.toLowerCase();
+    final separator = address.lastIndexOf('1');
+    if (separator <= 0 || separator + 7 > address.length) {
+      throw const FormatException('Invalid Bitcoin address format');
+    }
+    if (address.substring(0, separator) != 'bc') {
+      throw const FormatException('Bitcoin mainnet address required');
+    }
+    final data = <int>[];
+    for (final codeUnit in address.substring(separator + 1).codeUnits) {
+      final value = CryptoConstants.bech32Alphabet.indexOf(
+        String.fromCharCode(codeUnit),
+      );
+      if (value < 0) {
+        throw const FormatException('Invalid Bitcoin address character');
+      }
+      data.add(value);
+    }
+    if (!_verifyBech32Checksum('bc', data)) {
+      throw const FormatException('Invalid Bitcoin address checksum');
+    }
+    final payload = data.sublist(0, data.length - 6);
+    if (payload.isEmpty || payload.first != 0) {
+      throw const FormatException('Only Bitcoin P2WPKH is supported');
+    }
+    final program = _convertBitcoinBits(
+      payload.sublist(1),
+      fromBits: 5,
+      toBits: 8,
+      pad: false,
+    );
+    if (program.length != 20) {
+      throw const FormatException('Only Bitcoin P2WPKH is supported');
+    }
+    return address;
+  }
+
+  static bool _verifyBech32Checksum(String hrp, List<int> data) {
+    final expanded = <int>[
+      ...hrp.codeUnits.map((value) => value >> 5),
+      0,
+      ...hrp.codeUnits.map((value) => value & 31),
+      ...data,
+    ];
+    var polymod = 1;
+    const generators = [
+      0x3b6a57b2,
+      0x26508e6d,
+      0x1ea119fa,
+      0x3d4233dd,
+      0x2a1462b3,
+    ];
+    for (final value in expanded) {
+      final top = polymod >> 25;
+      polymod = ((polymod & 0x1ffffff) << 5) ^ value;
+      for (var i = 0; i < generators.length; i++) {
+        if (((top >> i) & 1) != 0) polymod ^= generators[i];
+      }
+    }
+    return polymod == 1;
+  }
+
+  static Uint8List _convertBitcoinBits(
+    List<int> data, {
+    required int fromBits,
+    required int toBits,
+    required bool pad,
+  }) {
+    var accumulator = 0;
+    var bitCount = 0;
+    final result = <int>[];
+    final maxValue = (1 << toBits) - 1;
+    final maxAccumulator = (1 << (fromBits + toBits - 1)) - 1;
+    for (final value in data) {
+      if (value < 0 || (value >> fromBits) != 0) {
+        throw const FormatException('Invalid Bitcoin address data');
+      }
+      accumulator = ((accumulator << fromBits) | value) & maxAccumulator;
+      bitCount += fromBits;
+      while (bitCount >= toBits) {
+        bitCount -= toBits;
+        result.add((accumulator >> bitCount) & maxValue);
+      }
+    }
+    if (pad) {
+      if (bitCount > 0) {
+        result.add((accumulator << (toBits - bitCount)) & maxValue);
+      }
+    } else if (bitCount >= fromBits ||
+        ((accumulator << (toBits - bitCount)) & maxValue) != 0) {
+      throw const FormatException('Invalid Bitcoin address padding');
+    }
+    return Uint8List.fromList(result);
   }
 
   /// 将 Solana 转账金额转为 u64 可接受的 int。

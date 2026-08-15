@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/utils/storage.dart';
+import 'package:omnicast/wallet/services/crypto/wallet_crypto_service.dart';
 import 'package:omnicast/wallet/services/wallet_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,6 +46,32 @@ void main() {
         privateKey,
       );
       expect(await repository.hasLegacyPlainSecrets(), isFalse);
+    });
+
+    test('derives the Bitcoin signing key from a stored mnemonic', () async {
+      const mnemonic =
+          'abandon abandon abandon abandon abandon abandon abandon abandon '
+          'abandon abandon abandon about';
+      const password = 'wallet-password';
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importMnemonic(mnemonic);
+      final repository = WalletRepository(cryptoService: cryptoService);
+
+      await repository.saveWalletSecret(
+        walletId: 'wallet-1',
+        password: password,
+        privateKeyHex: keyPair.privateKeyHex,
+        mnemonic: mnemonic,
+      );
+
+      final bitcoinPrivateKey = await repository.readWalletBitcoinPrivateKey(
+        walletId: 'wallet-1',
+        password: password,
+      );
+      expect(
+        cryptoService.bitcoinAddressFromPrivateKey(bitcoinPrivateKey),
+        keyPair.bitcoinAddress,
+      );
     });
   });
 }

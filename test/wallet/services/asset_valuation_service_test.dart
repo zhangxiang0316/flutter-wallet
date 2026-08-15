@@ -70,6 +70,25 @@ void main() {
       expect(total?.toStringAsFixed(2), '662.00');
     });
 
+    test('calculates native BTC value with the BTC price', () {
+      final total = service.calculateTotalUsdValue(
+        const [
+          ChainBalance(
+            chain: WalletChain.bitcoin,
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            amount: '0.5',
+            address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+            canonicalTokenId: 'btc',
+            decimals: 8,
+          ),
+        ],
+        prices: {'BTC': Decimal.parse('60000')},
+      );
+
+      expect(total, Decimal.parse('30000'));
+    });
+
     test('calculates Ethereum chain assets with stable and wrapped prices', () {
       final total = service.calculateTotalUsdValue(
         const [

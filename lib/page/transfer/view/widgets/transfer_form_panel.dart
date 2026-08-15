@@ -131,6 +131,10 @@ class TransferFormPanel extends StatelessWidget {
         (chain is WalletChainConfig && chain.type == WalletChainType.solana)) {
       return 'Solana address';
     }
+    if (chain.id == WalletChain.bitcoin.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.bitcoin)) {
+      return 'bc1q...';
+    }
     return '0x...';
   }
 }

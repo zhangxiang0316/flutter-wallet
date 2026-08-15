@@ -37,11 +37,13 @@ class WalletTransactionStatusService {
         WalletChainType.solana => _loadSolanaStatus(chain, hash),
         WalletChainType.tron => _loadTronStatus(chain, hash),
         WalletChainType.evm => _loadEvmStatus(chain, hash),
+        WalletChainType.bitcoin => _loadBitcoinStatus(chain, hash),
       };
     }
     return switch (chain.id) {
       'solana' => _loadSolanaStatus(chain, hash),
       'tron' => _loadTronStatus(chain, hash),
+      'bitcoin' => _loadBitcoinStatus(chain, hash),
       _ => WalletTransactionStatus.unknown,
     };
   }
@@ -118,6 +120,18 @@ class WalletTransactionStatusService {
       }
     }
     return WalletTransactionStatus.pending;
+  }
+
+  Future<WalletTransactionStatus> _loadBitcoinStatus(
+    WalletChainRef chain,
+    String txHash,
+  ) async {
+    final response = await _dio.get('${chain.rpcUrl}/tx/$txHash/status');
+    final data = response.data;
+    if (data is! Map) return WalletTransactionStatus.unknown;
+    return data['confirmed'] == true
+        ? WalletTransactionStatus.success
+        : WalletTransactionStatus.pending;
   }
 
   Future<Map<dynamic, dynamic>> _postRpc(

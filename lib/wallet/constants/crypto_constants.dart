@@ -20,6 +20,12 @@ class CryptoConstants {
   /// 遵循 BIP44 标准，使用 Ed25519 hardened derivation。
   static const String solanaDerivationPath = "m/44'/501'/0'/0'";
 
+  /// Bitcoin Mainnet BIP84 Native SegWit 首个收款地址派生路径。
+  static const String bitcoinDerivationPath = "m/84'/0'/0'/0/0";
+
+  /// Bech32 编码字符表。
+  static const String bech32Alphabet = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+
   /// EVM 原生币转账固定 gas limit。
   static const int evmNativeGasLimit = 21000;
 

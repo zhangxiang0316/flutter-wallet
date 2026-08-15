@@ -24,6 +24,9 @@ void main() {
 
       // Solana path: m/44'/501'/0'/0'
       expect(CryptoConstants.solanaDerivationPath, equals("m/44'/501'/0'/0'"));
+
+      // Bitcoin Mainnet Native SegWit path: m/84'/0'/0'/0/0
+      expect(CryptoConstants.bitcoinDerivationPath, equals("m/84'/0'/0'/0/0"));
     });
 
     test('gas limits have reasonable values', () {
@@ -52,7 +55,9 @@ void main() {
       // keccak256("Transfer(address,address,uint256)")
       expect(
         CryptoConstants.evmTransferEventTopic,
-        equals('0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'),
+        equals(
+          '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+        ),
       );
     });
   });

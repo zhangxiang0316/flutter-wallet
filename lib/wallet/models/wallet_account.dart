@@ -6,6 +6,7 @@ class WalletAccount {
     required this.tronAddress,
     required this.createdAt,
     this.solanaAddress = '',
+    this.bitcoinAddress = '',
     this.privateKeyHex = '',
   });
 
@@ -17,6 +18,7 @@ class WalletAccount {
   final String bscAddress;
   final String tronAddress;
   final String solanaAddress;
+  final String bitcoinAddress;
   final DateTime createdAt;
 
   bool get needsSecretMigration => privateKeyHex.isNotEmpty;
@@ -28,6 +30,7 @@ class WalletAccount {
     String? bscAddress,
     String? tronAddress,
     String? solanaAddress,
+    String? bitcoinAddress,
     DateTime? createdAt,
   }) {
     return WalletAccount(
@@ -37,6 +40,7 @@ class WalletAccount {
       bscAddress: bscAddress ?? this.bscAddress,
       tronAddress: tronAddress ?? this.tronAddress,
       solanaAddress: solanaAddress ?? this.solanaAddress,
+      bitcoinAddress: bitcoinAddress ?? this.bitcoinAddress,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -48,6 +52,7 @@ class WalletAccount {
       'bscAddress': bscAddress,
       'tronAddress': tronAddress,
       'solanaAddress': solanaAddress,
+      'bitcoinAddress': bitcoinAddress,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -56,6 +61,7 @@ class WalletAccount {
     final bscAddress = json['bscAddress'] as String? ?? '';
     final tronAddress = json['tronAddress'] as String? ?? '';
     final solanaAddress = json['solanaAddress'] as String? ?? '';
+    final bitcoinAddress = json['bitcoinAddress'] as String? ?? '';
     final createdAt =
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now();
     return WalletAccount(
@@ -71,6 +77,7 @@ class WalletAccount {
       bscAddress: bscAddress,
       tronAddress: tronAddress,
       solanaAddress: solanaAddress,
+      bitcoinAddress: bitcoinAddress,
       createdAt: createdAt,
     );
   }

@@ -368,12 +368,23 @@ class WalletAssetRegistry {
     ),
   ];
 
+  static const bitcoinAssets = [
+    WalletAsset(
+      chain: WalletChain.bitcoin,
+      symbol: 'BTC',
+      name: 'Bitcoin',
+      decimals: 8,
+      canonicalTokenId: 'btc',
+    ),
+  ];
+
   static const all = [
     ...bscAssets,
     ...ethereumAssets,
     ...tronAssets,
     ...xLayerAssets,
     ...arbitrumAssets,
+    ...bitcoinAssets,
     ...solanaAssets,
   ];
 
@@ -389,6 +400,8 @@ class WalletAssetRegistry {
         return xLayerAssets;
       case WalletChain.arbitrum:
         return arbitrumAssets;
+      case WalletChain.bitcoin:
+        return bitcoinAssets;
       case WalletChain.solana:
         return solanaAssets;
     }

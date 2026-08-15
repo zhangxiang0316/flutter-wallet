@@ -44,7 +44,9 @@ void main() {
         );
 
         expect(
-          () => WalletTransferService.normalizeEvmAddress('742d35cc6634c0532925a3b844bc9e7595f0beb5'),
+          () => WalletTransferService.normalizeEvmAddress(
+            '742d35cc6634c0532925a3b844bc9e7595f0beb5',
+          ),
           throwsA(isA<FormatException>()),
         );
       });
@@ -75,6 +77,27 @@ void main() {
         expect(
           () => WalletTransferService.normalizeSolanaAddress('invalid'),
           throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('normalizeBitcoinAddress validates BIP84 mainnet address', () {
+        const address = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
+        expect(WalletTransferService.normalizeBitcoinAddress(address), address);
+        expect(
+          WalletTransferService.normalizeBitcoinAddress(address.toUpperCase()),
+          address,
+        );
+        expect(
+          () => WalletTransferService.normalizeBitcoinAddress(
+            'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyx',
+          ),
+          throwsFormatException,
+        );
+        expect(
+          () => WalletTransferService.normalizeBitcoinAddress(
+            'tb1qcr8te4kr609gcawutmrza0j4xv80jy8zc7g3nj',
+          ),
+          throwsFormatException,
         );
       });
     });

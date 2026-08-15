@@ -20,6 +20,10 @@ class TransferInputValidator {
       WalletTransferService.normalizeSolanaAddress(address);
       return;
     }
+    if (asset.chainRef.isBitcoin) {
+      WalletTransferService.normalizeBitcoinAddress(address);
+      return;
+    }
     throw FormatException('Unsupported chain ${asset.chainId}');
   }
 

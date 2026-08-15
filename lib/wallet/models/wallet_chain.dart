@@ -27,6 +27,12 @@ enum WalletChain implements WalletChainRef {
     rpcUrl: 'https://arb1.arbitrum.io/rpc',
     evmChainId: 42161,
   ),
+  bitcoin(
+    id: 'bitcoin',
+    name: 'Bitcoin',
+    symbol: 'BTC',
+    rpcUrl: 'https://mempool.space/api',
+  ),
   solana(
     id: 'solana',
     name: 'Solana',
@@ -108,9 +114,12 @@ class WalletChainConfig implements WalletChainRef {
       rpcUrls: [chain.rpcUrl],
       type: chain.isEvm
           ? WalletChainType.evm
-          : chain == WalletChain.solana
-          ? WalletChainType.solana
-          : WalletChainType.tron,
+          : switch (chain) {
+              WalletChain.bitcoin => WalletChainType.bitcoin,
+              WalletChain.solana => WalletChainType.solana,
+              WalletChain.tron => WalletChainType.tron,
+              _ => throw StateError('Unsupported builtin chain ${chain.id}'),
+            },
       evmChainId: chain.evmChainId,
       builtinChain: chain,
       colorValue: _builtinColorValue(chain),
@@ -261,6 +270,8 @@ class WalletChainConfig implements WalletChainRef {
         return 0xFF111827;
       case WalletChain.arbitrum:
         return 0xFF28A0F0;
+      case WalletChain.bitcoin:
+        return 0xFFF7931A;
       case WalletChain.solana:
         return 0xFF14F195;
       case WalletChain.tron:
@@ -276,6 +287,8 @@ class WalletChainConfig implements WalletChainRef {
         return 'https://api.etherscan.io/api';
       case WalletChain.arbitrum:
         return 'https://api.arbiscan.io/api';
+      case WalletChain.bitcoin:
+        return 'https://mempool.space/api';
       case WalletChain.xLayer:
       case WalletChain.solana:
       case WalletChain.tron:
@@ -284,4 +297,4 @@ class WalletChainConfig implements WalletChainRef {
   }
 }
 
-enum WalletChainType { evm, solana, tron }
+enum WalletChainType { evm, bitcoin, solana, tron }

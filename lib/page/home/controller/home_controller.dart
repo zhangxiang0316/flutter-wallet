@@ -100,11 +100,11 @@ class HomeController extends BaseController {
   /// 是否正在执行旧钱包明文私钥加密迁移。
   bool isMigratingSecrets = false;
 
-  /// 旧钱包缺少 Solana 地址时为 true，需要输入钱包密码补派生地址。
-  bool needsSolanaAddressUpgrade = false;
+  /// 旧钱包缺少后续新增链地址时为 true，需要输入密码补派生地址。
+  bool needsChainAddressUpgrade = false;
 
-  /// 是否正在为旧钱包补全 Solana 地址。
-  bool isUpgradingSolanaAddresses = false;
+  /// 是否正在为旧钱包补全链地址。
+  bool isUpgradingChainAddresses = false;
 
   Timer? _balanceRefreshTimer;
 
@@ -164,6 +164,7 @@ class HomeController extends BaseController {
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
       solanaAddress: keyPair.solanaAddress,
+      bitcoinAddress: keyPair.bitcoinAddress,
       createdAt: DateTime.now(),
     );
     await _repository.saveWalletSecret(
@@ -206,7 +207,7 @@ class HomeController extends BaseController {
 
   /// 将旧版本明文私钥迁移为本地加密存储。
   ///
-  /// 迁移成功后会顺带为缺少 Solana 地址的旧钱包补齐地址，避免用户还要再走
+  /// 迁移成功后会顺带为缺少新增链地址的旧钱包补齐地址，避免用户还要再走
   /// 一次解锁流程。
   Future<bool> migrateLegacySecrets(String password) async {
     if (isMigratingSecrets) return false;
@@ -218,10 +219,7 @@ class HomeController extends BaseController {
           .map((wallet) => wallet.id)
           .toSet();
       await _repository.migrateLegacyPlainSecrets(password);
-      await _upgradeMissingSolanaAddresses(
-        password,
-        walletIds: legacyWalletIds,
-      );
+      await _upgradeMissingChainAddresses(password, walletIds: legacyWalletIds);
       Toast.show(S.current.walletSecurityMigrated);
       update();
       return true;
@@ -234,15 +232,15 @@ class HomeController extends BaseController {
     }
   }
 
-  /// 为缺少 Solana 地址的旧钱包补派生地址。
+  /// 为旧钱包补派生缺失的链地址。
   ///
   /// 该流程需要用户输入钱包密码以读取加密私钥，完成后会刷新余额。
-  Future<bool> upgradeMissingSolanaAddresses(String password) async {
-    if (isUpgradingSolanaAddresses) return false;
+  Future<bool> upgradeMissingChainAddresses(String password) async {
+    if (isUpgradingChainAddresses) return false;
     try {
-      isUpgradingSolanaAddresses = true;
+      isUpgradingChainAddresses = true;
       update();
-      await _upgradeMissingSolanaAddresses(password);
+      await _upgradeMissingChainAddresses(password);
       Toast.show(S.current.walletSolanaAddressUpgraded);
       update();
       refreshBalances();
@@ -257,7 +255,7 @@ class HomeController extends BaseController {
       Toast.show(S.current.walletSolanaAddressUpgradeFailed);
       return false;
     } finally {
-      isUpgradingSolanaAddresses = false;
+      isUpgradingChainAddresses = false;
       update();
     }
   }
@@ -269,7 +267,7 @@ class HomeController extends BaseController {
     if (wallet?.id == nextWallet.id) return;
     await _repository.setCurrentWalletId(nextWallet.id);
     wallet = nextWallet;
-    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+    needsChainAddressUpgrade = HomeControllerUtils.needsChainAddressUpgrade(
       nextWallet,
     );
     _resetWalletState();
@@ -340,6 +338,7 @@ class HomeController extends BaseController {
       bscAddress: keyPair.bscAddress,
       tronAddress: keyPair.tronAddress,
       solanaAddress: keyPair.solanaAddress,
+      bitcoinAddress: keyPair.bitcoinAddress,
       createdAt: DateTime.now(),
     );
     await _repository.saveWalletSecret(
@@ -353,10 +352,10 @@ class HomeController extends BaseController {
     return true;
   }
 
-  /// 遍历本地钱包并补全缺失的 Solana 地址。
+  /// 遍历本地钱包并补全缺失的 Solana/Bitcoin 地址。
   ///
   /// [walletIds] 不为空时只处理指定钱包集合；为空时默认只处理当前钱包。
-  Future<void> _upgradeMissingSolanaAddresses(
+  Future<void> _upgradeMissingChainAddresses(
     String password, {
     Set<String>? walletIds,
   }) async {
@@ -365,21 +364,39 @@ class HomeController extends BaseController {
     final nextWallets = <WalletAccount>[];
     for (final item in await _repository.loadWallets()) {
       final shouldUpgrade =
-          item.solanaAddress.trim().isEmpty &&
+          (item.solanaAddress.trim().isEmpty ||
+              item.bitcoinAddress.trim().isEmpty) &&
           (walletIds?.contains(item.id) ?? item.id == currentWalletId);
       if (!shouldUpgrade) {
         nextWallets.add(item);
         continue;
       }
 
-      final privateKeyHex = item.needsSecretMigration
-          ? item.privateKeyHex
-          : await _repository.readWalletPrivateKey(
-              walletId: item.id,
-              password: password,
-            );
-      final keyPair = _cryptoService.importPrivateKey(privateKeyHex);
-      nextWallets.add(item.copyWith(solanaAddress: keyPair.solanaAddress));
+      var nextWallet = item;
+      if (item.solanaAddress.trim().isEmpty) {
+        final privateKeyHex = item.needsSecretMigration
+            ? item.privateKeyHex
+            : await _repository.readWalletPrivateKey(
+                walletId: item.id,
+                password: password,
+              );
+        final keyPair = _cryptoService.importPrivateKey(privateKeyHex);
+        nextWallet = nextWallet.copyWith(solanaAddress: keyPair.solanaAddress);
+      }
+      if (item.bitcoinAddress.trim().isEmpty) {
+        final bitcoinPrivateKey = item.needsSecretMigration
+            ? _cryptoService.bitcoinPrivateKeyFromPrivateKey(item.privateKeyHex)
+            : await _repository.readWalletBitcoinPrivateKey(
+                walletId: item.id,
+                password: password,
+              );
+        nextWallet = nextWallet.copyWith(
+          bitcoinAddress: _cryptoService.bitcoinAddressFromPrivateKey(
+            bitcoinPrivateKey,
+          ),
+        );
+      }
+      nextWallets.add(nextWallet);
     }
 
     await _repository.saveWallets(
@@ -394,7 +411,7 @@ class HomeController extends BaseController {
   /// 根据当前钱包列表更新需要用户处理的兼容性状态。
   void _updateWalletMaintenanceState() {
     needsSecretMigration = wallets.any((wallet) => wallet.needsSecretMigration);
-    needsSolanaAddressUpgrade = HomeControllerUtils.needsSolanaAddressUpgrade(
+    needsChainAddressUpgrade = HomeControllerUtils.needsChainAddressUpgrade(
       wallet,
     );
   }

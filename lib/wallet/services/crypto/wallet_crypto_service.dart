@@ -5,6 +5,7 @@ import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:convert/convert.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed25519;
 import 'package:pointycastle/digests/keccak.dart';
+import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/digests/sha512.dart';
 import 'package:pointycastle/ecc/api.dart';
@@ -35,7 +36,10 @@ class WalletCryptoService {
 
   // 从共享常量中引用派生路径
   static const String evmDerivationPath = CryptoConstants.evmDerivationPath;
-  static const String solanaDerivationPath = CryptoConstants.solanaDerivationPath;
+  static const String solanaDerivationPath =
+      CryptoConstants.solanaDerivationPath;
+  static const String bitcoinDerivationPath =
+      CryptoConstants.bitcoinDerivationPath;
 
   /// 生成 12 词英文助记词。
   ///
@@ -59,12 +63,17 @@ class WalletCryptoService {
       Mnemonic.fromSentence(mnemonic, Language.english).seed,
     );
     final evmPrivateKey = _deriveSecp256k1PrivateKey(seed, evmDerivationPath);
+    final bitcoinPrivateKey = _deriveSecp256k1PrivateKey(
+      seed,
+      bitcoinDerivationPath,
+    );
     final solanaPrivateKey = _deriveEd25519PrivateKey(
       seed,
       solanaDerivationPath,
     );
     return _keyPairFromPrivateKeys(
       evmPrivateKeyHex: hex.encode(evmPrivateKey),
+      bitcoinPrivateKeyHex: hex.encode(bitcoinPrivateKey),
       solanaPrivateKey: solanaPrivateKey,
       mnemonic: mnemonic,
     );
@@ -118,6 +127,28 @@ class WalletCryptoService {
     return Uint8List.fromList(hex.decode(normalizePrivateKey(input)));
   }
 
+  /// 从助记词按 BIP84 路径派生 Bitcoin P2WPKH 私钥。
+  String bitcoinPrivateKeyFromMnemonic(String input) {
+    final mnemonic = normalizeMnemonic(input);
+    final seed = Uint8List.fromList(
+      Mnemonic.fromSentence(mnemonic, Language.english).seed,
+    );
+    return hex.encode(_deriveSecp256k1PrivateKey(seed, bitcoinDerivationPath));
+  }
+
+  /// 私钥导入钱包在 Bitcoin 上复用同一 secp256k1 私钥。
+  String bitcoinPrivateKeyFromPrivateKey(String input) {
+    return normalizePrivateKey(input);
+  }
+
+  /// 根据 32 字节 secp256k1 私钥生成 Bitcoin Mainnet P2WPKH 地址。
+  String bitcoinAddressFromPrivateKey(String input) {
+    final privateKey = Uint8List.fromList(
+      hex.decode(normalizePrivateKey(input)),
+    );
+    return _bitcoinP2wpkhAddress(privateKey);
+  }
+
   /// 标准化并校验助记词。
   ///
   /// 会去掉首尾空白、压缩多个空白字符、统一转小写，并交给 bip39_mnemonic
@@ -140,6 +171,7 @@ class WalletCryptoService {
   WalletKeyPair _keyPairFromPrivateKeys({
     required String evmPrivateKeyHex,
     required Uint8List solanaPrivateKey,
+    String? bitcoinPrivateKeyHex,
     String? mnemonic,
   }) {
     final privateKey = normalizePrivateKey(evmPrivateKeyHex);
@@ -148,6 +180,9 @@ class WalletCryptoService {
     final bscAddress = '0x${hex.encode(ethAddressBytes)}';
     final tronPayload = Uint8List.fromList([0x41, ...ethAddressBytes]);
     final solanaAddress = _solanaAddressFromPrivateKey(solanaPrivateKey);
+    final bitcoinPrivateKey = Uint8List.fromList(
+      hex.decode(normalizePrivateKey(bitcoinPrivateKeyHex ?? privateKey)),
+    );
 
     return WalletKeyPair(
       privateKeyHex: privateKey,
@@ -155,7 +190,105 @@ class WalletCryptoService {
       bscAddress: _toChecksumEthereumAddress(bscAddress),
       tronAddress: _base58CheckEncode(tronPayload),
       solanaAddress: solanaAddress,
+      bitcoinAddress: _bitcoinP2wpkhAddress(bitcoinPrivateKey),
     );
+  }
+
+  /// 生成 Bitcoin Mainnet Native SegWit（P2WPKH）地址。
+  String _bitcoinP2wpkhAddress(Uint8List privateKey) {
+    final publicKey = _compressedPublicKey(privateKey);
+    final sha256 = _sha256(publicKey);
+    final ripemd160 = RIPEMD160Digest().process(sha256);
+    final witnessProgram = _convertBits(
+      ripemd160,
+      fromBits: 8,
+      toBits: 5,
+      pad: true,
+    );
+    return _bech32Encode('bc', [0, ...witnessProgram]);
+  }
+
+  /// BIP173 Bech32 编码。
+  String _bech32Encode(String humanReadablePart, List<int> data) {
+    final values = [
+      ..._bech32HrpExpand(humanReadablePart),
+      ...data,
+      ...List<int>.filled(6, 0),
+    ];
+    final checksum = _bech32Polymod(values) ^ 1;
+    final result = StringBuffer(
+      '$humanReadablePart'
+      '1',
+    );
+    for (final value in data) {
+      result.write(CryptoConstants.bech32Alphabet[value]);
+    }
+    for (var index = 0; index < 6; index++) {
+      final shift = 5 * (5 - index);
+      result.write(CryptoConstants.bech32Alphabet[(checksum >> shift) & 31]);
+    }
+    return result.toString();
+  }
+
+  List<int> _bech32HrpExpand(String value) {
+    return [
+      ...value.codeUnits.map((character) => character >> 5),
+      0,
+      ...value.codeUnits.map((character) => character & 31),
+    ];
+  }
+
+  int _bech32Polymod(List<int> values) {
+    const generators = [
+      0x3b6a57b2,
+      0x26508e6d,
+      0x1ea119fa,
+      0x3d4233dd,
+      0x2a1462b3,
+    ];
+    var checksum = 1;
+    for (final value in values) {
+      final top = checksum >> 25;
+      checksum = ((checksum & 0x1ffffff) << 5) ^ value;
+      for (var index = 0; index < generators.length; index++) {
+        if (((top >> index) & 1) != 0) {
+          checksum ^= generators[index];
+        }
+      }
+    }
+    return checksum;
+  }
+
+  List<int> _convertBits(
+    List<int> data, {
+    required int fromBits,
+    required int toBits,
+    required bool pad,
+  }) {
+    var accumulator = 0;
+    var bits = 0;
+    final result = <int>[];
+    final maxValue = (1 << toBits) - 1;
+    final maxAccumulator = (1 << (fromBits + toBits - 1)) - 1;
+    for (final value in data) {
+      if (value < 0 || value >> fromBits != 0) {
+        throw const FormatException('Invalid Bech32 data');
+      }
+      accumulator = ((accumulator << fromBits) | value) & maxAccumulator;
+      bits += fromBits;
+      while (bits >= toBits) {
+        bits -= toBits;
+        result.add((accumulator >> bits) & maxValue);
+      }
+    }
+    if (pad && bits > 0) {
+      result.add((accumulator << (toBits - bits)) & maxValue);
+    } else if (!pad &&
+        (bits >= fromBits ||
+            ((accumulator << (toBits - bits)) & maxValue) != 0)) {
+      throw const FormatException('Invalid Bech32 padding');
+    }
+    return result;
   }
 
   /// 标准化并校验 EVM 私钥。
@@ -422,12 +555,14 @@ class _DerivationIndex {
 /// - EVM 地址（BSC/Ethereum/X Layer 共用）；
 /// - TRON 地址；
 /// - Solana 地址。
+/// - Bitcoin Native SegWit 地址。
 class WalletKeyPair {
   const WalletKeyPair({
     required this.privateKeyHex,
     required this.bscAddress,
     required this.tronAddress,
     required this.solanaAddress,
+    required this.bitcoinAddress,
     this.mnemonic,
   });
 
@@ -447,4 +582,7 @@ class WalletKeyPair {
 
   /// Solana Base58 地址。
   final String solanaAddress;
+
+  /// Bitcoin Mainnet Native SegWit 地址。
+  final String bitcoinAddress;
 }

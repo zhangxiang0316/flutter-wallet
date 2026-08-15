@@ -175,7 +175,7 @@ void main() {
         expect(result.records, hasLength(1));
         expect(result.records.single.txHash, '0xetherscanv2');
         expect(result.records.single.contractAddress, asset.contractAddress);
-        expect(adapter.moralisChains, ['arbitrum']);
+        expect(adapter.moralisChains, ['arbitrum', 'arbitrum']);
         expect(adapter.etherscanV2ChainIds, ['42161']);
       },
     );
@@ -843,6 +843,174 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('loads native Bitcoin transactions from Esplora', () async {
+      const address = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
+      final adapter = FallbackRpcAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(dio: dio);
+      const asset = ChainBalance(
+        chain: WalletChain.bitcoin,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        amount: '1.25',
+        address: address,
+        decimals: 8,
+        canonicalTokenId: 'btc',
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+      final byHash = await service.loadTransactionRecordByHash(
+        walletId: 'wallet-1',
+        asset: asset,
+        txHash: 'bitcoin-by-hash',
+      );
+
+      expect(result.records, hasLength(1));
+      expect(result.records.single.amount, '0.5');
+      expect(result.records.single.feeAmount, '0.00001');
+      expect(
+        result.records.single.direction,
+        WalletTransactionDirection.incoming,
+      );
+      expect(result.records.single.status, WalletTransactionStatus.success);
+      expect(result.records.single.blockNumber, 850000);
+      expect(result.hasMore, isFalse);
+      expect(byHash?.txHash, 'bitcoin-by-hash');
+    });
+
+    test('parses outgoing, self and pending Bitcoin transactions', () async {
+      const address = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
+      const other = 'bc1qotheraddressfortesting00000000000000000';
+      final adapter = FallbackRpcAdapter(
+        bitcoinHistoryTransactions: [
+          {
+            'txid': 'bitcoin-outgoing',
+            'fee': 1000,
+            'vin': [
+              {
+                'prevout': {
+                  'scriptpubkey_address': address,
+                  'value': 100000000,
+                },
+              },
+            ],
+            'vout': [
+              {'scriptpubkey_address': other, 'value': 40000000},
+              {'scriptpubkey_address': address, 'value': 59999000},
+            ],
+            'status': {
+              'confirmed': true,
+              'block_height': 850001,
+              'block_time': 1700000001,
+            },
+          },
+          {
+            'txid': 'bitcoin-self',
+            'fee': 1000,
+            'vin': [
+              {
+                'prevout': {
+                  'scriptpubkey_address': address,
+                  'value': 100000000,
+                },
+              },
+            ],
+            'vout': [
+              {'scriptpubkey_address': address, 'value': 99999000},
+            ],
+            'status': {
+              'confirmed': true,
+              'block_height': 850002,
+              'block_time': 1700000002,
+            },
+          },
+          {
+            'txid': 'bitcoin-pending',
+            'fee': 500,
+            'vin': [
+              {
+                'prevout': {'scriptpubkey_address': other, 'value': 25000500},
+              },
+            ],
+            'vout': [
+              {'scriptpubkey_address': address, 'value': 25000000},
+            ],
+            'status': {'confirmed': false},
+          },
+        ],
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(dio: dio);
+      const asset = ChainBalance(
+        chain: WalletChain.bitcoin,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        amount: '1',
+        address: address,
+        decimals: 8,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+      final records = {
+        for (final record in result.records) record.txHash: record,
+      };
+
+      expect(
+        records['bitcoin-outgoing']?.direction,
+        WalletTransactionDirection.outgoing,
+      );
+      expect(records['bitcoin-outgoing']?.amount, '0.4');
+      expect(
+        records['bitcoin-self']?.direction,
+        WalletTransactionDirection.selfTransfer,
+      );
+      expect(records['bitcoin-self']?.amount, '0.99999');
+      expect(
+        records['bitcoin-pending']?.status,
+        WalletTransactionStatus.pending,
+      );
+      expect(records['bitcoin-pending']?.amount, '0.25');
+    });
+
+    test('returns a Bitcoin Esplora pagination cursor', () async {
+      const address = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
+      final transactions = List.generate(
+        25,
+        (index) => bitcoinTxItem(
+          txid: 'bitcoin-page-${index.toString().padLeft(2, '0')}',
+          walletAddress: address,
+        ),
+      );
+      final adapter = FallbackRpcAdapter(
+        bitcoinHistoryTransactions: transactions,
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(dio: dio);
+      const asset = ChainBalance(
+        chain: WalletChain.bitcoin,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        amount: '1',
+        address: address,
+        decimals: 8,
+      );
+
+      final result = await service.loadAssetRecordPage(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(result.records, hasLength(25));
+      expect(result.hasMore, isTrue);
+      expect(result.nextCursor?.bitcoinLastSeenTxId, 'bitcoin-page-24');
     });
   });
 }

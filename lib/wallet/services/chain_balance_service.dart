@@ -15,6 +15,7 @@ part 'balance/chain_balance_routes.dart';
 part 'balance/evm_chain_balance.dart';
 part 'balance/tron_chain_balance.dart';
 part 'balance/solana_chain_balance.dart';
+part 'balance/bitcoin_chain_balance.dart';
 
 /// 多链余额查询服务。
 ///
@@ -118,6 +119,12 @@ class ChainBalanceService {
     'https://api.mainnet-beta.solana.com',
   ];
 
+  /// Bitcoin Mainnet Esplora 兼容 API 备用节点。
+  static const List<String> _bitcoinApiFallbacks = [
+    'https://mempool.space/api',
+    'https://blockstream.info/api',
+  ];
+
   /// Solana SPL Token Program 地址。
   ///
   /// USDT、USDC 等主流稳定币都使用该 program。按 mint 查询失败时，会用该
@@ -134,12 +141,16 @@ class ChainBalanceService {
     required String bscAddress,
     required String tronAddress,
     required String solanaAddress,
+    String bitcoinAddress = '',
   }) async {
     final customAssets = await _customAssetService.loadCustomAssets();
     final enabledChains = await _chainConfigService.loadEnabledChains();
     final evmChains = enabledChains.where((chain) => chain.isEvm);
     final solanaChain = _builtinChainConfig(enabledChains, WalletChain.solana);
     final tronChain = _builtinChainConfig(enabledChains, WalletChain.tron);
+    final bitcoinChains = enabledChains.where(
+      (chain) => chain.type == WalletChainType.bitcoin,
+    );
     final results = await Future.wait([
       ...evmChains.map((chain) {
         final assets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
@@ -218,6 +229,23 @@ class ChainBalanceService {
           error: error.toString(),
         );
       }),
+      if (bitcoinAddress.trim().isNotEmpty)
+        ...bitcoinChains.map(
+          (chain) => _loadBitcoinBalances(chain: chain, address: bitcoinAddress)
+              .catchError((error) {
+                developer.log(
+                  'Bitcoin balance lookup failed; using zero fallback balance',
+                  error: error,
+                  name: 'ChainBalanceService',
+                );
+                return _fallbackBalancesForAssets(
+                  chain: chain,
+                  assets: WalletAssetRegistry.assetsForChainConfig(chain),
+                  address: bitcoinAddress,
+                  error: error.toString(),
+                );
+              }),
+        ),
     ]);
     final balances = results.expand((items) => items).toList();
     _printLoadedBalances(results, balances);

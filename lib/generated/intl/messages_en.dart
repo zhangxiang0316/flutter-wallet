@@ -538,15 +538,15 @@ class MessageLookup extends MessageLookupByLibrary {
         "walletSecurityUpgrade":
             MessageLookupByLibrary.simpleMessage("Upgrade wallet security"),
         "walletSolanaAddressUpgrade":
-            MessageLookupByLibrary.simpleMessage("Complete Solana Address"),
+            MessageLookupByLibrary.simpleMessage("Complete Wallet Addresses"),
         "walletSolanaAddressUpgradeAction":
-            MessageLookupByLibrary.simpleMessage("Complete Address"),
+            MessageLookupByLibrary.simpleMessage("Complete Addresses"),
         "walletSolanaAddressUpgradeDetail": MessageLookupByLibrary.simpleMessage(
-            "This wallet was created before Solana support. Enter the wallet password to unlock the local private key and derive the Solana address."),
+            "This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana or Bitcoin address."),
         "walletSolanaAddressUpgradeFailed":
             MessageLookupByLibrary.simpleMessage(
-                "Solana address completion failed. Please try again."),
+                "Wallet address completion failed. Please try again."),
         "walletSolanaAddressUpgraded":
-            MessageLookupByLibrary.simpleMessage("Solana address completed")
+            MessageLookupByLibrary.simpleMessage("Wallet addresses completed")
       };
 }

@@ -117,6 +117,7 @@ class _WalletOptionRow extends StatelessWidget {
                       bscAddress: wallet.bscAddress,
                       solanaAddress: wallet.solanaAddress,
                       tronAddress: wallet.tronAddress,
+                      bitcoinAddress: wallet.bitcoinAddress,
                     ),
                   ],
                 ),
@@ -245,6 +246,7 @@ class _WalletAddressLine extends StatelessWidget {
     required this.bscAddress,
     required this.solanaAddress,
     required this.tronAddress,
+    required this.bitcoinAddress,
   });
 
   /// EVM 兼容链地址，当前 BSC、ETH、X Layer、Arbitrum 共用该地址。
@@ -256,38 +258,49 @@ class _WalletAddressLine extends StatelessWidget {
   /// TRON 链地址。
   final String tronAddress;
 
+  /// Bitcoin 链地址。
+  final String bitcoinAddress;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     // 地址属于辅助识别信息，使用较弱正文色。
     final textColor = colorScheme.onSurface.withValues(alpha: 0.52);
-    return Row(
-      children: [
-        Expanded(
-          child: _WalletAddressText(
-            label: 'EVM',
-            address: _shortWalletAddress(bscAddress),
-            color: textColor,
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: _WalletAddressText(
-            label: WalletChain.solana.symbol,
-            address: _shortWalletAddress(solanaAddress),
-            color: textColor,
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: _WalletAddressText(
-            label: WalletChain.tron.symbol,
-            address: _shortWalletAddress(tronAddress),
-            color: textColor,
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 8.w) / 2;
+        return Wrap(
+          spacing: 8.w,
+          runSpacing: 3.h,
+          children: [
+            _WalletAddressText(
+              width: itemWidth,
+              label: 'EVM',
+              address: _shortWalletAddress(bscAddress),
+              color: textColor,
+            ),
+            _WalletAddressText(
+              width: itemWidth,
+              label: WalletChain.bitcoin.symbol,
+              address: _shortWalletAddress(bitcoinAddress),
+              color: textColor,
+            ),
+            _WalletAddressText(
+              width: itemWidth,
+              label: WalletChain.solana.symbol,
+              address: _shortWalletAddress(solanaAddress),
+              color: textColor,
+            ),
+            _WalletAddressText(
+              width: itemWidth,
+              label: WalletChain.tron.symbol,
+              address: _shortWalletAddress(tronAddress),
+              color: textColor,
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -298,6 +311,7 @@ class _WalletAddressText extends StatelessWidget {
     required this.label,
     required this.address,
     required this.color,
+    required this.width,
   });
 
   /// 链类型标签，例如 EVM、SOL、TRX。
@@ -309,16 +323,21 @@ class _WalletAddressText extends StatelessWidget {
   /// 地址文本颜色。
   final Color color;
 
+  final double width;
+
   @override
   Widget build(BuildContext context) {
-    return Text(
-      '$label $address',
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        color: color,
-        fontSize: 10.sp,
-        fontWeight: FontWeight.w700,
+    return SizedBox(
+      width: width,
+      child: Text(
+        '$label $address',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color,
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -336,11 +355,12 @@ class _ChainOverlapTicker extends StatelessWidget {
       WalletChain.ethereum,
       WalletChain.xLayer,
       WalletChain.arbitrum,
+      WalletChain.bitcoin,
       WalletChain.solana,
       WalletChain.tron,
     ];
     return SizedBox(
-      width: 144.w,
+      width: 166.w,
       height: 34.w,
       child: Stack(
         children: chains
@@ -398,6 +418,8 @@ class _ChainCircle extends StatelessWidget {
         return const Color(0xFF10B981);
       case WalletChain.arbitrum:
         return const Color(0xFF28A0F0);
+      case WalletChain.bitcoin:
+        return const Color(0xFFF7931A);
       case WalletChain.solana:
         return const Color(0xFF14F195);
       case WalletChain.tron:
@@ -415,6 +437,8 @@ class _ChainCircle extends StatelessWidget {
         return 'O';
       case WalletChain.arbitrum:
         return 'A';
+      case WalletChain.bitcoin:
+        return '₿';
       case WalletChain.solana:
         return 'S';
       case WalletChain.tron:

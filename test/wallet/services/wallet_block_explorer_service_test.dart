@@ -35,6 +35,20 @@ void main() {
       expect(uri.toString(), equals('https://solscan.io/tx/solTxHash'));
     });
 
+    test('builds Bitcoin transaction URL', () {
+      const asset = ChainBalance(
+        chain: WalletChain.bitcoin,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        amount: '1',
+        address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+      );
+
+      final uri = service.transactionUri(asset, 'bitcoinTxHash');
+
+      expect(uri.toString(), equals('https://mempool.space/tx/bitcoinTxHash'));
+    });
+
     test('returns null for blank transaction hash', () {
       const asset = ChainBalance(
         chain: WalletChain.bsc,

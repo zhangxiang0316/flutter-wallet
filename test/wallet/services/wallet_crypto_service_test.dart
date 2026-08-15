@@ -12,18 +12,25 @@ void main() {
       service = WalletCryptoService();
     });
 
-    test('derives BSC, Solana, and TRON addresses from a private key', () {
-      final keyPair = service.importPrivateKey(
-        '0x0000000000000000000000000000000000000000000000000000000000000001',
-      );
+    test(
+      'derives EVM, Solana, TRON, and Bitcoin addresses from a private key',
+      () {
+        final keyPair = service.importPrivateKey(
+          '0x0000000000000000000000000000000000000000000000000000000000000001',
+        );
 
-      expect(keyPair.bscAddress, '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf');
-      expect(keyPair.tronAddress, 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC');
-      expect(
-        WalletTransferService.normalizeSolanaAddress(keyPair.solanaAddress),
-        keyPair.solanaAddress,
-      );
-    });
+        expect(
+          keyPair.bscAddress,
+          '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        );
+        expect(keyPair.tronAddress, 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC');
+        expect(keyPair.bitcoinAddress, startsWith('bc1q'));
+        expect(
+          WalletTransferService.normalizeSolanaAddress(keyPair.solanaAddress),
+          keyPair.solanaAddress,
+        );
+      },
+    );
 
     test('generates and imports mnemonic wallets deterministically', () {
       final mnemonic = service.generateMnemonic();
@@ -37,9 +44,29 @@ void main() {
       expect(first.bscAddress, second.bscAddress);
       expect(first.tronAddress, second.tronAddress);
       expect(first.solanaAddress, second.solanaAddress);
+      expect(first.bitcoinAddress, second.bitcoinAddress);
       expect(
         WalletTransferService.normalizeSolanaAddress(first.solanaAddress),
         first.solanaAddress,
+      );
+    });
+
+    test('matches the BIP84 first receiving address test vector', () {
+      const mnemonic =
+          'abandon abandon abandon abandon abandon abandon abandon abandon '
+          'abandon abandon abandon about';
+
+      final keyPair = service.importMnemonic(mnemonic);
+
+      expect(
+        keyPair.bitcoinAddress,
+        'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+      );
+      expect(
+        service.bitcoinAddressFromPrivateKey(
+          service.bitcoinPrivateKeyFromMnemonic(mnemonic),
+        ),
+        keyPair.bitcoinAddress,
       );
     });
 

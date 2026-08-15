@@ -1560,50 +1560,50 @@ class S {
     );
   }
 
-  /// `Complete Solana Address`
+  /// `Complete Wallet Addresses`
   String get walletSolanaAddressUpgrade {
     return Intl.message(
-      'Complete Solana Address',
+      'Complete Wallet Addresses',
       name: 'walletSolanaAddressUpgrade',
       desc: '',
       args: [],
     );
   }
 
-  /// `This wallet was created before Solana support. Enter the wallet password to unlock the local private key and derive the Solana address.`
+  /// `This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana or Bitcoin address.`
   String get walletSolanaAddressUpgradeDetail {
     return Intl.message(
-      'This wallet was created before Solana support. Enter the wallet password to unlock the local private key and derive the Solana address.',
+      'This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana or Bitcoin address.',
       name: 'walletSolanaAddressUpgradeDetail',
       desc: '',
       args: [],
     );
   }
 
-  /// `Complete Address`
+  /// `Complete Addresses`
   String get walletSolanaAddressUpgradeAction {
     return Intl.message(
-      'Complete Address',
+      'Complete Addresses',
       name: 'walletSolanaAddressUpgradeAction',
       desc: '',
       args: [],
     );
   }
 
-  /// `Solana address completed`
+  /// `Wallet addresses completed`
   String get walletSolanaAddressUpgraded {
     return Intl.message(
-      'Solana address completed',
+      'Wallet addresses completed',
       name: 'walletSolanaAddressUpgraded',
       desc: '',
       args: [],
     );
   }
 
-  /// `Solana address completion failed. Please try again.`
+  /// `Wallet address completion failed. Please try again.`
   String get walletSolanaAddressUpgradeFailed {
     return Intl.message(
-      'Solana address completion failed. Please try again.',
+      'Wallet address completion failed. Please try again.',
       name: 'walletSolanaAddressUpgradeFailed',
       desc: '',
       args: [],

@@ -24,6 +24,32 @@ Map<String, dynamic> bscTokenTxItem({
   };
 }
 
+Map<String, dynamic> bitcoinTxItem({
+  String txid = 'bitcoin-transaction-id',
+  String walletAddress = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+}) {
+  return {
+    'txid': txid,
+    'fee': 1000,
+    'vin': [
+      {
+        'prevout': {
+          'scriptpubkey_address': 'bc1q6f6j0e9mggd8v8c2m4j8jfnzqp8r9px7jnh8ds',
+          'value': 50001000,
+        },
+      },
+    ],
+    'vout': [
+      {'scriptpubkey_address': walletAddress, 'value': 50000000},
+    ],
+    'status': {
+      'confirmed': true,
+      'block_height': 850000,
+      'block_time': 1700000000,
+    },
+  };
+}
+
 Map<String, dynamic> _moralisTokenTxItem({
   required String hash,
   required String value,
@@ -94,6 +120,11 @@ class FallbackRpcAdapter implements HttpClientAdapter {
     this.moralisTokenFullPage = false,
     this.failEtherscanV2 = false,
     this.xLayerTokenLogFullPage = false,
+    this.bitcoinBalanceSats = 125000000,
+    this.bitcoinFeeRate = 5,
+    this.bitcoinUtxoSats = 100000000,
+    this.bitcoinStatusConfirmed = true,
+    this.bitcoinHistoryTransactions,
   });
 
   final bool failBscScan;
@@ -119,6 +150,11 @@ class FallbackRpcAdapter implements HttpClientAdapter {
   final bool moralisTokenFullPage;
   final bool failEtherscanV2;
   final bool xLayerTokenLogFullPage;
+  final int bitcoinBalanceSats;
+  final int bitcoinFeeRate;
+  final int bitcoinUtxoSats;
+  final bool bitcoinStatusConfirmed;
+  final List<Map<String, dynamic>>? bitcoinHistoryTransactions;
   final calls = <String>[];
   final bscScanPages = <int>[];
   final bscScanOffsets = <int>[];
@@ -132,6 +168,8 @@ class FallbackRpcAdapter implements HttpClientAdapter {
   final solanaRpcApiKeys = <String>[];
   Map<String, dynamic> tronGridHeaders = const {};
   String? lastSolanaTransactionBase64;
+  String? lastBitcoinRawTransaction;
+  int bitcoinBroadcastCount = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -141,6 +179,84 @@ class FallbackRpcAdapter implements HttpClientAdapter {
   ) async {
     final origin = '${options.uri.scheme}://${options.uri.host}';
     calls.add(origin);
+
+    if ((origin == 'https://mempool.space' ||
+            origin == 'https://blockstream.info') &&
+        options.uri.path.endsWith('/v1/fees/recommended')) {
+      return _jsonResponse({
+        'fastestFee': bitcoinFeeRate + 2,
+        'halfHourFee': bitcoinFeeRate,
+        'hourFee': bitcoinFeeRate,
+        'economyFee': 1,
+        'minimumFee': 1,
+      });
+    }
+    if ((origin == 'https://mempool.space' ||
+            origin == 'https://blockstream.info') &&
+        options.uri.path.endsWith('/utxo')) {
+      return _jsonResponse([
+        {
+          'txid': '${List.filled(63, '0').join()}1',
+          'vout': 0,
+          'value': bitcoinUtxoSats,
+          'status': {'confirmed': true},
+        },
+      ]);
+    }
+
+    if ((origin == 'https://mempool.space' ||
+            origin == 'https://blockstream.info') &&
+        options.method == 'POST' &&
+        options.uri.path.endsWith('/tx')) {
+      lastBitcoinRawTransaction = options.data?.toString();
+      bitcoinBroadcastCount++;
+      return ResponseBody.fromString(
+        List.filled(64, 'a').join(),
+        200,
+        headers: {
+          Headers.contentTypeHeader: ['text/plain'],
+        },
+      );
+    }
+
+    if ((origin == 'https://mempool.space' ||
+            origin == 'https://blockstream.info') &&
+        options.uri.path.contains('/address/') &&
+        !options.uri.path.contains('/txs')) {
+      return _jsonResponse({
+        'chain_stats': {
+          'funded_txo_sum': bitcoinBalanceSats,
+          'spent_txo_sum': 0,
+        },
+        'mempool_stats': {'funded_txo_sum': 0, 'spent_txo_sum': 0},
+      });
+    }
+
+    if ((origin == 'https://mempool.space' ||
+            origin == 'https://blockstream.info') &&
+        options.uri.path.contains('/address/') &&
+        options.uri.path.contains('/txs')) {
+      if (bitcoinHistoryTransactions != null) {
+        return _jsonResponse(bitcoinHistoryTransactions!);
+      }
+      final address = options
+          .uri
+          .pathSegments[options.uri.pathSegments.indexOf('address') + 1];
+      return _jsonResponse([bitcoinTxItem(walletAddress: address)]);
+    }
+
+    if ((origin == 'https://mempool.space' ||
+            origin == 'https://blockstream.info') &&
+        options.uri.path.contains('/tx/')) {
+      if (options.uri.path.endsWith('/status')) {
+        return _jsonResponse({
+          'confirmed': bitcoinStatusConfirmed,
+          if (bitcoinStatusConfirmed) 'block_height': 850000,
+          if (bitcoinStatusConfirmed) 'block_time': 1700000000,
+        });
+      }
+      return _jsonResponse(bitcoinTxItem(txid: options.uri.pathSegments.last));
+    }
 
     if (origin == 'https://deep-index.moralis.io') {
       if (failMoralisInvalidApiKey) {

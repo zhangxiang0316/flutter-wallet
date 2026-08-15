@@ -8,6 +8,7 @@ import '../../../../utils/toast_util.dart';
 import '../../../../utils/transaction_risk_checker.dart';
 import '../../../../wallet/models/chain_balance.dart';
 import '../../../../wallet/models/wallet_chain.dart';
+import '../../../../wallet/models/wallet_chain_extensions.dart';
 import '../../../../wallet/services/wallet_transfer_service.dart';
 import '../../../../widget/transaction_review_sheet.dart';
 import '../../controller/transfer_controller.dart';
@@ -195,7 +196,7 @@ class TransferReviewFlow {
             recipientAddress: recipientAddress,
             walletAddress: asset.address,
             message: s.transferRiskSelfTransfer,
-            caseInsensitive: asset.chainRef.isEvm,
+            caseInsensitive: asset.chainRef.isEvm || asset.chainRef.isBitcoin,
           )
           case final risk?)
         risk,
@@ -227,7 +228,7 @@ class TransferReviewFlow {
       recipientAddress: recipientAddress,
       clipboardAddress: clipboardAddress,
       message: s.transferRiskClipboardMismatch,
-      caseInsensitive: asset.chainRef.isEvm,
+      caseInsensitive: asset.chainRef.isEvm || asset.chainRef.isBitcoin,
     );
     if (clipboardRisk != null) {
       risks.add(clipboardRisk);
@@ -340,6 +341,13 @@ class TransferReviewFlow {
         asset.chainConfig?.type == WalletChainType.solana) {
       return RegExp(
         r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
+      ).firstMatch(value)?.group(0);
+    }
+    if (asset.chainRef.id == WalletChain.bitcoin.id ||
+        asset.chainConfig?.type == WalletChainType.bitcoin) {
+      return RegExp(
+        r'(?<![02-9ac-hj-np-z])bc1q[02-9ac-hj-np-z]{38}(?![02-9ac-hj-np-z])',
+        caseSensitive: false,
       ).firstMatch(value)?.group(0);
     }
     return null;

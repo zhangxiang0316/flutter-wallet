@@ -49,6 +49,8 @@ Color homeChainColor(WalletChainRef chain) {
       return const Color(0xFF111827);
     case WalletChain.arbitrum:
       return const Color(0xFF28A0F0);
+    case WalletChain.bitcoin:
+      return const Color(0xFFF7931A);
     case WalletChain.solana:
       return const Color(0xFF14F195);
     case WalletChain.tron:
@@ -69,6 +71,7 @@ Color homeAssetColor(BuildContext context, String symbol) {
       return const Color(0xFF2775CA);
     case 'BTCB':
     case 'WBTC':
+    case 'BTC':
       return const Color(0xFFF7931A);
     case 'ETH':
       return const Color(0xFF627EEA);

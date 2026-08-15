@@ -107,6 +107,7 @@ class WalletRpcHealthService {
         WalletChainType.evm => _checkEvmRpc(chain, normalizedUrl),
         WalletChainType.solana => _checkSolanaRpc(normalizedUrl),
         WalletChainType.tron => _checkTronRpc(normalizedUrl),
+        WalletChainType.bitcoin => _checkBitcoinApi(normalizedUrl),
       };
       stopwatch.stop();
       return WalletRpcHealthResult(
@@ -170,6 +171,13 @@ class WalletRpcHealthService {
     final data = response.data;
     if (data is! Map || data['block_header'] == null) {
       throw StateError('Invalid TRON RPC response');
+    }
+  }
+
+  Future<void> _checkBitcoinApi(String apiUrl) async {
+    final response = await _dio.get('$apiUrl/blocks/tip/height');
+    if (int.tryParse(response.data?.toString() ?? '') == null) {
+      throw StateError('Invalid Bitcoin API response');
     }
   }
 }

@@ -261,6 +261,9 @@ class AddressBookController extends BaseController {
         case WalletChainType.solana:
           WalletTransferService.normalizeSolanaAddress(address);
           return true;
+        case WalletChainType.bitcoin:
+          WalletTransferService.normalizeBitcoinAddress(address);
+          return true;
       }
     } catch (_) {
       return false;

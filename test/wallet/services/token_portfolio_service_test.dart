@@ -195,9 +195,18 @@ void main() {
       },
     );
 
-    test('normalizes trusted BTCB and WBTC into one BTC portfolio', () {
+    test('groups native BTC, BTCB and WBTC into one BTC portfolio', () {
       final result = service.build(
         balances: const [
+          ChainBalance(
+            chain: WalletChain.bitcoin,
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            amount: '0.5',
+            address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+            canonicalTokenId: 'btc',
+            decimals: 8,
+          ),
           ChainBalance(
             chain: WalletChain.bsc,
             symbol: 'BTCB',
@@ -217,8 +226,13 @@ void main() {
             decimals: 8,
           ),
         ],
-        chains: [WalletChain.bsc.config, WalletChain.ethereum.config],
+        chains: [
+          WalletChain.bitcoin.config,
+          WalletChain.bsc.config,
+          WalletChain.ethereum.config,
+        ],
         prices: {
+          'BTC': Decimal.parse('60000'),
           'BTCB': Decimal.parse('60000'),
           'WBTC': Decimal.parse('60000'),
         },
@@ -227,8 +241,9 @@ void main() {
       expect(result, hasLength(1));
       expect(result.single.canonicalTokenId, 'btc');
       expect(result.single.symbol, 'BTC');
-      expect(result.single.totalAmount, Decimal.parse('0.3'));
-      expect(result.single.totalUsdValue, Decimal.parse('18000'));
+      expect(result.single.totalAmount, Decimal.parse('0.8'));
+      expect(result.single.totalUsdValue, Decimal.parse('48000'));
+      expect(result.single.positions, hasLength(3));
     });
 
     test('keeps error state separate from successful zero balances', () {

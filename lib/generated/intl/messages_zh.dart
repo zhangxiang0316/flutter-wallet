@@ -438,15 +438,15 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("钱包私钥加密失败，请重试"),
         "walletSecurityUpgrade": MessageLookupByLibrary.simpleMessage("升级钱包安全"),
         "walletSolanaAddressUpgrade":
-            MessageLookupByLibrary.simpleMessage("补全 Solana 地址"),
+            MessageLookupByLibrary.simpleMessage("补全钱包地址"),
         "walletSolanaAddressUpgradeAction":
             MessageLookupByLibrary.simpleMessage("补全地址"),
         "walletSolanaAddressUpgradeDetail":
             MessageLookupByLibrary.simpleMessage(
-                "当前钱包创建于支持 Solana 之前，需要输入钱包密码解锁本机私钥并派生 Solana 地址。"),
+                "当前钱包创建于支持全部现有网络之前，需要输入钱包密码派生缺失的 Solana 或 Bitcoin 地址。"),
         "walletSolanaAddressUpgradeFailed":
-            MessageLookupByLibrary.simpleMessage("Solana 地址补全失败，请重试"),
+            MessageLookupByLibrary.simpleMessage("钱包地址补全失败，请重试"),
         "walletSolanaAddressUpgraded":
-            MessageLookupByLibrary.simpleMessage("Solana 地址已补全")
+            MessageLookupByLibrary.simpleMessage("钱包地址已补全")
       };
 }

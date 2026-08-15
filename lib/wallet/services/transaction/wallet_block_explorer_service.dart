@@ -41,6 +41,8 @@ class WalletBlockExplorerService {
         return 'https://solscan.io/account/{address}';
       case 'tron':
         return 'https://tronscan.org/#/address/{address}';
+      case 'bitcoin':
+        return 'https://mempool.space/address/{address}';
     }
 
     if (chain is WalletChainConfig) {
@@ -63,6 +65,8 @@ class WalletBlockExplorerService {
         return 'https://solscan.io/tx/{txHash}';
       case 'tron':
         return 'https://tronscan.org/#/transaction/{txHash}';
+      case 'bitcoin':
+        return 'https://mempool.space/tx/{txHash}';
     }
 
     if (chain is WalletChainConfig) {

@@ -245,8 +245,8 @@ class TransferController extends BaseController {
 
   /// 解锁当前钱包并提交交易。
   ///
-  /// Solana 需要额外读取 32 字节 seed 作为签名私钥；EVM 和 TRON 复用
-  /// 十六进制私钥。异常会被转换成用户可理解的 toast。
+  /// Solana 需要额外读取 32 字节 seed；Bitcoin 助记词钱包读取 BIP84 派生私钥；
+  /// EVM 和 TRON 复用基础十六进制私钥。异常会被转换成用户可理解的 toast。
   Future<void> submit(String password) async {
     final args = arguments;
     final asset = currentAsset;
@@ -262,10 +262,16 @@ class TransferController extends BaseController {
       transactionHash = '';
       submittedStatus = WalletTransactionStatus.unknown;
       update();
-      final privateKeyHex = await _repository.readWalletPrivateKey(
+      var privateKeyHex = await _repository.readWalletPrivateKey(
         walletId: args.walletId,
         password: password,
       );
+      if (asset.chainRef.isBitcoin) {
+        privateKeyHex = await _repository.readWalletBitcoinPrivateKey(
+          walletId: args.walletId,
+          password: password,
+        );
+      }
       final solanaPrivateKey = asset.chainRef.isSolana
           ? await _repository.readWalletSolanaPrivateKey(
               walletId: args.walletId,

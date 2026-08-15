@@ -24,6 +24,24 @@ void main() {
       );
     });
 
+    test('builds Bitcoin address explorer URL', () {
+      const service = WalletBlockExplorerService();
+      const address = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
+      const asset = ChainBalance(
+        chain: WalletChain.bitcoin,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        amount: '1',
+        address: address,
+        decimals: 8,
+      );
+
+      expect(
+        service.addressUri(asset).toString(),
+        'https://mempool.space/address/$address',
+      );
+    });
+
     test('builds explorer URL from custom EVM scan API URL', () {
       const service = WalletBlockExplorerService();
       final chain = WalletChainConfig.customEvm(
