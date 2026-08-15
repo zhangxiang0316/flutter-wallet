@@ -35,6 +35,7 @@ const Map<String, String> _binanceTickerSymbols = {
   'OKB': 'OKBUSDT',
   'SOL': 'SOLUSDT',
   'SUI': 'SUIUSDT',
+  'APT': 'APTUSDT',
   'ARB': 'ARBUSDT',
 };
 
@@ -49,6 +50,7 @@ const Map<String, String> _okxTickerSymbols = {
   'OKB': 'OKB-USDT',
   'SOL': 'SOL-USDT',
   'SUI': 'SUI-USDT',
+  'APT': 'APT-USDT',
   'ARB': 'ARB-USDT',
 };
 
@@ -65,6 +67,7 @@ const Map<String, String> _coingeckoIds = {
   'OKB': 'okb',
   'SOL': 'solana',
   'SUI': 'sui',
+  'APT': 'aptos',
   'ARB': 'arbitrum',
 };
 
@@ -79,6 +82,7 @@ const Map<String, String> _coinPaprikaIds = {
   'OKB': 'okb-okb',
   'SOL': 'sol-solana',
   'SUI': 'sui-sui',
+  'APT': 'apt-aptos',
   'ARB': 'arb-arbitrum',
 };
 
@@ -93,6 +97,7 @@ const Map<String, String> _cryptoCompareSymbols = {
   'OKB': 'OKB',
   'SOL': 'SOL',
   'SUI': 'SUI',
+  'APT': 'APT',
   'ARB': 'ARB',
 };
 

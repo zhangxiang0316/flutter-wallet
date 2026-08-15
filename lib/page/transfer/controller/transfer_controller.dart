@@ -284,6 +284,12 @@ class TransferController extends BaseController {
               password: password,
             )
           : null;
+      final aptosPrivateKey = asset.chainRef.isAptos
+          ? await _repository.readWalletAptosPrivateKey(
+              walletId: args.walletId,
+              password: password,
+            )
+          : null;
       final hash = await _transferService.transfer(
         privateKeyHex: privateKeyHex,
         asset: asset,
@@ -291,6 +297,7 @@ class TransferController extends BaseController {
         amount: amountController.text.trim(),
         solanaPrivateKey: solanaPrivateKey,
         suiPrivateKey: suiPrivateKey,
+        aptosPrivateKey: aptosPrivateKey,
       );
       transactionHash = hash;
       submittedStatus = WalletTransactionStatus.pending;

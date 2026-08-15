@@ -165,6 +165,7 @@ class HomeController extends BaseController {
       tronAddress: keyPair.tronAddress,
       solanaAddress: keyPair.solanaAddress,
       suiAddress: keyPair.suiAddress,
+      aptosAddress: keyPair.aptosAddress,
       bitcoinAddress: keyPair.bitcoinAddress,
       createdAt: DateTime.now(),
     );
@@ -340,6 +341,7 @@ class HomeController extends BaseController {
       tronAddress: keyPair.tronAddress,
       solanaAddress: keyPair.solanaAddress,
       suiAddress: keyPair.suiAddress,
+      aptosAddress: keyPair.aptosAddress,
       bitcoinAddress: keyPair.bitcoinAddress,
       createdAt: DateTime.now(),
     );
@@ -368,6 +370,7 @@ class HomeController extends BaseController {
       final shouldUpgrade =
           (item.solanaAddress.trim().isEmpty ||
               item.suiAddress.trim().isEmpty ||
+              item.aptosAddress.trim().isEmpty ||
               item.bitcoinAddress.trim().isEmpty) &&
           (walletIds?.contains(item.id) ?? item.id == currentWalletId);
       if (!shouldUpgrade) {
@@ -395,6 +398,19 @@ class HomeController extends BaseController {
               );
         nextWallet = nextWallet.copyWith(
           suiAddress: _cryptoService.suiAddressFromPrivateKey(suiPrivateKey),
+        );
+      }
+      if (item.aptosAddress.trim().isEmpty) {
+        final aptosPrivateKey = item.needsSecretMigration
+            ? _cryptoService.aptosPrivateKeyFromPrivateKey(item.privateKeyHex)
+            : await _repository.readWalletAptosPrivateKey(
+                walletId: item.id,
+                password: password,
+              );
+        nextWallet = nextWallet.copyWith(
+          aptosAddress: _cryptoService.aptosAddressFromPrivateKey(
+            aptosPrivateKey,
+          ),
         );
       }
       if (item.bitcoinAddress.trim().isEmpty) {

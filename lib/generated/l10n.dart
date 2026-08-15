@@ -890,10 +890,10 @@ class S {
     );
   }
 
-  /// `Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, Solana, and TRON.`
+  /// `Supports address management and multi-asset on-chain balance lookup across EVM, Bitcoin, Solana, Sui, Aptos, and TRON networks.`
   String get walletEmptySubtitle {
     return Intl.message(
-      'Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, Solana, and TRON.',
+      'Supports address management and multi-asset on-chain balance lookup across EVM, Bitcoin, Solana, Sui, Aptos, and TRON networks.',
       name: 'walletEmptySubtitle',
       desc: '',
       args: [],
@@ -1570,10 +1570,10 @@ class S {
     );
   }
 
-  /// `This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, or Bitcoin address.`
+  /// `This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, Aptos, or Bitcoin address.`
   String get walletSolanaAddressUpgradeDetail {
     return Intl.message(
-      'This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, or Bitcoin address.',
+      'This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, Aptos, or Bitcoin address.',
       name: 'walletSolanaAddressUpgradeDetail',
       desc: '',
       args: [],

@@ -57,5 +57,21 @@ void main() {
       expect(configuredSui.isSui, isTrue);
       expect(configuredSui.isEvm, isFalse);
     });
+
+    test('isAptos identifies Aptos without treating it as EVM', () {
+      expect(WalletChain.aptos.isAptos, isTrue);
+      expect(WalletChain.aptos.isEvm, isFalse);
+      expect(WalletChain.aptos.isSui, isFalse);
+
+      const configuredAptos = WalletChainConfig(
+        id: 'aptos-provider',
+        name: 'Aptos',
+        symbol: 'APT',
+        rpcUrls: ['https://api.mainnet.aptoslabs.com/v1'],
+        type: WalletChainType.aptos,
+      );
+      expect(configuredAptos.isAptos, isTrue);
+      expect(configuredAptos.isEvm, isFalse);
+    });
   });
 }

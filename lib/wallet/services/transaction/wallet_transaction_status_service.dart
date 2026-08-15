@@ -40,6 +40,7 @@ class WalletTransactionStatusService {
         WalletChainType.evm => _loadEvmStatus(chain, hash),
         WalletChainType.bitcoin => _loadBitcoinStatus(chain, hash),
         WalletChainType.sui => _loadSuiStatus(chain, hash),
+        WalletChainType.aptos => _loadAptosStatus(chain, hash),
       };
     }
     return switch (chain.id) {
@@ -47,6 +48,7 @@ class WalletTransactionStatusService {
       'tron' => _loadTronStatus(chain, hash),
       'bitcoin' => _loadBitcoinStatus(chain, hash),
       'sui' => _loadSuiStatus(chain, hash),
+      'aptos' => _loadAptosStatus(chain, hash),
       _ => WalletTransactionStatus.unknown,
     };
   }
@@ -148,6 +150,30 @@ class WalletTransactionStatusService {
         endpoint: chain.rpcUrl,
       ).getTransaction(txHash);
       return transaction.effects.status.success
+          ? WalletTransactionStatus.success
+          : WalletTransactionStatus.failed;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        return WalletTransactionStatus.pending;
+      }
+      rethrow;
+    }
+  }
+
+  Future<WalletTransactionStatus> _loadAptosStatus(
+    WalletChainRef chain,
+    String txHash,
+  ) async {
+    try {
+      final response = await _dio.get(
+        '${chain.rpcUrl}/transactions/by_hash/$txHash',
+      );
+      final data = response.data;
+      if (data is! Map) return WalletTransactionStatus.unknown;
+      if (data['type'] == 'pending_transaction') {
+        return WalletTransactionStatus.pending;
+      }
+      return data['success'] == true
           ? WalletTransactionStatus.success
           : WalletTransactionStatus.failed;
     } on DioException catch (error) {

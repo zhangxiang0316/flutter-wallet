@@ -413,7 +413,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "walletCreated": MessageLookupByLibrary.simpleMessage("钱包已创建"),
         "walletDetails": MessageLookupByLibrary.simpleMessage("钱包详情"),
         "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
-            "当前支持 BNB Smart Chain、Ethereum、X Layer、Solana 和 TRON 的地址管理与多资产链上余额查询。"),
+            "当前支持 EVM、Bitcoin、Solana、Sui、Aptos 和 TRON 网络的地址管理与多资产链上余额查询。"),
         "walletEmptyTitle": MessageLookupByLibrary.simpleMessage("创建或导入钱包"),
         "walletImported": MessageLookupByLibrary.simpleMessage("导入成功"),
         "walletName": MessageLookupByLibrary.simpleMessage("钱包名称"),
@@ -441,9 +441,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("补全钱包地址"),
         "walletSolanaAddressUpgradeAction":
             MessageLookupByLibrary.simpleMessage("补全地址"),
-        "walletSolanaAddressUpgradeDetail":
-            MessageLookupByLibrary.simpleMessage(
-                "当前钱包创建于支持全部现有网络之前，需要输入钱包密码派生缺失的 Solana、Sui 或 Bitcoin 地址。"),
+        "walletSolanaAddressUpgradeDetail": MessageLookupByLibrary.simpleMessage(
+            "当前钱包创建于支持全部现有网络之前，需要输入钱包密码派生缺失的 Solana、Sui、Aptos 或 Bitcoin 地址。"),
         "walletSolanaAddressUpgradeFailed":
             MessageLookupByLibrary.simpleMessage("钱包地址补全失败，请重试"),
         "walletSolanaAddressUpgraded":

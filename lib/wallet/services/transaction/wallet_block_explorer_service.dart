@@ -45,6 +45,8 @@ class WalletBlockExplorerService {
         return 'https://mempool.space/address/{address}';
       case 'sui':
         return 'https://suiscan.xyz/mainnet/account/{address}';
+      case 'aptos':
+        return 'https://explorer.aptoslabs.com/account/{address}?network=mainnet';
     }
 
     if (chain is WalletChainConfig) {
@@ -71,6 +73,8 @@ class WalletBlockExplorerService {
         return 'https://mempool.space/tx/{txHash}';
       case 'sui':
         return 'https://suiscan.xyz/mainnet/tx/{txHash}';
+      case 'aptos':
+        return 'https://explorer.aptoslabs.com/txn/{txHash}?network=mainnet';
     }
 
     if (chain is WalletChainConfig) {

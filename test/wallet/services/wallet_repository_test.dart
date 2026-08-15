@@ -99,5 +99,31 @@ void main() {
         keyPair.suiAddress,
       );
     });
+
+    test('derives the Aptos signing key from a stored mnemonic', () async {
+      const mnemonic =
+          'abandon abandon abandon abandon abandon abandon abandon abandon '
+          'abandon abandon abandon about';
+      const password = 'wallet-password';
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importMnemonic(mnemonic);
+      final repository = WalletRepository(cryptoService: cryptoService);
+
+      await repository.saveWalletSecret(
+        walletId: 'wallet-aptos',
+        password: password,
+        privateKeyHex: keyPair.privateKeyHex,
+        mnemonic: mnemonic,
+      );
+
+      final aptosPrivateKey = await repository.readWalletAptosPrivateKey(
+        walletId: 'wallet-aptos',
+        password: password,
+      );
+      expect(
+        cryptoService.aptosAddressFromPrivateKey(aptosPrivateKey),
+        keyPair.aptosAddress,
+      );
+    });
   });
 }

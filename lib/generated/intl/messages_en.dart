@@ -507,7 +507,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "walletCreated": MessageLookupByLibrary.simpleMessage("Wallet created"),
         "walletDetails": MessageLookupByLibrary.simpleMessage("Wallet details"),
         "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
-            "Supports address management and multi-asset on-chain balance lookup for BNB Smart Chain, Ethereum, X Layer, Solana, and TRON."),
+            "Supports address management and multi-asset on-chain balance lookup across EVM, Bitcoin, Solana, Sui, Aptos, and TRON networks."),
         "walletEmptyTitle":
             MessageLookupByLibrary.simpleMessage("Create or import a wallet"),
         "walletImported":
@@ -542,7 +542,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "walletSolanaAddressUpgradeAction":
             MessageLookupByLibrary.simpleMessage("Complete Addresses"),
         "walletSolanaAddressUpgradeDetail": MessageLookupByLibrary.simpleMessage(
-            "This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, or Bitcoin address."),
+            "This wallet was created before support for all current networks. Enter the wallet password to derive the missing Solana, Sui, Aptos, or Bitcoin address."),
         "walletSolanaAddressUpgradeFailed":
             MessageLookupByLibrary.simpleMessage(
                 "Wallet address completion failed. Please try again."),

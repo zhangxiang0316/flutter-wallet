@@ -238,6 +238,25 @@ class WalletRepository {
     }
   }
 
+  Future<List<int>> readWalletAptosPrivateKey({
+    required String walletId,
+    required String password,
+  }) async {
+    try {
+      final mnemonic = await readWalletMnemonic(
+        walletId: walletId,
+        password: password,
+      );
+      return _cryptoService.aptosPrivateKeyFromMnemonic(mnemonic);
+    } on WalletSecretMissingException {
+      final privateKeyHex = await readWalletPrivateKey(
+        walletId: walletId,
+        password: password,
+      );
+      return _cryptoService.aptosPrivateKeyFromPrivateKey(privateKeyHex);
+    }
+  }
+
   /// 读取 Bitcoin P2WPKH 转账所需的 secp256k1 私钥。
   ///
   /// 助记词钱包按 BIP84 路径派生；私钥导入钱包复用导入的原始私钥。

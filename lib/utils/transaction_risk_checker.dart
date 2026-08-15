@@ -182,6 +182,7 @@ class TransactionRiskChecker {
     required bool isEvm,
     required bool isSolana,
     bool isSui = false,
+    bool isAptos = false,
   }) {
     final address = recipientAddress.trim();
     final isBurn = isEvm
@@ -191,6 +192,9 @@ class TransactionRiskChecker {
                   '0x000000000000000000000000000000000000dead'
         : (isSolana && address == '11111111111111111111111111111111') ||
               (isSui &&
+                  address.toLowerCase() ==
+                      '0x0000000000000000000000000000000000000000000000000000000000000000') ||
+              (isAptos &&
                   address.toLowerCase() ==
                       '0x0000000000000000000000000000000000000000000000000000000000000000');
     if (!isBurn) return null;

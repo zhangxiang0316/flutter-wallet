@@ -100,6 +100,23 @@ void main() {
           throwsFormatException,
         );
       });
+
+      test('normalizeAptosAddress accepts short form and pads to 32 bytes', () {
+        expect(
+          WalletTransferService.normalizeAptosAddress('0x1'),
+          '0x${List.filled(63, '0').join()}1',
+        );
+        expect(
+          () => WalletTransferService.normalizeAptosAddress('0xxyz'),
+          throwsFormatException,
+        );
+        expect(
+          () => WalletTransferService.normalizeAptosAddress(
+            '0x${List.filled(65, '1').join()}',
+          ),
+          throwsFormatException,
+        );
+      });
     });
 
     group('Amount conversion', () {

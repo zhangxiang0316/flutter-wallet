@@ -139,6 +139,45 @@ void main() {
       );
     });
 
+    test(
+      'loads Aptos APT transfers and resolves fee and counterparty',
+      () async {
+        final dio = Dio()..httpClientAdapter = _AptosHistoryAdapter();
+        final service = WalletTransactionHistoryService(dio: dio);
+        const walletAddress =
+            '0x1111111111111111111111111111111111111111111111111111111111111111';
+        const asset = ChainBalance(
+          chain: WalletChain.aptos,
+          symbol: 'APT',
+          name: 'Aptos',
+          amount: '2',
+          address: walletAddress,
+          decimals: 8,
+        );
+
+        final result = await service.loadAssetRecordPage(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(result.records, hasLength(1));
+        expect(result.records.single.txHash, '0xaptostx');
+        expect(result.records.single.amount, '1');
+        expect(result.records.single.feeAmount, '0.0001');
+        expect(
+          result.records.single.direction,
+          WalletTransactionDirection.outgoing,
+        );
+        expect(
+          result.records.single.toAddress,
+          '0x2222222222222222222222222222222222222222222222222222222222222222',
+        );
+        expect(result.records.single.blockNumber, 1234);
+        expect(result.records.single.timestamp, DateTime.utc(2026, 8, 15, 12));
+        expect(result.hasMore, isFalse);
+      },
+    );
+
     test('paginates Arbitrum token transactions from Moralis', () async {
       final adapter = FallbackRpcAdapter(moralisTokenFullPage: true);
       final dio = Dio()..httpClientAdapter = adapter;
@@ -1089,6 +1128,81 @@ class _SuiGraphqlAdapter implements HttpClientAdapter {
           },
         },
       }),
+      200,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _AptosHistoryAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    const walletAddress =
+        '0x1111111111111111111111111111111111111111111111111111111111111111';
+    const recipientAddress =
+        '0x2222222222222222222222222222222222222222222222222222222222222222';
+    if (options.path.endsWith('/transactions/by_version/42')) {
+      return _jsonResponse({
+        'hash': '0xaptostx',
+        'sender': walletAddress,
+        'success': true,
+        'gas_used': '100',
+        'gas_unit_price': '100',
+        'payload': {
+          'function': '0x1::aptos_account::transfer',
+          'arguments': [recipientAddress, '100000000'],
+        },
+      });
+    }
+
+    final body = options.data;
+    final query = body is Map ? body['query']?.toString() ?? '' : '';
+    if (query.contains('WalletAptosCounterparties')) {
+      return _jsonResponse({
+        'data': {
+          'fungible_asset_activities': [
+            {
+              'amount': '100000000',
+              'owner_address': recipientAddress,
+              'transaction_version': '42',
+              'type': '0x1::coin::DepositEvent',
+            },
+          ],
+        },
+      });
+    }
+    return _jsonResponse({
+      'data': {
+        'fungible_asset_activities': [
+          {
+            'amount': '100000000',
+            'asset_type': '0x1::aptos_coin::AptosCoin',
+            'block_height': '1234',
+            'event_index': '0',
+            'is_gas_fee': false,
+            'is_transaction_success': true,
+            'owner_address': walletAddress,
+            'transaction_timestamp': '2026-08-15T12:00:00',
+            'transaction_version': '42',
+            'type': '0x1::coin::WithdrawEvent',
+          },
+        ],
+      },
+    });
+  }
+
+  ResponseBody _jsonResponse(Object data) {
+    return ResponseBody.fromString(
+      jsonEncode(data),
       200,
       headers: {
         Headers.contentTypeHeader: ['application/json'],

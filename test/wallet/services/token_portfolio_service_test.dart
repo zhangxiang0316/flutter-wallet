@@ -133,10 +133,16 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.single.canonicalTokenId, 'usdc');
-      expect(result.single.positions, hasLength(8));
+      expect(result.single.positions, hasLength(9));
       expect(
         result.single.positions.any(
           (position) => position.chain.id == WalletChain.sui.id,
+        ),
+        isTrue,
+      );
+      expect(
+        result.single.positions.any(
+          (position) => position.chain.id == WalletChain.aptos.id,
         ),
         isTrue,
       );

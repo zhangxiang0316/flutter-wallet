@@ -45,4 +45,37 @@ void main() {
       );
     });
   });
+
+  group('TransferScanAddressParser Aptos', () {
+    const shortAddress = '0x1';
+    const longAddress =
+        '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973';
+
+    test('extracts short and long hexadecimal addresses', () {
+      expect(
+        TransferScanAddressParser.extract(
+          shortAddress,
+          WalletChain.aptos.config,
+        ),
+        shortAddress,
+      );
+      expect(
+        TransferScanAddressParser.extract(
+          longAddress,
+          WalletChain.aptos.config,
+        ),
+        longAddress,
+      );
+    });
+
+    test('extracts an address from an Aptos URI', () {
+      expect(
+        TransferScanAddressParser.extract(
+          'aptos:$longAddress?amount=1',
+          WalletChain.aptos.config,
+        ),
+        longAddress,
+      );
+    });
+  });
 }

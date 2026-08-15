@@ -13,6 +13,7 @@ import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/signers/ecdsa_signer.dart';
 import 'package:solana/solana.dart';
 import 'package:sui/sui.dart';
+import 'package:aptos/aptos.dart' as aptos;
 
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
@@ -24,6 +25,7 @@ part 'transfer/tron_wallet_transfer.dart';
 part 'transfer/solana_wallet_transfer.dart';
 part 'transfer/bitcoin_wallet_transfer.dart';
 part 'transfer/sui_wallet_transfer.dart';
+part 'transfer/aptos_wallet_transfer.dart';
 part 'transfer/wallet_transfer_signing.dart';
 
 /// 钱包转账服务。
@@ -81,6 +83,7 @@ class WalletTransferService {
     required String amount,
     List<int>? solanaPrivateKey,
     List<int>? suiPrivateKey,
+    List<int>? aptosPrivateKey,
   }) {
     if (asset.chainRef.isEvm) {
       return _transferEvm(
@@ -128,6 +131,17 @@ class WalletTransferService {
         amount: amount,
       );
     }
+    if (asset.chainRef.isAptos) {
+      if (aptosPrivateKey == null) {
+        throw StateError('Missing Aptos private key');
+      }
+      return _transferAptos(
+        aptosPrivateKey: aptosPrivateKey,
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
     throw StateError('Unsupported chain ${asset.chainId}');
   }
 
@@ -170,6 +184,13 @@ class WalletTransferService {
     }
     if (asset.chainRef.isSui) {
       return _estimateSuiFee(
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+      );
+    }
+    if (asset.chainRef.isAptos) {
+      return _estimateAptosFee(
         asset: asset,
         toAddress: toAddress,
         amount: amount,
@@ -380,6 +401,17 @@ class WalletTransferService {
       throw const FormatException('Invalid Sui address');
     }
     return address;
+  }
+
+  static String normalizeAptosAddress(String input) {
+    final value = input.trim().toLowerCase();
+    final hexValue = value.startsWith('0x') ? value.substring(2) : value;
+    if (hexValue.isEmpty ||
+        hexValue.length > 64 ||
+        !RegExp(r'^[0-9a-f]+$').hasMatch(hexValue)) {
+      throw const FormatException('Invalid Aptos address');
+    }
+    return '0x${hexValue.padLeft(64, '0')}';
   }
 
   /// 校验 Bitcoin Mainnet BIP84 P2WPKH 地址并统一为小写。

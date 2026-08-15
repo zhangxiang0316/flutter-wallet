@@ -28,6 +28,10 @@ class TransferInputValidator {
       WalletTransferService.normalizeSuiAddress(address);
       return;
     }
+    if (asset.chainRef.isAptos) {
+      WalletTransferService.normalizeAptosAddress(address);
+      return;
+    }
     throw FormatException('Unsupported chain ${asset.chainId}');
   }
 

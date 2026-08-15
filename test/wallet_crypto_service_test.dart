@@ -48,7 +48,7 @@ void main() {
       service = WalletCryptoService();
     });
 
-    test('derives BSC, Solana, and TRON addresses from a private key', () {
+    test('derives supported chain addresses from a private key', () {
       final keyPair = service.importPrivateKey(
         '0x0000000000000000000000000000000000000000000000000000000000000001',
       );
@@ -58,6 +58,10 @@ void main() {
       expect(
         WalletTransferService.normalizeSolanaAddress(keyPair.solanaAddress),
         keyPair.solanaAddress,
+      );
+      expect(
+        WalletTransferService.normalizeAptosAddress(keyPair.aptosAddress),
+        keyPair.aptosAddress,
       );
     });
 
@@ -73,9 +77,28 @@ void main() {
       expect(first.bscAddress, second.bscAddress);
       expect(first.tronAddress, second.tronAddress);
       expect(first.solanaAddress, second.solanaAddress);
+      expect(first.aptosAddress, second.aptosAddress);
       expect(
         WalletTransferService.normalizeSolanaAddress(first.solanaAddress),
         first.solanaAddress,
+      );
+    });
+
+    test('derives the Aptos legacy BIP44 account deterministically', () {
+      const mnemonic =
+          'abandon abandon abandon abandon abandon abandon abandon abandon '
+          'abandon abandon abandon about';
+      final keyPair = service.importMnemonic(mnemonic);
+      final privateKey = service.aptosPrivateKeyFromMnemonic(mnemonic);
+
+      expect(privateKey, hasLength(32));
+      expect(
+        keyPair.aptosAddress,
+        '0xeb663b681209e7087d681c5d3eed12aaa8e1915e7c87794542c3f96e94b3d3bf',
+      );
+      expect(
+        service.aptosAddressFromPrivateKey(privateKey),
+        keyPair.aptosAddress,
       );
     });
 

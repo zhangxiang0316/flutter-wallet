@@ -55,6 +55,8 @@ Color homeChainColor(WalletChainRef chain) {
       return const Color(0xFF14F195);
     case WalletChain.sui:
       return const Color(0xFF4DA2FF);
+    case WalletChain.aptos:
+      return const Color(0xFF13B5A4);
     case WalletChain.tron:
       return const Color(0xFFE50914);
     default:
@@ -87,6 +89,8 @@ Color homeAssetColor(BuildContext context, String symbol) {
       return const Color(0xFF14F195);
     case 'SUI':
       return const Color(0xFF4DA2FF);
+    case 'APT':
+      return const Color(0xFF13B5A4);
     default:
       return Theme.of(context).colorScheme.primary;
   }

@@ -110,6 +110,7 @@ class WalletRpcHealthService {
         WalletChainType.tron => _checkTronRpc(normalizedUrl),
         WalletChainType.bitcoin => _checkBitcoinApi(normalizedUrl),
         WalletChainType.sui => _checkSuiRpc(normalizedUrl),
+        WalletChainType.aptos => _checkAptosApi(normalizedUrl),
       };
       stopwatch.stop();
       return WalletRpcHealthResult(
@@ -135,6 +136,15 @@ class WalletRpcHealthService {
     ).getChainIdentifier();
     if (chainId.trim().isEmpty) {
       throw StateError('Invalid Sui gRPC response');
+    }
+  }
+
+  Future<void> _checkAptosApi(String rpcUrl) async {
+    final response = await _dio.get(rpcUrl);
+    final data = response.data;
+    final chainId = data is Map ? data['chain_id'] : null;
+    if (int.tryParse(chainId?.toString() ?? '') != 1) {
+      throw StateError('Invalid Aptos mainnet response');
     }
   }
 

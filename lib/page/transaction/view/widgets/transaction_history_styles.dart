@@ -35,6 +35,8 @@ Color transactionChainColor(WalletChainRef chain) {
       return const Color(0xFF14F195);
     case WalletChain.sui:
       return const Color(0xFF4DA2FF);
+    case WalletChain.aptos:
+      return const Color(0xFF13B5A4);
     case WalletChain.tron:
       return const Color(0xFFE50914);
     default:

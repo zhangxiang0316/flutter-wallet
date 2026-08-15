@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
@@ -35,4 +38,38 @@ void main() {
       expect(status, WalletTransactionStatus.pending);
     });
   });
+
+  group('WalletTransactionStatusService Aptos', () {
+    test('returns the on-chain Aptos execution status', () async {
+      final dio = Dio()..httpClientAdapter = _AptosStatusAdapter();
+      final service = WalletTransactionStatusService(dio: dio);
+
+      final status = await service.loadStatus(
+        chain: WalletChain.aptos,
+        txHash: '0xaptostx',
+      );
+
+      expect(status, WalletTransactionStatus.success);
+    });
+  });
+}
+
+class _AptosStatusAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromString(
+      jsonEncode({'type': 'user_transaction', 'success': true}),
+      200,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

@@ -45,6 +45,12 @@ enum WalletChain implements WalletChainRef {
     symbol: 'SUI',
     rpcUrl: 'https://fullnode.mainnet.sui.io',
   ),
+  aptos(
+    id: 'aptos',
+    name: 'Aptos',
+    symbol: 'APT',
+    rpcUrl: 'https://api.mainnet.aptoslabs.com/v1',
+  ),
   tron(
     id: 'tron',
     name: 'TRON',
@@ -124,6 +130,7 @@ class WalletChainConfig implements WalletChainRef {
               WalletChain.bitcoin => WalletChainType.bitcoin,
               WalletChain.solana => WalletChainType.solana,
               WalletChain.sui => WalletChainType.sui,
+              WalletChain.aptos => WalletChainType.aptos,
               WalletChain.tron => WalletChainType.tron,
               _ => throw StateError('Unsupported builtin chain ${chain.id}'),
             },
@@ -283,6 +290,8 @@ class WalletChainConfig implements WalletChainRef {
         return 0xFF14F195;
       case WalletChain.sui:
         return 0xFF4DA2FF;
+      case WalletChain.aptos:
+        return 0xFF13B5A4;
       case WalletChain.tron:
         return 0xFFE50914;
     }
@@ -301,10 +310,11 @@ class WalletChainConfig implements WalletChainRef {
       case WalletChain.xLayer:
       case WalletChain.solana:
       case WalletChain.sui:
+      case WalletChain.aptos:
       case WalletChain.tron:
         return null;
     }
   }
 }
 
-enum WalletChainType { evm, bitcoin, solana, sui, tron }
+enum WalletChainType { evm, bitcoin, solana, sui, aptos, tron }

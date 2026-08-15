@@ -67,6 +67,7 @@ class WalletDetailController extends BaseController {
               tronAddress: '',
               solanaAddress: '',
               suiAddress: '',
+              aptosAddress: '',
               createdAt: DateTime.now(),
             )
           : wallets.first,

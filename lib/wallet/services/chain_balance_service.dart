@@ -11,6 +11,7 @@ import '../utils/rpc_retry_helper.dart';
 import 'config/wallet_chain_config_service.dart';
 import 'config/wallet_custom_asset_service.dart';
 import 'wallet_history_api_config.dart';
+import 'wallet_transfer_service.dart';
 
 part 'balance/chain_balance_routes.dart';
 part 'balance/evm_chain_balance.dart';
@@ -18,6 +19,7 @@ part 'balance/tron_chain_balance.dart';
 part 'balance/solana_chain_balance.dart';
 part 'balance/bitcoin_chain_balance.dart';
 part 'balance/sui_chain_balance.dart';
+part 'balance/aptos_chain_balance.dart';
 
 /// 多链余额查询服务。
 ///
@@ -144,6 +146,7 @@ class ChainBalanceService {
     required String tronAddress,
     required String solanaAddress,
     String suiAddress = '',
+    String aptosAddress = '',
     String bitcoinAddress = '',
   }) async {
     final customAssets = await _customAssetService.loadCustomAssets();
@@ -156,6 +159,9 @@ class ChainBalanceService {
     );
     final suiChains = enabledChains.where(
       (chain) => chain.type == WalletChainType.sui,
+    );
+    final aptosChains = enabledChains.where(
+      (chain) => chain.type == WalletChainType.aptos,
     );
     final results = await Future.wait([
       ...evmChains.map((chain) {
@@ -265,6 +271,23 @@ class ChainBalanceService {
                   chain: chain,
                   assets: WalletAssetRegistry.assetsForChainConfig(chain),
                   address: suiAddress,
+                  error: error.toString(),
+                );
+              }),
+        ),
+      if (aptosAddress.trim().isNotEmpty)
+        ...aptosChains.map(
+          (chain) => _loadAptosBalances(chain: chain, address: aptosAddress)
+              .catchError((error) {
+                developer.log(
+                  'Aptos balance lookup failed; using zero fallback balances',
+                  error: error,
+                  name: 'ChainBalanceService',
+                );
+                return _fallbackBalancesForAssets(
+                  chain: chain,
+                  assets: WalletAssetRegistry.assetsForChainConfig(chain),
+                  address: aptosAddress,
                   error: error.toString(),
                 );
               }),

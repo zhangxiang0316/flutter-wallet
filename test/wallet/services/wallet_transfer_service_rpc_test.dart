@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
@@ -110,6 +111,52 @@ void main() {
         base64Decode(adapter.lastSolanaTransactionBase64!).length,
         greaterThan(100),
       );
+    });
+
+    test('builds and simulates Aptos APT and USDC transfers', () async {
+      final cryptoService = WalletCryptoService();
+      final keyPair = cryptoService.importMnemonic(
+        'abandon abandon abandon abandon abandon abandon abandon abandon '
+        'abandon abandon abandon about',
+      );
+      final adapter = _AptosTransferAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+      final aptAsset = ChainBalance(
+        chain: WalletChain.aptos,
+        symbol: 'APT',
+        name: 'Aptos',
+        amount: '2',
+        address: keyPair.aptosAddress,
+        decimals: 8,
+      );
+      final usdcAsset = ChainBalance(
+        chain: WalletChain.aptos,
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: '2',
+        address: keyPair.aptosAddress,
+        contractAddress:
+            '0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b',
+        decimals: 6,
+      );
+
+      final aptFee = await transferService.estimateFee(
+        asset: aptAsset,
+        toAddress: '0x2',
+        amount: '1',
+      );
+      final usdcFee = await transferService.estimateFee(
+        asset: usdcAsset,
+        toAddress: '0x2',
+        amount: '1',
+      );
+
+      expect(aptFee.amount, '0.00001');
+      expect(usdcFee.amount, '0.00001');
+      expect(aptFee.symbol, 'APT');
+      expect(adapter.simulateCount, 2);
+      expect(adapter.moduleAbiRequestCount, 0);
     });
 
     test('submits SPL token transfer through RPC', () async {
@@ -337,4 +384,82 @@ BigInt _littleEndianHexToInt(String value) {
     bytes.reversed.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join(),
     radix: 16,
   );
+}
+
+class _AptosTransferAdapter implements HttpClientAdapter {
+  int simulateCount = 0;
+  int moduleAbiRequestCount = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    final path = options.uri.path;
+    if (path.contains('/module/')) {
+      moduleAbiRequestCount++;
+    }
+    if (path.endsWith('/estimate_gas_price')) {
+      return _jsonResponse({
+        'gas_estimate': 100,
+        'deprioritized_gas_estimate': 50,
+        'prioritized_gas_estimate': 150,
+      });
+    }
+    if (path.contains('/accounts/') && !path.contains('/module/')) {
+      final address = path.split('/').last;
+      return _jsonResponse({
+        'sequence_number': '0',
+        'authentication_key': address,
+      });
+    }
+    if (path.endsWith('/transactions/simulate')) {
+      simulateCount++;
+      return _jsonResponse([
+        {
+          'type': 'user_transaction',
+          'version': '1',
+          'hash': '0xaptossimulated',
+          'state_change_hash': '0x0',
+          'event_root_hash': '0x0',
+          'state_checkpoint_hash': null,
+          'gas_used': '10',
+          'success': true,
+          'vm_status': 'Executed successfully',
+          'accumulator_root_hash': '0x0',
+          'changes': [],
+          'sender':
+              '0xeb663b681209e7087d681c5d3eed12aaa8e1915e7c87794542c3f96e94b3d3bf',
+          'sequence_number': '0',
+          'max_gas_amount': '200000',
+          'gas_unit_price': '100',
+          'expiration_timestamp_secs': '2000000000',
+          'payload': {
+            'type': 'entry_function_payload',
+            'function': '0x1::aptos_account::transfer',
+            'type_arguments': [],
+            'arguments': ['0x2', '1'],
+          },
+          'signature': null,
+          'events': [],
+          'timestamp': '1786756800000000',
+        },
+      ]);
+    }
+    return _jsonResponse({'message': 'not found'}, statusCode: 404);
+  }
+
+  ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {
+    return ResponseBody.fromString(
+      jsonEncode(data),
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

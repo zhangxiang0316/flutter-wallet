@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.4.1"
+  aptos:
+    dependency: "direct main"
+    description:
+      name: aptos
+      sha256: c385ba947a877b1a160d44eebaa4940672ed6aa73a9afd478575abf039f9fb53
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   archive:
     dependency: transitive
     description:

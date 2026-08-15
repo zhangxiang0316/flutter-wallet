@@ -43,6 +43,7 @@ dependencies:
   webview_flutter: ^4.13.1
   shimmer: ^3.0.0
   smooth_page_indicator: ^1.2.0+3
+  aptos: ^1.0.0
 
 
 dev_dependencies:

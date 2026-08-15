@@ -23,6 +23,9 @@ class CryptoConstants {
   /// Sui Ed25519 默认派生路径。
   static const String suiDerivationPath = "m/44'/784'/0'/0'/0'";
 
+  /// Aptos Legacy Ed25519 默认派生路径。
+  static const String aptosDerivationPath = "m/44'/637'/0'/0'/0'";
+
   /// Bitcoin Mainnet BIP84 Native SegWit 首个收款地址派生路径。
   static const String bitcoinDerivationPath = "m/84'/0'/0'/0/0";
 

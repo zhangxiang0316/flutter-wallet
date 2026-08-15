@@ -16,6 +16,7 @@ class HomeControllerUtils {
     return wallet != null &&
         (wallet.solanaAddress.trim().isEmpty ||
             wallet.suiAddress.trim().isEmpty ||
+            wallet.aptosAddress.trim().isEmpty ||
             wallet.bitcoinAddress.trim().isEmpty) &&
         !wallet.needsSecretMigration;
   }

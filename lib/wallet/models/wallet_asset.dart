@@ -23,6 +23,7 @@ class WalletCanonicalToken {
     WalletCanonicalToken(id: 'bnb', symbol: 'BNB', name: 'BNB'),
     WalletCanonicalToken(id: 'sol', symbol: 'SOL', name: 'Solana'),
     WalletCanonicalToken(id: 'sui', symbol: 'SUI', name: 'Sui'),
+    WalletCanonicalToken(id: 'apt', symbol: 'APT', name: 'Aptos'),
     WalletCanonicalToken(id: 'trx', symbol: 'TRX', name: 'TRON'),
   ];
 
@@ -398,6 +399,25 @@ class WalletAssetRegistry {
     ),
   ];
 
+  static const aptosAssets = [
+    WalletAsset(
+      chain: WalletChain.aptos,
+      symbol: 'APT',
+      name: 'Aptos',
+      decimals: 8,
+      canonicalTokenId: 'apt',
+    ),
+    WalletAsset(
+      chain: WalletChain.aptos,
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 6,
+      contractAddress:
+          '0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b',
+      canonicalTokenId: 'usdc',
+    ),
+  ];
+
   static const all = [
     ...bscAssets,
     ...ethereumAssets,
@@ -407,6 +427,7 @@ class WalletAssetRegistry {
     ...bitcoinAssets,
     ...solanaAssets,
     ...suiAssets,
+    ...aptosAssets,
   ];
 
   static List<WalletAsset> assetsForChain(WalletChain chain) {
@@ -427,6 +448,8 @@ class WalletAssetRegistry {
         return solanaAssets;
       case WalletChain.sui:
         return suiAssets;
+      case WalletChain.aptos:
+        return aptosAssets;
     }
   }
 

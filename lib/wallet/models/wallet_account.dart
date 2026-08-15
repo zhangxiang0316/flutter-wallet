@@ -7,6 +7,7 @@ class WalletAccount {
     required this.createdAt,
     this.solanaAddress = '',
     this.suiAddress = '',
+    this.aptosAddress = '',
     this.bitcoinAddress = '',
     this.privateKeyHex = '',
   });
@@ -20,6 +21,7 @@ class WalletAccount {
   final String tronAddress;
   final String solanaAddress;
   final String suiAddress;
+  final String aptosAddress;
   final String bitcoinAddress;
   final DateTime createdAt;
 
@@ -33,6 +35,7 @@ class WalletAccount {
     String? tronAddress,
     String? solanaAddress,
     String? suiAddress,
+    String? aptosAddress,
     String? bitcoinAddress,
     DateTime? createdAt,
   }) {
@@ -44,6 +47,7 @@ class WalletAccount {
       tronAddress: tronAddress ?? this.tronAddress,
       solanaAddress: solanaAddress ?? this.solanaAddress,
       suiAddress: suiAddress ?? this.suiAddress,
+      aptosAddress: aptosAddress ?? this.aptosAddress,
       bitcoinAddress: bitcoinAddress ?? this.bitcoinAddress,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -57,6 +61,7 @@ class WalletAccount {
       'tronAddress': tronAddress,
       'solanaAddress': solanaAddress,
       'suiAddress': suiAddress,
+      'aptosAddress': aptosAddress,
       'bitcoinAddress': bitcoinAddress,
       'createdAt': createdAt.toIso8601String(),
     };
@@ -67,6 +72,7 @@ class WalletAccount {
     final tronAddress = json['tronAddress'] as String? ?? '';
     final solanaAddress = json['solanaAddress'] as String? ?? '';
     final suiAddress = json['suiAddress'] as String? ?? '';
+    final aptosAddress = json['aptosAddress'] as String? ?? '';
     final bitcoinAddress = json['bitcoinAddress'] as String? ?? '';
     final createdAt =
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now();
@@ -84,6 +90,7 @@ class WalletAccount {
       tronAddress: tronAddress,
       solanaAddress: solanaAddress,
       suiAddress: suiAddress,
+      aptosAddress: aptosAddress,
       bitcoinAddress: bitcoinAddress,
       createdAt: createdAt,
     );

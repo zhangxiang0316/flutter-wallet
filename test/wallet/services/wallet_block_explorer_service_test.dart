@@ -67,6 +67,24 @@ void main() {
       );
     });
 
+    test('builds Aptos transaction URL', () {
+      const asset = ChainBalance(
+        chain: WalletChain.aptos,
+        symbol: 'APT',
+        name: 'Aptos',
+        amount: '1',
+        address:
+            '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973',
+      );
+
+      final uri = service.transactionUri(asset, '0xaptostx');
+
+      expect(
+        uri.toString(),
+        equals('https://explorer.aptoslabs.com/txn/0xaptostx?network=mainnet'),
+      );
+    });
+
     test('returns null for blank transaction hash', () {
       const asset = ChainBalance(
         chain: WalletChain.bsc,

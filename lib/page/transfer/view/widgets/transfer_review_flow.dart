@@ -199,7 +199,8 @@ class TransferReviewFlow {
             caseInsensitive:
                 asset.chainRef.isEvm ||
                 asset.chainRef.isBitcoin ||
-                asset.chainRef.isSui,
+                asset.chainRef.isSui ||
+                asset.chainRef.isAptos,
           )
           case final risk?)
         risk,
@@ -207,7 +208,10 @@ class TransferReviewFlow {
             recipientAddress: recipientAddress,
             contractAddress: asset.contractAddress,
             message: s.transferRiskTokenContract,
-            caseInsensitive: asset.chainRef.isEvm || asset.chainRef.isSui,
+            caseInsensitive:
+                asset.chainRef.isEvm ||
+                asset.chainRef.isSui ||
+                asset.chainRef.isAptos,
           )
           case final risk?)
         risk,
@@ -219,6 +223,7 @@ class TransferReviewFlow {
                 asset.chainRef.id == WalletChain.solana.id ||
                 asset.chainConfig?.type == WalletChainType.solana,
             isSui: asset.chainRef.isSui,
+            isAptos: asset.chainRef.isAptos,
           )
           case final risk?)
         risk,
@@ -235,7 +240,8 @@ class TransferReviewFlow {
       caseInsensitive:
           asset.chainRef.isEvm ||
           asset.chainRef.isBitcoin ||
-          asset.chainRef.isSui,
+          asset.chainRef.isSui ||
+          asset.chainRef.isAptos,
     );
     if (clipboardRisk != null) {
       risks.add(clipboardRisk);
@@ -359,6 +365,11 @@ class TransferReviewFlow {
     }
     if (asset.chainRef.isSui) {
       return RegExp(r'0x[a-fA-F0-9]{64}').firstMatch(value)?.group(0);
+    }
+    if (asset.chainRef.isAptos) {
+      return RegExp(
+        r'(?<![a-fA-F0-9])0x[a-fA-F0-9]{1,64}(?![a-fA-F0-9])',
+      ).firstMatch(value)?.group(0);
     }
     return null;
   }

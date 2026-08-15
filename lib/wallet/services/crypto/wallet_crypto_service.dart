@@ -13,6 +13,7 @@ import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/api.dart' as pc;
 import 'package:sui/sui.dart' as sui;
+import 'package:aptos/aptos.dart' as aptos;
 
 import '../../constants/crypto_constants.dart';
 
@@ -40,6 +41,7 @@ class WalletCryptoService {
   static const String solanaDerivationPath =
       CryptoConstants.solanaDerivationPath;
   static const String suiDerivationPath = CryptoConstants.suiDerivationPath;
+  static const String aptosDerivationPath = CryptoConstants.aptosDerivationPath;
   static const String bitcoinDerivationPath =
       CryptoConstants.bitcoinDerivationPath;
 
@@ -74,11 +76,13 @@ class WalletCryptoService {
       solanaDerivationPath,
     );
     final suiPrivateKey = _deriveEd25519PrivateKey(seed, suiDerivationPath);
+    final aptosPrivateKey = _deriveEd25519PrivateKey(seed, aptosDerivationPath);
     return _keyPairFromPrivateKeys(
       evmPrivateKeyHex: hex.encode(evmPrivateKey),
       bitcoinPrivateKeyHex: hex.encode(bitcoinPrivateKey),
       solanaPrivateKey: solanaPrivateKey,
       suiPrivateKey: suiPrivateKey,
+      aptosPrivateKey: aptosPrivateKey,
       mnemonic: mnemonic,
     );
   }
@@ -110,6 +114,7 @@ class WalletCryptoService {
       evmPrivateKeyHex: privateKey,
       solanaPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
       suiPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
+      aptosPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
     );
   }
 
@@ -157,6 +162,27 @@ class WalletCryptoService {
     ).getAddress();
   }
 
+  Uint8List aptosPrivateKeyFromMnemonic(String input) {
+    final mnemonic = normalizeMnemonic(input);
+    final seed = Uint8List.fromList(
+      Mnemonic.fromSentence(mnemonic, Language.english).seed,
+    );
+    return _deriveEd25519PrivateKey(seed, aptosDerivationPath);
+  }
+
+  Uint8List aptosPrivateKeyFromPrivateKey(String input) =>
+      Uint8List.fromList(hex.decode(normalizePrivateKey(input)));
+
+  String aptosAddressFromPrivateKey(List<int> input) {
+    if (input.length != 32) {
+      throw const FormatException('Aptos private key must be 32 bytes');
+    }
+    final account = aptos.Account.fromPrivateKey(
+      privateKey: aptos.Ed25519PrivateKey(Uint8List.fromList(input), false),
+    );
+    return account.accountAddress.toString().toLowerCase();
+  }
+
   /// 从助记词按 BIP84 路径派生 Bitcoin P2WPKH 私钥。
   String bitcoinPrivateKeyFromMnemonic(String input) {
     final mnemonic = normalizeMnemonic(input);
@@ -202,6 +228,7 @@ class WalletCryptoService {
     required String evmPrivateKeyHex,
     required Uint8List solanaPrivateKey,
     required Uint8List suiPrivateKey,
+    required Uint8List aptosPrivateKey,
     String? bitcoinPrivateKeyHex,
     String? mnemonic,
   }) {
@@ -212,6 +239,7 @@ class WalletCryptoService {
     final tronPayload = Uint8List.fromList([0x41, ...ethAddressBytes]);
     final solanaAddress = _solanaAddressFromPrivateKey(solanaPrivateKey);
     final suiAddress = suiAddressFromPrivateKey(suiPrivateKey);
+    final aptosAddress = aptosAddressFromPrivateKey(aptosPrivateKey);
     final bitcoinPrivateKey = Uint8List.fromList(
       hex.decode(normalizePrivateKey(bitcoinPrivateKeyHex ?? privateKey)),
     );
@@ -223,6 +251,7 @@ class WalletCryptoService {
       tronAddress: _base58CheckEncode(tronPayload),
       solanaAddress: solanaAddress,
       suiAddress: suiAddress,
+      aptosAddress: aptosAddress,
       bitcoinAddress: _bitcoinP2wpkhAddress(bitcoinPrivateKey),
     );
   }
@@ -597,6 +626,7 @@ class WalletKeyPair {
     required this.tronAddress,
     required this.solanaAddress,
     required this.suiAddress,
+    required this.aptosAddress,
     required this.bitcoinAddress,
     this.mnemonic,
   });
@@ -620,6 +650,9 @@ class WalletKeyPair {
 
   /// Sui 32 字节十六进制地址。
   final String suiAddress;
+
+  /// Aptos 32 字节十六进制地址。
+  final String aptosAddress;
 
   /// Bitcoin Mainnet Native SegWit 地址。
   final String bitcoinAddress;

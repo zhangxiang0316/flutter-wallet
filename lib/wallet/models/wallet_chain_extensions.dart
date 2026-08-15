@@ -16,6 +16,12 @@ extension WalletChainTypeExtension on WalletChainRef {
       (this is WalletChainConfig &&
           (this as WalletChainConfig).type == WalletChainType.sui);
 
+  /// 判断是否为 Aptos 链。
+  bool get isAptos =>
+      id == 'aptos' ||
+      (this is WalletChainConfig &&
+          (this as WalletChainConfig).type == WalletChainType.aptos);
+
   /// 判断是否为 Bitcoin 主网。
   bool get isBitcoin =>
       id == 'bitcoin' ||

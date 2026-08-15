@@ -139,6 +139,10 @@ class TransferFormPanel extends StatelessWidget {
         (chain is WalletChainConfig && chain.type == WalletChainType.sui)) {
       return '0x + 64 hex';
     }
+    if (chain.id == WalletChain.aptos.id ||
+        (chain is WalletChainConfig && chain.type == WalletChainType.aptos)) {
+      return '0x + 1–64 hex';
+    }
     return '0x...';
   }
 }
