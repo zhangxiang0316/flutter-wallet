@@ -94,6 +94,12 @@ class HomeController extends BaseController {
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
 
+  /// 首次进入首页且尚无任何可展示的余额/资产数据时为 true。
+  ///
+  /// 该状态下没有本地缓存可以立即渲染，适合用整体骨架屏铺满首页主体；
+  /// 一旦有缓存或链上数据落地，就回到正常内容，避免每次后台刷新都闪骨架屏。
+  bool get isFirstLoading => isLoading && tokenPortfolioItems.isEmpty;
+
   /// 旧版本钱包仍含明文私钥时为 true，需要先设置密码完成迁移。
   bool needsSecretMigration = false;
 
