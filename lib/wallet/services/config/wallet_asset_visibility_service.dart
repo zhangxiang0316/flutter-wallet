@@ -25,7 +25,19 @@ class WalletAssetVisibilityService {
   Future<Set<String>> loadHiddenAssetKeys() async {
     final hiddenAssetKeys = await _storage.getJsonList(_hiddenAssetsKey);
     if (hiddenAssetKeys != null) {
-      return hiddenAssetKeys.map((item) => item.toString()).toSet();
+      final keys = hiddenAssetKeys.map((item) => item.toString()).toSet();
+      final migratedKeys = keys.map((key) {
+        if (!key.startsWith('evm-137:')) return key;
+        final assetKey = key.substring('evm-137:'.length);
+        return assetKey == 'native:MATIC'
+            ? 'polygon:native:POL'
+            : 'polygon:$assetKey';
+      }).toSet();
+      if (migratedKeys.length != keys.length ||
+          !migratedKeys.containsAll(keys)) {
+        await saveHiddenAssetKeys(migratedKeys);
+      }
+      return migratedKeys;
     }
     return {};
   }

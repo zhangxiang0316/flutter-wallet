@@ -28,6 +28,7 @@ const Map<String, List<String>> _evmRpcFallbacks = {
     'https://arbitrum-one-rpc.publicnode.com',
   ],
   'base': ['https://mainnet.base.org', 'https://base-rpc.publicnode.com'],
+  'polygon': ['https://polygon.drpc.org', 'https://polygon.publicnode.com'],
 };
 
 extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {

@@ -51,24 +51,29 @@ void main() {
       );
     });
 
-    test('defines Ethereum, X Layer, Arbitrum, and Base as EVM chains', () {
-      expect(WalletChain.ethereum.evmChainId, 1);
-      expect(WalletChain.ethereum.symbol, 'ETH');
-      expect(WalletChain.xLayer.evmChainId, 196);
-      expect(WalletChain.xLayer.symbol, 'OKB');
-      expect(WalletChain.arbitrum.evmChainId, 42161);
-      expect(WalletChain.arbitrum.symbol, 'ETH');
-      expect(WalletChain.base.evmChainId, 8453);
-      expect(WalletChain.base.symbol, 'ETH');
-      expect(WalletChain.solana.evmChainId, isNull);
-      expect(WalletChain.solana.symbol, 'SOL');
-      expect(
-        WalletTransferService.normalizeBscAddress(
-          '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
-        ),
-        '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf',
-      );
-    });
+    test(
+      'defines Ethereum, X Layer, Arbitrum, Base, and Polygon as EVM chains',
+      () {
+        expect(WalletChain.ethereum.evmChainId, 1);
+        expect(WalletChain.ethereum.symbol, 'ETH');
+        expect(WalletChain.xLayer.evmChainId, 196);
+        expect(WalletChain.xLayer.symbol, 'OKB');
+        expect(WalletChain.arbitrum.evmChainId, 42161);
+        expect(WalletChain.arbitrum.symbol, 'ETH');
+        expect(WalletChain.base.evmChainId, 8453);
+        expect(WalletChain.base.symbol, 'ETH');
+        expect(WalletChain.polygon.evmChainId, 137);
+        expect(WalletChain.polygon.symbol, 'POL');
+        expect(WalletChain.solana.evmChainId, isNull);
+        expect(WalletChain.solana.symbol, 'SOL');
+        expect(
+          WalletTransferService.normalizeBscAddress(
+            '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+          ),
+          '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf',
+        );
+      },
+    );
 
     test('adds Base L1 fee and falls back across RPC nodes', () async {
       final adapter = _BaseTransferAdapter();
@@ -107,6 +112,42 @@ void main() {
       expect(adapter.fallbackMethods, contains('eth_sendRawTransaction'));
       expect(adapter.lastOracleCallData, startsWith('0x'));
       expect(adapter.lastOracleCallData, hasLength(74));
+    });
+
+    test('falls back across Polygon RPC nodes', () async {
+      final adapter = _PolygonTransferAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+      final keyPair = WalletCryptoService().importPrivateKey(
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
+      );
+      final asset = ChainBalance(
+        chain: WalletChain.polygon,
+        symbol: 'POL',
+        name: 'Polygon Ecosystem Token',
+        amount: '1',
+        address: keyPair.bscAddress,
+        decimals: 18,
+      );
+
+      final estimate = await transferService.estimateFee(
+        asset: asset,
+        toAddress: '0x2222222222222222222222222222222222222222',
+        amount: '0.1',
+      );
+      final hash = await transferService.transfer(
+        privateKeyHex: keyPair.privateKeyHex,
+        asset: asset,
+        toAddress: '0x2222222222222222222222222222222222222222',
+        amount: '0.1',
+      );
+
+      expect(estimate.rawAmount, BigInt.from(21000000000000));
+      expect(estimate.amount, '0.000021');
+      expect(hash, '0xpolygonhash');
+      expect(adapter.primaryMethods, contains('eth_gasPrice'));
+      expect(adapter.fallbackMethods, contains('eth_estimateGas'));
+      expect(adapter.fallbackMethods, contains('eth_sendRawTransaction'));
     });
 
     test('encodes TRC20 transfer parameters', () {
@@ -545,6 +586,54 @@ class _BaseTransferAdapter implements HttpClientAdapter {
         'eth_estimateGas' => '0x5208',
         'eth_getTransactionCount' => '0x0',
         'eth_sendRawTransaction' => '0xbasehash',
+        _ => '0x0',
+      };
+      return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': result});
+    }
+    return _jsonResponse({'message': 'not found'}, statusCode: 404);
+  }
+
+  ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {
+    return ResponseBody.fromString(
+      jsonEncode(data),
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _PolygonTransferAdapter implements HttpClientAdapter {
+  final primaryMethods = <String>[];
+  final fallbackMethods = <String>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    final data = options.data;
+    final method = data is Map ? data['method']?.toString() ?? '' : '';
+    if (options.uri.host == 'polygon.drpc.org') {
+      primaryMethods.add(method);
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'error': {'code': -32000, 'message': 'rate limited'},
+      });
+    }
+    if (options.uri.host == 'polygon.publicnode.com') {
+      fallbackMethods.add(method);
+      final result = switch (method) {
+        'eth_gasPrice' => '0x3b9aca00',
+        'eth_estimateGas' => '0x5208',
+        'eth_getTransactionCount' => '0x0',
+        'eth_sendRawTransaction' => '0xpolygonhash',
         _ => '0x0',
       };
       return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': result});

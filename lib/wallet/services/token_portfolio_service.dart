@@ -26,6 +26,7 @@ class TokenPortfolioService {
     'SUI',
     'APT',
     'TRX',
+    'POL',
   ];
 
   static final Map<String, _TrustedTokenIdentity> _trustedIdentities =

@@ -119,6 +119,7 @@ class ReceiveController extends BaseController {
       case WalletChain.xLayer:
       case WalletChain.arbitrum:
       case WalletChain.base:
+      case WalletChain.polygon:
         return currentWallet.bscAddress;
       case WalletChain.bitcoin:
         return currentWallet.bitcoinAddress;

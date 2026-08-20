@@ -31,6 +31,8 @@ Color transactionChainColor(WalletChainRef chain) {
       return const Color(0xFF28A0F0);
     case WalletChain.base:
       return const Color(0xFF0052FF);
+    case WalletChain.polygon:
+      return const Color(0xFF8247E5);
     case WalletChain.bitcoin:
       return const Color(0xFFF7931A);
     case WalletChain.solana:

@@ -40,7 +40,7 @@ class WalletHistoryApiConfig {
   /// Helius API base URL. Kept configurable for tests and proxy deployments.
   final String heliusBaseUrl;
 
-  /// Moralis API key for BSC native and BEP20 transaction history.
+  /// Moralis API key for supported EVM transaction history.
   final String moralisApiKey;
 
   /// Moralis API base URL. Kept configurable for tests and proxy deployments.

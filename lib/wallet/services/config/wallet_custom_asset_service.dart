@@ -83,6 +83,10 @@ class WalletCustomAssetService {
         final boundAssets = await _chainConfigService.bindAssetsToChains(
           assets,
         );
+        final needsChainMigration = List.generate(
+          assets.length,
+          (index) => assets[index].chainId != boundAssets[index].chainId,
+        ).any((changed) => changed);
         final needsCanonicalMigration = customAssetsJson.whereType<Map>().any((
           item,
         ) {
@@ -94,7 +98,7 @@ class WalletCustomAssetService {
           ).canonicalTokenId;
           return migratedId != null && migratedId != storedId;
         });
-        if (needsCanonicalMigration) {
+        if (needsChainMigration || needsCanonicalMigration) {
           await saveCustomAssets(boundAssets);
         }
         return boundAssets;

@@ -93,13 +93,6 @@ void main() {
     });
 
     test('merges trusted Sui and Polygon USDC into the USDC portfolio', () {
-      final polygon = WalletChainConfig.customEvm(
-        id: 'custom-polygon',
-        name: 'Polygon',
-        symbol: 'MATIC',
-        rpcUrls: const ['https://polygon-rpc.example'],
-        evmChainId: 137,
-      );
       final builtInUsdcBalances = WalletAssetRegistry.all
           .where((asset) => asset.symbol == 'USDC')
           .map(
@@ -115,20 +108,8 @@ void main() {
           );
 
       final result = service.build(
-        balances: [
-          ...builtInUsdcBalances,
-          ChainBalance.config(
-            chainConfig: polygon,
-            symbol: 'USDC',
-            name: 'USD Coin',
-            amount: '0',
-            address: '0x1111111111111111111111111111111111111111',
-            contractAddress: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
-            canonicalTokenId: 'usdc',
-            decimals: 6,
-          ),
-        ],
-        chains: [...WalletChain.values.map((chain) => chain.config), polygon],
+        balances: [...builtInUsdcBalances],
+        chains: [...WalletChain.values.map((chain) => chain.config)],
       );
 
       expect(result, hasLength(1));
@@ -258,7 +239,7 @@ void main() {
       expect(result.single.positions, hasLength(3));
     });
 
-    test('groups and values Base WETH and cbBTC with ETH and BTC', () {
+    test('groups Base and Polygon wrapped assets with ETH and BTC', () {
       final result = service.build(
         balances: const [
           ChainBalance(
@@ -276,6 +257,16 @@ void main() {
             amount: '0.5',
             address: '0x1111111111111111111111111111111111111111',
             contractAddress: '0x4200000000000000000000000000000000000006',
+            canonicalTokenId: 'eth',
+            decimals: 18,
+          ),
+          ChainBalance(
+            chain: WalletChain.polygon,
+            symbol: 'WETH',
+            name: 'Wrapped Ether',
+            amount: '0.25',
+            address: '0x1111111111111111111111111111111111111111',
+            contractAddress: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
             canonicalTokenId: 'eth',
             decimals: 18,
           ),
@@ -298,10 +289,21 @@ void main() {
             canonicalTokenId: 'btc',
             decimals: 8,
           ),
+          ChainBalance(
+            chain: WalletChain.polygon,
+            symbol: 'WBTC',
+            name: 'Wrapped BTC',
+            amount: '0.05',
+            address: '0x1111111111111111111111111111111111111111',
+            contractAddress: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6',
+            canonicalTokenId: 'btc',
+            decimals: 8,
+          ),
         ],
         chains: [
           WalletChain.ethereum.config,
           WalletChain.base.config,
+          WalletChain.polygon.config,
           WalletChain.bitcoin.config,
         ],
         prices: {'ETH': Decimal.parse('2000'), 'BTC': Decimal.parse('60000')},
@@ -310,13 +312,36 @@ void main() {
       final eth = result.singleWhere((item) => item.canonicalTokenId == 'eth');
       final btc = result.singleWhere((item) => item.canonicalTokenId == 'btc');
       expect(eth.symbol, 'ETH');
-      expect(eth.totalAmount, Decimal.parse('1.5'));
-      expect(eth.totalUsdValue, Decimal.parse('3000'));
-      expect(eth.positions, hasLength(2));
+      expect(eth.totalAmount, Decimal.parse('1.75'));
+      expect(eth.totalUsdValue, Decimal.parse('3500'));
+      expect(eth.positions, hasLength(3));
       expect(btc.symbol, 'BTC');
-      expect(btc.totalAmount, Decimal.parse('0.3'));
-      expect(btc.totalUsdValue, Decimal.parse('18000'));
-      expect(btc.positions, hasLength(2));
+      expect(btc.totalAmount, Decimal.parse('0.35'));
+      expect(btc.totalUsdValue, Decimal.parse('21000'));
+      expect(btc.positions, hasLength(3));
+    });
+
+    test('values Polygon native POL on the home portfolio', () {
+      final result = service.build(
+        balances: const [
+          ChainBalance(
+            chain: WalletChain.polygon,
+            symbol: 'POL',
+            name: 'Polygon Ecosystem Token',
+            amount: '10',
+            address: '0x1111111111111111111111111111111111111111',
+            canonicalTokenId: 'pol',
+            decimals: 18,
+          ),
+        ],
+        chains: [WalletChain.polygon.config],
+        prices: {'POL': Decimal.parse('0.25')},
+      );
+
+      expect(result, hasLength(1));
+      expect(result.single.canonicalTokenId, 'pol');
+      expect(result.single.totalAmount, Decimal.parse('10'));
+      expect(result.single.totalUsdValue, Decimal.parse('2.5'));
     });
 
     test('keeps error state separate from successful zero balances', () {

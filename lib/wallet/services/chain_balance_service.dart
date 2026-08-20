@@ -24,7 +24,7 @@ part 'balance/aptos_chain_balance.dart';
 /// 多链余额查询服务。
 ///
 /// 首页资产列表依赖该服务一次性查询所有支持链的余额。当前支持：
-/// - BNB Smart Chain / Ethereum / X Layer / Arbitrum / Base：通过 EVM JSON-RPC 查询原生币和 ERC20；
+/// - BNB Smart Chain / Ethereum / X Layer / Arbitrum / Base / Polygon：通过 EVM JSON-RPC 查询原生币和 ERC20；
 /// - Solana：通过 Solana JSON-RPC 查询 SOL 和 SPL Token；
 /// - TRON：通过 TRON 节点接口查询 TRX 和 TRC20。
 ///
@@ -111,6 +111,12 @@ class ChainBalanceService {
       'https://base.llamarpc.com',
       'https://mainnet.base.org',
     ],
+    WalletChain.polygon: [
+      'https://polygon.drpc.org',
+      'https://polygon.publicnode.com',
+      'https://tenderly.rpc.polygon.community',
+      'https://1rpc.io/matic',
+    ],
   };
 
   /// TRON 账号查询备用节点。
@@ -144,7 +150,7 @@ class ChainBalanceService {
 
   /// 查询当前钱包在所有支持链上的资产余额。
   ///
-  /// [bscAddress] 实际代表 EVM 地址，BSC、Ethereum、X Layer、Arbitrum、Base 共用它；
+  /// [bscAddress] 实际代表 EVM 地址，BSC、Ethereum、X Layer、Arbitrum、Base、Polygon 共用它；
   /// [tronAddress] 和 [solanaAddress] 分别用于 TRON 和 Solana。
   /// 各链并发查询，最终把多链结果拍平成一个 [ChainBalance] 列表。
   Future<List<ChainBalance>> loadBalances({

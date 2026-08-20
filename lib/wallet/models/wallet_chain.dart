@@ -34,6 +34,13 @@ enum WalletChain implements WalletChainRef {
     rpcUrl: 'https://mainnet.base.org',
     evmChainId: 8453,
   ),
+  polygon(
+    id: 'polygon',
+    name: 'Polygon',
+    symbol: 'POL',
+    rpcUrl: 'https://polygon.drpc.org',
+    evmChainId: 137,
+  ),
   bitcoin(
     id: 'bitcoin',
     name: 'Bitcoin',
@@ -293,6 +300,8 @@ class WalletChainConfig implements WalletChainRef {
         return 0xFF28A0F0;
       case WalletChain.base:
         return 0xFF0052FF;
+      case WalletChain.polygon:
+        return 0xFF8247E5;
       case WalletChain.bitcoin:
         return 0xFFF7931A;
       case WalletChain.solana:
@@ -316,6 +325,8 @@ class WalletChainConfig implements WalletChainRef {
         return 'https://api.arbiscan.io/api';
       case WalletChain.base:
         return 'https://base.blockscout.com/api/v2';
+      case WalletChain.polygon:
+        return 'https://api.etherscan.io/v2/api';
       case WalletChain.bitcoin:
         return 'https://mempool.space/api';
       case WalletChain.xLayer:

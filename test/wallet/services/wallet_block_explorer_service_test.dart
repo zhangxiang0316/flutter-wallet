@@ -99,6 +99,20 @@ void main() {
       expect(uri.toString(), equals('https://basescan.org/tx/0xbaseTx'));
     });
 
+    test('builds Polygon transaction URL', () {
+      const asset = ChainBalance(
+        chain: WalletChain.polygon,
+        symbol: 'POL',
+        name: 'Polygon Ecosystem Token',
+        amount: '1',
+        address: '0x742d35cc6634c0532925a3b844bc9e7595f0beb5',
+      );
+
+      final uri = service.transactionUri(asset, '0xpolygonTx');
+
+      expect(uri.toString(), equals('https://polygonscan.com/tx/0xpolygonTx'));
+    });
+
     test('returns null for blank transaction hash', () {
       const asset = ChainBalance(
         chain: WalletChain.bsc,

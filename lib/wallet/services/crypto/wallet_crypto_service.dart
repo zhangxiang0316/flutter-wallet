@@ -614,7 +614,7 @@ class _DerivationIndex {
 /// 一个钱包在本项目中包含：
 /// - 一个 EVM 私钥；
 /// - 一个可选助记词；
-/// - EVM 地址（BSC/Ethereum/X Layer/Arbitrum/Base 共用）；
+/// - EVM 地址（BSC/Ethereum/X Layer/Arbitrum/Base/Polygon 共用）；
 /// - TRON 地址；
 /// - Solana 地址。
 /// - Sui 地址。
@@ -639,7 +639,7 @@ class WalletKeyPair {
   /// 通过助记词创建或导入的钱包会保留该字段；私钥导入的钱包没有助记词。
   final String? mnemonic;
 
-  /// EVM 地址，BSC、Ethereum、X Layer、Arbitrum、Base 当前共用该地址。
+  /// EVM 地址，BSC、Ethereum、X Layer、Arbitrum、Base、Polygon 当前共用该地址。
   final String bscAddress;
 
   /// TRON Base58Check 地址。

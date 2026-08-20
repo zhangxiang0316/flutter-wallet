@@ -22,6 +22,10 @@ const Map<WalletChain, List<String>> _evmRpcFallbacks = {
     'https://mainnet.base.org',
     'https://base-rpc.publicnode.com',
   ],
+  WalletChain.polygon: [
+    'https://polygon.drpc.org',
+    'https://polygon.publicnode.com',
+  ],
 };
 
 String? _normalizeLogoUrl(String? value) {
@@ -44,6 +48,7 @@ String? _defaultLogoUrl(WalletChainRef chain, String contractAddress) {
     'bsc' => 'smartchain',
     'arbitrum' => 'arbitrum',
     'base' => 'base',
+    'polygon' => 'polygon',
     _ => null,
   };
   if (folder == null) return null;

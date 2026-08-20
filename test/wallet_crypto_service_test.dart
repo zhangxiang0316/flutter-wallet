@@ -1095,15 +1095,15 @@ void main() {
       final service = WalletChainConfigService(dio: dio);
 
       final chain = await service.addCustomEvmChain(
-        name: 'Polygon',
-        symbol: 'matic',
-        evmChainId: 137,
-        rpcUrls: const ['https://polygon-rpc.com'],
+        name: 'Gnosis',
+        symbol: 'xdai',
+        evmChainId: 100,
+        rpcUrls: const ['https://gnosis-rpc.com'],
       );
 
-      expect(chain.id, 'evm-137');
-      expect(chain.symbol, 'MATIC');
-      expect(chain.rpcUrls, ['https://polygon-rpc.com']);
+      expect(chain.id, 'evm-100');
+      expect(chain.symbol, 'XDAI');
+      expect(chain.rpcUrls, ['https://gnosis-rpc.com']);
       expect(await service.loadCustomChains(), hasLength(1));
     });
 
@@ -1115,18 +1115,18 @@ void main() {
         final service = WalletChainConfigService(dio: dio);
 
         final chain = await service.addCustomEvmChain(
-          name: 'Polygon',
-          symbol: 'matic',
-          evmChainId: 137,
+          name: 'Gnosis',
+          symbol: 'xdai',
+          evmChainId: 100,
           rpcUrls: const [
-            'https://polygon-rpc-disabled.example',
-            'https://polygon-bor-rpc.publicnode.com',
+            'https://gnosis-rpc-disabled.example',
+            'https://gnosis-rpc.publicnode.com',
           ],
         );
 
-        expect(chain.id, 'evm-137');
-        expect(chain.rpcUrls.first, 'https://polygon-bor-rpc.publicnode.com');
-        expect(chain.rpcUrls, contains('https://polygon-rpc-disabled.example'));
+        expect(chain.id, 'evm-100');
+        expect(chain.rpcUrls.first, 'https://gnosis-rpc.publicnode.com');
+        expect(chain.rpcUrls, contains('https://gnosis-rpc-disabled.example'));
       },
     );
 
@@ -1136,27 +1136,27 @@ void main() {
       final service = WalletChainConfigService(dio: dio);
 
       final chain = await service.addCustomEvmChain(
-        name: 'Polygon',
-        symbol: 'matic',
-        evmChainId: 137,
-        rpcUrls: const ['https://polygon-rpc.com'],
+        name: 'Gnosis',
+        symbol: 'xdai',
+        evmChainId: 100,
+        rpcUrls: const ['https://gnosis-rpc.com'],
       );
       final updated = await service.updateCustomEvmChain(
         chainId: chain.id,
-        name: 'Polygon PoS',
-        symbol: 'pol',
+        name: 'Gnosis Chain',
+        symbol: 'xdai',
         rpcUrls: const [
-          'https://polygon-rpc-disabled.example',
-          'https://polygon-bor-rpc.publicnode.com',
+          'https://gnosis-rpc-disabled.example',
+          'https://gnosis-rpc.publicnode.com',
         ],
       );
 
       expect(updated.id, chain.id);
-      expect(updated.evmChainId, 137);
-      expect(updated.name, 'Polygon PoS');
-      expect(updated.symbol, 'POL');
-      expect(updated.rpcUrls.first, 'https://polygon-bor-rpc.publicnode.com');
-      expect((await service.loadCustomChains()).single.name, 'Polygon PoS');
+      expect(updated.evmChainId, 100);
+      expect(updated.name, 'Gnosis Chain');
+      expect(updated.symbol, 'XDAI');
+      expect(updated.rpcUrls.first, 'https://gnosis-rpc.publicnode.com');
+      expect((await service.loadCustomChains()).single.name, 'Gnosis Chain');
     });
 
     test('updates built-in EVM chain metadata and RPC list', () async {
@@ -1840,24 +1840,29 @@ void main() {
       );
     });
 
-    test('defines Ethereum, X Layer, Arbitrum, and Base as EVM chains', () {
-      expect(WalletChain.ethereum.evmChainId, 1);
-      expect(WalletChain.ethereum.symbol, 'ETH');
-      expect(WalletChain.xLayer.evmChainId, 196);
-      expect(WalletChain.xLayer.symbol, 'OKB');
-      expect(WalletChain.arbitrum.evmChainId, 42161);
-      expect(WalletChain.arbitrum.symbol, 'ETH');
-      expect(WalletChain.base.evmChainId, 8453);
-      expect(WalletChain.base.symbol, 'ETH');
-      expect(WalletChain.solana.evmChainId, isNull);
-      expect(WalletChain.solana.symbol, 'SOL');
-      expect(
-        WalletTransferService.normalizeBscAddress(
-          '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
-        ),
-        '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf',
-      );
-    });
+    test(
+      'defines Ethereum, X Layer, Arbitrum, Base, and Polygon as EVM chains',
+      () {
+        expect(WalletChain.ethereum.evmChainId, 1);
+        expect(WalletChain.ethereum.symbol, 'ETH');
+        expect(WalletChain.xLayer.evmChainId, 196);
+        expect(WalletChain.xLayer.symbol, 'OKB');
+        expect(WalletChain.arbitrum.evmChainId, 42161);
+        expect(WalletChain.arbitrum.symbol, 'ETH');
+        expect(WalletChain.base.evmChainId, 8453);
+        expect(WalletChain.base.symbol, 'ETH');
+        expect(WalletChain.polygon.evmChainId, 137);
+        expect(WalletChain.polygon.symbol, 'POL');
+        expect(WalletChain.solana.evmChainId, isNull);
+        expect(WalletChain.solana.symbol, 'SOL');
+        expect(
+          WalletTransferService.normalizeBscAddress(
+            '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+          ),
+          '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf',
+        );
+      },
+    );
 
     test('encodes TRC20 transfer parameters', () {
       expect(
@@ -2467,6 +2472,23 @@ class _FallbackRpcAdapter implements HttpClientAdapter {
         'jsonrpc': '2.0',
         'id': 1,
         'result': _isEvmChainIdRequest(options.data) ? '0x89' : '0x0',
+      });
+    }
+
+    if (origin == 'https://gnosis-rpc.com' ||
+        origin == 'https://gnosis-rpc.publicnode.com') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'result': _isEvmChainIdRequest(options.data) ? '0x64' : '0x0',
+      });
+    }
+
+    if (origin == 'https://gnosis-rpc-disabled.example') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'error': {'code': -32051, 'message': 'API key disabled'},
       });
     }
 

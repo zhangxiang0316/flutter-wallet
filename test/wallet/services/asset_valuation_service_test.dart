@@ -180,8 +180,9 @@ void main() {
           {'symbol': 'OKBUSDT', 'price': '52.25'},
           {'symbol': 'SOLUSDT', 'price': '150.75'},
           {'symbol': 'ARBUSDT', 'price': '1.23'},
+          {'symbol': 'POLUSDT', 'price': '0.25'},
         ],
-        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB', 'POL'],
       );
 
       expect(prices['BNB']?.toStringAsFixed(2), '300.50');
@@ -191,6 +192,7 @@ void main() {
       expect(prices['OKB']?.toString(), '52.25');
       expect(prices['SOL']?.toString(), '150.75');
       expect(prices['ARB']?.toString(), '1.23');
+      expect(prices['POL']?.toString(), '0.25');
     });
 
     test('parses single Binance ticker response', () {
@@ -257,8 +259,9 @@ void main() {
           'okb': {'usd': 52.3},
           'solana': {'usd': 150.8},
           'arbitrum': {'usd': 1.25},
+          'polygon-ecosystem-token': {'usd': 0.26},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB', 'POL'],
       );
 
       expect(prices['BNB']?.toString(), '301.25');
@@ -269,6 +272,7 @@ void main() {
       expect(prices['OKB']?.toString(), '52.3');
       expect(prices['SOL']?.toString(), '150.8');
       expect(prices['ARB']?.toString(), '1.25');
+      expect(prices['POL']?.toString(), '0.26');
     });
 
     test('parses DeFiLlama prices by CoinGecko ids', () {
@@ -320,8 +324,14 @@ void main() {
               'USD': {'price': 1.27},
             },
           },
+          {
+            'id': 'pol-polygon-ecosystem-token',
+            'quotes': {
+              'USD': {'price': 0.27},
+            },
+          },
         ],
-        ['BNB', 'BTCB', 'WBTC', 'SOL', 'ARB'],
+        ['BNB', 'BTCB', 'WBTC', 'SOL', 'ARB', 'POL'],
       );
 
       expect(prices['BNB']?.toString(), '599.93');
@@ -329,6 +339,7 @@ void main() {
       expect(prices['WBTC']?.toString(), '62643.07');
       expect(prices['SOL']?.toString(), '66.14');
       expect(prices['ARB']?.toString(), '1.27');
+      expect(prices['POL']?.toString(), '0.27');
     });
 
     test('parses CryptoCompare fallback prices by wallet symbol', () {

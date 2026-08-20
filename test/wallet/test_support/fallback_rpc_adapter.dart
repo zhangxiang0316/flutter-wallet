@@ -749,6 +749,23 @@ class FallbackRpcAdapter implements HttpClientAdapter {
       });
     }
 
+    if (origin == 'https://gnosis-rpc.com' ||
+        origin == 'https://gnosis-rpc.publicnode.com') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'result': _isEvmChainIdRequest(options.data) ? '0x64' : '0x0',
+      });
+    }
+
+    if (origin == 'https://gnosis-rpc-disabled.example') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'error': {'code': -32051, 'message': 'API key disabled'},
+      });
+    }
+
     if (origin == 'https://solana-mainnet.rpc.extrnode.com' ||
         origin == 'https://rpc.ankr.com' ||
         origin == 'https://solana-rpc.publicnode.com' ||

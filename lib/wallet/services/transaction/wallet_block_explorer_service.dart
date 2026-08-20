@@ -39,6 +39,8 @@ class WalletBlockExplorerService {
         return 'https://arbiscan.io/address/{address}';
       case 'base':
         return 'https://basescan.org/address/{address}';
+      case 'polygon':
+        return 'https://polygonscan.com/address/{address}';
       case 'solana':
         return 'https://solscan.io/account/{address}';
       case 'tron':
@@ -69,6 +71,8 @@ class WalletBlockExplorerService {
         return 'https://arbiscan.io/tx/{txHash}';
       case 'base':
         return 'https://basescan.org/tx/{txHash}';
+      case 'polygon':
+        return 'https://polygonscan.com/tx/{txHash}';
       case 'solana':
         return 'https://solscan.io/tx/{txHash}';
       case 'tron':

@@ -253,7 +253,7 @@ class _WalletAddressLine extends StatelessWidget {
     required this.bitcoinAddress,
   });
 
-  /// EVM 兼容链地址，当前 BSC、ETH、X Layer、Arbitrum、Base 共用该地址。
+  /// EVM 兼容链地址，当前 BSC、ETH、X Layer、Arbitrum、Base、Polygon 共用该地址。
   final String bscAddress;
 
   /// Solana 链地址。
@@ -378,14 +378,18 @@ class _ChainOverlapTicker extends StatelessWidget {
       WalletChain.xLayer,
       WalletChain.arbitrum,
       WalletChain.base,
+      WalletChain.polygon,
       WalletChain.bitcoin,
       WalletChain.solana,
       WalletChain.sui,
       WalletChain.aptos,
       WalletChain.tron,
     ];
+    const tickerWidth = 232.0;
+    const circleWidth = 34.0;
+    final overlapStep = (tickerWidth - circleWidth) / (chains.length - 1);
     return SizedBox(
-      width: 232.w,
+      width: tickerWidth.w,
       height: 34.w,
       child: Stack(
         children: chains
@@ -393,7 +397,7 @@ class _ChainOverlapTicker extends StatelessWidget {
             .entries
             .map(
               (entry) => Positioned(
-                left: (entry.key * 22).w,
+                left: (entry.key * overlapStep).w,
                 top: 0,
                 child: _ChainCircle(chain: entry.value),
               ),
@@ -445,6 +449,8 @@ class _ChainCircle extends StatelessWidget {
         return const Color(0xFF28A0F0);
       case WalletChain.base:
         return const Color(0xFF0052FF);
+      case WalletChain.polygon:
+        return const Color(0xFF8247E5);
       case WalletChain.bitcoin:
         return const Color(0xFFF7931A);
       case WalletChain.solana:
@@ -470,6 +476,8 @@ class _ChainCircle extends StatelessWidget {
         return 'A';
       case WalletChain.base:
         return 'B';
+      case WalletChain.polygon:
+        return 'P';
       case WalletChain.bitcoin:
         return '₿';
       case WalletChain.solana:

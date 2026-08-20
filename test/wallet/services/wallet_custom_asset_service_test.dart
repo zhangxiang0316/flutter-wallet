@@ -60,6 +60,12 @@ void main() {
       expect(assets.first.logoUrl, isNotEmpty);
       expect(assets.first.canonicalTokenId, 'weth');
       expect(assets.every((asset) => asset.isCustom), isTrue);
+
+      final polygonAssets = WalletCustomAssetService.popularAssetsForChain(
+        WalletChain.polygon.config,
+      );
+      expect(polygonAssets.map((asset) => asset.symbol), contains('DAI'));
+      expect(polygonAssets.single.logoUrl, contains('/blockchains/polygon/'));
     });
 
     test('persists the Polygon USDC canonical identity migration', () async {
@@ -96,12 +102,26 @@ void main() {
                 )!,
               )
               as List<dynamic>;
+      final storedChains =
+          jsonDecode(
+                (await SharedPreferences.getInstance()).getString(
+                  'wallet_custom_evm_chains',
+                )!,
+              )
+              as List<dynamic>;
 
+      expect(assets.single.chainId, WalletChain.polygon.id);
+      expect(assets.single.chainRef.symbol, 'POL');
       expect(assets.single.canonicalTokenId, 'usdc');
+      expect(
+        (stored.single as Map<String, dynamic>)['chainId'],
+        WalletChain.polygon.id,
+      );
       expect(
         (stored.single as Map<String, dynamic>)['canonicalTokenId'],
         'usdc',
       );
+      expect(storedChains, isEmpty);
     });
   });
 }

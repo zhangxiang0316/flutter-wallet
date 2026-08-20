@@ -25,6 +25,11 @@ class WalletCanonicalToken {
     WalletCanonicalToken(id: 'sui', symbol: 'SUI', name: 'Sui'),
     WalletCanonicalToken(id: 'apt', symbol: 'APT', name: 'Aptos'),
     WalletCanonicalToken(id: 'trx', symbol: 'TRX', name: 'TRON'),
+    WalletCanonicalToken(
+      id: 'pol',
+      symbol: 'POL',
+      name: 'Polygon Ecosystem Token',
+    ),
   ];
 
   static WalletCanonicalToken? fromId(String? value) {
@@ -386,6 +391,48 @@ class WalletAssetRegistry {
     ),
   ];
 
+  static const polygonAssets = [
+    WalletAsset(
+      chain: WalletChain.polygon,
+      symbol: 'POL',
+      name: 'Polygon Ecosystem Token',
+      decimals: 18,
+      canonicalTokenId: 'pol',
+    ),
+    WalletAsset(
+      chain: WalletChain.polygon,
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 6,
+      contractAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+      canonicalTokenId: 'usdc',
+    ),
+    WalletAsset(
+      chain: WalletChain.polygon,
+      symbol: 'USDT',
+      name: 'Tether USD',
+      decimals: 6,
+      contractAddress: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+      canonicalTokenId: 'usdt',
+    ),
+    WalletAsset(
+      chain: WalletChain.polygon,
+      symbol: 'WETH',
+      name: 'Wrapped Ether',
+      decimals: 18,
+      contractAddress: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
+      canonicalTokenId: 'eth',
+    ),
+    WalletAsset(
+      chain: WalletChain.polygon,
+      symbol: 'WBTC',
+      name: 'Wrapped BTC',
+      decimals: 8,
+      contractAddress: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6',
+      canonicalTokenId: 'btc',
+    ),
+  ];
+
   static const solanaAssets = [
     WalletAsset(
       chain: WalletChain.solana,
@@ -464,6 +511,7 @@ class WalletAssetRegistry {
     ...xLayerAssets,
     ...arbitrumAssets,
     ...baseAssets,
+    ...polygonAssets,
     ...bitcoinAssets,
     ...solanaAssets,
     ...suiAssets,
@@ -484,6 +532,8 @@ class WalletAssetRegistry {
         return arbitrumAssets;
       case WalletChain.base:
         return baseAssets;
+      case WalletChain.polygon:
+        return polygonAssets;
       case WalletChain.bitcoin:
         return bitcoinAssets;
       case WalletChain.solana:

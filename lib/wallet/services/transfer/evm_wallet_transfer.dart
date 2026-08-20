@@ -9,6 +9,12 @@ const List<String> _baseEvmRpcFallbacks = [
   'https://base.llamarpc.com',
   'https://mainnet.base.org',
 ];
+const List<String> _polygonEvmRpcFallbacks = [
+  'https://polygon.drpc.org',
+  'https://polygon.publicnode.com',
+  'https://tenderly.rpc.polygon.community',
+  'https://1rpc.io/matic',
+];
 final BigInt _maxEvmUint256 = (BigInt.one << 256) - BigInt.one;
 final String _baseGetL1FeeUpperBoundSelector = hex.encode(
   WalletTransferService._keccak(
@@ -186,6 +192,12 @@ extension _EvmWalletTransfer on WalletTransferService {
         : [chain.rpcUrl];
     if (_isBaseMainnet(chain)) {
       return RpcRetryHelper.mergeRpcUrls(configuredUrls, _baseEvmRpcFallbacks);
+    }
+    if (chain.evmChainId == WalletChain.polygon.evmChainId) {
+      return RpcRetryHelper.mergeRpcUrls(
+        configuredUrls,
+        _polygonEvmRpcFallbacks,
+      );
     }
     return configuredUrls;
   }

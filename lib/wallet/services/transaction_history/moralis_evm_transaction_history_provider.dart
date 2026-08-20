@@ -19,11 +19,13 @@ class _MoralisEvmTransactionHistoryProvider
     'bsc': 'bsc',
     'arbitrum': 'arbitrum',
     'base': 'base',
+    'polygon': 'polygon',
   };
   static const Map<int, String> _supportedEvmChainIds = {
     56: 'bsc',
     42161: 'arbitrum',
     8453: 'base',
+    137: 'polygon',
   };
 
   bool supportsChain(WalletChainRef chain) {

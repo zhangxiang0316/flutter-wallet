@@ -39,6 +39,7 @@ const Map<String, String> _binanceTickerSymbols = {
   'SUI': 'SUIUSDT',
   'APT': 'APTUSDT',
   'ARB': 'ARBUSDT',
+  'POL': 'POLUSDT',
 };
 
 /// OKX 现货接口使用的交易对映射。
@@ -56,6 +57,7 @@ const Map<String, String> _okxTickerSymbols = {
   'SUI': 'SUI-USDT',
   'APT': 'APT-USDT',
   'ARB': 'ARB-USDT',
+  'POL': 'POL-USDT',
 };
 
 /// CoinGecko/DeFiLlama 使用的币种 ID 映射。
@@ -75,6 +77,7 @@ const Map<String, String> _coingeckoIds = {
   'SUI': 'sui',
   'APT': 'aptos',
   'ARB': 'arbitrum',
+  'POL': 'polygon-ecosystem-token',
 };
 
 /// CoinPaprika 使用的币种 ID 映射。
@@ -92,6 +95,7 @@ const Map<String, String> _coinPaprikaIds = {
   'SUI': 'sui-sui',
   'APT': 'apt-aptos',
   'ARB': 'arb-arbitrum',
+  'POL': 'pol-polygon-ecosystem-token',
 };
 
 /// CryptoCompare 接口使用的币种符号映射。
@@ -109,6 +113,7 @@ const Map<String, String> _cryptoCompareSymbols = {
   'SUI': 'SUI',
   'APT': 'APT',
   'ARB': 'ARB',
+  'POL': 'POL',
 };
 
 /// 当前服务可以尝试获取实时价格的非稳定币集合。

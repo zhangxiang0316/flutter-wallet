@@ -30,6 +30,6 @@ extension WalletChainTypeExtension on WalletChainRef {
 
   /// 判断是否为 EVM 兼容链。
   ///
-  /// 包括 BSC、Ethereum、Arbitrum、X Layer、Base 等所有 EVM 链。
+  /// 包括 BSC、Ethereum、Arbitrum、X Layer、Base、Polygon 等所有 EVM 链。
   bool get isEvm => evmChainId != null;
 }

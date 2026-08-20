@@ -6,6 +6,7 @@ List<WalletAsset> _popularAssetsForChain(WalletChainConfig chain) {
     'bsc' => _bscPopularAssets(chain),
     'arbitrum' => _arbitrumPopularAssets(chain),
     'base' => _basePopularAssets(chain),
+    'polygon' => _polygonPopularAssets(chain),
     'tron' => _tronPopularAssets(chain),
     'solana' => _solanaPopularAssets(chain),
     _ => const <WalletAsset>[],
@@ -116,6 +117,19 @@ List<WalletAsset> _basePopularAssets(WalletChainConfig chain) {
       name: 'Degen',
       decimals: 18,
       contractAddress: '0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed',
+    ),
+  ];
+}
+
+List<WalletAsset> _polygonPopularAssets(WalletChainConfig chain) {
+  return [
+    _popularEvmAsset(
+      chain,
+      folder: 'polygon',
+      symbol: 'DAI',
+      name: 'Dai Stablecoin',
+      decimals: 18,
+      contractAddress: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
     ),
   ];
 }

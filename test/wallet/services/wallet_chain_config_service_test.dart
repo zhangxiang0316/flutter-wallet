@@ -9,21 +9,49 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('WalletChainConfigService', () {
+    test('provides Polygon as a builtin EVM chain', () {
+      final polygon = WalletChainConfigService().builtinChains().singleWhere(
+        (chain) => chain.id == WalletChain.polygon.id,
+      );
+
+      expect(polygon.isBuiltin, isTrue);
+      expect(polygon.evmChainId, 137);
+      expect(polygon.symbol, 'POL');
+      expect(polygon.rpcUrl, 'https://polygon.drpc.org');
+      expect(polygon.explorerApiUrl, 'https://api.etherscan.io/v2/api');
+    });
+
+    test('rejects adding Polygon again as a custom chain', () async {
+      SharedPreferences.setMockInitialValues({});
+      final dio = Dio()..httpClientAdapter = FallbackRpcAdapter();
+      final service = WalletChainConfigService(dio: dio);
+
+      expect(
+        () => service.addCustomEvmChain(
+          name: 'Polygon Duplicate',
+          symbol: 'POL',
+          evmChainId: 137,
+          rpcUrls: const ['https://polygon-rpc.com'],
+        ),
+        throwsA(isA<WalletChainConfigDuplicateException>()),
+      );
+    });
+
     test('validates RPC chain ID before adding custom EVM chain', () async {
       SharedPreferences.setMockInitialValues({});
       final dio = Dio()..httpClientAdapter = FallbackRpcAdapter();
       final service = WalletChainConfigService(dio: dio);
 
       final chain = await service.addCustomEvmChain(
-        name: 'Polygon',
-        symbol: 'matic',
-        evmChainId: 137,
-        rpcUrls: const ['https://polygon-rpc.com'],
+        name: 'Gnosis',
+        symbol: 'xdai',
+        evmChainId: 100,
+        rpcUrls: const ['https://gnosis-rpc.com'],
       );
 
-      expect(chain.id, 'evm-137');
-      expect(chain.symbol, 'MATIC');
-      expect(chain.rpcUrls, ['https://polygon-rpc.com']);
+      expect(chain.id, 'evm-100');
+      expect(chain.symbol, 'XDAI');
+      expect(chain.rpcUrls, ['https://gnosis-rpc.com']);
       expect(await service.loadCustomChains(), hasLength(1));
     });
 
@@ -35,18 +63,18 @@ void main() {
         final service = WalletChainConfigService(dio: dio);
 
         final chain = await service.addCustomEvmChain(
-          name: 'Polygon',
-          symbol: 'matic',
-          evmChainId: 137,
+          name: 'Gnosis',
+          symbol: 'xdai',
+          evmChainId: 100,
           rpcUrls: const [
-            'https://polygon-rpc-disabled.example',
-            'https://polygon-bor-rpc.publicnode.com',
+            'https://gnosis-rpc-disabled.example',
+            'https://gnosis-rpc.publicnode.com',
           ],
         );
 
-        expect(chain.id, 'evm-137');
-        expect(chain.rpcUrls.first, 'https://polygon-bor-rpc.publicnode.com');
-        expect(chain.rpcUrls, contains('https://polygon-rpc-disabled.example'));
+        expect(chain.id, 'evm-100');
+        expect(chain.rpcUrls.first, 'https://gnosis-rpc.publicnode.com');
+        expect(chain.rpcUrls, contains('https://gnosis-rpc-disabled.example'));
       },
     );
 
@@ -56,27 +84,27 @@ void main() {
       final service = WalletChainConfigService(dio: dio);
 
       final chain = await service.addCustomEvmChain(
-        name: 'Polygon',
-        symbol: 'matic',
-        evmChainId: 137,
-        rpcUrls: const ['https://polygon-rpc.com'],
+        name: 'Gnosis',
+        symbol: 'xdai',
+        evmChainId: 100,
+        rpcUrls: const ['https://gnosis-rpc.com'],
       );
       final updated = await service.updateCustomEvmChain(
         chainId: chain.id,
-        name: 'Polygon PoS',
-        symbol: 'pol',
+        name: 'Gnosis Chain',
+        symbol: 'xdai',
         rpcUrls: const [
-          'https://polygon-rpc-disabled.example',
-          'https://polygon-bor-rpc.publicnode.com',
+          'https://gnosis-rpc-disabled.example',
+          'https://gnosis-rpc.publicnode.com',
         ],
       );
 
       expect(updated.id, chain.id);
-      expect(updated.evmChainId, 137);
-      expect(updated.name, 'Polygon PoS');
-      expect(updated.symbol, 'POL');
-      expect(updated.rpcUrls.first, 'https://polygon-bor-rpc.publicnode.com');
-      expect((await service.loadCustomChains()).single.name, 'Polygon PoS');
+      expect(updated.evmChainId, 100);
+      expect(updated.name, 'Gnosis Chain');
+      expect(updated.symbol, 'XDAI');
+      expect(updated.rpcUrls.first, 'https://gnosis-rpc.publicnode.com');
+      expect((await service.loadCustomChains()).single.name, 'Gnosis Chain');
     });
 
     test('updates built-in EVM chain metadata and RPC list', () async {

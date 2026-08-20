@@ -84,13 +84,20 @@ class WalletChainConfigService {
     if (customChainsJson == null) {
       return [];
     }
-    return customChainsJson
+    final chains = customChainsJson
         .whereType<Map>()
         .map(
           (item) => WalletChainConfig.fromJson(Map<String, dynamic>.from(item)),
         )
         .where((chain) => _isValidCustomEvmChain(chain))
+        .toList();
+    final migratedChains = chains
+        .where((chain) => chain.evmChainId != WalletChain.polygon.evmChainId)
         .toList(growable: false);
+    if (migratedChains.length != chains.length) {
+      await saveCustomChains(migratedChains);
+    }
+    return migratedChains;
   }
 
   /// 保存用户添加的 EVM 链列表。
@@ -149,10 +156,19 @@ class WalletChainConfigService {
   ///
   /// 动态 EVM 链资产持久化时只保存 chainId 和基础链信息，真正 RPC 列表以链配置为准。
   Future<List<WalletAsset>> bindAssetsToChains(List<WalletAsset> assets) async {
-    final chains = {for (final chain in await loadAllChains()) chain.id: chain};
+    final allChains = await loadAllChains();
+    final chains = {for (final chain in allChains) chain.id: chain};
+    final evmChains = <int, WalletChainConfig>{};
+    for (final chain in allChains) {
+      final evmChainId = chain.evmChainId;
+      if (evmChainId != null) {
+        evmChains.putIfAbsent(evmChainId, () => chain);
+      }
+    }
     return assets
         .map((asset) {
-          final chain = chains[asset.chainId];
+          final chain =
+              chains[asset.chainId] ?? evmChains[asset.chainRef.evmChainId];
           if (chain == null) {
             return asset;
           }

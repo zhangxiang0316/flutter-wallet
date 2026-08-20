@@ -144,6 +144,20 @@ class ChainBalanceCache {
     }
 
     final evmChainId = int.tryParse(json['evmChainId']?.toString() ?? '');
+    if (evmChainId == WalletChain.polygon.evmChainId) {
+      return ChainBalance(
+        chain: WalletChain.polygon,
+        symbol: json['symbol'] as String,
+        name: json['name'] as String,
+        amount: json['amount'] as String,
+        address: json['address'] as String,
+        contractAddress: json['contractAddress'] as String?,
+        logoUrl: json['logoUrl'] as String?,
+        canonicalTokenId: json['canonicalTokenId'] as String?,
+        decimals: json['decimals'] as int,
+        error: json['error'] as String?,
+      );
+    }
     if (evmChainId != null) {
       final chainConfig = WalletChainConfig.customEvm(
         id: chainId,

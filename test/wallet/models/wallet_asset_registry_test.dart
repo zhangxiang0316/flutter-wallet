@@ -78,6 +78,26 @@ void main() {
       expect(asset.toJson()['canonicalTokenId'], 'usdc');
     });
 
+    test('provides Polygon native and common mapped assets', () {
+      final assets = WalletAssetRegistry.assetsForChain(WalletChain.polygon);
+
+      expect(assets.first.symbol, 'POL');
+      expect(assets.first.isNative, isTrue);
+      expect(assets.first.canonicalTokenId, 'pol');
+      expect(
+        assets.singleWhere((asset) => asset.symbol == 'USDC').contractAddress,
+        '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+      );
+      expect(
+        assets.singleWhere((asset) => asset.symbol == 'WETH').canonicalTokenId,
+        'eth',
+      );
+      expect(
+        assets.singleWhere((asset) => asset.symbol == 'WBTC').canonicalTokenId,
+        'btc',
+      );
+    });
+
     test('keeps arbitrary user-defined canonical token IDs', () {
       const asset = WalletAsset(
         chain: WalletChain.bsc,
