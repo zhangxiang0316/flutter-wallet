@@ -6,10 +6,143 @@ extension _EvmChainBalance on ChainBalanceService {
     required List<WalletAsset> assets,
     required String address,
   }) async {
-    return Future.wait(
-      assets.map(
-        (asset) => _loadEvmAsset(chain: chain, asset: asset, address: address),
-      ),
+    if (assets.isEmpty) return const [];
+    if (assets.length == 1) {
+      return [
+        await _loadEvmAsset(
+          chain: chain,
+          asset: assets.single,
+          address: address,
+        ),
+      ];
+    }
+    final requests = <Map<String, dynamic>>[];
+    for (var index = 0; index < assets.length; index++) {
+      final asset = assets[index];
+      requests.add({
+        'jsonrpc': '2.0',
+        'method': asset.isNative ? 'eth_getBalance' : 'eth_call',
+        'params': asset.isNative
+            ? [address, 'latest']
+            : [
+                {
+                  'to': asset.contractAddress,
+                  'data': ChainBalanceService.erc20BalanceOfData(address),
+                },
+                'latest',
+              ],
+        'id': index + 1,
+      });
+    }
+
+    try {
+      final responses = await _postEvmRpcBatch(chain: chain, data: requests);
+      final responsesById = <int, Map<dynamic, dynamic>>{};
+      for (final response in responses) {
+        if (response is! Map) continue;
+        final id = response['id'];
+        if (id is num) {
+          responsesById[id.toInt()] = response;
+        }
+      }
+      final balances = List.generate(assets.length, (index) {
+        final asset = assets[index];
+        final response = responsesById[index + 1];
+        return _evmBalanceFromResponse(
+          chain: chain,
+          asset: asset,
+          address: address,
+          response: response,
+        );
+      }, growable: false);
+      final failedIndexes = <int>[
+        for (var index = 0; index < balances.length; index++)
+          if (balances[index].hasError) index,
+      ];
+      if (failedIndexes.isEmpty) return balances;
+
+      final retries = await Future.wait(
+        failedIndexes.map(
+          (index) => _loadEvmAsset(
+            chain: chain,
+            asset: assets[index],
+            address: address,
+          ),
+        ),
+      );
+      final resolvedBalances = [...balances];
+      for (var index = 0; index < failedIndexes.length; index++) {
+        resolvedBalances[failedIndexes[index]] = retries[index];
+      }
+      return resolvedBalances;
+    } catch (error) {
+      developer.log(
+        '${chain.name} batch balance lookup failed; retrying individually',
+        error: error,
+        name: 'ChainBalanceService',
+      );
+      return Future.wait(
+        assets.map(
+          (asset) =>
+              _loadEvmAsset(chain: chain, asset: asset, address: address),
+        ),
+      );
+    }
+  }
+
+  ChainBalance _evmBalanceFromResponse({
+    required WalletChainConfig chain,
+    required WalletAsset asset,
+    required String address,
+    required Map<dynamic, dynamic>? response,
+  }) {
+    try {
+      if (response == null) {
+        throw StateError('Missing ${asset.symbol} batch RPC response');
+      }
+      if (response['error'] != null) {
+        throw StateError('${chain.name} RPC error: ${response['error']}');
+      }
+      final rawValue = response['result'];
+      if (rawValue is! String) {
+        throw StateError('Invalid ${asset.symbol} balance response');
+      }
+      final value = _parseHexQuantity(rawValue);
+      return _evmBalance(
+        chain: chain,
+        asset: asset,
+        address: address,
+        amount: _formatUnits(value, asset.decimals),
+      );
+    } catch (error) {
+      return _evmBalance(
+        chain: chain,
+        asset: asset,
+        address: address,
+        amount: '0',
+        error: error.toString(),
+      );
+    }
+  }
+
+  ChainBalance _evmBalance({
+    required WalletChainConfig chain,
+    required WalletAsset asset,
+    required String address,
+    required String amount,
+    String? error,
+  }) {
+    return ChainBalance.config(
+      chainConfig: chain,
+      symbol: asset.symbol,
+      name: asset.name,
+      amount: amount,
+      address: address,
+      contractAddress: asset.contractAddress,
+      logoUrl: asset.logoUrl,
+      canonicalTokenId: asset.canonicalTokenId,
+      decimals: asset.decimals,
+      error: error,
     );
   }
 

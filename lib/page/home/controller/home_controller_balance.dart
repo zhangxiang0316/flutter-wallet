@@ -6,7 +6,8 @@ extension HomeControllerBalance on HomeController {
   /// 优化策略：
   /// 1. 立即显示缓存余额；
   /// 2. 后台静默更新最新数据；
-  /// 3. 更新完成后刷新 UI 并保存新缓存。
+  /// 3. 每条链完成后立即合并并局部刷新 UI；
+  /// 4. 全部完成后保存完整快照并更新价格。
   Future<void> refreshBalances() async {
     final currentWallet = wallet;
     if (currentWallet == null) return;
@@ -16,7 +17,7 @@ extension HomeControllerBalance on HomeController {
     await _applyCachedBalances(currentWallet);
 
     isLoading = true;
-    update();
+    _updateBalanceView();
 
     try {
       final nextBalances = await _balanceService.loadBalances(
@@ -26,16 +27,25 @@ extension HomeControllerBalance on HomeController {
         suiAddress: currentWallet.suiAddress,
         aptosAddress: currentWallet.aptosAddress,
         bitcoinAddress: currentWallet.bitcoinAddress,
+        onChainBalances: (chainBalances) {
+          if (!_isActiveBalanceRequest(requestId, currentWallet)) {
+            return;
+          }
+          _mergeChainBalances(chainBalances);
+          _applyAssetVisibility();
+          _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
+          _updateBalanceView();
+        },
       );
       if (!_isActiveBalanceRequest(requestId, currentWallet)) {
         return;
       }
 
-      balances = nextBalances;
-      await _balanceCache.save(currentWallet.id, nextBalances);
+      balances = _preserveLastSuccessfulBalances(nextBalances, balances);
+      await _balanceCache.save(currentWallet.id, balances);
       await _refreshBalanceDisplayState();
       isLoading = false;
-      update();
+      _updateBalanceView();
 
       final latestPrices = await _valuationService
           .loadUsdPrices(visibleBalances)
@@ -44,7 +54,7 @@ extension HomeControllerBalance on HomeController {
         return;
       }
       _refreshTokenPortfolioItems(latestPrices);
-      update();
+      _updateBalanceView();
     } catch (_) {
       if (_isActiveBalanceRequest(requestId, currentWallet)) {
         Toast.show(S.current.balanceLoadFailed);
@@ -52,19 +62,68 @@ extension HomeControllerBalance on HomeController {
     } finally {
       if (_isActiveBalanceRequest(requestId, currentWallet)) {
         isLoading = false;
-        update();
+        _updateBalanceView();
       }
     }
   }
 
   Future<void> _applyCachedBalances(WalletAccount currentWallet) async {
-    final cachedBalances = await _balanceCache.load(currentWallet.id);
+    final cachedBalances = await _balanceCache.load(
+      currentWallet.id,
+      allowStale: true,
+    );
     if (cachedBalances == null || cachedBalances.isEmpty) {
       return;
     }
     balances = cachedBalances;
     await _refreshBalanceDisplayState();
-    update();
+    _updateBalanceView();
+  }
+
+  /// 用某条链的新结果替换缓存中的旧结果，不影响其它仍在请求中的链。
+  void _mergeChainBalances(List<ChainBalance> chainBalances) {
+    if (chainBalances.isEmpty) return;
+    final updatedChainIds = chainBalances
+        .map((balance) => balance.chainId)
+        .toSet();
+    final resolvedBalances = _preserveLastSuccessfulBalances(
+      chainBalances,
+      balances,
+    );
+    balances = [
+      ...balances.where(
+        (balance) => !updatedChainIds.contains(balance.chainId),
+      ),
+      ...resolvedBalances,
+    ];
+  }
+
+  /// 网络失败时保留同一资产最后一次成功余额，避免离线刷新把缓存覆盖成 0。
+  List<ChainBalance> _preserveLastSuccessfulBalances(
+    List<ChainBalance> freshBalances,
+    List<ChainBalance> previousBalances,
+  ) {
+    final previousByKey = {
+      for (final balance in previousBalances) _balanceKey(balance): balance,
+    };
+    return freshBalances
+        .map((balance) {
+          if (!balance.hasError) return balance;
+          return previousByKey[_balanceKey(balance)] ?? balance;
+        })
+        .toList(growable: false);
+  }
+
+  String _balanceKey(ChainBalance balance) {
+    final contract = balance.contractAddress?.trim() ?? '';
+    final normalizedContract = balance.chainRef.isEvm
+        ? contract.toLowerCase()
+        : contract;
+    return '${balance.chainId}:$normalizedContract:${balance.symbol}';
+  }
+
+  void _updateBalanceView() {
+    update([HomeController.balanceViewId]);
   }
 
   Future<void> _refreshBalanceDisplayState() async {

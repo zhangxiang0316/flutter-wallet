@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
@@ -77,6 +79,36 @@ void main() {
       expect(loaded.single.chainRef.symbol, 'AVAX');
       expect(loaded.single.canonicalTokenId, 'avax');
       expect(loaded.single.amount, '3.25');
+    },
+  );
+
+  test(
+    'can show an expired balance while revalidating in background',
+    () async {
+      final cache = ChainBalanceCache();
+      const balance = ChainBalance(
+        chain: WalletChain.ethereum,
+        symbol: 'ETH',
+        name: 'Ethereum',
+        amount: '1.25',
+        address: '0x1111111111111111111111111111111111111111',
+        decimals: 18,
+      );
+      await cache.save('wallet-stale', [balance]);
+
+      final prefs = await SharedPreferences.getInstance();
+      const key = 'cached_balances_v2_wallet-stale';
+      final cachedJson =
+          jsonDecode(prefs.getString(key)!) as Map<String, dynamic>;
+      cachedJson['timestamp'] = DateTime.now()
+          .subtract(const Duration(hours: 2))
+          .toIso8601String();
+      await prefs.setString(key, jsonEncode(cachedJson));
+
+      expect(await cache.load('wallet-stale'), isNull);
+      final staleBalances = await cache.load('wallet-stale', allowStale: true);
+      expect(staleBalances, hasLength(1));
+      expect(staleBalances!.single.amount, '1.25');
     },
   );
 }

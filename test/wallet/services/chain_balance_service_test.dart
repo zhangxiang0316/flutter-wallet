@@ -49,6 +49,32 @@ void main() {
       expect(sol.error, isNull);
       expect(adapter.calls, contains('https://bsc-dataseed.bnbchain.org'));
       expect(adapter.calls, contains('https://bsc-rpc.publicnode.com'));
+      expect(adapter.evmBalanceBatchCount, greaterThan(0));
+    });
+
+    test('reports each chain as soon as its balance batch completes', () async {
+      final dio = Dio();
+      final adapter = FallbackRpcAdapter();
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(dio: dio);
+      final completedChainIds = <String>[];
+
+      final balances = await service.loadBalances(
+        bscAddress: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+        tronAddress: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+        solanaAddress: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+        onChainBalances: (chainBalances) {
+          if (chainBalances.isNotEmpty) {
+            completedChainIds.add(chainBalances.first.chainId);
+          }
+        },
+      );
+
+      expect(completedChainIds, contains(WalletChain.bsc.id));
+      expect(completedChainIds, contains(WalletChain.solana.id));
+      expect(completedChainIds, contains(WalletChain.tron.id));
+      expect(completedChainIds.toSet().length, 9);
+      expect(balances, isNotEmpty);
     });
 
     test('loads native Bitcoin balance from Esplora API', () async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
@@ -20,6 +21,9 @@ part 'balance/solana_chain_balance.dart';
 part 'balance/bitcoin_chain_balance.dart';
 part 'balance/sui_chain_balance.dart';
 part 'balance/aptos_chain_balance.dart';
+
+/// 单条链余额完成后的增量回调。
+typedef ChainBalancesCallback = void Function(List<ChainBalance> balances);
 
 /// 多链余额查询服务。
 ///
@@ -73,10 +77,11 @@ class ChainBalanceService {
   /// Solana 公共节点偶尔响应较慢，单次请求设置得更短，避免拖慢整个首页刷新。
   static const Duration _solanaRequestTimeout = Duration(seconds: 3);
 
-  /// Solana 整条链余额查询的总超时时间。
-  ///
-  /// 超时后会返回 Solana 资产的 0 余额兜底列表，避免页面一直 loading。
-  static const Duration _solanaChainTimeout = Duration(seconds: 10);
+  /// 单条链余额查询的总超时时间，避免任意慢节点拖住整次首页刷新。
+  static const Duration _chainBalanceTimeout = Duration(seconds: 6);
+
+  /// EVM 单个 RPC 节点的尝试时间，超时后尽快切换备用节点。
+  static const Duration _evmRequestTimeout = Duration(seconds: 3);
 
   /// EVM 链 RPC 备用节点。
   ///
@@ -166,6 +171,7 @@ class ChainBalanceService {
     String suiAddress = '',
     String aptosAddress = '',
     String bitcoinAddress = '',
+    ChainBalancesCallback? onChainBalances,
   }) async {
     final customAssets = await _customAssetService.loadCustomAssets();
     final enabledChains = await _chainConfigService.loadEnabledChains();
@@ -181,139 +187,165 @@ class ChainBalanceService {
     final aptosChains = enabledChains.where(
       (chain) => chain.type == WalletChainType.aptos,
     );
-    final results = await Future.wait([
-      ...evmChains.map((chain) {
-        final assets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
-          chain,
-          customAssets,
-        );
-        return _loadEvmBalances(
-          chain: chain,
-          assets: assets,
-          address: bscAddress,
-        ).catchError((error) {
-          developer.log(
-            '${chain.name} balance lookup failed; using zero fallback balances',
-            error: error,
-            name: 'ChainBalanceService',
-          );
-          return _fallbackBalancesForAssets(
+    final tasks = <Future<List<ChainBalance>>>[];
+
+    for (final chain in evmChains) {
+      final assets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+        chain,
+        customAssets,
+      );
+      tasks.add(
+        _runChainBalanceLoad(
+          chainName: chain.name,
+          operation: _loadEvmBalances(
             chain: chain,
             assets: assets,
             address: bscAddress,
-            error: error.toString(),
-          );
-        });
-      }),
-      _loadSolanaBalances(
-            chain: solanaChain,
-            address: solanaAddress,
-            customAssets: customAssets,
-          )
-          .timeout(
-            _solanaChainTimeout,
-            onTimeout: () {
-              const error = 'Solana balance lookup timed out';
-              developer.log(
-                '$error; using zero fallback balances',
-                name: 'ChainBalanceService',
-              );
-              return _fallbackSolanaBalances(
-                chain: solanaChain,
-                address: solanaAddress,
-                customAssets: customAssets,
-                error: error,
-              );
-            },
-          )
-          .catchError((error) {
-            developer.log(
-              'Solana balance lookup failed; using zero fallback balances',
-              error: error,
-              name: 'ChainBalanceService',
-            );
-            return _fallbackSolanaBalances(
-              chain: solanaChain,
-              address: solanaAddress,
-              customAssets: customAssets,
-              error: error.toString(),
-            );
-          }),
-      _loadTronBalances(
-        chain: tronChain,
-        address: tronAddress,
-        customAssets: customAssets,
-      ).catchError((error) {
-        developer.log(
-          'TRON balance lookup failed; using zero fallback balances',
-          error: error,
-          name: 'ChainBalanceService',
-        );
-        return _fallbackBalancesForAssets(
-          chain: tronChain,
-          assets: WalletAssetRegistry.mergeCustomAssetsForChainConfig(
-            tronChain,
-            customAssets,
           ),
+          fallback: (error) => _fallbackBalancesForAssets(
+            chain: chain,
+            assets: assets,
+            address: bscAddress,
+            error: error,
+          ),
+          onChainBalances: onChainBalances,
+        ),
+      );
+    }
+
+    tasks.add(
+      _runChainBalanceLoad(
+        chainName: solanaChain.name,
+        operation: _loadSolanaBalances(
+          chain: solanaChain,
+          address: solanaAddress,
+          customAssets: customAssets,
+        ),
+        fallback: (error) => _fallbackSolanaBalances(
+          chain: solanaChain,
+          address: solanaAddress,
+          customAssets: customAssets,
+          error: error,
+        ),
+        onChainBalances: onChainBalances,
+      ),
+    );
+
+    final tronAssets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+      tronChain,
+      customAssets,
+    );
+    tasks.add(
+      _runChainBalanceLoad(
+        chainName: tronChain.name,
+        operation: _loadTronBalances(
+          chain: tronChain,
           address: tronAddress,
-          error: error.toString(),
+          customAssets: customAssets,
+        ),
+        fallback: (error) => _fallbackBalancesForAssets(
+          chain: tronChain,
+          assets: tronAssets,
+          address: tronAddress,
+          error: error,
+        ),
+        onChainBalances: onChainBalances,
+      ),
+    );
+
+    if (bitcoinAddress.trim().isNotEmpty) {
+      for (final chain in bitcoinChains) {
+        final assets = WalletAssetRegistry.assetsForChainConfig(chain);
+        tasks.add(
+          _runChainBalanceLoad(
+            chainName: chain.name,
+            operation: _loadBitcoinBalances(
+              chain: chain,
+              address: bitcoinAddress,
+            ),
+            fallback: (error) => _fallbackBalancesForAssets(
+              chain: chain,
+              assets: assets,
+              address: bitcoinAddress,
+              error: error,
+            ),
+            onChainBalances: onChainBalances,
+          ),
         );
-      }),
-      if (bitcoinAddress.trim().isNotEmpty)
-        ...bitcoinChains.map(
-          (chain) => _loadBitcoinBalances(chain: chain, address: bitcoinAddress)
-              .catchError((error) {
-                developer.log(
-                  'Bitcoin balance lookup failed; using zero fallback balance',
-                  error: error,
-                  name: 'ChainBalanceService',
-                );
-                return _fallbackBalancesForAssets(
-                  chain: chain,
-                  assets: WalletAssetRegistry.assetsForChainConfig(chain),
-                  address: bitcoinAddress,
-                  error: error.toString(),
-                );
-              }),
-        ),
-      if (suiAddress.trim().isNotEmpty)
-        ...suiChains.map(
-          (chain) => _loadSuiBalances(chain: chain, address: suiAddress)
-              .catchError((error) {
-                developer.log(
-                  'Sui balance lookup failed; using zero fallback balances',
-                  error: error,
-                  name: 'ChainBalanceService',
-                );
-                return _fallbackBalancesForAssets(
-                  chain: chain,
-                  assets: WalletAssetRegistry.assetsForChainConfig(chain),
-                  address: suiAddress,
-                  error: error.toString(),
-                );
-              }),
-        ),
-      if (aptosAddress.trim().isNotEmpty)
-        ...aptosChains.map(
-          (chain) => _loadAptosBalances(chain: chain, address: aptosAddress)
-              .catchError((error) {
-                developer.log(
-                  'Aptos balance lookup failed; using zero fallback balances',
-                  error: error,
-                  name: 'ChainBalanceService',
-                );
-                return _fallbackBalancesForAssets(
-                  chain: chain,
-                  assets: WalletAssetRegistry.assetsForChainConfig(chain),
-                  address: aptosAddress,
-                  error: error.toString(),
-                );
-              }),
-        ),
-    ]);
+      }
+    }
+
+    if (suiAddress.trim().isNotEmpty) {
+      for (final chain in suiChains) {
+        final assets = WalletAssetRegistry.assetsForChainConfig(chain);
+        tasks.add(
+          _runChainBalanceLoad(
+            chainName: chain.name,
+            operation: _loadSuiBalances(chain: chain, address: suiAddress),
+            fallback: (error) => _fallbackBalancesForAssets(
+              chain: chain,
+              assets: assets,
+              address: suiAddress,
+              error: error,
+            ),
+            onChainBalances: onChainBalances,
+          ),
+        );
+      }
+    }
+
+    if (aptosAddress.trim().isNotEmpty) {
+      for (final chain in aptosChains) {
+        final assets = WalletAssetRegistry.assetsForChainConfig(chain);
+        tasks.add(
+          _runChainBalanceLoad(
+            chainName: chain.name,
+            operation: _loadAptosBalances(chain: chain, address: aptosAddress),
+            fallback: (error) => _fallbackBalancesForAssets(
+              chain: chain,
+              assets: assets,
+              address: aptosAddress,
+              error: error,
+            ),
+            onChainBalances: onChainBalances,
+          ),
+        );
+      }
+    }
+
+    final results = await Future.wait(tasks);
     final balances = results.expand((items) => items).toList();
     _printLoadedBalances(results, balances);
     return balances;
+  }
+
+  /// 限制单条链的总等待时间，并在完成时立即通知首页。
+  Future<List<ChainBalance>> _runChainBalanceLoad({
+    required String chainName,
+    required Future<List<ChainBalance>> operation,
+    required List<ChainBalance> Function(String error) fallback,
+    ChainBalancesCallback? onChainBalances,
+  }) async {
+    late final List<ChainBalance> result;
+    try {
+      result = await operation.timeout(_chainBalanceTimeout);
+    } on TimeoutException {
+      final error = '$chainName balance lookup timed out';
+      developer.log(
+        '$error; using zero fallback balances',
+        name: 'ChainBalanceService',
+      );
+      result = fallback(error);
+    } catch (error) {
+      developer.log(
+        '$chainName balance lookup failed; using zero fallback balances',
+        error: error,
+        name: 'ChainBalanceService',
+      );
+      result = fallback(error.toString());
+    }
+    onChainBalances?.call(result);
+    return result;
   }
 
   /// 向 EVM 链发送 JSON-RPC 请求。

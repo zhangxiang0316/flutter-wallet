@@ -30,6 +30,9 @@ part 'home_controller_balance.dart';
 /// 负责钱包生命周期、余额刷新、资产可见性过滤、USD 估值、旧数据安全迁移和
 /// 多钱包切换。首页 Widget 只消费这里整理好的状态，不直接访问钱包服务。
 class HomeController extends BaseController {
+  /// 余额和估值区域的局部刷新 ID，避免每条链返回时重建整个 Scaffold。
+  static const String balanceViewId = 'home-balance-view';
+
   HomeController({
     WalletRepository? repository,
     WalletCryptoService? cryptoService,
@@ -96,8 +99,8 @@ class HomeController extends BaseController {
 
   /// 首次进入首页且尚无任何可展示的余额/资产数据时为 true。
   ///
-  /// 该状态下没有本地缓存可以立即渲染，适合用整体骨架屏铺满首页主体；
-  /// 一旦有缓存或链上数据落地，就回到正常内容，避免每次后台刷新都闪骨架屏。
+  /// 该状态只用于代币列表骨架；钱包卡片和安全提示始终立即展示。
+  /// 一旦有缓存或任意链数据落地，就回到正常资产列表。
   bool get isFirstLoading => isLoading && tokenPortfolioItems.isEmpty;
 
   /// 旧版本钱包仍含明文私钥时为 true，需要先设置密码完成迁移。

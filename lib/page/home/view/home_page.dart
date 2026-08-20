@@ -115,9 +115,16 @@ class HomePage extends BaseScaffoldPage<HomeController> {
   /// 根据本地是否已有钱包，切换空钱包引导或钱包资产面板。
   @override
   Widget? getBody(BuildContext context) {
-    final wallet = controller.wallet;
     _scheduleLegacyMigrationSheet(context);
     _scheduleChainAddressUpgradeSheet(context);
+    return GetBuilder<HomeController>(
+      id: HomeController.balanceViewId,
+      builder: (_) => _buildHomeBody(context),
+    );
+  }
+
+  Widget _buildHomeBody(BuildContext context) {
+    final wallet = controller.wallet;
     final isFirstLoading = wallet != null && controller.isFirstLoading;
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(
@@ -126,49 +133,52 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: isFirstLoading
-            ? const [
-                HomeEntranceItem(child: HomePageSkeleton()),
+        children: wallet == null
+            ? [
+                HomeEntranceItem(
+                  child: EmptyWalletCard(
+                    onCreateWallet: () => _showCreateWalletSheet(context),
+                    onImportWallet: () => _showImportSheet(context),
+                  ),
+                ),
               ]
-            : wallet == null
-                ? [
-                    HomeEntranceItem(
-                      child: EmptyWalletCard(
-                        onCreateWallet: () => _showCreateWalletSheet(context),
-                        onImportWallet: () => _showImportSheet(context),
-                      ),
+            : [
+                HomeEntranceItem(
+                  child: WalletOverviewCard(
+                    wallet: wallet,
+                    wallets: controller.wallets,
+                    totalAssetsText: controller.totalAssetsText,
+                    onWalletSelected: controller.switchWallet,
+                    onWalletRemoved: controller.removeWallet,
+                    onAddWallet: () => _showAddWalletSheet(context),
+                    onReceivePressed: _openReceivePage,
+                    onTransferPressed: _openTransferPage,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                if (isFirstLoading)
+                  const HomeEntranceItem(
+                    delay: Duration(milliseconds: 90),
+                    initialOffset: Offset(0, 0.06),
+                    child: HomeTokenPortfolioSkeleton(),
+                  )
+                else
+                  HomeEntranceItem(
+                    delay: const Duration(milliseconds: 90),
+                    initialOffset: const Offset(0, 0.06),
+                    child: TokenPortfolioSection(
+                      items: controller.tokenPortfolioItems,
+                      isLoading: controller.isLoading,
+                      onTokenTap: _openTokenPortfolioDetailPage,
                     ),
-                  ]
-                : [
-                    HomeEntranceItem(
-                      child: WalletOverviewCard(
-                        wallet: wallet,
-                        wallets: controller.wallets,
-                        totalAssetsText: controller.totalAssetsText,
-                        onWalletSelected: controller.switchWallet,
-                        onWalletRemoved: controller.removeWallet,
-                        onAddWallet: () => _showAddWalletSheet(context),
-                        onReceivePressed: _openReceivePage,
-                        onTransferPressed: _openTransferPage,
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-                    HomeEntranceItem(
-                      delay: const Duration(milliseconds: 90),
-                      initialOffset: const Offset(0, 0.06),
-                      child: TokenPortfolioSection(
-                        items: controller.tokenPortfolioItems,
-                        isLoading: controller.isLoading,
-                        onTokenTap: _openTokenPortfolioDetailPage,
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-                    const HomeEntranceItem(
-                      delay: Duration(milliseconds: 150),
-                      initialOffset: Offset(0, 0.05),
-                      child: PrivateKeyNotice(),
-                    ),
-                  ],
+                  ),
+                SizedBox(height: 16.h),
+                const HomeEntranceItem(
+                  delay: Duration(milliseconds: 150),
+                  initialOffset: Offset(0, 0.05),
+                  child: PrivateKeyNotice(),
+                ),
+              ],
       ),
     );
     if (wallet == null) {

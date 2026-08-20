@@ -24,9 +24,15 @@ class ChainBalanceCache {
   ///
   /// 返回 null 表示：
   /// - 缓存不存在
-  /// - 缓存已过期（超过 30 分钟）
+  /// - 缓存已过期且 [allowStale] 为 false
   /// - 缓存数据损坏
-  Future<List<ChainBalance>?> load(String walletId) async {
+  ///
+  /// 首页传入 [allowStale] 后会先展示最后一次成功余额，再在后台刷新链上数据。
+  /// 这样即使用户较长时间没有打开应用，也不会退回整页骨架屏。
+  Future<List<ChainBalance>?> load(
+    String walletId, {
+    bool allowStale = false,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final json = prefs.getString('${_keyPrefix}_$walletId');
@@ -35,8 +41,8 @@ class ChainBalanceCache {
       final data = jsonDecode(json) as Map<String, dynamic>;
       final timestamp = DateTime.parse(data['timestamp'] as String);
 
-      // 检查缓存是否过期
-      if (DateTime.now().difference(timestamp) > _maxAge) {
+      // 普通调用仍遵循有效期；首页可显式启用 stale-while-revalidate。
+      if (!allowStale && DateTime.now().difference(timestamp) > _maxAge) {
         return null;
       }
 

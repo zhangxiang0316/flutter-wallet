@@ -170,6 +170,7 @@ class FallbackRpcAdapter implements HttpClientAdapter {
   String? lastSolanaTransactionBase64;
   String? lastBitcoinRawTransaction;
   int bitcoinBroadcastCount = 0;
+  int evmBalanceBatchCount = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -179,6 +180,12 @@ class FallbackRpcAdapter implements HttpClientAdapter {
   ) async {
     final origin = '${options.uri.scheme}://${options.uri.host}';
     calls.add(origin);
+
+    final evmBatchResponse = _evmBalanceBatchResponse(origin, options.data);
+    if (evmBatchResponse != null) {
+      evmBalanceBatchCount++;
+      return evmBatchResponse;
+    }
 
     if ((origin == 'https://mempool.space' ||
             origin == 'https://blockstream.info') &&
@@ -955,6 +962,35 @@ class FallbackRpcAdapter implements HttpClientAdapter {
 
   bool _isEvmNativeRequest(dynamic data) {
     return data is Map && data['method'] == 'eth_getBalance';
+  }
+
+  ResponseBody? _evmBalanceBatchResponse(String origin, dynamic data) {
+    if (data is! List) return null;
+    const supportedOrigins = {
+      'https://bsc-rpc.publicnode.com',
+      'https://ethereum-rpc.publicnode.com',
+      'https://rpc.xlayer.tech',
+      'https://arbitrum-one-rpc.publicnode.com',
+      'https://mainnet.base.org',
+      'https://polygon.drpc.org',
+      'https://api.avax.network',
+    };
+    if (!supportedOrigins.contains(origin)) return null;
+
+    final responses = data
+        .whereType<Map>()
+        .map((request) {
+          final isBscNative =
+              origin == 'https://bsc-rpc.publicnode.com' &&
+              request['method'] == 'eth_getBalance';
+          return {
+            'jsonrpc': '2.0',
+            'id': request['id'],
+            'result': isBscNative ? '0x0de0b6b3a7640000' : '0x0',
+          };
+        })
+        .toList(growable: false);
+    return _jsonResponse(responses);
   }
 
   bool _isEvmChainIdRequest(dynamic data) {

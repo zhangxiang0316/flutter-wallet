@@ -11,11 +11,18 @@ extension _ChainBalanceRoutes on ChainBalanceService {
       operation: data['method']?.toString() ?? 'EVM RPC',
       logName: 'ChainBalanceService',
       request: (rpcUrl) async {
-        final response = await _dio.post(
-          rpcUrl,
-          data: data,
-          options: Options(headers: {'content-type': 'application/json'}),
-        );
+        final response = await _dio
+            .post(
+              rpcUrl,
+              data: data,
+              options: Options(
+                headers: {'content-type': 'application/json'},
+                connectTimeout: ChainBalanceService._evmRequestTimeout,
+                sendTimeout: ChainBalanceService._evmRequestTimeout,
+                receiveTimeout: ChainBalanceService._evmRequestTimeout,
+              ),
+            )
+            .timeout(ChainBalanceService._evmRequestTimeout);
         final responseData = response.data;
         if (responseData is Map) {
           return responseData;
@@ -31,6 +38,47 @@ extension _ChainBalanceRoutes on ChainBalanceService {
         }
         return StateError('Invalid ${chain.name} RPC response');
       },
+    );
+  }
+
+  /// 向单个 EVM 节点批量发送同一条链的余额请求。
+  Future<List<dynamic>> _postEvmRpcBatch({
+    required WalletChainRef chain,
+    required List<Map<String, dynamic>> data,
+  }) async {
+    return RpcRetryHelper.execute<List<dynamic>>(
+      rpcUrls: _evmRpcUrls(chain),
+      chainName: chain.name,
+      operation: 'batch balance lookup',
+      logName: 'ChainBalanceService',
+      request: (rpcUrl) async {
+        final response = await _dio
+            .post(
+              rpcUrl,
+              data: data,
+              options: Options(
+                headers: {'content-type': 'application/json'},
+                connectTimeout: ChainBalanceService._evmRequestTimeout,
+                sendTimeout: ChainBalanceService._evmRequestTimeout,
+                receiveTimeout: ChainBalanceService._evmRequestTimeout,
+              ),
+            )
+            .timeout(ChainBalanceService._evmRequestTimeout);
+        final responseData = response.data;
+        if (responseData is List) {
+          return responseData;
+        }
+        throw StateError('Invalid ${chain.name} batch RPC response');
+      },
+      validator: (responseData) =>
+          responseData.length == data.length &&
+          responseData.every(
+            (item) =>
+                item is Map &&
+                (item['result'] is String || item['error'] != null),
+          ),
+      invalidResponseError: (_, __) =>
+          StateError('Invalid ${chain.name} batch RPC response'),
     );
   }
 
