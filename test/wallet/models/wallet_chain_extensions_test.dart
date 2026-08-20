@@ -23,6 +23,9 @@ void main() {
 
       expect(WalletChain.ethereum.isEvm, isTrue);
       expect(WalletChain.arbitrum.isEvm, isTrue);
+      expect(WalletChain.base.isEvm, isTrue);
+      expect(WalletChain.base.isTron, isFalse);
+      expect(WalletChain.base.isSolana, isFalse);
     });
 
     test('isBitcoin identifies Bitcoin without treating it as EVM', () {

@@ -1840,13 +1840,15 @@ void main() {
       );
     });
 
-    test('defines Ethereum, X Layer, and Arbitrum as EVM chains', () {
+    test('defines Ethereum, X Layer, Arbitrum, and Base as EVM chains', () {
       expect(WalletChain.ethereum.evmChainId, 1);
       expect(WalletChain.ethereum.symbol, 'ETH');
       expect(WalletChain.xLayer.evmChainId, 196);
       expect(WalletChain.xLayer.symbol, 'OKB');
       expect(WalletChain.arbitrum.evmChainId, 42161);
       expect(WalletChain.arbitrum.symbol, 'ETH');
+      expect(WalletChain.base.evmChainId, 8453);
+      expect(WalletChain.base.symbol, 'ETH');
       expect(WalletChain.solana.evmChainId, isNull);
       expect(WalletChain.solana.symbol, 'SOL');
       expect(

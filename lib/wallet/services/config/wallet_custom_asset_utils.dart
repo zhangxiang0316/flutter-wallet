@@ -18,6 +18,10 @@ const Map<WalletChain, List<String>> _evmRpcFallbacks = {
     'https://arb1.arbitrum.io/rpc',
     'https://arbitrum-one-rpc.publicnode.com',
   ],
+  WalletChain.base: [
+    'https://mainnet.base.org',
+    'https://base-rpc.publicnode.com',
+  ],
 };
 
 String? _normalizeLogoUrl(String? value) {
@@ -39,6 +43,7 @@ String? _defaultLogoUrl(WalletChainRef chain, String contractAddress) {
     'ethereum' => 'ethereum',
     'bsc' => 'smartchain',
     'arbitrum' => 'arbitrum',
+    'base' => 'base',
     _ => null,
   };
   if (folder == null) return null;

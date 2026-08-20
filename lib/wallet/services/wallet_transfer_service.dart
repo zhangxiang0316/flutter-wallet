@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
@@ -19,6 +20,7 @@ import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_chain_extensions.dart';
+import '../utils/rpc_retry_helper.dart';
 
 part 'transfer/evm_wallet_transfer.dart';
 part 'transfer/tron_wallet_transfer.dart';

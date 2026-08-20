@@ -130,6 +130,8 @@ class ChainAssetVisibilityCard extends StatelessWidget {
         return const Color(0xFF111827);
       case WalletChain.arbitrum:
         return const Color(0xFF28A0F0);
+      case WalletChain.base:
+        return const Color(0xFF0052FF);
       case WalletChain.bitcoin:
         return const Color(0xFFF7931A);
       case WalletChain.solana:

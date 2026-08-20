@@ -51,13 +51,15 @@ void main() {
       );
     });
 
-    test('defines Ethereum, X Layer, and Arbitrum as EVM chains', () {
+    test('defines Ethereum, X Layer, Arbitrum, and Base as EVM chains', () {
       expect(WalletChain.ethereum.evmChainId, 1);
       expect(WalletChain.ethereum.symbol, 'ETH');
       expect(WalletChain.xLayer.evmChainId, 196);
       expect(WalletChain.xLayer.symbol, 'OKB');
       expect(WalletChain.arbitrum.evmChainId, 42161);
       expect(WalletChain.arbitrum.symbol, 'ETH');
+      expect(WalletChain.base.evmChainId, 8453);
+      expect(WalletChain.base.symbol, 'ETH');
       expect(WalletChain.solana.evmChainId, isNull);
       expect(WalletChain.solana.symbol, 'SOL');
       expect(
@@ -66,6 +68,45 @@ void main() {
         ),
         '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf',
       );
+    });
+
+    test('adds Base L1 fee and falls back across RPC nodes', () async {
+      final adapter = _BaseTransferAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+      final keyPair = WalletCryptoService().importPrivateKey(
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
+      );
+      final asset = ChainBalance(
+        chain: WalletChain.base,
+        symbol: 'ETH',
+        name: 'Ethereum',
+        amount: '1',
+        address: keyPair.bscAddress,
+        decimals: 18,
+      );
+
+      final estimate = await transferService.estimateFee(
+        asset: asset,
+        toAddress: '0x2222222222222222222222222222222222222222',
+        amount: '0.1',
+      );
+      final hash = await transferService.transfer(
+        privateKeyHex: keyPair.privateKeyHex,
+        asset: asset,
+        toAddress: '0x2222222222222222222222222222222222222222',
+        amount: '0.1',
+      );
+
+      expect(estimate.rawAmount, BigInt.from(21001000000000));
+      expect(estimate.amount, '0.00002100');
+      expect(estimate.isFallback, isFalse);
+      expect(hash, '0xbasehash');
+      expect(adapter.mainnetMethods, contains('eth_gasPrice'));
+      expect(adapter.fallbackMethods, contains('eth_call'));
+      expect(adapter.fallbackMethods, contains('eth_sendRawTransaction'));
+      expect(adapter.lastOracleCallData, startsWith('0x'));
+      expect(adapter.lastOracleCallData, hasLength(74));
     });
 
     test('encodes TRC20 transfer parameters', () {
@@ -446,6 +487,67 @@ class _AptosTransferAdapter implements HttpClientAdapter {
           'timestamp': '1786756800000000',
         },
       ]);
+    }
+    return _jsonResponse({'message': 'not found'}, statusCode: 404);
+  }
+
+  ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {
+    return ResponseBody.fromString(
+      jsonEncode(data),
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _BaseTransferAdapter implements HttpClientAdapter {
+  final mainnetMethods = <String>[];
+  final fallbackMethods = <String>[];
+  String? lastOracleCallData;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    final data = options.data;
+    final method = data is Map ? data['method']?.toString() ?? '' : '';
+    if (options.uri.host == 'mainnet.base.org') {
+      mainnetMethods.add(method);
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'error': {'code': -32000, 'message': 'rate limited'},
+      });
+    }
+    if (options.uri.host == 'base-rpc.publicnode.com') {
+      fallbackMethods.add(method);
+      if (method == 'eth_call' && data is Map) {
+        final params = data['params'];
+        final call = params is List && params.isNotEmpty ? params.first : null;
+        if (call is Map) {
+          lastOracleCallData = call['data']?.toString();
+        }
+        return _jsonResponse({
+          'jsonrpc': '2.0',
+          'id': 1,
+          'result': '0x3b9aca00',
+        });
+      }
+      final result = switch (method) {
+        'eth_gasPrice' => '0x3b9aca00',
+        'eth_estimateGas' => '0x5208',
+        'eth_getTransactionCount' => '0x0',
+        'eth_sendRawTransaction' => '0xbasehash',
+        _ => '0x0',
+      };
+      return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': result});
     }
     return _jsonResponse({'message': 'not found'}, statusCode: 404);
   }

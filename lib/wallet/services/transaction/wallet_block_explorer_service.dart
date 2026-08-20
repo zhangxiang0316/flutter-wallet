@@ -37,6 +37,8 @@ class WalletBlockExplorerService {
         return 'https://web3.okx.com/explorer/xlayer/address/{address}';
       case 'arbitrum':
         return 'https://arbiscan.io/address/{address}';
+      case 'base':
+        return 'https://basescan.org/address/{address}';
       case 'solana':
         return 'https://solscan.io/account/{address}';
       case 'tron':
@@ -65,6 +67,8 @@ class WalletBlockExplorerService {
         return 'https://web3.okx.com/explorer/xlayer/tx/{txHash}';
       case 'arbitrum':
         return 'https://arbiscan.io/tx/{txHash}';
+      case 'base':
+        return 'https://basescan.org/tx/{txHash}';
       case 'solana':
         return 'https://solscan.io/tx/{txHash}';
       case 'tron':

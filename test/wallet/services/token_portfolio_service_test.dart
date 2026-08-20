@@ -133,7 +133,7 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.single.canonicalTokenId, 'usdc');
-      expect(result.single.positions, hasLength(9));
+      expect(result.single.positions, hasLength(10));
       expect(
         result.single.positions.any(
           (position) => position.chain.id == WalletChain.sui.id,
@@ -256,6 +256,67 @@ void main() {
       expect(result.single.totalAmount, Decimal.parse('0.8'));
       expect(result.single.totalUsdValue, Decimal.parse('48000'));
       expect(result.single.positions, hasLength(3));
+    });
+
+    test('groups and values Base WETH and cbBTC with ETH and BTC', () {
+      final result = service.build(
+        balances: const [
+          ChainBalance(
+            chain: WalletChain.ethereum,
+            symbol: 'ETH',
+            name: 'Ethereum',
+            amount: '1',
+            address: '0x1111111111111111111111111111111111111111',
+            decimals: 18,
+          ),
+          ChainBalance(
+            chain: WalletChain.base,
+            symbol: 'WETH',
+            name: 'Wrapped Ether',
+            amount: '0.5',
+            address: '0x1111111111111111111111111111111111111111',
+            contractAddress: '0x4200000000000000000000000000000000000006',
+            canonicalTokenId: 'eth',
+            decimals: 18,
+          ),
+          ChainBalance(
+            chain: WalletChain.bitcoin,
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            amount: '0.2',
+            address: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+            canonicalTokenId: 'btc',
+            decimals: 8,
+          ),
+          ChainBalance(
+            chain: WalletChain.base,
+            symbol: 'cbBTC',
+            name: 'Coinbase Wrapped BTC',
+            amount: '0.1',
+            address: '0x1111111111111111111111111111111111111111',
+            contractAddress: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+            canonicalTokenId: 'btc',
+            decimals: 8,
+          ),
+        ],
+        chains: [
+          WalletChain.ethereum.config,
+          WalletChain.base.config,
+          WalletChain.bitcoin.config,
+        ],
+        prices: {'ETH': Decimal.parse('2000'), 'BTC': Decimal.parse('60000')},
+      );
+
+      final eth = result.singleWhere((item) => item.canonicalTokenId == 'eth');
+      final btc = result.singleWhere((item) => item.canonicalTokenId == 'btc');
+      expect(eth.symbol, 'ETH');
+      expect(eth.totalAmount, Decimal.parse('1.5'));
+      expect(eth.totalUsdValue, Decimal.parse('3000'));
+      expect(eth.positions, hasLength(2));
+      expect(btc.symbol, 'BTC');
+      expect(btc.totalAmount, Decimal.parse('0.3'));
+      expect(btc.totalUsdValue, Decimal.parse('18000'));
+      expect(btc.positions, hasLength(2));
     });
 
     test('keeps error state separate from successful zero balances', () {

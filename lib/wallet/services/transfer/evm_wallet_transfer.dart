@@ -1,5 +1,21 @@
 part of '../wallet_transfer_service.dart';
 
+const int _baseMainnetChainId = 8453;
+const String _baseGasPriceOracleAddress =
+    '0x420000000000000000000000000000000000000F';
+const List<String> _baseEvmRpcFallbacks = [
+  'https://base-rpc.publicnode.com',
+  'https://rpc.ankr.com/base',
+  'https://base.llamarpc.com',
+  'https://mainnet.base.org',
+];
+final BigInt _maxEvmUint256 = (BigInt.one << 256) - BigInt.one;
+final String _baseGetL1FeeUpperBoundSelector = hex.encode(
+  WalletTransferService._keccak(
+    Uint8List.fromList(utf8.encode('getL1FeeUpperBound(uint256)')),
+  ).sublist(0, 4),
+);
+
 extension _EvmWalletTransfer on WalletTransferService {
   Future<TransferFeeEstimate> _estimateEvmFee({
     required ChainBalance asset,
@@ -23,6 +39,7 @@ extension _EvmWalletTransfer on WalletTransferService {
       const [],
     );
     BigInt gasLimit;
+    var isFallback = false;
     try {
       gasLimit = await _evmRpcBigInt(asset.chainRef, 'eth_estimateGas', [
         {
@@ -33,6 +50,7 @@ extension _EvmWalletTransfer on WalletTransferService {
         },
       ]);
     } catch (_) {
+      isFallback = true;
       gasLimit = BigInt.from(
         isNative
             ? WalletTransferService._evmNativeGasLimit
@@ -40,12 +58,22 @@ extension _EvmWalletTransfer on WalletTransferService {
       );
     }
 
-    final feeWei = gasLimit * gasPrice;
+    var feeWei = gasLimit * gasPrice;
+    if (_isBaseMainnet(asset.chainRef)) {
+      feeWei += await _estimateBaseL1FeeUpperBound(
+        chain: asset.chainRef,
+        gasPrice: gasPrice,
+        gasLimit: gasLimit,
+        toAddress: txTo,
+        value: txValue,
+        data: data,
+      );
+    }
     return TransferFeeEstimate(
       amount: WalletTransferService.rawUnitsToAmount(feeWei, 18),
       symbol: asset.chainRef.symbol,
       rawAmount: feeWei,
-      isFallback: false,
+      isFallback: isFallback,
     );
   }
 
@@ -119,18 +147,88 @@ extension _EvmWalletTransfer on WalletTransferService {
     String method,
     List<dynamic> params,
   ) async {
-    final response = await _dio.post(
-      chain.rpcUrl,
-      data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
-      options: Options(headers: {'content-type': 'application/json'}),
+    final data = await RpcRetryHelper.execute<Map<dynamic, dynamic>>(
+      rpcUrls: _evmRpcUrls(chain),
+      chainName: chain.name,
+      operation: method,
+      logName: 'WalletTransferService',
+      request: (rpcUrl) async {
+        final response = await _dio.post(
+          rpcUrl,
+          data: {'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1},
+          options: Options(headers: {'content-type': 'application/json'}),
+        );
+        final responseData = response.data;
+        if (responseData is Map) {
+          return responseData;
+        }
+        throw StateError('Invalid ${chain.name} RPC response');
+      },
+      validator: (responseData) => responseData['result'] != null,
+      invalidResponseError: (_, responseData) {
+        if (responseData['error'] != null) {
+          return StateError(
+            '${chain.name} RPC error: ${responseData['error']}',
+          );
+        }
+        return StateError('Invalid ${chain.name} RPC response');
+      },
     );
-    final data = response.data;
-    if (data is Map && data['result'] != null) {
+    if (data['result'] != null) {
       return data['result'];
     }
-    throw StateError(
-      data is Map ? data.toString() : 'Invalid ${chain.name} response',
-    );
+    throw StateError(data.toString());
+  }
+
+  List<String> _evmRpcUrls(WalletChainRef chain) {
+    final configuredUrls = chain is WalletChainConfig
+        ? chain.rpcUrls
+        : [chain.rpcUrl];
+    if (_isBaseMainnet(chain)) {
+      return RpcRetryHelper.mergeRpcUrls(configuredUrls, _baseEvmRpcFallbacks);
+    }
+    return configuredUrls;
+  }
+
+  bool _isBaseMainnet(WalletChainRef chain) {
+    return chain.evmChainId == _baseMainnetChainId;
+  }
+
+  Future<BigInt> _estimateBaseL1FeeUpperBound({
+    required WalletChainRef chain,
+    required BigInt gasPrice,
+    required BigInt gasLimit,
+    required String toAddress,
+    required BigInt value,
+    required String data,
+  }) {
+    final chainId = chain.evmChainId;
+    if (chainId == null) {
+      throw StateError('${chain.name} is not an EVM chain');
+    }
+    final transactionUpperBound = WalletTransferService._rlpEncode([
+      _maxEvmUint256,
+      gasPrice,
+      gasLimit,
+      WalletTransferService.hexToBytes(
+        WalletTransferService.normalizeBscAddress(toAddress),
+      ),
+      value,
+      WalletTransferService.hexToBytes(data),
+      BigInt.from(38 + chainId * 2),
+      _maxEvmUint256,
+      _maxEvmUint256,
+    ]);
+    final encodedSize = transactionUpperBound.length
+        .toRadixString(16)
+        .padLeft(64, '0');
+    return _evmRpcBigInt(chain, 'eth_call', [
+      {
+        'to': _baseGasPriceOracleAddress,
+        'data': '0x$_baseGetL1FeeUpperBoundSelector$encodedSize',
+      },
+      'latest',
+    ]);
   }
 
   /// 发送 EVM JSON-RPC 请求并把十六进制数量解析成 [BigInt]。

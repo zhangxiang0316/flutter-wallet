@@ -10,6 +10,7 @@ const String _etherscanV2ApiUrl = 'https://api.etherscan.io/v2/api';
 
 const Map<String, List<String>> _evmBlockscoutBaseUrls = {
   'ethereum': ['https://eth.blockscout.com'],
+  'base': ['https://base.blockscout.com'],
 };
 
 const Map<String, List<String>> _evmRpcFallbacks = {
@@ -26,6 +27,7 @@ const Map<String, List<String>> _evmRpcFallbacks = {
     'https://arb1.arbitrum.io/rpc',
     'https://arbitrum-one-rpc.publicnode.com',
   ],
+  'base': ['https://mainnet.base.org', 'https://base-rpc.publicnode.com'],
 };
 
 extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {

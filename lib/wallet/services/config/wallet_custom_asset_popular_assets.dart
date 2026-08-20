@@ -5,6 +5,7 @@ List<WalletAsset> _popularAssetsForChain(WalletChainConfig chain) {
     'ethereum' => _ethereumPopularAssets(chain),
     'bsc' => _bscPopularAssets(chain),
     'arbitrum' => _arbitrumPopularAssets(chain),
+    'base' => _basePopularAssets(chain),
     'tron' => _tronPopularAssets(chain),
     'solana' => _solanaPopularAssets(chain),
     _ => const <WalletAsset>[],
@@ -86,6 +87,35 @@ List<WalletAsset> _arbitrumPopularAssets(WalletChainConfig chain) {
       name: 'GMX',
       decimals: 18,
       contractAddress: '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',
+    ),
+  ];
+}
+
+List<WalletAsset> _basePopularAssets(WalletChainConfig chain) {
+  return [
+    _popularEvmAsset(
+      chain,
+      folder: 'base',
+      symbol: 'AERO',
+      name: 'Aerodrome Finance',
+      decimals: 18,
+      contractAddress: '0x940181a94A35A4569E4529A3CDfB74e38FD98631',
+    ),
+    _popularEvmAsset(
+      chain,
+      folder: 'base',
+      symbol: 'DAI',
+      name: 'Dai Stablecoin',
+      decimals: 18,
+      contractAddress: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
+    ),
+    _popularEvmAsset(
+      chain,
+      folder: 'base',
+      symbol: 'DEGEN',
+      name: 'Degen',
+      decimals: 18,
+      contractAddress: '0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed',
     ),
   ];
 }

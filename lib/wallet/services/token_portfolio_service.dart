@@ -151,15 +151,22 @@ class TokenPortfolioService {
   static Map<String, _TrustedTokenIdentity> _buildTrustedIdentities() {
     final result = <String, _TrustedTokenIdentity>{};
     for (final asset in WalletAssetRegistry.all) {
-      final canonicalSymbol = switch (asset.symbol.toUpperCase()) {
-        'BTCB' || 'WBTC' => 'BTC',
-        final symbol => symbol,
-      };
+      final assignedId = WalletCanonicalToken.normalizeId(
+        asset.canonicalTokenId,
+      );
+      final assignedToken = WalletCanonicalToken.fromId(assignedId);
+      final canonicalSymbol =
+          assignedToken?.symbol ??
+          switch (asset.symbol.toUpperCase()) {
+            'BTCB' || 'WBTC' || 'CBBTC' => 'BTC',
+            'WETH' => 'ETH',
+            final symbol => symbol,
+          };
       result[_assetKey(
         asset.chainRef,
         asset.contractAddress,
       )] = _TrustedTokenIdentity(
-        canonicalId: canonicalSymbol.toLowerCase(),
+        canonicalId: assignedId ?? canonicalSymbol.toLowerCase(),
         symbol: canonicalSymbol,
         name: _canonicalName(canonicalSymbol, asset.name),
       );

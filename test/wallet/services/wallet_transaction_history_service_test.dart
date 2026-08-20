@@ -639,6 +639,39 @@ void main() {
       },
     );
 
+    test(
+      'loads Base native history from Blockscout without API keys',
+      () async {
+        final adapter = FallbackRpcAdapter();
+        final dio = Dio()..httpClientAdapter = adapter;
+        final service = WalletTransactionHistoryService(
+          dio: dio,
+          apiConfig: const WalletHistoryApiConfig(
+            etherscanApiKey: '',
+            moralisApiKey: '',
+          ),
+        );
+        final asset = ChainBalance.config(
+          chainConfig: WalletChain.base.config,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '10',
+          address: '0x1111111111111111111111111111111111111111',
+          decimals: 18,
+        );
+
+        final records = await service.loadAssetRecords(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(records, hasLength(1));
+        expect(records.single.txHash, '0xbaseblocknative');
+        expect(adapter.calls, contains('https://base.blockscout.com'));
+        expect(adapter.calls, isNot(contains('https://api.basescan.org')));
+      },
+    );
+
     test('loads EVM token transactions from Blockscout v2', () async {
       final dio = Dio()..httpClientAdapter = FallbackRpcAdapter();
       final service = WalletTransactionHistoryService(

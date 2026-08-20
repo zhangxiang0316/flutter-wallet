@@ -118,6 +118,7 @@ class ReceiveController extends BaseController {
       case WalletChain.ethereum:
       case WalletChain.xLayer:
       case WalletChain.arbitrum:
+      case WalletChain.base:
         return currentWallet.bscAddress;
       case WalletChain.bitcoin:
         return currentWallet.bitcoinAddress;

@@ -603,12 +603,15 @@ class FallbackRpcAdapter implements HttpClientAdapter {
       });
     }
 
-    if (origin == 'https://eth.blockscout.com' &&
+    if ((origin == 'https://eth.blockscout.com' ||
+            origin == 'https://base.blockscout.com') &&
         options.uri.path.endsWith('/transactions')) {
       return _jsonResponse({
         'items': [
           {
-            'hash': '0xblocknative',
+            'hash': origin == 'https://base.blockscout.com'
+                ? '0xbaseblocknative'
+                : '0xblocknative',
             'from': {'hash': '0x2222222222222222222222222222222222222222'},
             'to': {'hash': '0x1111111111111111111111111111111111111111'},
             'value': '100000000000000000',
@@ -623,7 +626,8 @@ class FallbackRpcAdapter implements HttpClientAdapter {
       });
     }
 
-    if (origin == 'https://eth.blockscout.com' &&
+    if ((origin == 'https://eth.blockscout.com' ||
+            origin == 'https://base.blockscout.com') &&
         options.uri.path.endsWith('/token-transfers')) {
       return _jsonResponse({
         'items': [
