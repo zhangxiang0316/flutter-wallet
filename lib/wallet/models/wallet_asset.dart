@@ -18,6 +18,7 @@ class WalletCanonicalToken {
   static const values = [
     WalletCanonicalToken(id: 'usdt', symbol: 'USDT', name: 'Tether USD'),
     WalletCanonicalToken(id: 'usdc', symbol: 'USDC', name: 'USD Coin'),
+    WalletCanonicalToken(id: 'dai', symbol: 'DAI', name: 'Dai Stablecoin'),
     WalletCanonicalToken(id: 'eth', symbol: 'ETH', name: 'Ethereum'),
     WalletCanonicalToken(id: 'btc', symbol: 'BTC', name: 'Bitcoin'),
     WalletCanonicalToken(id: 'bnb', symbol: 'BNB', name: 'BNB'),
@@ -30,6 +31,7 @@ class WalletCanonicalToken {
       symbol: 'POL',
       name: 'Polygon Ecosystem Token',
     ),
+    WalletCanonicalToken(id: 'avax', symbol: 'AVAX', name: 'Avalanche'),
   ];
 
   static WalletCanonicalToken? fromId(String? value) {
@@ -433,6 +435,56 @@ class WalletAssetRegistry {
     ),
   ];
 
+  static const avalancheAssets = [
+    WalletAsset(
+      chain: WalletChain.avalanche,
+      symbol: 'AVAX',
+      name: 'Avalanche',
+      decimals: 18,
+      canonicalTokenId: 'avax',
+    ),
+    WalletAsset(
+      chain: WalletChain.avalanche,
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 6,
+      contractAddress: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+      canonicalTokenId: 'usdc',
+    ),
+    WalletAsset(
+      chain: WalletChain.avalanche,
+      symbol: 'USDT',
+      name: 'Tether USD',
+      decimals: 6,
+      contractAddress: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
+      canonicalTokenId: 'usdt',
+    ),
+    WalletAsset(
+      chain: WalletChain.avalanche,
+      symbol: 'BTC.b',
+      name: 'Bitcoin',
+      decimals: 8,
+      contractAddress: '0x152b9d0FdC40C096757F570A51E494bd4b943E50',
+      canonicalTokenId: 'btc',
+    ),
+    WalletAsset(
+      chain: WalletChain.avalanche,
+      symbol: 'WETH.e',
+      name: 'Wrapped Ether',
+      decimals: 18,
+      contractAddress: '0x49D5c2BdFfAC6CE2BFdB6640F4F80f226bc10bAB',
+      canonicalTokenId: 'eth',
+    ),
+    WalletAsset(
+      chain: WalletChain.avalanche,
+      symbol: 'DAI.e',
+      name: 'Dai Stablecoin',
+      decimals: 18,
+      contractAddress: '0xd586E7F844cEa2F87f50152665BCbc2C279D8d70',
+      canonicalTokenId: 'dai',
+    ),
+  ];
+
   static const solanaAssets = [
     WalletAsset(
       chain: WalletChain.solana,
@@ -512,6 +564,7 @@ class WalletAssetRegistry {
     ...arbitrumAssets,
     ...baseAssets,
     ...polygonAssets,
+    ...avalancheAssets,
     ...bitcoinAssets,
     ...solanaAssets,
     ...suiAssets,
@@ -534,6 +587,8 @@ class WalletAssetRegistry {
         return baseAssets;
       case WalletChain.polygon:
         return polygonAssets;
+      case WalletChain.avalanche:
+        return avalancheAssets;
       case WalletChain.bitcoin:
         return bitcoinAssets;
       case WalletChain.solana:

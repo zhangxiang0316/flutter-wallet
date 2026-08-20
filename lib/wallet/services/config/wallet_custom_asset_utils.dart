@@ -26,6 +26,10 @@ const Map<WalletChain, List<String>> _evmRpcFallbacks = {
     'https://polygon.drpc.org',
     'https://polygon.publicnode.com',
   ],
+  WalletChain.avalanche: [
+    'https://api.avax.network/ext/bc/C/rpc',
+    'https://avalanche-c-chain-rpc.publicnode.com',
+  ],
 };
 
 String? _normalizeLogoUrl(String? value) {
@@ -49,6 +53,7 @@ String? _defaultLogoUrl(WalletChainRef chain, String contractAddress) {
     'arbitrum' => 'arbitrum',
     'base' => 'base',
     'polygon' => 'polygon',
+    'avalanche' => 'avalanchec',
     _ => null,
   };
   if (folder == null) return null;

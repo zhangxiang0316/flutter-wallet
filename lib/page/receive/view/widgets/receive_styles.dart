@@ -27,6 +27,8 @@ Color receiveChainColor(WalletChainRef chain) {
       return const Color(0xFF0052FF);
     case WalletChain.polygon:
       return const Color(0xFF8247E5);
+    case WalletChain.avalanche:
+      return const Color(0xFFE84142);
     case WalletChain.bitcoin:
       return const Color(0xFFF7931A);
     case WalletChain.solana:
@@ -57,6 +59,8 @@ String receiveChainLabel(WalletChainRef chain) {
       return 'B';
     case WalletChain.polygon:
       return 'P';
+    case WalletChain.avalanche:
+      return 'V';
     case WalletChain.bitcoin:
       return '₿';
     case WalletChain.solana:

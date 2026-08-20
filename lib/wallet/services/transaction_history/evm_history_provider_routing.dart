@@ -29,6 +29,10 @@ const Map<String, List<String>> _evmRpcFallbacks = {
   ],
   'base': ['https://mainnet.base.org', 'https://base-rpc.publicnode.com'],
   'polygon': ['https://polygon.drpc.org', 'https://polygon.publicnode.com'],
+  'avalanche': [
+    'https://api.avax.network/ext/bc/C/rpc',
+    'https://avalanche-c-chain-rpc.publicnode.com',
+  ],
 };
 
 extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {

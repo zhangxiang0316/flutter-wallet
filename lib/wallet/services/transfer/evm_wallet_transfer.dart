@@ -15,6 +15,12 @@ const List<String> _polygonEvmRpcFallbacks = [
   'https://tenderly.rpc.polygon.community',
   'https://1rpc.io/matic',
 ];
+const List<String> _avalancheEvmRpcFallbacks = [
+  'https://api.avax.network/ext/bc/C/rpc',
+  'https://avalanche-c-chain-rpc.publicnode.com',
+  'https://avalanche.drpc.org',
+  'https://1rpc.io/avax/c',
+];
 final BigInt _maxEvmUint256 = (BigInt.one << 256) - BigInt.one;
 final String _baseGetL1FeeUpperBoundSelector = hex.encode(
   WalletTransferService._keccak(
@@ -197,6 +203,12 @@ extension _EvmWalletTransfer on WalletTransferService {
       return RpcRetryHelper.mergeRpcUrls(
         configuredUrls,
         _polygonEvmRpcFallbacks,
+      );
+    }
+    if (chain.evmChainId == WalletChain.avalanche.evmChainId) {
+      return RpcRetryHelper.mergeRpcUrls(
+        configuredUrls,
+        _avalancheEvmRpcFallbacks,
       );
     }
     return configuredUrls;

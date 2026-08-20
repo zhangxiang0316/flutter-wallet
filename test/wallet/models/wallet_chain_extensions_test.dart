@@ -29,6 +29,9 @@ void main() {
       expect(WalletChain.polygon.isEvm, isTrue);
       expect(WalletChain.polygon.isTron, isFalse);
       expect(WalletChain.polygon.isSolana, isFalse);
+      expect(WalletChain.avalanche.isEvm, isTrue);
+      expect(WalletChain.avalanche.isTron, isFalse);
+      expect(WalletChain.avalanche.isSolana, isFalse);
     });
 
     test('isBitcoin identifies Bitcoin without treating it as EVM', () {

@@ -99,6 +99,8 @@ Color transferChainColor(WalletChainRef chain) {
       return const Color(0xFF0052FF);
     case WalletChain.polygon:
       return const Color(0xFF8247E5);
+    case WalletChain.avalanche:
+      return const Color(0xFFE84142);
     case WalletChain.bitcoin:
       return const Color(0xFFF7931A);
     case WalletChain.solana:
@@ -142,6 +144,8 @@ Color transferAssetColor(BuildContext context, String symbol) {
       return const Color(0xFF4DA2FF);
     case 'APT':
       return const Color(0xFF13B5A4);
+    case 'AVAX':
+      return const Color(0xFFE84142);
     default:
       return Theme.of(context).colorScheme.primary;
   }

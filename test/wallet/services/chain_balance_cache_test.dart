@@ -45,4 +45,38 @@ void main() {
       expect(loaded.single.amount, '12.5');
     },
   );
+
+  test(
+    'migrates legacy dynamic Avalanche balance to the builtin chain',
+    () async {
+      final avalanche = WalletChainConfig.customEvm(
+        id: 'evm-43114',
+        name: 'Avalanche C-Chain',
+        symbol: 'AVAX',
+        rpcUrls: const ['https://api.avax.network/ext/bc/C/rpc'],
+        evmChainId: 43114,
+      );
+      final cache = ChainBalanceCache();
+      final balance = ChainBalance.config(
+        chainConfig: avalanche,
+        symbol: 'AVAX',
+        name: 'Avalanche',
+        amount: '3.25',
+        address: '0x2222222222222222222222222222222222222222',
+        canonicalTokenId: 'avax',
+        decimals: 18,
+      );
+
+      await cache.save('wallet-1', [balance]);
+      final loaded = await cache.load('wallet-1');
+
+      expect(loaded, hasLength(1));
+      expect(loaded!.single.chainId, WalletChain.avalanche.id);
+      expect(loaded.single.chainRef.name, 'Avalanche C-Chain');
+      expect(loaded.single.chainRef.evmChainId, 43114);
+      expect(loaded.single.chainRef.symbol, 'AVAX');
+      expect(loaded.single.canonicalTokenId, 'avax');
+      expect(loaded.single.amount, '3.25');
+    },
+  );
 }

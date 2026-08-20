@@ -41,6 +41,8 @@ class WalletBlockExplorerService {
         return 'https://basescan.org/address/{address}';
       case 'polygon':
         return 'https://polygonscan.com/address/{address}';
+      case 'avalanche':
+        return 'https://snowtrace.io/address/{address}';
       case 'solana':
         return 'https://solscan.io/account/{address}';
       case 'tron':
@@ -73,6 +75,8 @@ class WalletBlockExplorerService {
         return 'https://basescan.org/tx/{txHash}';
       case 'polygon':
         return 'https://polygonscan.com/tx/{txHash}';
+      case 'avalanche':
+        return 'https://snowtrace.io/tx/{txHash}';
       case 'solana':
         return 'https://solscan.io/tx/{txHash}';
       case 'tron':

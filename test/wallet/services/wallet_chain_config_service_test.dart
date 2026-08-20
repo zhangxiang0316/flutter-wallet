@@ -21,6 +21,34 @@ void main() {
       expect(polygon.explorerApiUrl, 'https://api.etherscan.io/v2/api');
     });
 
+    test('provides Avalanche as a builtin EVM chain', () {
+      final avalanche = WalletChainConfigService().builtinChains().singleWhere(
+        (chain) => chain.id == WalletChain.avalanche.id,
+      );
+
+      expect(avalanche.isBuiltin, isTrue);
+      expect(avalanche.evmChainId, 43114);
+      expect(avalanche.symbol, 'AVAX');
+      expect(avalanche.rpcUrl, 'https://api.avax.network/ext/bc/C/rpc');
+      expect(avalanche.explorerApiUrl, 'https://api.snowtrace.io/api');
+    });
+
+    test('rejects adding Avalanche again as a custom chain', () async {
+      SharedPreferences.setMockInitialValues({});
+      final dio = Dio()..httpClientAdapter = FallbackRpcAdapter();
+      final service = WalletChainConfigService(dio: dio);
+
+      expect(
+        () => service.addCustomEvmChain(
+          name: 'Avalanche Duplicate',
+          symbol: 'AVAX',
+          evmChainId: 43114,
+          rpcUrls: const ['https://api.avax.network/ext/bc/C/rpc'],
+        ),
+        throwsA(isA<WalletChainConfigDuplicateException>()),
+      );
+    });
+
     test('rejects adding Polygon again as a custom chain', () async {
       SharedPreferences.setMockInitialValues({});
       final dio = Dio()..httpClientAdapter = FallbackRpcAdapter();

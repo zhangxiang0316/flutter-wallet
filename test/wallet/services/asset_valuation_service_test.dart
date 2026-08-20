@@ -181,8 +181,9 @@ void main() {
           {'symbol': 'SOLUSDT', 'price': '150.75'},
           {'symbol': 'ARBUSDT', 'price': '1.23'},
           {'symbol': 'POLUSDT', 'price': '0.25'},
+          {'symbol': 'AVAXUSDT', 'price': '35.20'},
         ],
-        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB', 'POL'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB', 'POL', 'AVAX'],
       );
 
       expect(prices['BNB']?.toStringAsFixed(2), '300.50');
@@ -193,6 +194,7 @@ void main() {
       expect(prices['SOL']?.toString(), '150.75');
       expect(prices['ARB']?.toString(), '1.23');
       expect(prices['POL']?.toString(), '0.25');
+      expect(prices['AVAX']?.toStringAsFixed(2), '35.20');
     });
 
     test('parses single Binance ticker response', () {
@@ -215,9 +217,10 @@ void main() {
             {'instId': 'OKB-USDT', 'last': '52.4'},
             {'instId': 'SOL-USDT', 'last': '151.2'},
             {'instId': 'ARB-USDT', 'last': '1.24'},
+            {'instId': 'AVAX-USDT', 'last': '35.3'},
           ],
         },
-        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
+        ['BNB', 'TRX', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB', 'AVAX'],
       );
 
       expect(prices['BNB']?.toString(), '302.1');
@@ -227,6 +230,7 @@ void main() {
       expect(prices['OKB']?.toString(), '52.4');
       expect(prices['SOL']?.toString(), '151.2');
       expect(prices['ARB']?.toString(), '1.24');
+      expect(prices['AVAX']?.toString(), '35.3');
     });
 
     test('parses requested prices from OKX full spot ticker response', () {
@@ -260,8 +264,20 @@ void main() {
           'solana': {'usd': 150.8},
           'arbitrum': {'usd': 1.25},
           'polygon-ecosystem-token': {'usd': 0.26},
+          'avalanche-2': {'usd': 35.1},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB', 'POL'],
+        [
+          'BNB',
+          'TRX',
+          'ETH',
+          'BTCB',
+          'WBTC',
+          'OKB',
+          'SOL',
+          'ARB',
+          'POL',
+          'AVAX',
+        ],
       );
 
       expect(prices['BNB']?.toString(), '301.25');
@@ -273,6 +289,7 @@ void main() {
       expect(prices['SOL']?.toString(), '150.8');
       expect(prices['ARB']?.toString(), '1.25');
       expect(prices['POL']?.toString(), '0.26');
+      expect(prices['AVAX']?.toString(), '35.1');
     });
 
     test('parses DeFiLlama prices by CoinGecko ids', () {
@@ -330,8 +347,14 @@ void main() {
               'USD': {'price': 0.27},
             },
           },
+          {
+            'id': 'avax-avalanche',
+            'quotes': {
+              'USD': {'price': 35.4},
+            },
+          },
         ],
-        ['BNB', 'BTCB', 'WBTC', 'SOL', 'ARB', 'POL'],
+        ['BNB', 'BTCB', 'WBTC', 'SOL', 'ARB', 'POL', 'AVAX'],
       );
 
       expect(prices['BNB']?.toString(), '599.93');
@@ -340,6 +363,7 @@ void main() {
       expect(prices['SOL']?.toString(), '66.14');
       expect(prices['ARB']?.toString(), '1.27');
       expect(prices['POL']?.toString(), '0.27');
+      expect(prices['AVAX']?.toString(), '35.4');
     });
 
     test('parses CryptoCompare fallback prices by wallet symbol', () {
@@ -352,8 +376,9 @@ void main() {
           'OKB': {'USD': 69.12},
           'SOL': {'USD': 151.4},
           'ARB': {'USD': 1.28},
+          'AVAX': {'USD': 35.6},
         },
-        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB'],
+        ['BNB', 'TRX', 'ETH', 'BTCB', 'WBTC', 'OKB', 'SOL', 'ARB', 'AVAX'],
       );
 
       expect(prices['BNB']?.toString(), '574.65');
@@ -364,6 +389,7 @@ void main() {
       expect(prices['OKB']?.toString(), '69.12');
       expect(prices['SOL']?.toString(), '151.4');
       expect(prices['ARB']?.toString(), '1.28');
+      expect(prices['AVAX']?.toString(), '35.6');
     });
 
     test('uses stable coin prices without external price data', () {

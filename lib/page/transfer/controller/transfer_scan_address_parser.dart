@@ -48,6 +48,7 @@ class TransferScanAddressParser {
       case WalletChain.arbitrum:
       case WalletChain.base:
       case WalletChain.polygon:
+      case WalletChain.avalanche:
         return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
       case WalletChain.bitcoin:
         return RegExp(

@@ -98,6 +98,32 @@ void main() {
       );
     });
 
+    test('provides Avalanche native and common mapped assets', () {
+      final assets = WalletAssetRegistry.assetsForChain(WalletChain.avalanche);
+
+      expect(assets.first.symbol, 'AVAX');
+      expect(assets.first.isNative, isTrue);
+      expect(assets.first.canonicalTokenId, 'avax');
+      expect(
+        assets.singleWhere((asset) => asset.symbol == 'USDC').contractAddress,
+        '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+      );
+      expect(
+        assets.singleWhere((asset) => asset.symbol == 'BTC.b').canonicalTokenId,
+        'btc',
+      );
+      expect(
+        assets
+            .singleWhere((asset) => asset.symbol == 'WETH.e')
+            .canonicalTokenId,
+        'eth',
+      );
+      expect(
+        assets.singleWhere((asset) => asset.symbol == 'DAI.e').canonicalTokenId,
+        'dai',
+      );
+    });
+
     test('keeps arbitrary user-defined canonical token IDs', () {
       const asset = WalletAsset(
         chain: WalletChain.bsc,

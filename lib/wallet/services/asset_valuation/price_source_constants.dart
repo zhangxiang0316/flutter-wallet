@@ -40,6 +40,7 @@ const Map<String, String> _binanceTickerSymbols = {
   'APT': 'APTUSDT',
   'ARB': 'ARBUSDT',
   'POL': 'POLUSDT',
+  'AVAX': 'AVAXUSDT',
 };
 
 /// OKX 现货接口使用的交易对映射。
@@ -58,6 +59,7 @@ const Map<String, String> _okxTickerSymbols = {
   'APT': 'APT-USDT',
   'ARB': 'ARB-USDT',
   'POL': 'POL-USDT',
+  'AVAX': 'AVAX-USDT',
 };
 
 /// CoinGecko/DeFiLlama 使用的币种 ID 映射。
@@ -78,6 +80,7 @@ const Map<String, String> _coingeckoIds = {
   'APT': 'aptos',
   'ARB': 'arbitrum',
   'POL': 'polygon-ecosystem-token',
+  'AVAX': 'avalanche-2',
 };
 
 /// CoinPaprika 使用的币种 ID 映射。
@@ -96,6 +99,7 @@ const Map<String, String> _coinPaprikaIds = {
   'APT': 'apt-aptos',
   'ARB': 'arb-arbitrum',
   'POL': 'pol-polygon-ecosystem-token',
+  'AVAX': 'avax-avalanche',
 };
 
 /// CryptoCompare 接口使用的币种符号映射。
@@ -114,6 +118,7 @@ const Map<String, String> _cryptoCompareSymbols = {
   'APT': 'APT',
   'ARB': 'ARB',
   'POL': 'POL',
+  'AVAX': 'AVAX',
 };
 
 /// 当前服务可以尝试获取实时价格的非稳定币集合。

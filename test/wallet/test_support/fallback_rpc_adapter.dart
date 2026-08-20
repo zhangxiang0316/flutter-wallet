@@ -570,6 +570,27 @@ class FallbackRpcAdapter implements HttpClientAdapter {
       });
     }
 
+    if (origin == 'https://api.snowtrace.io' && options.uri.path == '/api') {
+      return _jsonResponse({
+        'status': '1',
+        'message': 'OK',
+        'result': [
+          {
+            'blockNumber': '123',
+            'timeStamp': '1700000000',
+            'hash': '0xsnowtrace',
+            'from': '0x2222222222222222222222222222222222222222',
+            'to': '0x1111111111111111111111111111111111111111',
+            'value': '1250000000000000000',
+            'gasUsed': '21000',
+            'gasPrice': '1000000000',
+            'isError': '0',
+            'txreceipt_status': '1',
+          },
+        ],
+      });
+    }
+
     if (origin == 'https://api.arbiscan.io' && options.uri.path == '/api') {
       arbiscanApiKeys.add(options.uri.queryParameters['apikey'] ?? '');
       final contractAddress =
@@ -746,6 +767,16 @@ class FallbackRpcAdapter implements HttpClientAdapter {
         'jsonrpc': '2.0',
         'id': 1,
         'result': _isEvmChainIdRequest(options.data) ? '0x89' : '0x0',
+      });
+    }
+
+    if (origin == 'https://api.avax.network' ||
+        origin == 'https://avalanche-c-chain-rpc.publicnode.com' ||
+        origin == 'https://avalanche.drpc.org') {
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'result': _isEvmChainIdRequest(options.data) ? '0xa86a' : '0x0',
       });
     }
 

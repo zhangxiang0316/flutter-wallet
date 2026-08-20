@@ -27,6 +27,7 @@ class TokenPortfolioService {
     'APT',
     'TRX',
     'POL',
+    'AVAX',
   ];
 
   static final Map<String, _TrustedTokenIdentity> _trustedIdentities =

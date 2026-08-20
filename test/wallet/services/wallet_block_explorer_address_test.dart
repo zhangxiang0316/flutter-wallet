@@ -42,6 +42,24 @@ void main() {
       );
     });
 
+    test('builds Avalanche address explorer URL', () {
+      const service = WalletBlockExplorerService();
+      const address = '0x1111111111111111111111111111111111111111';
+      const asset = ChainBalance(
+        chain: WalletChain.avalanche,
+        symbol: 'AVAX',
+        name: 'Avalanche',
+        amount: '1',
+        address: address,
+        decimals: 18,
+      );
+
+      expect(
+        service.addressUri(asset).toString(),
+        'https://snowtrace.io/address/$address',
+      );
+    });
+
     test('builds Sui address explorer URL', () {
       const service = WalletBlockExplorerService();
       const address =

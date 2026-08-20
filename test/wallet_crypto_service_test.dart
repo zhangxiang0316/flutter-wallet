@@ -1853,6 +1853,8 @@ void main() {
         expect(WalletChain.base.symbol, 'ETH');
         expect(WalletChain.polygon.evmChainId, 137);
         expect(WalletChain.polygon.symbol, 'POL');
+        expect(WalletChain.avalanche.evmChainId, 43114);
+        expect(WalletChain.avalanche.symbol, 'AVAX');
         expect(WalletChain.solana.evmChainId, isNull);
         expect(WalletChain.solana.symbol, 'SOL');
         expect(

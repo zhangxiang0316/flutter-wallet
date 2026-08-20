@@ -113,6 +113,20 @@ void main() {
       expect(uri.toString(), equals('https://polygonscan.com/tx/0xpolygonTx'));
     });
 
+    test('builds Avalanche transaction URL', () {
+      const asset = ChainBalance(
+        chain: WalletChain.avalanche,
+        symbol: 'AVAX',
+        name: 'Avalanche',
+        amount: '1',
+        address: '0x742d35cc6634c0532925a3b844bc9e7595f0beb5',
+      );
+
+      final uri = service.transactionUri(asset, '0xavalancheTx');
+
+      expect(uri.toString(), equals('https://snowtrace.io/tx/0xavalancheTx'));
+    });
+
     test('returns null for blank transaction hash', () {
       const asset = ChainBalance(
         chain: WalletChain.bsc,

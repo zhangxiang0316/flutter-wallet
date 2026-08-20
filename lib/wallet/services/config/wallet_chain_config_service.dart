@@ -92,7 +92,11 @@ class WalletChainConfigService {
         .where((chain) => _isValidCustomEvmChain(chain))
         .toList();
     final migratedChains = chains
-        .where((chain) => chain.evmChainId != WalletChain.polygon.evmChainId)
+        .where(
+          (chain) =>
+              chain.evmChainId != WalletChain.polygon.evmChainId &&
+              chain.evmChainId != WalletChain.avalanche.evmChainId,
+        )
         .toList(growable: false);
     if (migratedChains.length != chains.length) {
       await saveCustomChains(migratedChains);

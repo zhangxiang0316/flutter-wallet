@@ -114,7 +114,7 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.single.canonicalTokenId, 'usdc');
-      expect(result.single.positions, hasLength(10));
+      expect(result.single.positions, hasLength(builtInUsdcBalances.length));
       expect(
         result.single.positions.any(
           (position) => position.chain.id == WalletChain.sui.id,
@@ -342,6 +342,56 @@ void main() {
       expect(result.single.canonicalTokenId, 'pol');
       expect(result.single.totalAmount, Decimal.parse('10'));
       expect(result.single.totalUsdValue, Decimal.parse('2.5'));
+    });
+
+    test('values Avalanche native AVAX on the home portfolio', () {
+      final result = service.build(
+        balances: const [
+          ChainBalance(
+            chain: WalletChain.avalanche,
+            symbol: 'AVAX',
+            name: 'Avalanche',
+            amount: '10',
+            address: '0x1111111111111111111111111111111111111111',
+            canonicalTokenId: 'avax',
+            decimals: 18,
+          ),
+        ],
+        chains: [WalletChain.avalanche.config],
+        prices: {'AVAX': Decimal.parse('35')},
+      );
+
+      expect(result, hasLength(1));
+      expect(result.single.canonicalTokenId, 'avax');
+      expect(result.single.totalAmount, Decimal.parse('10'));
+      expect(result.single.totalUsdValue, Decimal.parse('350'));
+    });
+
+    test('values Avalanche DAI.e as canonical DAI', () {
+      final asset = WalletAssetRegistry.avalancheAssets.singleWhere(
+        (item) => item.symbol == 'DAI.e',
+      );
+      final result = service.build(
+        balances: [
+          ChainBalance(
+            chain: asset.chain!,
+            symbol: asset.symbol,
+            name: asset.name,
+            amount: '12.5',
+            address: '0x1111111111111111111111111111111111111111',
+            contractAddress: asset.contractAddress,
+            canonicalTokenId: asset.canonicalTokenId,
+            decimals: asset.decimals,
+          ),
+        ],
+        chains: [WalletChain.avalanche.config],
+      );
+
+      expect(result, hasLength(1));
+      expect(result.single.canonicalTokenId, 'dai');
+      expect(result.single.symbol, 'DAI');
+      expect(result.single.totalAmount, Decimal.parse('12.5'));
+      expect(result.single.totalUsdValue, Decimal.parse('12.5'));
     });
 
     test('keeps error state separate from successful zero balances', () {

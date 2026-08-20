@@ -7,6 +7,7 @@ List<WalletAsset> _popularAssetsForChain(WalletChainConfig chain) {
     'arbitrum' => _arbitrumPopularAssets(chain),
     'base' => _basePopularAssets(chain),
     'polygon' => _polygonPopularAssets(chain),
+    'avalanche' => _avalanchePopularAssets(chain),
     'tron' => _tronPopularAssets(chain),
     'solana' => _solanaPopularAssets(chain),
     _ => const <WalletAsset>[],
@@ -130,6 +131,19 @@ List<WalletAsset> _polygonPopularAssets(WalletChainConfig chain) {
       name: 'Dai Stablecoin',
       decimals: 18,
       contractAddress: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
+    ),
+  ];
+}
+
+List<WalletAsset> _avalanchePopularAssets(WalletChainConfig chain) {
+  return [
+    _popularEvmAsset(
+      chain,
+      folder: 'avalanchec',
+      symbol: 'WAVAX',
+      name: 'Wrapped AVAX',
+      decimals: 18,
+      contractAddress: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7',
     ),
   ];
 }

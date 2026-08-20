@@ -41,6 +41,13 @@ enum WalletChain implements WalletChainRef {
     rpcUrl: 'https://polygon.drpc.org',
     evmChainId: 137,
   ),
+  avalanche(
+    id: 'avalanche',
+    name: 'Avalanche C-Chain',
+    symbol: 'AVAX',
+    rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
+    evmChainId: 43114,
+  ),
   bitcoin(
     id: 'bitcoin',
     name: 'Bitcoin',
@@ -302,6 +309,8 @@ class WalletChainConfig implements WalletChainRef {
         return 0xFF0052FF;
       case WalletChain.polygon:
         return 0xFF8247E5;
+      case WalletChain.avalanche:
+        return 0xFFE84142;
       case WalletChain.bitcoin:
         return 0xFFF7931A;
       case WalletChain.solana:
@@ -327,6 +336,8 @@ class WalletChainConfig implements WalletChainRef {
         return 'https://base.blockscout.com/api/v2';
       case WalletChain.polygon:
         return 'https://api.etherscan.io/v2/api';
+      case WalletChain.avalanche:
+        return 'https://api.snowtrace.io/api';
       case WalletChain.bitcoin:
         return 'https://mempool.space/api';
       case WalletChain.xLayer:

@@ -26,13 +26,7 @@ class WalletAssetVisibilityService {
     final hiddenAssetKeys = await _storage.getJsonList(_hiddenAssetsKey);
     if (hiddenAssetKeys != null) {
       final keys = hiddenAssetKeys.map((item) => item.toString()).toSet();
-      final migratedKeys = keys.map((key) {
-        if (!key.startsWith('evm-137:')) return key;
-        final assetKey = key.substring('evm-137:'.length);
-        return assetKey == 'native:MATIC'
-            ? 'polygon:native:POL'
-            : 'polygon:$assetKey';
-      }).toSet();
+      final migratedKeys = keys.map(_migrateStoredKey).toSet();
       if (migratedKeys.length != keys.length ||
           !migratedKeys.containsAll(keys)) {
         await saveHiddenAssetKeys(migratedKeys);
@@ -81,7 +75,7 @@ class WalletAssetVisibilityService {
   String keyForAsset(WalletAsset asset) {
     return [
       asset.chainId,
-      asset.contractAddress ?? 'native',
+      _normalizedContractKey(asset.contractAddress),
       asset.symbol,
     ].join(':');
   }
@@ -93,8 +87,34 @@ class WalletAssetVisibilityService {
   String keyForBalance(ChainBalance balance) {
     return [
       balance.chainId,
-      balance.contractAddress ?? 'native',
+      _normalizedContractKey(balance.contractAddress),
       balance.symbol,
     ].join(':');
+  }
+
+  String _migrateStoredKey(String key) {
+    var migratedKey = key;
+    if (key.startsWith('evm-137:')) {
+      final assetKey = key.substring('evm-137:'.length);
+      migratedKey = assetKey == 'native:MATIC'
+          ? 'polygon:native:POL'
+          : 'polygon:$assetKey';
+    } else if (key.startsWith('evm-43114:')) {
+      migratedKey = 'avalanche:${key.substring('evm-43114:'.length)}';
+    }
+
+    final parts = migratedKey.split(':');
+    if (parts.length < 3) return migratedKey;
+    parts[1] = _normalizedContractKey(parts[1]);
+    return parts.join(':');
+  }
+
+  String _normalizedContractKey(String? contractAddress) {
+    final value = contractAddress?.trim() ?? '';
+    if (value.isEmpty || value == 'native') return 'native';
+    if (RegExp(r'^0x[0-9a-fA-F]{40}$').hasMatch(value)) {
+      return value.toLowerCase();
+    }
+    return value;
   }
 }

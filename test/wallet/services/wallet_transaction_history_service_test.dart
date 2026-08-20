@@ -700,6 +700,97 @@ void main() {
       expect(adapter.moralisChains, contains('polygon'));
     });
 
+    test('loads Avalanche native history from Moralis', () async {
+      final adapter = FallbackRpcAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(
+          moralisApiKey: 'moralis-test-key',
+        ),
+      );
+      const asset = ChainBalance(
+        chain: WalletChain.avalanche,
+        symbol: 'AVAX',
+        name: 'Avalanche',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        decimals: 18,
+      );
+
+      final records = await service.loadAssetRecords(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(records, hasLength(1));
+      expect(records.single.txHash, '0xmoralisnative');
+      expect(adapter.moralisChains, ['avalanche']);
+    });
+
+    test(
+      'loads Avalanche native history from Snowtrace without keys',
+      () async {
+        final adapter = FallbackRpcAdapter();
+        final dio = Dio()..httpClientAdapter = adapter;
+        final service = WalletTransactionHistoryService(
+          dio: dio,
+          apiConfig: const WalletHistoryApiConfig(
+            etherscanApiKey: '',
+            moralisApiKey: '',
+          ),
+        );
+        final asset = ChainBalance.config(
+          chainConfig: WalletChain.avalanche.config,
+          symbol: 'AVAX',
+          name: 'Avalanche',
+          amount: '10',
+          address: '0x1111111111111111111111111111111111111111',
+          decimals: 18,
+        );
+
+        final records = await service.loadAssetRecords(
+          walletId: 'wallet-1',
+          asset: asset,
+        );
+
+        expect(records, hasLength(1));
+        expect(records.single.txHash, '0xsnowtrace');
+        expect(adapter.calls, contains('https://api.snowtrace.io'));
+        expect(adapter.calls, isNot(contains('https://api.etherscan.io')));
+      },
+    );
+
+    test('passes Avalanche chain ID to Etherscan V2', () async {
+      final adapter = FallbackRpcAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(
+          etherscanApiKey: 'etherscan-key',
+          moralisApiKey: '',
+        ),
+      );
+      final asset = ChainBalance.config(
+        chainConfig: WalletChain.avalanche.config,
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: '10',
+        address: '0x1111111111111111111111111111111111111111',
+        contractAddress: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+        decimals: 6,
+      );
+
+      final records = await service.loadAssetRecords(
+        walletId: 'wallet-1',
+        asset: asset,
+      );
+
+      expect(records, hasLength(1));
+      expect(records.single.txHash, '0xetherscanv2');
+      expect(adapter.etherscanV2ChainIds, ['43114']);
+    });
+
     test('loads EVM token transactions from Blockscout v2', () async {
       final dio = Dio()..httpClientAdapter = FallbackRpcAdapter();
       final service = WalletTransactionHistoryService(

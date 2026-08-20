@@ -66,6 +66,15 @@ void main() {
       );
       expect(polygonAssets.map((asset) => asset.symbol), contains('DAI'));
       expect(polygonAssets.single.logoUrl, contains('/blockchains/polygon/'));
+
+      final avalancheAssets = WalletCustomAssetService.popularAssetsForChain(
+        WalletChain.avalanche.config,
+      );
+      expect(avalancheAssets.map((asset) => asset.symbol), contains('WAVAX'));
+      expect(
+        avalancheAssets.single.logoUrl,
+        contains('/blockchains/avalanchec/'),
+      );
     });
 
     test('persists the Polygon USDC canonical identity migration', () async {

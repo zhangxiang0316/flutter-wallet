@@ -26,6 +26,7 @@ class _MoralisEvmTransactionHistoryProvider
     42161: 'arbitrum',
     8453: 'base',
     137: 'polygon',
+    43114: 'avalanche',
   };
 
   bool supportsChain(WalletChainRef chain) {

@@ -150,6 +150,42 @@ void main() {
       expect(adapter.fallbackMethods, contains('eth_sendRawTransaction'));
     });
 
+    test('falls back across Avalanche RPC nodes', () async {
+      final adapter = _AvalancheTransferAdapter();
+      final dio = Dio()..httpClientAdapter = adapter;
+      final transferService = WalletTransferService(dio: dio);
+      final keyPair = WalletCryptoService().importPrivateKey(
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
+      );
+      final asset = ChainBalance(
+        chain: WalletChain.avalanche,
+        symbol: 'AVAX',
+        name: 'Avalanche',
+        amount: '1',
+        address: keyPair.bscAddress,
+        decimals: 18,
+      );
+
+      final estimate = await transferService.estimateFee(
+        asset: asset,
+        toAddress: '0x2222222222222222222222222222222222222222',
+        amount: '0.1',
+      );
+      final hash = await transferService.transfer(
+        privateKeyHex: keyPair.privateKeyHex,
+        asset: asset,
+        toAddress: '0x2222222222222222222222222222222222222222',
+        amount: '0.1',
+      );
+
+      expect(estimate.rawAmount, BigInt.from(21000000000000));
+      expect(estimate.amount, '0.000021');
+      expect(hash, '0xavalanchehash');
+      expect(adapter.primaryMethods, contains('eth_gasPrice'));
+      expect(adapter.fallbackMethods, contains('eth_estimateGas'));
+      expect(adapter.fallbackMethods, contains('eth_sendRawTransaction'));
+    });
+
     test('encodes TRC20 transfer parameters', () {
       expect(
         WalletTransferService.trc20TransferParameter(
@@ -586,6 +622,54 @@ class _BaseTransferAdapter implements HttpClientAdapter {
         'eth_estimateGas' => '0x5208',
         'eth_getTransactionCount' => '0x0',
         'eth_sendRawTransaction' => '0xbasehash',
+        _ => '0x0',
+      };
+      return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': result});
+    }
+    return _jsonResponse({'message': 'not found'}, statusCode: 404);
+  }
+
+  ResponseBody _jsonResponse(Object data, {int statusCode = 200}) {
+    return ResponseBody.fromString(
+      jsonEncode(data),
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _AvalancheTransferAdapter implements HttpClientAdapter {
+  final primaryMethods = <String>[];
+  final fallbackMethods = <String>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    final data = options.data;
+    final method = data is Map ? data['method']?.toString() ?? '' : '';
+    if (options.uri.host == 'api.avax.network') {
+      primaryMethods.add(method);
+      return _jsonResponse({
+        'jsonrpc': '2.0',
+        'id': 1,
+        'error': {'code': -32000, 'message': 'rate limited'},
+      });
+    }
+    if (options.uri.host == 'avalanche-c-chain-rpc.publicnode.com') {
+      fallbackMethods.add(method);
+      final result = switch (method) {
+        'eth_gasPrice' => '0x3b9aca00',
+        'eth_estimateGas' => '0x5208',
+        'eth_getTransactionCount' => '0x0',
+        'eth_sendRawTransaction' => '0xavalanchehash',
         _ => '0x0',
       };
       return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': result});
