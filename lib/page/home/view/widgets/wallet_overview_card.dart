@@ -67,7 +67,7 @@ class WalletOverviewCard extends StatelessWidget {
           onReceivePressed: onReceivePressed,
           onTransferPressed: onTransferPressed,
         ).marginOnly(bottom: 12.h),
-        const _PrimaryWalletPanel(),
+        // const _PrimaryWalletPanel(),
       ],
     );
   }
