@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:decimal/decimal.dart';
 
 /// 交易风险等级
 enum RiskLevel { low, medium, high }
@@ -18,6 +19,50 @@ class TransactionRisk {
   });
 }
 
+/// 风险检查使用的本地化文案。
+class TransactionRiskMessages {
+  const TransactionRiskMessages({
+    required this.largeAmount,
+    required this.newRecipient,
+    required this.highFee,
+  });
+
+  final String Function(String percentage) largeAmount;
+  final String newRecipient;
+  final String Function(String percentage) highFee;
+}
+
+/// 一次转账风险检查所需的精确数值和地址上下文。
+class TransactionRiskContext {
+  const TransactionRiskContext({
+    required this.amount,
+    required this.balance,
+    required this.assetSymbol,
+    required this.recipientAddress,
+    required this.historyAddresses,
+    required this.recipientCaseInsensitive,
+    this.fee,
+    this.feeSymbol,
+    this.amountFiatValue,
+    this.feeFiatValue,
+  });
+
+  final String amount;
+  final String balance;
+  final String assetSymbol;
+  final String recipientAddress;
+  final List<String> historyAddresses;
+  final bool recipientCaseInsensitive;
+  final String? fee;
+  final String? feeSymbol;
+
+  /// 转账数量和手续费按同一种法币折算后的值。
+  ///
+  /// 仅在 Token 与手续费币种不同时使用；缺少任意一侧估值时不会进行跨币种比较。
+  final Decimal? amountFiatValue;
+  final Decimal? feeFiatValue;
+}
+
 /// 交易风险检测器
 ///
 /// 检测交易中的潜在风险，包括：
@@ -32,39 +77,37 @@ class TransactionRiskChecker {
   static TransactionRisk? checkLargeAmount({
     required String amount,
     required String balance,
+    required String Function(String percentage) messageBuilder,
   }) {
-    try {
-      final amountValue = double.parse(amount);
-      final balanceValue = double.parse(balance);
-
-      if (amountValue <= 0 || balanceValue <= 0) {
-        return null;
-      }
-
-      final percentage = (amountValue / balanceValue) * 100;
-
-      if (percentage >= 90) {
-        return TransactionRisk(
-          level: RiskLevel.high,
-          message:
-              'You are transferring ${percentage.toStringAsFixed(0)}% of your balance',
-          icon: Icons.warning_amber_rounded,
-          color: Colors.red,
-        );
-      } else if (percentage >= 50) {
-        return TransactionRisk(
-          level: RiskLevel.medium,
-          message:
-              'You are transferring ${percentage.toStringAsFixed(0)}% of your balance',
-          icon: Icons.info_outline_rounded,
-          color: Colors.orange,
-        );
-      }
-
-      return null;
-    } catch (e) {
+    final amountValue = Decimal.tryParse(amount);
+    final balanceValue = Decimal.tryParse(balance);
+    if (amountValue == null ||
+        balanceValue == null ||
+        amountValue <= Decimal.zero ||
+        balanceValue <= Decimal.zero) {
       return null;
     }
+
+    final percentage = _roundedPercentage(amountValue, balanceValue);
+    if (amountValue * Decimal.fromInt(100) >=
+        balanceValue * Decimal.fromInt(90)) {
+      return TransactionRisk(
+        level: RiskLevel.high,
+        message: messageBuilder(percentage),
+        icon: Icons.warning_amber_rounded,
+        color: Colors.red,
+      );
+    }
+    if (amountValue * Decimal.fromInt(100) >=
+        balanceValue * Decimal.fromInt(50)) {
+      return TransactionRisk(
+        level: RiskLevel.medium,
+        message: messageBuilder(percentage),
+        icon: Icons.info_outline_rounded,
+        color: Colors.orange,
+      );
+    }
+    return null;
   }
 
   /// 检测新地址
@@ -73,20 +116,17 @@ class TransactionRiskChecker {
   static TransactionRisk? checkNewRecipient({
     required String address,
     required List<String> historyAddresses,
+    required String message,
+    required bool caseInsensitive,
   }) {
-    if (historyAddresses.isEmpty) {
-      return null; // 没有历史记录，无法判断
-    }
-
-    final normalizedAddress = address.toLowerCase();
     final isNewAddress = !historyAddresses.any(
-      (addr) => addr.toLowerCase() == normalizedAddress,
+      (item) => _sameAddress(item, address, caseInsensitive),
     );
 
     if (isNewAddress) {
       return TransactionRisk(
         level: RiskLevel.medium,
-        message: 'This is the first time you are sending to this address',
+        message: message,
         icon: Icons.new_releases_outlined,
         color: Colors.orange,
       );
@@ -101,39 +141,41 @@ class TransactionRiskChecker {
   static TransactionRisk? checkHighFee({
     required String fee,
     required String amount,
+    required String feeSymbol,
+    required String amountSymbol,
+    required String Function(String percentage) messageBuilder,
+    Decimal? feeFiatValue,
+    Decimal? amountFiatValue,
   }) {
-    try {
-      final feeValue = double.parse(fee);
-      final amountValue = double.parse(amount);
-
-      if (feeValue <= 0 || amountValue <= 0) {
-        return null;
-      }
-
-      final feePercentage = (feeValue / amountValue) * 100;
-
-      if (feePercentage >= 20) {
-        return TransactionRisk(
-          level: RiskLevel.high,
-          message:
-              'Fee is ${feePercentage.toStringAsFixed(0)}% of transfer amount (unusually high)',
-          icon: Icons.warning_amber_rounded,
-          color: Colors.red,
-        );
-      } else if (feePercentage >= 10) {
-        return TransactionRisk(
-          level: RiskLevel.medium,
-          message:
-              'Fee is ${feePercentage.toStringAsFixed(0)}% of transfer amount',
-          icon: Icons.info_outline_rounded,
-          color: Colors.orange,
-        );
-      }
-
-      return null;
-    } catch (e) {
+    final sameSymbol =
+        feeSymbol.trim().toUpperCase() == amountSymbol.trim().toUpperCase();
+    final feeValue = sameSymbol ? Decimal.tryParse(fee) : feeFiatValue;
+    final amountValue = sameSymbol ? Decimal.tryParse(amount) : amountFiatValue;
+    if (feeValue == null ||
+        amountValue == null ||
+        feeValue <= Decimal.zero ||
+        amountValue <= Decimal.zero) {
       return null;
     }
+
+    final percentage = _roundedPercentage(feeValue, amountValue);
+    if (feeValue * Decimal.fromInt(100) >= amountValue * Decimal.fromInt(20)) {
+      return TransactionRisk(
+        level: RiskLevel.high,
+        message: messageBuilder(percentage),
+        icon: Icons.warning_amber_rounded,
+        color: Colors.red,
+      );
+    }
+    if (feeValue * Decimal.fromInt(100) >= amountValue * Decimal.fromInt(10)) {
+      return TransactionRisk(
+        level: RiskLevel.medium,
+        message: messageBuilder(percentage),
+        icon: Icons.info_outline_rounded,
+        color: Colors.orange,
+      );
+    }
+    return null;
   }
 
   /// 检测是否正在转给当前钱包自己的地址。
@@ -225,32 +267,45 @@ class TransactionRiskChecker {
   ///
   /// 返回所有检测到的风险列表，按严重程度排序
   static List<TransactionRisk> checkAllRisks({
-    required String amount,
-    required String balance,
-    required String recipientAddress,
-    required List<String> historyAddresses,
-    String? fee,
+    required TransactionRiskContext context,
+    required TransactionRiskMessages messages,
   }) {
     final risks = <TransactionRisk>[];
 
     // 检测大额转账
-    final largeAmountRisk = checkLargeAmount(amount: amount, balance: balance);
+    final largeAmountRisk = checkLargeAmount(
+      amount: context.amount,
+      balance: context.balance,
+      messageBuilder: messages.largeAmount,
+    );
     if (largeAmountRisk != null) {
       risks.add(largeAmountRisk);
     }
 
     // 检测新地址
     final newRecipientRisk = checkNewRecipient(
-      address: recipientAddress,
-      historyAddresses: historyAddresses,
+      address: context.recipientAddress,
+      historyAddresses: context.historyAddresses,
+      message: messages.newRecipient,
+      caseInsensitive: context.recipientCaseInsensitive,
     );
     if (newRecipientRisk != null) {
       risks.add(newRecipientRisk);
     }
 
     // 检测高手续费
-    if (fee != null) {
-      final highFeeRisk = checkHighFee(fee: fee, amount: amount);
+    final fee = context.fee;
+    final feeSymbol = context.feeSymbol;
+    if (fee != null && feeSymbol != null) {
+      final highFeeRisk = checkHighFee(
+        fee: fee,
+        amount: context.amount,
+        feeSymbol: feeSymbol,
+        amountSymbol: context.assetSymbol,
+        feeFiatValue: context.feeFiatValue,
+        amountFiatValue: context.amountFiatValue,
+        messageBuilder: messages.highFee,
+      );
       if (highFeeRisk != null) {
         risks.add(highFeeRisk);
       }
@@ -290,5 +345,12 @@ class TransactionRiskChecker {
       return normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
     }
     return normalizedLeft == normalizedRight;
+  }
+
+  static String _roundedPercentage(Decimal part, Decimal whole) {
+    return ((part * Decimal.fromInt(100)) / whole)
+        .toDecimal(scaleOnInfinitePrecision: 8)
+        .round()
+        .toString();
   }
 }

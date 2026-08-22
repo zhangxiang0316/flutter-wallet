@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:decimal/decimal.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
@@ -33,12 +34,17 @@ import 'transfer_scan_address_parser.dart';
 class TransferPageArguments {
   const TransferPageArguments({
     required this.walletId,
+    required this.walletName,
     required this.asset,
     this.assets = const [],
+    this.usdPrices = const {},
   });
 
   /// 当前执行转账的钱包 ID。
   final String walletId;
+
+  /// 发起转账的钱包名称，用于确认页展示真实来源。
+  final String walletName;
 
   /// 用户从首页选择的默认待转出资产。
   final ChainBalance asset;
@@ -47,6 +53,9 @@ class TransferPageArguments {
   ///
   /// 一般由首页的可见资产列表传入；为空时会退化为只允许当前 [asset]。
   final List<ChainBalance> assets;
+
+  /// 首页最近一次可信 USD 单价，key 为大写币种符号。
+  final Map<String, Decimal> usdPrices;
 }
 
 /// 转账页面控制器。
@@ -106,6 +115,9 @@ class TransferController extends BaseController {
 
   /// 最近一次成功获取的手续费估算。
   TransferFeeEstimate? feeEstimate;
+
+  /// 当前钱包在所选链上已有的历史收款地址。
+  List<String> recipientHistoryAddresses = const [];
 
   /// 链上广播后返回的交易哈希。
   String transactionHash = '';
@@ -420,7 +432,17 @@ class TransferController extends BaseController {
     isEstimatingFee = true;
     update();
     try {
-      return await _refreshTransferPreflight(asset) != null;
+      final preflight = await _refreshTransferPreflight(asset);
+      if (preflight == null) return false;
+      final args = arguments;
+      if (args == null) return false;
+      recipientHistoryAddresses = await _transactionCache
+          .loadChainRecipientAddresses(
+            walletId: args.walletId,
+            chainId: preflight.asset.chainId,
+            assets: assetsForChain(preflight.asset.chainId),
+          );
+      return true;
     } finally {
       isSubmitting = false;
       isEstimatingFee = false;
@@ -772,6 +794,7 @@ class TransferController extends BaseController {
     feeEstimate = null;
     feeEstimateUnavailable = false;
     isEstimatingFee = false;
+    recipientHistoryAddresses = const [];
     transactionHash = '';
     submittedStatus = WalletTransactionStatus.unknown;
     _stopSubmittedStatusTracking();

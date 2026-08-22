@@ -2250,6 +2250,36 @@ class S {
     );
   }
 
+  /// `You are transferring {percentage}% of this asset balance.`
+  String transferRiskLargeAmount(Object percentage) {
+    return Intl.message(
+      'You are transferring $percentage% of this asset balance.',
+      name: 'transferRiskLargeAmount',
+      desc: '',
+      args: [percentage],
+    );
+  }
+
+  /// `This is the first transfer from this wallet on the selected network to this recipient.`
+  String get transferRiskNewRecipient {
+    return Intl.message(
+      'This is the first transfer from this wallet on the selected network to this recipient.',
+      name: 'transferRiskNewRecipient',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The network fee is {percentage}% of the transfer value, which is unusually high.`
+  String transferRiskHighFee(Object percentage) {
+    return Intl.message(
+      'The network fee is $percentage% of the transfer value, which is unusually high.',
+      name: 'transferRiskHighFee',
+      desc: '',
+      args: [percentage],
+    );
+  }
+
   /// `Network fee`
   String get networkFee {
     return Intl.message(

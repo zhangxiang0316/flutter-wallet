@@ -74,6 +74,12 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m21(network) =>
       "EVM addresses can be reused across networks. Confirm the recipient expects funds on ${network}.";
 
+  static String m22(percentage) =>
+      "The network fee is ${percentage}% of the transfer value, which is unusually high.";
+
+  static String m23(percentage) =>
+      "You are transferring ${percentage}% of this asset balance.";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
         "addAddressBookEntry":
@@ -526,6 +532,10 @@ class MessageLookup extends MessageLookupByLibrary {
         "transferRiskEvmNetworkConfirm": m21,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "Network fee is not available yet. Confirm you still have enough native balance before continuing."),
+        "transferRiskHighFee": m22,
+        "transferRiskLargeAmount": m23,
+        "transferRiskNewRecipient": MessageLookupByLibrary.simpleMessage(
+            "This is the first transfer from this wallet on the selected network to this recipient."),
         "transferRiskSelfTransfer": MessageLookupByLibrary.simpleMessage(
             "The recipient is the same as your current wallet address."),
         "transferRiskTokenContract": MessageLookupByLibrary.simpleMessage(

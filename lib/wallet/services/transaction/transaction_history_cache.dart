@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/chain_balance.dart';
 import '../../models/wallet_transaction_record.dart';
 
 /// 交易历史缓存服务。
@@ -214,6 +215,64 @@ class TransactionHistoryCache {
       nextRecords,
       contractAddress: record.contractAddress,
     );
+  }
+
+  /// 读取当前钱包在指定链上曾经使用过的收款地址。
+  ///
+  /// 同时合并链上历史缓存和本地待索引记录，并跨该链的原生币、Token 去重。失败、
+  /// 入账和其它链的记录不会让一个地址被误判为“已使用”。
+  Future<List<String>> loadChainRecipientAddresses({
+    required String walletId,
+    required String chainId,
+    required Iterable<ChainBalance> assets,
+  }) async {
+    final uniqueAssets = <String, ChainBalance>{};
+    for (final asset in assets) {
+      if (asset.chainId != chainId) continue;
+      final contract = asset.contractAddress?.trim();
+      final key = [
+        asset.symbol.toUpperCase(),
+        contract == null || contract.isEmpty
+            ? 'native'
+            : contract.toLowerCase(),
+      ].join(':');
+      uniqueAssets[key] = asset;
+    }
+
+    final recordGroups = await Future.wait(
+      uniqueAssets.values.map((asset) async {
+        final remote =
+            await load(
+              walletId,
+              chainId,
+              asset.symbol,
+              contractAddress: asset.contractAddress,
+            ) ??
+            const <WalletTransactionRecord>[];
+        final local = await loadLocalRecords(
+          walletId,
+          chainId,
+          asset.symbol,
+          contractAddress: asset.contractAddress,
+        );
+        return [...remote, ...local];
+      }),
+    );
+
+    final addresses = <String>{};
+    for (final record in recordGroups.expand((records) => records)) {
+      final isSent =
+          record.direction == WalletTransactionDirection.outgoing ||
+          record.direction == WalletTransactionDirection.selfTransfer;
+      final address = record.toAddress.trim();
+      if (record.chainId == chainId &&
+          isSent &&
+          record.status != WalletTransactionStatus.failed &&
+          address.isNotEmpty) {
+        addresses.add(address);
+      }
+    }
+    return addresses.toList(growable: false);
   }
 
   /// 清除指定资产的交易记录缓存。

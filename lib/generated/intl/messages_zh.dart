@@ -64,6 +64,10 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m21(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
 
+  static String m22(percentage) => "网络手续费约占转账价值的 ${percentage}%，比例异常偏高。";
+
+  static String m23(percentage) => "本次将转出该资产余额的 ${percentage}%。";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
         "addAddressBookEntry": MessageLookupByLibrary.simpleMessage("添加联系人"),
@@ -432,6 +436,10 @@ class MessageLookup extends MessageLookupByLibrary {
         "transferRiskEvmNetworkConfirm": m21,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "暂未获取到网络手续费，请确认钱包中仍有足够原生币支付手续费。"),
+        "transferRiskHighFee": m22,
+        "transferRiskLargeAmount": m23,
+        "transferRiskNewRecipient":
+            MessageLookupByLibrary.simpleMessage("这是当前钱包在所选网络上首次向该地址转账。"),
         "transferRiskSelfTransfer":
             MessageLookupByLibrary.simpleMessage("收款地址与当前钱包地址相同。"),
         "transferRiskTokenContract": MessageLookupByLibrary.simpleMessage(

@@ -319,6 +319,19 @@
   "transferRiskTokenContract": "The recipient matches this token contract address. Sending tokens to a contract address may permanently lose funds.",
   "transferRiskBurnAddress": "The recipient is a known burn or system address. Funds sent there are likely unrecoverable.",
   "transferRiskClipboardMismatch": "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly.",
+  "transferRiskLargeAmount": "You are transferring {percentage}% of this asset balance.",
+  "@transferRiskLargeAmount": {
+    "placeholders": {
+      "percentage": {}
+    }
+  },
+  "transferRiskNewRecipient": "This is the first transfer from this wallet on the selected network to this recipient.",
+  "transferRiskHighFee": "The network fee is {percentage}% of the transfer value, which is unusually high.",
+  "@transferRiskHighFee": {
+    "placeholders": {
+      "percentage": {}
+    }
+  },
   "networkFee": "Network fee",
   "estimatedNetworkFeeOnNetwork": "{network} network fee estimate",
   "@estimatedNetworkFeeOnNetwork": {

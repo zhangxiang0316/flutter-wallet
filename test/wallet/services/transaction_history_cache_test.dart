@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omnicast/wallet/models/chain_balance.dart';
+import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/models/wallet_transaction_record.dart';
 import 'package:omnicast/wallet/services/transaction/transaction_history_cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -149,4 +151,98 @@ void main() {
       expect(records!.single.txHash, '0xstale');
     });
   });
+
+  test(
+    'loads only valid outgoing recipients for the requested chain',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final cache = TransactionHistoryCache();
+      const sender = '0x1111111111111111111111111111111111111111';
+      const knownRecipient = '0x2222222222222222222222222222222222222222';
+      const failedRecipient = '0x3333333333333333333333333333333333333333';
+      const incomingSender = '0x4444444444444444444444444444444444444444';
+      const usdcContract = '0x5555555555555555555555555555555555555555';
+      const nativeAsset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'BNB',
+        name: 'BNB',
+        amount: '1',
+        address: sender,
+        decimals: 18,
+      );
+      const tokenAsset = ChainBalance(
+        chain: WalletChain.bsc,
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: '1',
+        address: sender,
+        contractAddress: usdcContract,
+        decimals: 6,
+      );
+      await cache.saveLocalRecords('wallet', 'bsc', 'BNB', [
+        _record(
+          id: 'known',
+          symbol: 'BNB',
+          toAddress: knownRecipient,
+          direction: WalletTransactionDirection.outgoing,
+          status: WalletTransactionStatus.success,
+        ),
+        _record(
+          id: 'failed',
+          symbol: 'BNB',
+          toAddress: failedRecipient,
+          direction: WalletTransactionDirection.outgoing,
+          status: WalletTransactionStatus.failed,
+        ),
+      ]);
+      await cache.save('wallet', 'bsc', 'USDC', [
+        _record(
+          id: 'incoming',
+          symbol: 'USDC',
+          fromAddress: incomingSender,
+          toAddress: sender,
+          direction: WalletTransactionDirection.incoming,
+          status: WalletTransactionStatus.success,
+          contractAddress: usdcContract,
+        ),
+      ], contractAddress: usdcContract);
+
+      final recipients = await cache.loadChainRecipientAddresses(
+        walletId: 'wallet',
+        chainId: 'bsc',
+        assets: [nativeAsset, tokenAsset],
+      );
+
+      expect(recipients, [knownRecipient]);
+    },
+  );
+}
+
+WalletTransactionRecord _record({
+  required String id,
+  required String symbol,
+  required String toAddress,
+  required WalletTransactionDirection direction,
+  required WalletTransactionStatus status,
+  String fromAddress = '0x1111111111111111111111111111111111111111',
+  String? contractAddress,
+}) {
+  return WalletTransactionRecord(
+    id: id,
+    walletId: 'wallet',
+    chainId: 'bsc',
+    chainName: 'BNB Smart Chain',
+    symbol: symbol,
+    assetName: symbol,
+    walletAddress: '0x1111111111111111111111111111111111111111',
+    txHash: '0x$id',
+    fromAddress: fromAddress,
+    toAddress: toAddress,
+    amount: '1',
+    decimals: contractAddress == null ? 18 : 6,
+    direction: direction,
+    status: status,
+    source: WalletTransactionSource.local,
+    contractAddress: contractAddress,
+  );
 }

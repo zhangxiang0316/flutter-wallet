@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:decimal/decimal.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
@@ -68,6 +69,7 @@ class TransferReviewFlow {
           ),
           risks: _detectRisks(
             context,
+            controller,
             asset,
             amount,
             recipientAddress,
@@ -164,6 +166,7 @@ class TransferReviewFlow {
 
   static List<TransactionRisk> _detectRisks(
     BuildContext context,
+    TransferController controller,
     ChainBalance asset,
     String amount,
     String recipientAddress,
@@ -171,12 +174,33 @@ class TransferReviewFlow {
     String? clipboardText,
   ) {
     final s = S.of(context);
+    final args = controller.arguments;
+    final amountValue = Decimal.tryParse(amount);
+    final feeValue = Decimal.tryParse(feeEstimate?.amount ?? '');
+    final amountPrice = args?.usdPrices[asset.symbol.toUpperCase()];
+    final feePrice = args?.usdPrices[feeEstimate?.symbol.toUpperCase()];
     final risks = TransactionRiskChecker.checkAllRisks(
-      amount: amount,
-      balance: asset.amount,
-      recipientAddress: recipientAddress,
-      historyAddresses: const [],
-      fee: feeEstimate?.amount,
+      context: TransactionRiskContext(
+        amount: amount,
+        balance: asset.amount,
+        assetSymbol: asset.symbol,
+        recipientAddress: recipientAddress,
+        historyAddresses: controller.recipientHistoryAddresses,
+        recipientCaseInsensitive: _isCaseInsensitiveAsset(asset),
+        fee: feeEstimate?.amount,
+        feeSymbol: feeEstimate?.symbol,
+        amountFiatValue: amountValue == null || amountPrice == null
+            ? null
+            : amountValue * amountPrice,
+        feeFiatValue: feeValue == null || feePrice == null
+            ? null
+            : feeValue * feePrice,
+      ),
+      messages: TransactionRiskMessages(
+        largeAmount: s.transferRiskLargeAmount,
+        newRecipient: s.transferRiskNewRecipient,
+        highFee: s.transferRiskHighFee,
+      ),
     );
     risks.addAll([
       if (feeEstimate == null || feeEstimate.amount.isEmpty)
@@ -270,7 +294,7 @@ class TransferReviewFlow {
     TransferFeeEstimate? feeEstimate,
   ) {
     final args = controller.arguments;
-    final walletName = args != null ? 'Wallet' : 'Current Wallet';
+    final walletName = args?.walletName ?? '';
     final chainName = asset.chainConfig?.name ?? asset.chainRef.name;
     final items = <ReviewItem>[
       ReviewItem(
@@ -312,9 +336,9 @@ class TransferReviewFlow {
           value: '${feeEstimate.amount} ${feeEstimate.symbol}',
         ),
       );
-      if (feeEstimate.symbol == asset.symbol) {
-        final amountValue = double.tryParse(amount);
-        final feeValue = double.tryParse(feeEstimate.amount);
+      if (feeEstimate.symbol.toUpperCase() == asset.symbol.toUpperCase()) {
+        final amountValue = Decimal.tryParse(amount);
+        final feeValue = Decimal.tryParse(feeEstimate.amount);
         if (amountValue != null && feeValue != null) {
           items.add(
             ReviewItem(
@@ -380,6 +404,13 @@ class TransferReviewFlow {
       ).firstMatch(value)?.group(0);
     }
     return null;
+  }
+
+  static bool _isCaseInsensitiveAsset(ChainBalance asset) {
+    return asset.chainRef.isEvm ||
+        asset.chainRef.isBitcoin ||
+        asset.chainRef.isSui ||
+        asset.chainRef.isAptos;
   }
 }
 

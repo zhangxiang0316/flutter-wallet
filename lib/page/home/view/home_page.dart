@@ -364,8 +364,10 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       RouteTable.transfer,
       arguments: TransferPageArguments(
         walletId: currentWallet.id,
+        walletName: currentWallet.name,
         asset: selectedAsset,
         assets: availableAssets,
+        usdPrices: controller.transferUsdPrices,
       ),
     );
     if (submitted == true) {

@@ -103,6 +103,23 @@ class HomeController extends BaseController {
   /// 一旦有缓存或任意链数据落地，就回到正常资产列表。
   bool get isFirstLoading => isLoading && tokenPortfolioItems.isEmpty;
 
+  /// 转账风险检查可复用的最近 USD 单价。
+  ///
+  /// 稳定币由估值服务补为 1，避免转账页面再次请求行情接口。
+  Map<String, Decimal> get transferUsdPrices {
+    final prices = <String, Decimal>{};
+    for (final balance in visibleBalances) {
+      final price = _valuationService.priceForSymbol(
+        balance.symbol,
+        _valuationService.cachedUsdPrices,
+      );
+      if (price != null) {
+        prices[balance.symbol.toUpperCase()] = price;
+      }
+    }
+    return Map.unmodifiable(prices);
+  }
+
   /// 旧版本钱包仍含明文私钥时为 true，需要先设置密码完成迁移。
   bool needsSecretMigration = false;
 
