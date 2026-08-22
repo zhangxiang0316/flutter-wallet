@@ -28,44 +28,50 @@ class _ModernActionButtonState extends State<_ModernActionButton> {
         onPointerCancel: (_) => setState(() => _pressed = false),
         onPointerUp: (_) => setState(() => _pressed = false),
         child: AnimatedScale(
-          scale: _pressed ? 0.94 : 1,
-          duration: const Duration(milliseconds: 140),
+          scale: _pressed ? 0.96 : 1,
+          duration: const Duration(milliseconds: 120),
           curve: Curves.easeOutCubic,
-          child: GestureDetector(
-            onTap: widget.onPressed,
-            child: Container(
-              height: 44.h,
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 1.5,
+          child: AnimatedContainer(
+            height: 38.h,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: _pressed ? 0.15 : 0),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.onPressed,
+                splashColor: Colors.white.withValues(alpha: 0.12),
+                highlightColor: Colors.transparent,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        size: 16.w,
+                      ),
+                      SizedBox(width: 7.w),
+                      Flexible(
+                        child: Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: Offset(0, 2.h),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(widget.icon, color: Colors.white, size: 20.w),
-                  SizedBox(width: 8.w),
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),

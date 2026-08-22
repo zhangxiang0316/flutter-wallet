@@ -241,25 +241,47 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
                   ),
                 ),
               ),
-              SizedBox(height: 16.h), // 从 20.h 减少到 16.h
-              // 收款/转账按钮
+              SizedBox(height: 16.h),
+              // 两个操作共用轻量底板，避免按钮抢占资产金额的视觉焦点。
               Align(
                 alignment: Alignment.center,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _ModernActionButton(
-                      icon: Icons.qr_code_2_rounded,
-                      label: S.of(context).receive,
-                      onPressed: widget.onReceivePressed,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 228.w),
+                  child: Container(
+                    width: double.infinity,
+                    height: 46.h,
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
                     ),
-                    SizedBox(width: 12.w),
-                    _ModernActionButton(
-                      icon: Icons.near_me_rounded,
-                      label: S.of(context).transfer,
-                      onPressed: widget.onTransferPressed,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _ModernActionButton(
+                            icon: Icons.qr_code_2_rounded,
+                            label: S.of(context).receive,
+                            onPressed: widget.onReceivePressed,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 20.h,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                        Expanded(
+                          child: _ModernActionButton(
+                            icon: Icons.arrow_outward_rounded,
+                            label: S.of(context).transfer,
+                            onPressed: widget.onTransferPressed,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -429,90 +451,3 @@ class _WalletSwitcherButtonState extends State<_WalletSwitcherButton> {
     );
   }
 }
-
-/// Hero 卡片上的快捷操作按钮。
-class _HeroActionButton extends StatefulWidget {
-  const _HeroActionButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  /// 按钮图标。
-  final IconData icon;
-
-  /// 按钮文案。
-  final String label;
-
-  /// 点击后的业务回调。
-  final VoidCallback onPressed;
-
-  @override
-  State<_HeroActionButton> createState() => _HeroActionButtonState();
-}
-
-class _HeroActionButtonState extends State<_HeroActionButton> {
-  /// 当前按钮是否处于按压状态。
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: widget.label,
-      child: Listener(
-        onPointerDown: (_) => setState(() => _pressed = true),
-        onPointerCancel: (_) => setState(() => _pressed = false),
-        onPointerUp: (_) => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.96 : 1,
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOutCubic,
-          child: Material(
-            color: Colors.white.withValues(alpha: _pressed ? 0.22 : 0.16),
-            borderRadius: BorderRadius.circular(999.r),
-            child: InkWell(
-              onTap: widget.onPressed,
-              borderRadius: BorderRadius.circular(999.r),
-              child: Container(
-                height: 34.h, // 从 38.h 减少到 34.h
-                padding: EdgeInsets.symmetric(
-                  horizontal: 12.w,
-                ), // 从 14.w 减少到 12.w
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999.r),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      widget.icon,
-                      color: Colors.white,
-                      size: 16.w,
-                    ), // 从 17.w 减少到 16.w
-                    SizedBox(width: 6.w), // 从 7.w 减少到 6.w
-                    Text(
-                      widget.label,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.sp, // 从 12.5.sp 减少到 12.sp
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 当前钱包支持的多链能力说明面板。
-///
-/// 用重叠链标识强调这是一个多链钱包，避免在首页重复展示各链地址。
