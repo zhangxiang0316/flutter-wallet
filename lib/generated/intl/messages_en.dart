@@ -63,21 +63,25 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m16(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m17(count) => "${count} networks";
+  static String m17(seconds) => "Hides in ${seconds}s";
 
-  static String m18(symbol) => "Transfer ${symbol}";
+  static String m18(seconds) => "Copied. Clipboard will clear in ${seconds}s";
 
-  static String m19(symbol) => "Insufficient ${symbol} balance";
+  static String m19(count) => "${count} networks";
 
-  static String m20(symbol) => "Insufficient ${symbol} to pay the network fee";
+  static String m20(symbol) => "Transfer ${symbol}";
 
-  static String m21(network) =>
+  static String m21(symbol) => "Insufficient ${symbol} balance";
+
+  static String m22(symbol) => "Insufficient ${symbol} to pay the network fee";
+
+  static String m23(network) =>
       "EVM addresses can be reused across networks. Confirm the recipient expects funds on ${network}.";
 
-  static String m22(percentage) =>
+  static String m24(percentage) =>
       "The network fee is ${percentage}% of the transfer value, which is unusually high.";
 
-  static String m23(percentage) =>
+  static String m25(percentage) =>
       "You are transferring ${percentage}% of this asset balance.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -398,6 +402,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "Screenshots are not allowed on this page for your security"),
         "screenshotProtectionEnabled": MessageLookupByLibrary.simpleMessage(
             "🔒 Screenshot protection enabled for your security"),
+        "secretAutoHideCountdown": m17,
         "securityNotice":
             MessageLookupByLibrary.simpleMessage("Security notice"),
         "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
@@ -413,6 +418,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Transfer asset"),
         "selectTransferChain":
             MessageLookupByLibrary.simpleMessage("Transfer network"),
+        "sensitiveClipboardClearNotice": m18,
         "settings": MessageLookupByLibrary.simpleMessage("Settings"),
         "skip": MessageLookupByLibrary.simpleMessage("Skip"),
         "splashLoading": MessageLookupByLibrary.simpleMessage("Opening wallet"),
@@ -432,7 +438,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "tokenContractAsset":
             MessageLookupByLibrary.simpleMessage("Token contract"),
         "tokenDetails": MessageLookupByLibrary.simpleMessage("Token details"),
-        "tokenNetworkCount": m17,
+        "tokenNetworkCount": m19,
         "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("Total"),
         "transactionAddresses":
@@ -509,8 +515,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Wallet address"),
         "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-        "transferAsset": m18,
-        "transferBalanceInsufficient": m19,
+        "transferAsset": m20,
+        "transferBalanceInsufficient": m21,
         "transferBalanceRefreshFailed": MessageLookupByLibrary.simpleMessage(
             "Unable to refresh the latest on-chain balance. Try again."),
         "transferDetails":
@@ -524,16 +530,16 @@ class MessageLookup extends MessageLookupByLibrary {
         "transferInputInvalid": MessageLookupByLibrary.simpleMessage(
             "Enter a valid recipient address and transfer amount"),
         "transferMax": MessageLookupByLibrary.simpleMessage("Max"),
-        "transferNativeFeeBalanceInsufficient": m20,
+        "transferNativeFeeBalanceInsufficient": m22,
         "transferRiskBurnAddress": MessageLookupByLibrary.simpleMessage(
             "The recipient is a known burn or system address. Funds sent there are likely unrecoverable."),
         "transferRiskClipboardMismatch": MessageLookupByLibrary.simpleMessage(
             "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly."),
-        "transferRiskEvmNetworkConfirm": m21,
+        "transferRiskEvmNetworkConfirm": m23,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "Network fee is not available yet. Confirm you still have enough native balance before continuing."),
-        "transferRiskHighFee": m22,
-        "transferRiskLargeAmount": m23,
+        "transferRiskHighFee": m24,
+        "transferRiskLargeAmount": m25,
         "transferRiskNewRecipient": MessageLookupByLibrary.simpleMessage(
             "This is the first transfer from this wallet on the selected network to this recipient."),
         "transferRiskSelfTransfer": MessageLookupByLibrary.simpleMessage(

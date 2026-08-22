@@ -443,6 +443,22 @@
   "passwordCacheMemoryOnly": "密码仅缓存在内存中",
   "passwordCacheClearedOnExit": "应用退出后自动清除缓存",
   "passwordCacheExpiresAutomatically": "超过设定时间后自动过期",
+  "secretAutoHideCountdown": "{seconds} 秒后隐藏",
+  "@secretAutoHideCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "sensitiveClipboardClearNotice": "已复制，剪贴板将在 {seconds} 秒后清除",
+  "@sensitiveClipboardClearNotice": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "retry": "重试",
   "networkErrorMessage": "网络连接失败，请检查网络设置",
   "validationErrorMessage": "输入信息有误，请检查后重试",

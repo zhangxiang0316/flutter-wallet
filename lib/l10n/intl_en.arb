@@ -443,6 +443,22 @@
   "passwordCacheMemoryOnly": "The password is only cached in memory",
   "passwordCacheClearedOnExit": "Cache is cleared automatically after app exit",
   "passwordCacheExpiresAutomatically": "Cache expires after the selected duration",
+  "secretAutoHideCountdown": "Hides in {seconds}s",
+  "@secretAutoHideCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "sensitiveClipboardClearNotice": "Copied. Clipboard will clear in {seconds}s",
+  "@sensitiveClipboardClearNotice": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "retry": "Retry",
   "networkErrorMessage": "Network connection failed, please check your network settings",
   "validationErrorMessage": "Invalid input, please check and try again",

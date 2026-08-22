@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
+import '../../../utils/sensitive_data_lifecycle.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/services/config/wallet_backup_status_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
@@ -16,6 +19,7 @@ class WalletDetailController extends BaseController {
   WalletDetailController({
     WalletRepository? repository,
     WalletBackupStatusService? backupStatusService,
+    this.secretRevealDuration = const Duration(seconds: 30),
   }) : _repository = repository ?? WalletRepository(),
        _backupStatusService =
            backupStatusService ?? WalletBackupStatusService();
@@ -23,14 +27,36 @@ class WalletDetailController extends BaseController {
   final WalletRepository _repository;
   final WalletBackupStatusService _backupStatusService;
 
+  /// 私钥和助记词单次解锁后的最长展示时间。
+  final Duration secretRevealDuration;
+
+  late final void Function() _lifecycleClearCallback = clearSensitiveData;
+
+  Timer? _privateKeyExpiryTimer;
+  Timer? _privateKeyCountdownTimer;
+  Timer? _mnemonicExpiryTimer;
+  Timer? _mnemonicCountdownTimer;
+  int _privateKeyEpoch = 0;
+  int _mnemonicEpoch = 0;
+
   /// 当前详情页展示的钱包。
   WalletAccount? wallet;
 
   /// 解锁后临时展示的私钥文本，页面离开后随控制器释放。
-  String privateKeyText = '';
+  String _privateKeyText = '';
+
+  String get privateKeyText => _privateKeyText;
+
+  /// 私钥自动隐藏前的剩余秒数。
+  int privateKeyRemainingSeconds = 0;
 
   /// 解锁后临时展示的助记词文本。
-  String mnemonicText = '';
+  String _mnemonicText = '';
+
+  String get mnemonicText => _mnemonicText;
+
+  /// 助记词自动隐藏前的剩余秒数。
+  int mnemonicRemainingSeconds = 0;
 
   /// 当前钱包是否保存了助记词。
   bool hasMnemonic = false;
@@ -50,7 +76,35 @@ class WalletDetailController extends BaseController {
   @override
   void onInit() {
     super.onInit();
+    SensitiveDataLifecycle.register(_lifecycleClearCallback);
     loadWallet();
+  }
+
+  @override
+  void onInactive() {
+    clearSensitiveData();
+  }
+
+  @override
+  void onPaused() {
+    clearSensitiveData();
+  }
+
+  @override
+  void onHidden() {
+    clearSensitiveData();
+  }
+
+  @override
+  void onDetached() {
+    clearSensitiveData();
+  }
+
+  @override
+  void onClose() {
+    SensitiveDataLifecycle.unregister(_lifecycleClearCallback);
+    clearSensitiveData(notify: false);
+    super.onClose();
   }
 
   /// 根据路由参数中的钱包 ID 加载钱包详情。
@@ -90,14 +144,16 @@ class WalletDetailController extends BaseController {
   Future<bool> unlockPrivateKey(String password) async {
     final currentWallet = wallet;
     if (currentWallet == null || isUnlockingPrivateKey) return false;
+    final requestEpoch = _privateKeyEpoch;
     try {
       isUnlockingPrivateKey = true;
       update();
-      privateKeyText = await _repository.readWalletPrivateKey(
+      final privateKey = await _repository.readWalletPrivateKey(
         walletId: currentWallet.id,
         password: password,
       );
-      update();
+      if (requestEpoch != _privateKeyEpoch || isClosed) return false;
+      _showPrivateKey(privateKey);
       return true;
     } on WalletSecretMissingException {
       Toast.show(S.current.walletSecretMissing);
@@ -107,7 +163,7 @@ class WalletDetailController extends BaseController {
       return false;
     } finally {
       isUnlockingPrivateKey = false;
-      update();
+      if (!isClosed) update();
     }
   }
 
@@ -115,14 +171,16 @@ class WalletDetailController extends BaseController {
   Future<bool> unlockMnemonic(String password) async {
     final currentWallet = wallet;
     if (currentWallet == null || isUnlockingMnemonic) return false;
+    final requestEpoch = _mnemonicEpoch;
     try {
       isUnlockingMnemonic = true;
       update();
-      mnemonicText = await _repository.readWalletMnemonic(
+      final mnemonic = await _repository.readWalletMnemonic(
         walletId: currentWallet.id,
         password: password,
       );
-      update();
+      if (requestEpoch != _mnemonicEpoch || isClosed) return false;
+      _showMnemonic(mnemonic);
       return true;
     } on WalletSecretMissingException {
       Toast.show(S.current.walletSecretMissing);
@@ -132,8 +190,95 @@ class WalletDetailController extends BaseController {
       return false;
     } finally {
       isUnlockingMnemonic = false;
+      if (!isClosed) update();
+    }
+  }
+
+  /// 清除当前页面持有的全部敏感明文和倒计时。
+  void clearSensitiveData({bool notify = true}) {
+    final hadSensitiveData =
+        _privateKeyText.isNotEmpty ||
+        _mnemonicText.isNotEmpty ||
+        privateKeyRemainingSeconds > 0 ||
+        mnemonicRemainingSeconds > 0;
+    _clearPrivateKey(notify: false);
+    _clearMnemonic(notify: false);
+    if (notify && hadSensitiveData && !isClosed) {
       update();
     }
+  }
+
+  void _showPrivateKey(String privateKey) {
+    _clearPrivateKey(notify: false);
+    _privateKeyText = privateKey;
+    final epoch = _privateKeyEpoch;
+    privateKeyRemainingSeconds = _remainingSeconds(secretRevealDuration);
+    _privateKeyExpiryTimer = Timer(secretRevealDuration, () {
+      if (epoch == _privateKeyEpoch) {
+        _clearPrivateKey();
+      }
+    });
+    _privateKeyCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (epoch != _privateKeyEpoch) return;
+      privateKeyRemainingSeconds--;
+      if (privateKeyRemainingSeconds <= 0) {
+        privateKeyRemainingSeconds = 0;
+        _privateKeyCountdownTimer?.cancel();
+      }
+      if (!isClosed) update();
+    });
+    update();
+  }
+
+  void _showMnemonic(String mnemonic) {
+    _clearMnemonic(notify: false);
+    _mnemonicText = mnemonic;
+    final epoch = _mnemonicEpoch;
+    mnemonicRemainingSeconds = _remainingSeconds(secretRevealDuration);
+    _mnemonicExpiryTimer = Timer(secretRevealDuration, () {
+      if (epoch == _mnemonicEpoch) {
+        _clearMnemonic();
+      }
+    });
+    _mnemonicCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (epoch != _mnemonicEpoch) return;
+      mnemonicRemainingSeconds--;
+      if (mnemonicRemainingSeconds <= 0) {
+        mnemonicRemainingSeconds = 0;
+        _mnemonicCountdownTimer?.cancel();
+      }
+      if (!isClosed) update();
+    });
+    update();
+  }
+
+  int _remainingSeconds(Duration duration) {
+    return (duration.inMilliseconds / Duration.millisecondsPerSecond).ceil();
+  }
+
+  void _clearPrivateKey({bool notify = true}) {
+    _privateKeyEpoch++;
+    _privateKeyExpiryTimer?.cancel();
+    _privateKeyCountdownTimer?.cancel();
+    _privateKeyExpiryTimer = null;
+    _privateKeyCountdownTimer = null;
+    final changed =
+        _privateKeyText.isNotEmpty || privateKeyRemainingSeconds > 0;
+    _privateKeyText = '';
+    privateKeyRemainingSeconds = 0;
+    if (notify && changed && !isClosed) update();
+  }
+
+  void _clearMnemonic({bool notify = true}) {
+    _mnemonicEpoch++;
+    _mnemonicExpiryTimer?.cancel();
+    _mnemonicCountdownTimer?.cancel();
+    _mnemonicExpiryTimer = null;
+    _mnemonicCountdownTimer = null;
+    final changed = _mnemonicText.isNotEmpty || mnemonicRemainingSeconds > 0;
+    _mnemonicText = '';
+    mnemonicRemainingSeconds = 0;
+    if (notify && changed && !isClosed) update();
   }
 
   /// 修改钱包名称并同步本地钱包列表。

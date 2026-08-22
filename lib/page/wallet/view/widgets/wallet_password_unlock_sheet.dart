@@ -58,6 +58,7 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
 
   @override
   void dispose() {
+    _passwordController.clear();
     _passwordController.dispose();
     super.dispose();
   }
@@ -213,6 +214,12 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
                 controller: _passwordController,
                 obscureText: true,
                 autofocus: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                keyboardType: TextInputType.visiblePassword,
+                autofillHints: const <String>[],
+                smartDashesType: SmartDashesType.disabled,
+                smartQuotesType: SmartQuotesType.disabled,
                 decoration: InputDecoration(
                   labelText: S.of(context).walletPassword,
                   prefixIcon: Icon(Icons.lock_outline_rounded, size: 18.w),
@@ -242,6 +249,7 @@ class _WalletPasswordUnlockSheetState extends State<WalletPasswordUnlockSheet> {
       Toast.show(S.current.walletPasswordRequired);
       return;
     }
+    _passwordController.clear();
     setState(() => _isSubmitting = true);
     final ok = await widget.onSubmit(password);
     if (!mounted) return;

@@ -3230,6 +3230,26 @@ class S {
     );
   }
 
+  /// `Hides in {seconds}s`
+  String secretAutoHideCountdown(int seconds) {
+    return Intl.message(
+      'Hides in ${seconds}s',
+      name: 'secretAutoHideCountdown',
+      desc: '',
+      args: [seconds],
+    );
+  }
+
+  /// `Copied. Clipboard will clear in {seconds}s`
+  String sensitiveClipboardClearNotice(int seconds) {
+    return Intl.message(
+      'Copied. Clipboard will clear in ${seconds}s',
+      name: 'sensitiveClipboardClearNotice',
+      desc: '',
+      args: [seconds],
+    );
+  }
+
   /// `Retry`
   String get retry {
     return Intl.message(

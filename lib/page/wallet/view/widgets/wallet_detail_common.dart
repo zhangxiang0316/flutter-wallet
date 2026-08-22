@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
+import '../../../../utils/sensitive_clipboard.dart';
 import '../../../../utils/toast_util.dart';
 import '../../../../wallet/models/wallet_account.dart';
 
@@ -19,7 +20,22 @@ BoxDecoration walletDetailPanelDecoration(BuildContext context) {
 }
 
 /// 复制文本到系统剪贴板并展示反馈。
-void copyWalletDetailValue(BuildContext context, String value) {
+void copyWalletDetailValue(
+  BuildContext context,
+  String value, {
+  bool clearAutomatically = false,
+}) {
+  if (clearAutomatically) {
+    SensitiveClipboard.instance.copy(value);
+    Toast.show(
+      S
+          .of(context)
+          .sensitiveClipboardClearNotice(
+            SensitiveClipboard.defaultClearDelay.inSeconds,
+          ),
+    );
+    return;
+  }
   Clipboard.setData(ClipboardData(text: value));
   Toast.show(S.of(context).copied);
 }

@@ -54,19 +54,23 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m16(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
 
-  static String m17(count) => "${count} 个网络";
+  static String m17(seconds) => "${seconds} 秒后隐藏";
 
-  static String m18(symbol) => "转账 ${symbol}";
+  static String m18(seconds) => "已复制，剪贴板将在 ${seconds} 秒后清除";
 
-  static String m19(symbol) => "${symbol} 余额不足";
+  static String m19(count) => "${count} 个网络";
 
-  static String m20(symbol) => "${symbol} 余额不足，无法支付网络手续费";
+  static String m20(symbol) => "转账 ${symbol}";
 
-  static String m21(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
+  static String m21(symbol) => "${symbol} 余额不足";
 
-  static String m22(percentage) => "网络手续费约占转账价值的 ${percentage}%，比例异常偏高。";
+  static String m22(symbol) => "${symbol} 余额不足，无法支付网络手续费";
 
-  static String m23(percentage) => "本次将转出该资产余额的 ${percentage}%。";
+  static String m23(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
+
+  static String m24(percentage) => "网络手续费约占转账价值的 ${percentage}%，比例异常偏高。";
+
+  static String m25(percentage) => "本次将转出该资产余额的 ${percentage}%。";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -329,6 +333,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("为了您的安全，此页面不允许截屏"),
         "screenshotProtectionEnabled":
             MessageLookupByLibrary.simpleMessage("🔒 为保护您的资产安全，此页面已启用截屏保护"),
+        "secretAutoHideCountdown": m17,
         "securityNotice": MessageLookupByLibrary.simpleMessage("安全提醒"),
         "securityNoticeDetail": MessageLookupByLibrary.simpleMessage(
             "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。"),
@@ -338,6 +343,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "selectReceiveChain": MessageLookupByLibrary.simpleMessage("选择收款网络"),
         "selectTransferAsset": MessageLookupByLibrary.simpleMessage("转账币种"),
         "selectTransferChain": MessageLookupByLibrary.simpleMessage("转账网络"),
+        "sensitiveClipboardClearNotice": m18,
         "settings": MessageLookupByLibrary.simpleMessage("设置"),
         "skip": MessageLookupByLibrary.simpleMessage("跳过"),
         "splashLoading": MessageLookupByLibrary.simpleMessage("正在进入钱包"),
@@ -354,7 +360,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "tokenAssetsEmpty": MessageLookupByLibrary.simpleMessage("暂无资产"),
         "tokenContractAsset": MessageLookupByLibrary.simpleMessage("代币合约"),
         "tokenDetails": MessageLookupByLibrary.simpleMessage("代币详情"),
-        "tokenNetworkCount": m17,
+        "tokenNetworkCount": m19,
         "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("合计"),
         "transactionAddresses": MessageLookupByLibrary.simpleMessage("地址信息"),
@@ -415,8 +421,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("钱包地址"),
         "transfer": MessageLookupByLibrary.simpleMessage("转账"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-        "transferAsset": m18,
-        "transferBalanceInsufficient": m19,
+        "transferAsset": m20,
+        "transferBalanceInsufficient": m21,
         "transferBalanceRefreshFailed":
             MessageLookupByLibrary.simpleMessage("无法刷新最新链上余额，请稍后重试"),
         "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
@@ -428,16 +434,16 @@ class MessageLookup extends MessageLookupByLibrary {
         "transferInputInvalid":
             MessageLookupByLibrary.simpleMessage("请输入有效的收款地址和转账数量"),
         "transferMax": MessageLookupByLibrary.simpleMessage("全部"),
-        "transferNativeFeeBalanceInsufficient": m20,
+        "transferNativeFeeBalanceInsufficient": m22,
         "transferRiskBurnAddress":
             MessageLookupByLibrary.simpleMessage("收款地址是常见销毁或系统地址，转入后大概率无法找回。"),
         "transferRiskClipboardMismatch":
             MessageLookupByLibrary.simpleMessage("剪贴板中存在另一个地址，请确认收款地址没有被意外替换。"),
-        "transferRiskEvmNetworkConfirm": m21,
+        "transferRiskEvmNetworkConfirm": m23,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "暂未获取到网络手续费，请确认钱包中仍有足够原生币支付手续费。"),
-        "transferRiskHighFee": m22,
-        "transferRiskLargeAmount": m23,
+        "transferRiskHighFee": m24,
+        "transferRiskLargeAmount": m25,
         "transferRiskNewRecipient":
             MessageLookupByLibrary.simpleMessage("这是当前钱包在所选网络上首次向该地址转账。"),
         "transferRiskSelfTransfer":

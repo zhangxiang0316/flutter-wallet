@@ -242,6 +242,12 @@ class PasswordTextField extends StatelessWidget {
       controller: controller,
       enabled: enabled,
       obscureText: true,
+      enableSuggestions: false,
+      autocorrect: false,
+      keyboardType: TextInputType.visiblePassword,
+      autofillHints: const <String>[],
+      smartDashesType: SmartDashesType.disabled,
+      smartQuotesType: SmartQuotesType.disabled,
       decoration: vantInputDecoration(
         context,
         labelText: label,

@@ -428,6 +428,7 @@ class _TransferPasswordSheetState extends State<_TransferPasswordSheet> {
 
   @override
   void dispose() {
+    _passwordController.clear();
     _passwordController.dispose();
     super.dispose();
   }
@@ -479,6 +480,12 @@ class _TransferPasswordSheetState extends State<_TransferPasswordSheet> {
             controller: _passwordController,
             obscureText: true,
             autofocus: true,
+            enableSuggestions: false,
+            autocorrect: false,
+            keyboardType: TextInputType.visiblePassword,
+            autofillHints: const <String>[],
+            smartDashesType: SmartDashesType.disabled,
+            smartQuotesType: SmartQuotesType.disabled,
             style: transferInputTextStyle(context),
             decoration: transferInputDecoration(
               context,
@@ -515,6 +522,7 @@ class _TransferPasswordSheetState extends State<_TransferPasswordSheet> {
       Toast.show(S.current.walletPasswordRequired);
       return;
     }
+    _passwordController.clear();
     Navigator.of(context).pop(password);
   }
 }

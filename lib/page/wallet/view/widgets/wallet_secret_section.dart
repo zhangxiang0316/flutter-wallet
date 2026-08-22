@@ -12,6 +12,8 @@ class WalletSecretSection extends StatelessWidget {
     super.key,
     required this.privateKeyText,
     required this.mnemonicText,
+    required this.privateKeyRemainingSeconds,
+    required this.mnemonicRemainingSeconds,
     required this.hasMnemonic,
     required this.isUnlockingPrivateKey,
     required this.isUnlockingMnemonic,
@@ -24,6 +26,12 @@ class WalletSecretSection extends StatelessWidget {
 
   /// 解锁后展示的助记词文本。
   final String mnemonicText;
+
+  /// 私钥自动隐藏前的剩余秒数。
+  final int privateKeyRemainingSeconds;
+
+  /// 助记词自动隐藏前的剩余秒数。
+  final int mnemonicRemainingSeconds;
 
   /// 当前钱包是否保存了助记词。
   final bool hasMnemonic;
@@ -48,6 +56,7 @@ class WalletSecretSection extends StatelessWidget {
         _SecretTile(
           title: S.of(context).viewPrivateKey,
           value: privateKeyText,
+          remainingSeconds: privateKeyRemainingSeconds,
           loading: isUnlockingPrivateKey,
           onUnlock: onUnlockPrivateKey,
         ),
@@ -55,6 +64,7 @@ class WalletSecretSection extends StatelessWidget {
           _SecretTile(
             title: S.of(context).viewMnemonic,
             value: mnemonicText,
+            remainingSeconds: mnemonicRemainingSeconds,
             loading: isUnlockingMnemonic,
             onUnlock: onUnlockMnemonic,
           ),
@@ -70,6 +80,7 @@ class _SecretTile extends StatelessWidget {
   const _SecretTile({
     required this.title,
     required this.value,
+    required this.remainingSeconds,
     required this.loading,
     required this.onUnlock,
   });
@@ -79,6 +90,8 @@ class _SecretTile extends StatelessWidget {
 
   /// 解锁后的敏感文本；为空表示仍未解锁。
   final String value;
+
+  final int remainingSeconds;
 
   /// 是否正在执行解锁请求。
   final bool loading;
@@ -105,7 +118,9 @@ class _SecretTile extends StatelessWidget {
           color: colorScheme.error,
         ),
       ),
-      title: title,
+      title: revealed
+          ? '$title · ${S.of(context).secretAutoHideCountdown(remainingSeconds)}'
+          : title,
       subtitle: revealed ? value : S.of(context).unlockToView,
       subtitleMaxLines: revealed ? 4 : 1,
       trailing: revealed
@@ -113,7 +128,11 @@ class _SecretTile extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               constraints: BoxConstraints.tight(Size(34.w, 34.w)),
               padding: EdgeInsets.zero,
-              onPressed: () => copyWalletDetailValue(context, value),
+              onPressed: () => copyWalletDetailValue(
+                context,
+                value,
+                clearAutomatically: true,
+              ),
               icon: Icon(
                 Icons.content_copy_rounded,
                 size: 17.w,

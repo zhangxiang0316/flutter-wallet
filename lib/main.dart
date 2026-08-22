@@ -13,6 +13,7 @@ import 'generated/l10n.dart';
 import 'generated/route_table.dart';
 import 'utils/log_util.dart';
 import 'utils/password_cache_service.dart';
+import 'utils/sensitive_data_lifecycle.dart';
 import 'utils/storage.dart';
 import 'utils/text_theme_util.dart';
 
@@ -112,13 +113,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     switch (state) {
+      case AppLifecycleState.inactive:
+        SensitiveDataLifecycle.clearAll();
+        break;
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
+        SensitiveDataLifecycle.clearAll();
         PasswordCacheService.clearCache();
         break;
       case AppLifecycleState.resumed:
-      case AppLifecycleState.inactive:
         break;
     }
   }
@@ -126,6 +130,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    SensitiveDataLifecycle.clearAll();
     PasswordCacheService.clearCache();
     super.dispose();
   }

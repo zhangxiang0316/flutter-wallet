@@ -95,6 +95,8 @@ class WalletDetailPage extends BaseScaffoldPage<WalletDetailController> {
             WalletSecretSection(
               privateKeyText: controller.privateKeyText,
               mnemonicText: controller.mnemonicText,
+              privateKeyRemainingSeconds: controller.privateKeyRemainingSeconds,
+              mnemonicRemainingSeconds: controller.mnemonicRemainingSeconds,
               hasMnemonic: controller.hasMnemonic,
               isUnlockingPrivateKey: controller.isUnlockingPrivateKey,
               isUnlockingMnemonic: controller.isUnlockingMnemonic,
