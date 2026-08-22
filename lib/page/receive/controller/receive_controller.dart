@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
+import '../../../wallet/adapters/chain_adapter.dart';
+import '../../../wallet/adapters/chain_adapter_registry.dart';
+import '../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../wallet/models/payment_request.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/models/wallet_asset.dart';
@@ -18,11 +21,15 @@ class ReceiveController extends BaseController {
   ReceiveController({
     WalletCustomAssetService? customAssetService,
     WalletChainConfigService? chainConfigService,
+    ChainAdapterRegistry? adapterRegistry,
   }) : _customAssetService = customAssetService ?? WalletCustomAssetService(),
-       _chainConfigService = chainConfigService ?? WalletChainConfigService();
+       _chainConfigService = chainConfigService ?? WalletChainConfigService(),
+       _adapterRegistry =
+           adapterRegistry ?? createDefaultChainAdapterRegistry();
 
   final WalletCustomAssetService _customAssetService;
   final WalletChainConfigService _chainConfigService;
+  final ChainAdapterRegistry _adapterRegistry;
 
   /// 首页传入的当前钱包，包含 EVM、Solana 和 TRON 地址。
   WalletAccount? wallet;
@@ -112,31 +119,13 @@ class ReceiveController extends BaseController {
   String currentAddress() {
     final currentWallet = wallet;
     if (currentWallet == null) return '';
-    if (selectedChain.isEvm) {
-      return currentWallet.bscAddress;
-    }
-    switch (selectedChain.builtinChain) {
-      case WalletChain.bsc:
-      case WalletChain.ethereum:
-      case WalletChain.xLayer:
-      case WalletChain.arbitrum:
-      case WalletChain.base:
-      case WalletChain.polygon:
-      case WalletChain.avalanche:
-        return currentWallet.bscAddress;
-      case WalletChain.bitcoin:
-        return currentWallet.bitcoinAddress;
-      case WalletChain.solana:
-        return currentWallet.solanaAddress;
-      case WalletChain.sui:
-        return currentWallet.suiAddress;
-      case WalletChain.aptos:
-        return currentWallet.aptosAddress;
-      case WalletChain.tron:
-        return currentWallet.tronAddress;
-      case null:
-        return currentWallet.bscAddress;
-    }
+    final adapter = _adapterRegistry.require(
+      selectedChain,
+      capability: ChainCapability.receive,
+    );
+    return adapter.walletAddress(
+      ChainWalletAddresses.fromWallet(currentWallet),
+    );
   }
 
   /// 当前二维码内容。

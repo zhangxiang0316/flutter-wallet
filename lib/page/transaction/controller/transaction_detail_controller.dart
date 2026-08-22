@@ -26,7 +26,7 @@ class TransactionDetailController extends BaseController {
   TransactionDetailController({
     WalletBlockExplorerService? blockExplorerService,
   }) : _blockExplorerService =
-           blockExplorerService ?? const WalletBlockExplorerService();
+           blockExplorerService ?? WalletBlockExplorerService();
 
   final WalletBlockExplorerService _blockExplorerService;
 

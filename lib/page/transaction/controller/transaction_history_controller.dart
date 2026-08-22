@@ -47,7 +47,7 @@ class TransactionHistoryController extends BaseController {
     TransactionHistoryCache? cache,
   }) : _historyService = historyService ?? WalletTransactionHistoryService(),
        _blockExplorerService =
-           blockExplorerService ?? const WalletBlockExplorerService(),
+           blockExplorerService ?? WalletBlockExplorerService(),
        _transactionStatusService =
            transactionStatusService ?? WalletTransactionStatusService(),
        _cache = cache ?? TransactionHistoryCache();

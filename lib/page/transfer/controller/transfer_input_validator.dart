@@ -1,36 +1,15 @@
+import '../../../wallet/adapters/chain_adapter.dart';
+import '../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../wallet/models/chain_balance.dart';
-import '../../../wallet/models/wallet_chain_extensions.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
 
 class TransferInputValidator {
   const TransferInputValidator._();
 
   static void validateAddress(ChainBalance asset, String address) {
-    if (asset.chainRef.isEvm) {
-      WalletTransferService.normalizeEvmAddress(address);
-      return;
-    }
-    if (asset.chainRef.isTron) {
-      WalletTransferService.tronAddressToHex(address);
-      return;
-    }
-    if (asset.chainRef.isSolana) {
-      WalletTransferService.normalizeSolanaAddress(address);
-      return;
-    }
-    if (asset.chainRef.isBitcoin) {
-      WalletTransferService.normalizeBitcoinAddress(address);
-      return;
-    }
-    if (asset.chainRef.isSui) {
-      WalletTransferService.normalizeSuiAddress(address);
-      return;
-    }
-    if (asset.chainRef.isAptos) {
-      WalletTransferService.normalizeAptosAddress(address);
-      return;
-    }
-    throw FormatException('Unsupported chain ${asset.chainId}');
+    createDefaultChainAdapterRegistry()
+        .require(asset.chainRef, capability: ChainCapability.addressValidation)
+        .normalizeAddress(address);
   }
 
   static bool canEstimateFee({

@@ -9,6 +9,9 @@ import 'package:dio/dio.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:sui/sui.dart';
 
+import '../adapters/chain_adapter.dart';
+import '../adapters/chain_adapter_registry.dart';
+import '../adapters/default_chain_adapter_registry.dart';
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
@@ -138,17 +141,22 @@ class TransactionHistoryPageResult {
 ///
 /// 对外保持统一入口；实际按链类型委托给 EVM、TRON、Solana Provider。
 class WalletTransactionHistoryService {
-  WalletTransactionHistoryService({Dio? dio, WalletHistoryApiConfig? apiConfig})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              connectTimeout: _requestTimeout,
-              receiveTimeout: _requestTimeout,
-              sendTimeout: _requestTimeout,
-            ),
-          ),
-      _apiConfig = apiConfig ?? const WalletHistoryApiConfig() {
+  WalletTransactionHistoryService({
+    Dio? dio,
+    WalletHistoryApiConfig? apiConfig,
+    ChainAdapterRegistry? adapterRegistry,
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: _requestTimeout,
+               receiveTimeout: _requestTimeout,
+               sendTimeout: _requestTimeout,
+             ),
+           ),
+       _apiConfig = apiConfig ?? const WalletHistoryApiConfig(),
+       _adapterRegistry =
+           adapterRegistry ?? createDefaultChainAdapterRegistry() {
     _evmProvider = _EvmTransactionHistoryProvider(
       dio: _dio,
       apiConfig: _apiConfig,
@@ -183,6 +191,7 @@ class WalletTransactionHistoryService {
   final Dio _dio;
 
   final WalletHistoryApiConfig _apiConfig;
+  final ChainAdapterRegistry _adapterRegistry;
 
   late final _EvmTransactionHistoryProvider _evmProvider;
   late final _MoralisEvmTransactionHistoryProvider _moralisEvmProvider;
@@ -212,35 +221,36 @@ class WalletTransactionHistoryService {
     required String txHash,
   }) async {
     final chain = asset.chainRef;
-    if (chain.isEvm) {
-      return _evmProvider.loadRecordByTransactionHash(
-        walletId: walletId,
-        asset: asset,
-        txHash: txHash,
-      );
-    }
-    if (_isBitcoinChain(chain)) {
-      return _bitcoinProvider.loadRecordByTransactionHash(
-        walletId: walletId,
-        asset: asset,
-        txHash: txHash,
-      );
-    }
-    if (_isSuiChain(chain)) {
-      return _suiProvider.loadRecordByTransactionHash(
-        walletId: walletId,
-        asset: asset,
-        txHash: txHash,
-      );
-    }
-    if (_isAptosChain(chain)) {
-      return _aptosProvider.loadRecordByTransactionHash(
-        walletId: walletId,
-        asset: asset,
-        txHash: txHash,
-      );
-    }
-    return null;
+    final adapter = _adapterRegistry.require(
+      chain,
+      capability: ChainCapability.history,
+    );
+    final handlers =
+        <WalletChainType, Future<WalletTransactionRecord?> Function()>{
+          WalletChainType.evm: () => _evmProvider.loadRecordByTransactionHash(
+            walletId: walletId,
+            asset: asset,
+            txHash: txHash,
+          ),
+          WalletChainType.bitcoin: () =>
+              _bitcoinProvider.loadRecordByTransactionHash(
+                walletId: walletId,
+                asset: asset,
+                txHash: txHash,
+              ),
+          WalletChainType.sui: () => _suiProvider.loadRecordByTransactionHash(
+            walletId: walletId,
+            asset: asset,
+            txHash: txHash,
+          ),
+          WalletChainType.aptos: () =>
+              _aptosProvider.loadRecordByTransactionHash(
+                walletId: walletId,
+                asset: asset,
+                txHash: txHash,
+              ),
+        };
+    return handlers[adapter.type]?.call();
   }
 
   /// 分页读取某个资产的链上交易记录。
@@ -250,80 +260,45 @@ class WalletTransactionHistoryService {
     TransactionHistoryCursor? cursor,
   }) async {
     final chain = asset.chainRef;
-    if (chain.isEvm) {
-      final canUseMoralisEvm =
-          _moralisEvmProvider.supportsChain(chain) &&
-          _apiConfig.hasMoralisApiKey &&
-          (cursor == null || cursor.moralisCursor != null);
-      if (canUseMoralisEvm) {
-        try {
-          developer.log(
-            'Using Moralis EVM history provider for ${chain.name} '
-            'chainId=${chain.evmChainId}',
-            name: 'WalletTransactionHistoryService',
-          );
-          final result = await _moralisEvmProvider.loadRecordPage(
+    final adapter = _adapterRegistry.require(
+      chain,
+      capability: ChainCapability.history,
+    );
+    final handlers =
+        <WalletChainType, Future<TransactionHistoryPageResult> Function()>{
+          WalletChainType.evm: () => _loadEvmRecordPage(
             walletId: walletId,
             asset: asset,
             cursor: cursor,
-          );
-          if (result.records.isNotEmpty || cursor != null) {
-            return result;
-          }
-        } catch (error) {
-          if (error is TransactionHistoryLoadException &&
-              (error.kind == TransactionHistoryFailureKind.rateLimited ||
-                  error.kind == TransactionHistoryFailureKind.apiKeyInvalid)) {
-            rethrow;
-          }
-          developer.log(
-            'Moralis ${chain.name} history failed; '
-            'falling back to EVM providers: $error',
-            name: 'WalletTransactionHistoryService',
-          );
-        }
-      }
-      return _evmProvider.loadRecordPage(
-        walletId: walletId,
-        asset: asset,
-        cursor: cursor,
-      );
-    }
-    if (_isTronChain(chain)) {
-      return _tronProvider.loadRecordPage(
-        walletId: walletId,
-        asset: asset,
-        cursor: cursor,
-      );
-    }
-    if (_isSolanaChain(chain)) {
-      return _solanaProvider.loadRecordPage(
-        walletId: walletId,
-        asset: asset,
-        cursor: cursor,
-      );
-    }
-    if (_isBitcoinChain(chain)) {
-      return _bitcoinProvider.loadRecordPage(
-        walletId: walletId,
-        asset: asset,
-        cursor: cursor,
-      );
-    }
-    if (_isSuiChain(chain)) {
-      return _suiProvider.loadRecordPage(
-        walletId: walletId,
-        asset: asset,
-        cursor: cursor,
-      );
-    }
-    if (_isAptosChain(chain)) {
-      return _aptosProvider.loadRecordPage(
-        walletId: walletId,
-        asset: asset,
-        cursor: cursor,
-      );
-    }
+          ),
+          WalletChainType.tron: () => _tronProvider.loadRecordPage(
+            walletId: walletId,
+            asset: asset,
+            cursor: cursor,
+          ),
+          WalletChainType.solana: () => _solanaProvider.loadRecordPage(
+            walletId: walletId,
+            asset: asset,
+            cursor: cursor,
+          ),
+          WalletChainType.bitcoin: () => _bitcoinProvider.loadRecordPage(
+            walletId: walletId,
+            asset: asset,
+            cursor: cursor,
+          ),
+          WalletChainType.sui: () => _suiProvider.loadRecordPage(
+            walletId: walletId,
+            asset: asset,
+            cursor: cursor,
+          ),
+          WalletChainType.aptos: () => _aptosProvider.loadRecordPage(
+            walletId: walletId,
+            asset: asset,
+            cursor: cursor,
+          ),
+        };
+    final handler = handlers[adapter.type];
+    if (handler != null) return handler();
     return const TransactionHistoryPageResult(
       records: [],
       nextCursor: null,
@@ -331,28 +306,46 @@ class WalletTransactionHistoryService {
     );
   }
 
-  bool _isTronChain(WalletChainRef chain) {
-    return chain.id == WalletChain.tron.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.tron);
-  }
-
-  bool _isSolanaChain(WalletChainRef chain) {
-    return chain.id == WalletChain.solana.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.solana);
-  }
-
-  bool _isBitcoinChain(WalletChainRef chain) {
-    return chain.id == WalletChain.bitcoin.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.bitcoin);
-  }
-
-  bool _isSuiChain(WalletChainRef chain) {
-    return chain.id == WalletChain.sui.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.sui);
-  }
-
-  bool _isAptosChain(WalletChainRef chain) {
-    return chain.id == WalletChain.aptos.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.aptos);
+  Future<TransactionHistoryPageResult> _loadEvmRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    required TransactionHistoryCursor? cursor,
+  }) async {
+    final chain = asset.chainRef;
+    final canUseMoralisEvm =
+        _moralisEvmProvider.supportsChain(chain) &&
+        _apiConfig.hasMoralisApiKey &&
+        (cursor == null || cursor.moralisCursor != null);
+    if (canUseMoralisEvm) {
+      try {
+        developer.log(
+          'Using Moralis EVM history provider for ${chain.name} '
+          'chainId=${chain.evmChainId}',
+          name: 'WalletTransactionHistoryService',
+        );
+        final result = await _moralisEvmProvider.loadRecordPage(
+          walletId: walletId,
+          asset: asset,
+          cursor: cursor,
+        );
+        if (result.records.isNotEmpty || cursor != null) return result;
+      } catch (error) {
+        if (error is TransactionHistoryLoadException &&
+            (error.kind == TransactionHistoryFailureKind.rateLimited ||
+                error.kind == TransactionHistoryFailureKind.apiKeyInvalid)) {
+          rethrow;
+        }
+        developer.log(
+          'Moralis ${chain.name} history failed; '
+          'falling back to EVM providers: $error',
+          name: 'WalletTransactionHistoryService',
+        );
+      }
+    }
+    return _evmProvider.loadRecordPage(
+      walletId: walletId,
+      asset: asset,
+      cursor: cursor,
+    );
   }
 }

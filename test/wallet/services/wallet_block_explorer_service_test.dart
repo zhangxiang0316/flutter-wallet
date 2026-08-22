@@ -5,7 +5,7 @@ import 'package:omnicast/wallet/services/transaction/wallet_block_explorer_servi
 
 void main() {
   group('WalletBlockExplorerService', () {
-    const service = WalletBlockExplorerService();
+    final service = WalletBlockExplorerService();
 
     test('builds builtin EVM transaction URL', () {
       const asset = ChainBalance(

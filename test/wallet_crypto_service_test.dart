@@ -259,7 +259,7 @@ void main() {
 
   group('WalletBlockExplorerService', () {
     test('builds default explorer URL for built-in chains', () {
-      const service = WalletBlockExplorerService();
+      final service = WalletBlockExplorerService();
       const asset = ChainBalance(
         chain: WalletChain.bsc,
         symbol: 'BNB',
@@ -276,7 +276,7 @@ void main() {
     });
 
     test('builds explorer URL from custom EVM scan API URL', () {
-      const service = WalletBlockExplorerService();
+      final service = WalletBlockExplorerService();
       final chain = WalletChainConfig.customEvm(
         id: 'evm-137',
         name: 'Polygon',

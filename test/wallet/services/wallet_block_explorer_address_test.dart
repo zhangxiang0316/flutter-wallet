@@ -8,7 +8,7 @@ void main() {
 
   group('WalletBlockExplorerService', () {
     test('builds default explorer URL for built-in chains', () {
-      const service = WalletBlockExplorerService();
+      final service = WalletBlockExplorerService();
       const asset = ChainBalance(
         chain: WalletChain.bsc,
         symbol: 'BNB',
@@ -25,7 +25,7 @@ void main() {
     });
 
     test('builds Bitcoin address explorer URL', () {
-      const service = WalletBlockExplorerService();
+      final service = WalletBlockExplorerService();
       const address = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
       const asset = ChainBalance(
         chain: WalletChain.bitcoin,
@@ -43,7 +43,7 @@ void main() {
     });
 
     test('builds Avalanche address explorer URL', () {
-      const service = WalletBlockExplorerService();
+      final service = WalletBlockExplorerService();
       const address = '0x1111111111111111111111111111111111111111';
       const asset = ChainBalance(
         chain: WalletChain.avalanche,
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('builds Sui address explorer URL', () {
-      const service = WalletBlockExplorerService();
+      final service = WalletBlockExplorerService();
       const address =
           '0x936accb491f0facaac668baaedcf4d0cfc6da1120b66f77fa6a43af718669973';
       const asset = ChainBalance(
@@ -80,7 +80,7 @@ void main() {
     });
 
     test('builds explorer URL from custom EVM scan API URL', () {
-      const service = WalletBlockExplorerService();
+      final service = WalletBlockExplorerService();
       final chain = WalletChainConfig.customEvm(
         id: 'evm-137',
         name: 'Polygon',

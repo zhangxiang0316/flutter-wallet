@@ -16,11 +16,12 @@ import 'package:solana/solana.dart';
 import 'package:sui/sui.dart';
 import 'package:aptos/aptos.dart' as aptos;
 
+import '../adapters/chain_adapter.dart';
+import '../adapters/chain_adapter_registry.dart';
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/evm_transaction_draft.dart';
 import '../models/wallet_chain.dart';
-import '../models/wallet_chain_extensions.dart';
 import '../utils/rpc_retry_helper.dart';
 import 'crypto/wallet_crypto_service.dart';
 
@@ -47,17 +48,21 @@ class WalletTransferService {
   /// 创建转账服务。
   ///
   /// 测试时可注入 [Dio]；业务场景使用独立 Dio，避免受业务接口 baseUrl 或拦截器影响。
-  WalletTransferService({Dio? dio, this.simulateEvmTransactions = true})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              connectTimeout: _requestTimeout,
-              receiveTimeout: _requestTimeout,
-              sendTimeout: _requestTimeout,
-            ),
-          ),
-      _domain = ECCurve_secp256k1();
+  WalletTransferService({
+    Dio? dio,
+    this.simulateEvmTransactions = true,
+    ChainAdapterRegistry? adapterRegistry,
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: _requestTimeout,
+               receiveTimeout: _requestTimeout,
+               sendTimeout: _requestTimeout,
+             ),
+           ),
+       _domain = ECCurve_secp256k1(),
+       _adapterRegistry = adapterRegistry ?? _createAdapterRegistry();
 
   /// RPC/HTTP 请求客户端。
   final Dio _dio;
@@ -67,6 +72,8 @@ class WalletTransferService {
 
   /// secp256k1 曲线参数，EVM 和 TRON 签名共用。
   final ECDomainParameters _domain;
+
+  final ChainAdapterRegistry _adapterRegistry;
 
   /// 转账相关请求的整体超时时间。
   static const Duration _requestTimeout = Duration(seconds: 20);
@@ -93,65 +100,66 @@ class WalletTransferService {
     List<int>? aptosPrivateKey,
     EvmTransactionDraft? evmDraft,
   }) {
-    if (asset.chainRef.isEvm) {
-      return _transferEvm(
+    final adapter = _adapterRegistry.require(
+      asset.chainRef,
+      capability: ChainCapability.transfer,
+    );
+    final handlers = <WalletChainType, Future<String> Function()>{
+      WalletChainType.evm: () => _transferEvm(
         privateKeyHex: privateKeyHex,
         asset: asset,
         toAddress: toAddress,
         amount: amount,
         draft: evmDraft,
-      );
-    }
-    if (asset.chainRef.isTron) {
-      return _transferTron(
+      ),
+      WalletChainType.tron: () => _transferTron(
         privateKeyHex: privateKeyHex,
         asset: asset,
         toAddress: toAddress,
         amount: amount,
-      );
-    }
-    if (asset.chainRef.isSolana) {
-      if (solanaPrivateKey == null) {
-        throw StateError('Missing Solana private key');
-      }
-      return _transferSolana(
-        solanaPrivateKey: solanaPrivateKey,
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      );
-    }
-    if (asset.chainRef.isBitcoin) {
-      return _transferBitcoin(
+      ),
+      WalletChainType.solana: () {
+        final key = solanaPrivateKey;
+        if (key == null) throw StateError('Missing Solana private key');
+        return _transferSolana(
+          solanaPrivateKey: key,
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
+      },
+      WalletChainType.bitcoin: () => _transferBitcoin(
         privateKeyHex: privateKeyHex,
         asset: asset,
         toAddress: toAddress,
         amount: amount,
-      );
+      ),
+      WalletChainType.sui: () {
+        final key = suiPrivateKey;
+        if (key == null) throw StateError('Missing Sui private key');
+        return _transferSui(
+          suiPrivateKey: key,
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
+      },
+      WalletChainType.aptos: () {
+        final key = aptosPrivateKey;
+        if (key == null) throw StateError('Missing Aptos private key');
+        return _transferAptos(
+          aptosPrivateKey: key,
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
+      },
+    };
+    final handler = handlers[adapter.type];
+    if (handler == null) {
+      throw StateError('Missing transfer handler for ${adapter.type.name}');
     }
-    if (asset.chainRef.isSui) {
-      if (suiPrivateKey == null) {
-        throw StateError('Missing Sui private key');
-      }
-      return _transferSui(
-        suiPrivateKey: suiPrivateKey,
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      );
-    }
-    if (asset.chainRef.isAptos) {
-      if (aptosPrivateKey == null) {
-        throw StateError('Missing Aptos private key');
-      }
-      return _transferAptos(
-        aptosPrivateKey: aptosPrivateKey,
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      );
-    }
-    throw StateError('Unsupported chain ${asset.chainId}');
+    return handler();
   }
 
   /// 实时估算转账手续费。
@@ -163,49 +171,51 @@ class WalletTransferService {
     required String toAddress,
     required String amount,
   }) {
-    if (asset.chainRef.isEvm) {
-      return _estimateEvmFee(
+    final adapter = _adapterRegistry.require(
+      asset.chainRef,
+      capability: ChainCapability.feeEstimation,
+    );
+    final handlers = <WalletChainType, Future<TransferFeeEstimate> Function()>{
+      WalletChainType.evm: () =>
+          _estimateEvmFee(asset: asset, toAddress: toAddress, amount: amount),
+      WalletChainType.tron: () =>
+          _estimateTronFee(asset: asset, toAddress: toAddress, amount: amount),
+      WalletChainType.solana: () => _estimateSolanaFee(
         asset: asset,
         toAddress: toAddress,
         amount: amount,
-      );
-    }
-    if (asset.chainRef.isTron) {
-      return _estimateTronFee(
+      ),
+      WalletChainType.bitcoin: () => _estimateBitcoinFee(
         asset: asset,
         toAddress: toAddress,
         amount: amount,
-      );
+      ),
+      WalletChainType.sui: () =>
+          _estimateSuiFee(asset: asset, toAddress: toAddress, amount: amount),
+      WalletChainType.aptos: () =>
+          _estimateAptosFee(asset: asset, toAddress: toAddress, amount: amount),
+    };
+    final handler = handlers[adapter.type];
+    if (handler == null) {
+      throw StateError('Missing fee handler for ${adapter.type.name}');
     }
-    if (asset.chainRef.isSolana) {
-      return _estimateSolanaFee(
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      );
-    }
-    if (asset.chainRef.isBitcoin) {
-      return _estimateBitcoinFee(
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      );
-    }
-    if (asset.chainRef.isSui) {
-      return _estimateSuiFee(
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      );
-    }
-    if (asset.chainRef.isAptos) {
-      return _estimateAptosFee(
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      );
-    }
-    throw StateError('Unsupported chain ${asset.chainId}');
+    return handler();
+  }
+
+  static ChainAdapterRegistry _createAdapterRegistry() {
+    return ChainAdapterRegistry.standard(
+      ChainAddressNormalizers(
+        evm: normalizeEvmAddress,
+        tron: (input) {
+          tronAddressToHex(input);
+          return input.trim();
+        },
+        solana: normalizeSolanaAddress,
+        bitcoin: normalizeBitcoinAddress,
+        sui: normalizeSuiAddress,
+        aptos: normalizeAptosAddress,
+      ),
+    );
   }
 
   /// 估算 EVM 转账手续费。

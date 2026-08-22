@@ -78,7 +78,7 @@ class TransferController extends BaseController {
        _transactionStatusService =
            transactionStatusService ?? WalletTransactionStatusService(),
        _blockExplorerService =
-           blockExplorerService ?? const WalletBlockExplorerService();
+           blockExplorerService ?? WalletBlockExplorerService();
 
   final WalletTransferService _transferService;
   final WalletRepository _repository;

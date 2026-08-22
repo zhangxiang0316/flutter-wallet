@@ -4,6 +4,22 @@ import 'wallet_chain.dart';
 ///
 /// 提供便捷的链类型判断方法，避免在多处重复实现相同的判断逻辑。
 extension WalletChainTypeExtension on WalletChainRef {
+  /// 返回注册表使用的统一链类型。
+  WalletChainType get chainType {
+    if (this is WalletChainConfig) {
+      return (this as WalletChainConfig).type;
+    }
+    if (isEvm) return WalletChainType.evm;
+    return switch (id) {
+      'tron' => WalletChainType.tron,
+      'solana' => WalletChainType.solana,
+      'bitcoin' => WalletChainType.bitcoin,
+      'sui' => WalletChainType.sui,
+      'aptos' => WalletChainType.aptos,
+      _ => throw StateError('Unsupported chain type for $id'),
+    };
+  }
+
   /// 判断是否为 TRON 链。
   bool get isTron => id == 'tron';
 

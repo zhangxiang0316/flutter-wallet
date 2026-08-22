@@ -379,36 +379,43 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
 
 ## 5. P2：架构和工程质量
 
-### 5.1 引入 ChainAdapter 注册机制
+### 5.1 引入 ChainAdapter 注册机制（已完成，2026-08-23）
 
 当前转账、余额、交易历史、交易状态、收款和区块浏览器分别维护链类型分支。添加新的非 EVM 链时，需要修改多个位置，容易出现只实现部分能力的问题。
 
-建议定义统一的 `ChainAdapter`：
+已建立统一的 `ChainAdapter` 能力模型和注册表：
 
 ```dart
 abstract interface class ChainAdapter {
   WalletChainType get type;
   ChainCapabilities get capabilities;
 
-  String deriveAddress(...);
-  void validateAddress(String address);
-  Future<List<ChainBalance>> loadBalances(...);
-  Future<PreparedTransaction> prepareTransfer(...);
-  Future<SignedTransaction> sign(...);
-  Future<String> broadcast(...);
-  Future<TransactionPage> loadHistory(...);
-  Future<WalletTransactionStatus> loadStatus(...);
-  Uri buildExplorerUrl(...);
+  bool supports(WalletChainRef chain);
+  String walletAddress(ChainWalletAddresses addresses);
+  String normalizeAddress(String input);
+  Uri? addressExplorerUri(...);
+  Uri? transactionExplorerUri(...);
 }
 ```
 
-实施原则：
+完成内容：
 
-1. 先定义能力模型和接口；
-2. 先迁移 EVM，验证自定义 EVM 网络；
-3. 再迁移 TRON、Solana、Bitcoin、Sui、Aptos；
-4. 删除旧 switch 分发；
-5. 新增链只需注册 Adapter、网络元数据和资产配置。
+1. [x] 定义 `ChainCapability`、`ChainCapabilities`、`ChainAdapter` 和可替换的 `ChainAdapterRegistry`。
+2. [x] 注册 EVM、TRON、Solana、Bitcoin、Sui、Aptos 六类 Adapter；重复注册默认拒绝，测试或替换实现必须显式声明 `replace`。
+3. [x] 自定义 EVM 网络按 `WalletChainType.evm` 自动复用 EVM Adapter，不再依赖内置链 ID。
+4. [x] 首页余额查询改为遍历启用链，通过 Adapter 选择钱包地址和余额处理器；新增同类型网络无需修改余额分发代码。
+5. [x] 转账广播和手续费估算通过 Adapter 能力检查及注册类型分发，保留各链原有签名与安全校验实现。
+6. [x] 交易历史、按 hash 查询和交易状态迁移到 Adapter 分发，删除各服务重复的链识别辅助方法。
+7. [x] 收款地址、转账地址校验和区块浏览器 URL 统一由 Adapter 提供；浏览器服务删除内置链 switch。
+8. [x] 注册表支持构造器注入，便于测试替换或后续增加新的链实现。
+9. [x] 增加全类型注册、自定义 EVM、地址选择、重复注册、能力拒绝和收款地址回归测试。
+
+#### 验收结果
+
+- 六种 `WalletChainType` 均有且仅有一个默认 Adapter；
+- 自定义 EVM 网络能够直接复用 EVM 的余额、转账、历史、状态和浏览器能力；
+- 未声明能力或未注册类型会在业务调用前明确失败，不再静默进入错误链分支；
+- 原有各链转账、余额、历史、状态、收款和浏览器回归测试保持通过。
 
 ### 5.2 自动化测试与 CI
 

@@ -100,21 +100,6 @@ extension _ChainBalanceRoutes on ChainBalanceService {
     return [chain.rpcUrl];
   }
 
-  /// 从启用链列表中取内置链配置。
-  ///
-  /// 正常情况下内置链一定存在；兜底返回 enum 默认配置，避免本地配置异常时中断余额刷新。
-  WalletChainConfig _builtinChainConfig(
-    List<WalletChainConfig> chains,
-    WalletChain builtin,
-  ) {
-    for (final chain in chains) {
-      if (chain.builtinChain == builtin || chain.id == builtin.id) {
-        return chain;
-      }
-    }
-    return builtin.config;
-  }
-
   /// 返回 TRON 链可尝试的 HTTP/RPC 地址。
   List<String> _tronRpcUrls(WalletChainConfig chain) {
     return RpcRetryHelper.mergeRpcUrls(

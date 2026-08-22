@@ -76,4 +76,33 @@ void main() {
     expect(controller.isRequestAmountValid, isFalse);
     expect(controller.currentQrPayload(), isEmpty);
   });
+
+  test('selects receive addresses through registered chain adapters', () {
+    final controller = ReceiveController()
+      ..wallet = WalletAccount(
+        id: 'wallet-1',
+        name: 'Wallet',
+        bscAddress: 'evm-address',
+        tronAddress: 'tron-address',
+        solanaAddress: 'solana-address',
+        bitcoinAddress: 'bitcoin-address',
+        suiAddress: 'sui-address',
+        aptosAddress: 'aptos-address',
+        createdAt: DateTime(2026),
+      );
+    addTearDown(controller.onClose);
+    final expected = <WalletChain, String>{
+      WalletChain.ethereum: 'evm-address',
+      WalletChain.tron: 'tron-address',
+      WalletChain.solana: 'solana-address',
+      WalletChain.bitcoin: 'bitcoin-address',
+      WalletChain.sui: 'sui-address',
+      WalletChain.aptos: 'aptos-address',
+    };
+
+    for (final entry in expected.entries) {
+      controller.selectedChain = entry.key.config;
+      expect(controller.currentAddress(), entry.value);
+    }
+  });
 }
