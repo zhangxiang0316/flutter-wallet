@@ -7,11 +7,18 @@ extension HomeControllerBalance on HomeController {
   /// 1. 立即显示缓存余额；
   /// 2. 后台静默更新最新数据；
   /// 3. 每条链完成后立即合并并局部刷新 UI；
-  /// 4. 全部完成后保存完整快照并更新价格。
-  Future<void> refreshBalances() async {
+  /// 4. 部分网络失败时延迟补偿刷新一次；
+  /// 5. 全部完成后保存完整快照并更新价格。
+  Future<void> refreshBalances() {
+    return _refreshBalances(allowFailureRetry: true);
+  }
+
+  Future<void> _refreshBalances({required bool allowFailureRetry}) async {
     final currentWallet = wallet;
     if (currentWallet == null) return;
     if (isLoading) return;
+
+    _cancelBalanceRetry();
 
     final requestId = ++_balanceRequestId;
     await _applyCachedBalances(currentWallet);
@@ -46,6 +53,15 @@ extension HomeControllerBalance on HomeController {
       }
 
       final failedBalances = nextBalances.where((balance) => balance.hasError);
+      final failedChainNames = failedBalances
+          .map((balance) => balance.chainRef.name)
+          .toSet();
+      if (failedChainNames.isNotEmpty) {
+        developer.log(
+          'Balance refresh failed chains: ${failedChainNames.join(', ')}',
+          name: 'HomeController',
+        );
+      }
       final allFailed =
           nextBalances.isEmpty || failedBalances.length == nextBalances.length;
       balances = _preserveLastSuccessfulBalances(
@@ -61,6 +77,9 @@ extension HomeControllerBalance on HomeController {
         balanceRefreshError = 'balance_refresh_failed';
         isBalanceDataStale = balances.isNotEmpty;
         Toast.show(S.current.balanceLoadFailed);
+        if (allowFailureRetry) {
+          _scheduleBalanceRetry(requestId, currentWallet);
+        }
       } else {
         final hasPartialFailure = failedBalances.isNotEmpty;
         final refreshedAt = DateTime.now();
@@ -77,6 +96,9 @@ extension HomeControllerBalance on HomeController {
             ? 'balance_refresh_partial'
             : null;
         isBalanceDataStale = hasPartialFailure;
+        if (hasPartialFailure && allowFailureRetry) {
+          _scheduleBalanceRetry(requestId, currentWallet);
+        }
         await _balanceCache.save(
           currentWallet.id,
           ChainBalanceSnapshot(
@@ -107,6 +129,9 @@ extension HomeControllerBalance on HomeController {
         balanceRefreshError = 'balance_refresh_failed';
         isBalanceDataStale = balances.isNotEmpty;
         Toast.show(S.current.balanceLoadFailed);
+        if (allowFailureRetry) {
+          _scheduleBalanceRetry(requestId, currentWallet);
+        }
       }
     } finally {
       if (_isActiveBalanceRequest(requestId, currentWallet)) {
@@ -114,6 +139,20 @@ extension HomeControllerBalance on HomeController {
         _updateBalanceView();
       }
     }
+  }
+
+  /// 公共 RPC 短暂抖动时自动补偿一次，不让瞬时失败状态保留到下一轮定时刷新。
+  ///
+  /// 补偿请求自身不再继续调度，避免节点持续不可用时形成无限重试。
+  void _scheduleBalanceRetry(int requestId, WalletAccount currentWallet) {
+    _cancelBalanceRetry();
+    _balanceRetryTimer = Timer(_balanceRetryDelay, () {
+      _balanceRetryTimer = null;
+      if (!_isActiveBalanceRequest(requestId, currentWallet) || isLoading) {
+        return;
+      }
+      _refreshBalances(allowFailureRetry: false);
+    });
   }
 
   Future<void> _applyCachedBalances(WalletAccount currentWallet) async {
@@ -198,6 +237,7 @@ extension HomeControllerBalance on HomeController {
   ///
   /// 切换或删除钱包时调用，防止旧钱包余额和估值短暂显示在新钱包下。
   void _resetWalletState() {
+    _cancelBalanceRetry();
     _balanceRequestId++;
     balances = [];
     visibleBalances = [];

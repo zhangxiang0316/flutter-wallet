@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/page/home/controller/home_controller.dart';
@@ -11,6 +13,8 @@ import 'package:omnicast/wallet/services/config/wallet_asset_visibility_service.
 import 'package:omnicast/wallet/services/config/wallet_chain_config_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final cachedAt = DateTime.utc(2026, 8, 22, 10);
 
   test(
@@ -76,6 +80,7 @@ void main() {
       expect(cache.savedSnapshot, isNotNull);
       expect(cache.savedSnapshot!.source, BalanceSnapshotSource.mixed);
       expect(cache.savedSnapshot!.isStale, isTrue);
+      controller.onClose();
     },
   );
 
@@ -109,6 +114,107 @@ void main() {
       expect(cache.savedSnapshot!.balances.single.amount, '1.5');
     },
   );
+
+  test('partial refresh retries once and clears transient failure', () async {
+    final cache = _FakeBalanceCache(null);
+    final service = _FakeBalanceService([
+      const [
+        ChainBalance(
+          chain: WalletChain.base,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '0',
+          address: _evmAddress,
+          decimals: 18,
+          error: 'temporary rpc timeout',
+        ),
+        ChainBalance(
+          chain: WalletChain.ethereum,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '1',
+          address: _evmAddress,
+          decimals: 18,
+        ),
+      ],
+      const [
+        ChainBalance(
+          chain: WalletChain.base,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '0.5',
+          address: _evmAddress,
+          decimals: 18,
+        ),
+        ChainBalance(
+          chain: WalletChain.ethereum,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '1',
+          address: _evmAddress,
+          decimals: 18,
+        ),
+      ],
+    ]);
+    final controller = _controller(
+      cache: cache,
+      networkBalances: const [],
+      balanceService: service,
+      balanceRetryDelay: Duration.zero,
+    );
+
+    await controller.refreshBalances();
+    await service.retryCompleted.future;
+    await pumpEventQueue();
+
+    expect(service.callCount, 2);
+    expect(controller.balanceRefreshStatus, BalanceRefreshStatus.success);
+    expect(controller.isBalanceDataStale, isFalse);
+    expect(controller.balanceRefreshError, isNull);
+    controller.onClose();
+  });
+
+  test('persistent partial failure is retried only once', () async {
+    final cache = _FakeBalanceCache(null);
+    final service = _FakeBalanceService([
+      const [
+        ChainBalance(
+          chain: WalletChain.base,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '0',
+          address: _evmAddress,
+          decimals: 18,
+          error: 'rpc unavailable',
+        ),
+        ChainBalance(
+          chain: WalletChain.ethereum,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '1',
+          address: _evmAddress,
+          decimals: 18,
+        ),
+      ],
+    ]);
+    final controller = _controller(
+      cache: cache,
+      networkBalances: const [],
+      balanceService: service,
+      balanceRetryDelay: Duration.zero,
+    );
+
+    await controller.refreshBalances();
+    await service.retryCompleted.future;
+    await pumpEventQueue();
+
+    expect(service.callCount, 2);
+    expect(
+      controller.balanceRefreshStatus,
+      BalanceRefreshStatus.partialFailure,
+    );
+    controller.onClose();
+  });
 }
 
 const _evmAddress = '0x1111111111111111111111111111111111111111';
@@ -116,14 +222,17 @@ const _evmAddress = '0x1111111111111111111111111111111111111111';
 HomeController _controller({
   required _FakeBalanceCache cache,
   required List<ChainBalance> networkBalances,
+  _FakeBalanceService? balanceService,
+  Duration balanceRetryDelay = const Duration(seconds: 2),
 }) {
   final chains = [WalletChain.ethereum.config, WalletChain.base.config];
   return HomeController(
       balanceCache: cache,
-      balanceService: _FakeBalanceService(networkBalances),
+      balanceService: balanceService ?? _FakeBalanceService([networkBalances]),
       valuationService: _FakeValuationService(),
       assetVisibilityService: _FakeAssetVisibilityService(),
       chainConfigService: _FakeChainConfigService(chains),
+      balanceRetryDelay: balanceRetryDelay,
     )
     ..wallet = WalletAccount(
       id: 'wallet-1',
@@ -135,9 +244,11 @@ HomeController _controller({
 }
 
 class _FakeBalanceService extends ChainBalanceService {
-  _FakeBalanceService(this.result);
+  _FakeBalanceService(this.results);
 
-  final List<ChainBalance> result;
+  final List<List<ChainBalance>> results;
+  final retryCompleted = Completer<void>();
+  int callCount = 0;
 
   @override
   Future<List<ChainBalance>> loadBalances({
@@ -149,6 +260,12 @@ class _FakeBalanceService extends ChainBalanceService {
     String bitcoinAddress = '',
     ChainBalancesCallback? onChainBalances,
   }) async {
+    final index = callCount < results.length ? callCount : results.length - 1;
+    callCount++;
+    final result = results[index];
+    if (callCount > 1 && !retryCompleted.isCompleted) {
+      retryCompleted.complete();
+    }
     return result;
   }
 }

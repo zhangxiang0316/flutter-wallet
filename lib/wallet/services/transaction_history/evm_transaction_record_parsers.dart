@@ -65,6 +65,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     required String walletId,
     required ChainBalance asset,
     required Map<dynamic, dynamic> item,
+    String? transferIndex,
   }) {
     final txHash = item['hash']?.toString() ?? '';
     if (txHash.isEmpty) return null;
@@ -83,9 +84,10 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
         BigInt.tryParse(item['gasUsed']?.toString() ?? '') ?? BigInt.zero;
     final gasPrice =
         BigInt.tryParse(item['gasPrice']?.toString() ?? '') ?? BigInt.zero;
+    final eventIndex = _normalizedEventIndex(item['logIndex']) ?? transferIndex;
 
     return WalletTransactionRecord(
-      id: _recordId(walletId, asset, txHash),
+      id: _recordId(walletId, asset, '$txHash:${eventIndex ?? ''}'),
       walletId: walletId,
       chainId: asset.chainId,
       chainName: asset.chainRef.name,
@@ -105,6 +107,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
       ),
       status: _evmExplorerStatus(item),
       source: WalletTransactionSource.remote,
+      eventIndex: eventIndex,
       contractAddress: asset.contractAddress,
       feeAmount: gasUsed > BigInt.zero && gasPrice > BigInt.zero
           ? WalletTransferService.rawUnitsToAmount(gasUsed * gasPrice, 18)
@@ -163,6 +166,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     required String walletId,
     required ChainBalance asset,
     required Map<dynamic, dynamic> item,
+    String? transferIndex,
   }) {
     final txHash = item['transaction_hash']?.toString() ?? '';
     if (txHash.isEmpty) return null;
@@ -188,10 +192,11 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
 
     final from = _normalizeEvmDisplayAddress(_blockscoutAddress(item['from']));
     final to = _normalizeEvmDisplayAddress(_blockscoutAddress(item['to']));
-    final logIndex = item['log_index']?.toString() ?? '';
+    final eventIndex =
+        _normalizedEventIndex(item['log_index']) ?? transferIndex;
 
     return WalletTransactionRecord(
-      id: _recordId(walletId, asset, '$txHash:$logIndex'),
+      id: _recordId(walletId, asset, '$txHash:${eventIndex ?? ''}'),
       walletId: walletId,
       chainId: asset.chainId,
       chainName: asset.chainRef.name,
@@ -211,6 +216,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
       ),
       status: WalletTransactionStatus.success,
       source: WalletTransactionSource.remote,
+      eventIndex: eventIndex,
       contractAddress: asset.contractAddress,
       feeSymbol: asset.chainRef.symbol,
       blockNumber: _intFromObject(item['block_number']),

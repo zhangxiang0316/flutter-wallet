@@ -307,9 +307,9 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
 - 超时缓存、部分失败和完全失败都有明确来源、时间和错误状态；
 - v2 Polygon/Avalanche/自定义 EVM 缓存只能通过当前链注册表迁移恢复。
 
-### 4.4 修复交易记录合并和首屏加载
+### 4.4 修复交易记录合并和首屏加载（已完成，2026-08-22）
 
-当前问题：
+改造前问题：
 
 - 当前使用 transaction hash 作为主要合并键；
 - 同一笔交易包含多个 Token Transfer 事件时可能被合并成一条；
@@ -324,11 +324,21 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
 
 改造要求：
 
-1. 远程事件使用 `txHash + logIndex/transferIndex` 作为唯一键。
-2. 本地提交记录与远程记录使用独立的对账规则。
-3. 先展示缓存，再在后台刷新 pending 记录。
-4. 状态刷新采用有限并发，不串行等待所有请求。
-5. 状态只能单向从 pending 更新到 confirmed/failed，避免旧响应覆盖新状态。
+1. [x] 交易记录模型新增 `eventIndex`；Etherscan、Blockscout、Moralis 和 EVM RPC 日志统一使用 `txHash + logIndex/transferIndex` 标识远程事件。
+2. [x] 新增独立合并器：远程事件按事件键去重，本地提交按资产和交易哈希去重；远程已索引同一提交后仅移除本地占位，不合并同一交易里的其它事件。
+3. [x] 普通缓存和本地提交缓存并行读取并立即展示，pending 状态查询移到首屏渲染后的后台任务。
+4. [x] pending 状态刷新按每批最多 3 个请求有限并发，避免串行等待和 RPC 瞬时过载。
+5. [x] 只有本地 pending 记录允许更新为 success/failed；pending/unknown 响应不写回，success/failed 终态不能回退。
+6. [x] 本地记录写入采用串行合并队列，防止后台旧快照覆盖刚完成的终态；普通历史缓存只保存远程记录。
+7. [x] 加载请求增加版本隔离，快速切换资产或重复刷新时会忽略旧请求结果。
+
+#### 验收标准
+
+- 同一交易哈希下不同 `logIndex` 的多条 Token Transfer 全部展示；
+- 本地 pending 与对应远程记录完成对账后只移除本地占位，不影响其它远程事件；
+- 状态接口未返回时，缓存记录已经可以显示；
+- 同时存在多条 pending 时，状态查询最大并发数不超过 3；
+- success/failed 记录不会被稍后返回的 pending/unknown 响应覆盖。
 
 ### 4.5 WebView 导航限制
 

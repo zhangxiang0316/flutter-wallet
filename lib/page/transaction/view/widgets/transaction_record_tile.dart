@@ -144,37 +144,40 @@ class TransactionRecordTile extends StatelessWidget {
                 SizedBox(height: 10.h),
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: onRefreshStatus,
-                        icon: Icon(Icons.refresh_rounded, size: 16.w),
-                        label: Text(S.of(context).transactionRefreshStatus),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: Size(0, 32.h),
-                          padding: EdgeInsets.symmetric(horizontal: 10.w),
-                          textStyle: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w800,
+                    if (_canRefreshStatus)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onRefreshStatus,
+                          icon: Icon(Icons.refresh_rounded, size: 16.w),
+                          label: Text(S.of(context).transactionRefreshStatus),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: Size(0, 32.h),
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            textStyle: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 8.w),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: onOpenExplorer,
-                        icon: Icon(Icons.open_in_new_rounded, size: 16.w),
-                        label: Text(S.of(context).openBlockExplorer),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: Size(0, 32.h),
-                          padding: EdgeInsets.symmetric(horizontal: 10.w),
-                          textStyle: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w800,
+                    if (_canRefreshStatus && onOpenExplorer != null)
+                      SizedBox(width: 8.w),
+                    if (onOpenExplorer != null)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onOpenExplorer,
+                          icon: Icon(Icons.open_in_new_rounded, size: 16.w),
+                          label: Text(S.of(context).openBlockExplorer),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: Size(0, 32.h),
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            textStyle: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -186,8 +189,16 @@ class TransactionRecordTile extends StatelessWidget {
   }
 
   bool get _showsStatusActions {
-    return record.status == WalletTransactionStatus.pending ||
+    final supportsActions =
+        record.status == WalletTransactionStatus.pending ||
         record.status == WalletTransactionStatus.failed;
+    return supportsActions && (_canRefreshStatus || onOpenExplorer != null);
+  }
+
+  bool get _canRefreshStatus {
+    return record.source == WalletTransactionSource.local &&
+        record.status == WalletTransactionStatus.pending &&
+        onRefreshStatus != null;
   }
 
   String _amountPrefix() {

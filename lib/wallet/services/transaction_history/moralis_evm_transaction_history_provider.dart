@@ -56,6 +56,7 @@ class _MoralisEvmTransactionHistoryProvider
     String? nextCursor;
     final records = <WalletTransactionRecord>[];
     final seenIds = <String>{};
+    final transferCountsByHash = <String, int>{};
     final seenCursors = {
       if (currentCursor != null && currentCursor.isNotEmpty) currentCursor,
     };
@@ -76,6 +77,12 @@ class _MoralisEvmTransactionHistoryProvider
       }
 
       for (final item in result.whereType<Map>()) {
+        final txHash = item['transaction_hash']?.toString().toLowerCase() ?? '';
+        final transferIndex = asset.isNative || txHash.isEmpty
+            ? null
+            : transferCountsByHash
+                  .update(txHash, (count) => count + 1, ifAbsent: () => 0)
+                  .toString();
         final record = asset.isNative
             ? _nativeRecordFromMoralis(
                 walletId: walletId,
@@ -86,6 +93,7 @@ class _MoralisEvmTransactionHistoryProvider
                 walletId: walletId,
                 asset: asset,
                 item: item,
+                transferIndex: transferIndex,
               );
         if (record != null && seenIds.add(record.id)) {
           records.add(record);
@@ -221,6 +229,7 @@ class _MoralisEvmTransactionHistoryProvider
     required String walletId,
     required ChainBalance asset,
     required Map<dynamic, dynamic> item,
+    String? transferIndex,
   }) {
     final txHash = item['transaction_hash']?.toString() ?? '';
     if (txHash.isEmpty) return null;
@@ -240,10 +249,11 @@ class _MoralisEvmTransactionHistoryProvider
       item['to_address']?.toString() ?? '',
     );
     final blockNumber = _intFromObject(item['block_number']);
-    final logIndex = item['log_index']?.toString() ?? '';
+    final eventIndex =
+        _normalizedEventIndex(item['log_index']) ?? transferIndex;
 
     return WalletTransactionRecord(
-      id: _recordId(walletId, asset, '$txHash:$blockNumber:$logIndex'),
+      id: _recordId(walletId, asset, '$txHash:${eventIndex ?? ''}'),
       walletId: walletId,
       chainId: asset.chainId,
       chainName: asset.chainRef.name,
@@ -263,6 +273,7 @@ class _MoralisEvmTransactionHistoryProvider
       ),
       status: WalletTransactionStatus.success,
       source: WalletTransactionSource.remote,
+      eventIndex: eventIndex,
       contractAddress: asset.contractAddress,
       feeSymbol: asset.chainRef.symbol,
       blockNumber: blockNumber,

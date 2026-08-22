@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/chain_balance.dart';
 import '../../models/wallet_transaction_record.dart';
+import 'transaction_record_merger.dart';
 
 /// 交易历史缓存服务。
 ///
@@ -21,6 +22,12 @@ class TransactionHistoryCache {
   ///
   /// 交易历史 5 分钟内不会有太大变化，缓存可以有效减少请求。
   static const Duration _maxAge = Duration(minutes: 5);
+
+  /// 本地提交记录的写入队列。
+  ///
+  /// 状态后台刷新和转账提交可能同时写缓存；串行化 read-modify-write，避免较旧
+  /// 的 pending 快照在新 success/failed 状态之后落盘。
+  Future<void> _localWriteTail = Future<void>.value();
 
   /// 生成缓存键。
   String _cacheKey(
@@ -172,8 +179,40 @@ class TransactionHistoryCache {
     String symbol,
     List<WalletTransactionRecord> records, {
     String? contractAddress,
+  }) {
+    final previousWrite = _localWriteTail;
+    final operation = () async {
+      await previousWrite;
+      await _mergeAndSaveLocalRecords(
+        walletId,
+        chainId,
+        symbol,
+        records,
+        contractAddress: contractAddress,
+      );
+    }();
+    _localWriteTail = operation;
+    return operation;
+  }
+
+  Future<void> _mergeAndSaveLocalRecords(
+    String walletId,
+    String chainId,
+    String symbol,
+    List<WalletTransactionRecord> records, {
+    String? contractAddress,
   }) async {
     try {
+      final existing = await loadLocalRecords(
+        walletId,
+        chainId,
+        symbol,
+        contractAddress: contractAddress,
+      );
+      final safeRecords = const TransactionRecordMerger()
+          .merge(existing, records)
+          .where((record) => record.source == WalletTransactionSource.local)
+          .toList(growable: false);
       final prefs = await SharedPreferences.getInstance();
       final key = _localCacheKey(
         walletId,
@@ -183,7 +222,7 @@ class TransactionHistoryCache {
       );
       final data = {
         'timestamp': DateTime.now().toIso8601String(),
-        'records': records.map((record) => record.toJson()).toList(),
+        'records': safeRecords.map((record) => record.toJson()).toList(),
       };
       await prefs.setString(key, jsonEncode(data));
     } catch (_) {
@@ -193,26 +232,11 @@ class TransactionHistoryCache {
 
   /// 追加或更新一条本地提交交易。
   Future<void> upsertLocalRecord(WalletTransactionRecord record) async {
-    final records = await loadLocalRecords(
-      record.walletId,
-      record.chainId,
-      record.symbol,
-      contractAddress: record.contractAddress,
-    );
-    final nextRecords = [...records];
-    final index = nextRecords.indexWhere(
-      (item) => item.txHash.toLowerCase() == record.txHash.toLowerCase(),
-    );
-    if (index >= 0) {
-      nextRecords[index] = record;
-    } else {
-      nextRecords.insert(0, record);
-    }
     await saveLocalRecords(
       record.walletId,
       record.chainId,
       record.symbol,
-      nextRecords,
+      [record],
       contractAddress: record.contractAddress,
     );
   }

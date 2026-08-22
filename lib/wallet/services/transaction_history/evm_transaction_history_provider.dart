@@ -251,6 +251,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     final normalizedApiKey = apiKey?.trim() ?? '';
     final records = <WalletTransactionRecord>[];
     final seenIds = <String>{};
+    final transferCountsByHash = <String, int>{};
     var currentPage = page;
     var hasMoreRawPages = false;
 
@@ -281,23 +282,26 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       final result = data['result'];
       if (result is List) {
         hasMoreRawPages = result.length >= requestLimit;
-        for (final record
-            in result
-                .whereType<Map>()
-                .map(
-                  (item) => asset.isNative
-                      ? _evmNativeRecordFromExplorer(
-                          walletId: walletId,
-                          asset: asset,
-                          item: item,
-                        )
-                      : _evmTokenRecordFromExplorer(
-                          walletId: walletId,
-                          asset: asset,
-                          item: item,
-                        ),
+        for (final item in result.whereType<Map>()) {
+          final txHash = item['hash']?.toString().toLowerCase() ?? '';
+          final transferIndex = asset.isNative || txHash.isEmpty
+              ? null
+              : transferCountsByHash
+                    .update(txHash, (count) => count + 1, ifAbsent: () => 0)
+                    .toString();
+          final record = asset.isNative
+              ? _evmNativeRecordFromExplorer(
+                  walletId: walletId,
+                  asset: asset,
+                  item: item,
                 )
-                .whereType<WalletTransactionRecord>()) {
+              : _evmTokenRecordFromExplorer(
+                  walletId: walletId,
+                  asset: asset,
+                  item: item,
+                  transferIndex: transferIndex,
+                );
+          if (record == null) continue;
           if (seenIds.add(record.id)) {
             records.add(record);
           }
@@ -367,6 +371,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     }
     final records = <WalletTransactionRecord>[];
     final seenIds = <String>{};
+    final transferCountsByHash = <String, int>{};
     TransactionHistoryCursor? nextCursor;
 
     for (var page = 0; page < _blockscoutMaxPages; page++) {
@@ -393,6 +398,12 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         );
       }
       for (final item in items.whereType<Map>()) {
+        final txHash = item['transaction_hash']?.toString().toLowerCase() ?? '';
+        final transferIndex = asset.isNative || txHash.isEmpty
+            ? null
+            : transferCountsByHash
+                  .update(txHash, (count) => count + 1, ifAbsent: () => 0)
+                  .toString();
         final record = asset.isNative
             ? _evmNativeRecordFromBlockscout(
                 walletId: walletId,
@@ -403,6 +414,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
                 walletId: walletId,
                 asset: asset,
                 item: item,
+                transferIndex: transferIndex,
               );
         if (record != null && seenIds.add(record.id)) {
           records.add(record);
@@ -687,14 +699,10 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     final blockNumber = _hexIntFromObject(
       log['blockNumber'] ?? receipt['blockNumber'],
     );
-    final logIndex = log['logIndex']?.toString() ?? '';
+    final eventIndex = _normalizedEventIndex(log['logIndex']);
 
     return WalletTransactionRecord(
-      id: _recordId(
-        walletId,
-        asset,
-        '$actualTxHash:${blockNumber ?? ''}:$logIndex',
-      ),
+      id: _recordId(walletId, asset, '$actualTxHash:${eventIndex ?? ''}'),
       walletId: walletId,
       chainId: asset.chainId,
       chainName: asset.chainRef.name,
@@ -709,6 +717,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       direction: direction,
       status: _evmReceiptStatus(receipt),
       source: WalletTransactionSource.remote,
+      eventIndex: eventIndex,
       contractAddress: asset.contractAddress,
       feeAmount: _evmReceiptFeeAmount(receipt),
       feeSymbol: asset.chainRef.symbol,

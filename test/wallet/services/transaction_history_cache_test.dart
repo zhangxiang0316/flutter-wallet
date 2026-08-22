@@ -47,6 +47,26 @@ void main() {
         expect(records.single.toAddress, record.toAddress);
       },
     );
+
+    test('does not downgrade a confirmed local record to pending', () async {
+      SharedPreferences.setMockInitialValues({});
+      final cache = TransactionHistoryCache();
+      final confirmed = _record(
+        id: 'terminal',
+        symbol: 'BNB',
+        toAddress: '0x2222222222222222222222222222222222222222',
+        direction: WalletTransactionDirection.outgoing,
+        status: WalletTransactionStatus.success,
+      );
+
+      await cache.upsertLocalRecord(confirmed);
+      await cache.upsertLocalRecord(
+        confirmed.copyWith(status: WalletTransactionStatus.pending),
+      );
+
+      final records = await cache.loadLocalRecords('wallet', 'bsc', 'BNB');
+      expect(records.single.status, WalletTransactionStatus.success);
+    });
   });
 
   group('TransactionHistoryCache remote records', () {

@@ -321,6 +321,55 @@ void main() {
       expect(records.single.feeAmount, '0.000021');
     });
 
+    test('keeps EVM token events that share a transaction hash', () async {
+      final adapter = FallbackRpcAdapter(
+        bscScanResultsByPage: {
+          1: [
+            bscTokenTxItem(
+              hash: '0xmulti-transfer',
+              timestamp: 1700000000,
+              logIndex: 4,
+            ),
+            bscTokenTxItem(
+              hash: '0xmulti-transfer',
+              timestamp: 1700000000,
+              logIndex: 5,
+            ),
+          ],
+        },
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = WalletTransactionHistoryService(
+        dio: dio,
+        apiConfig: const WalletHistoryApiConfig(
+          etherscanApiKey: '',
+          moralisApiKey: '',
+        ),
+      );
+
+      final records = await service.loadAssetRecords(
+        walletId: 'wallet-1',
+        asset: const ChainBalance(
+          chain: WalletChain.bsc,
+          symbol: 'USDT',
+          name: 'Tether USD',
+          amount: '10',
+          address: '0x1111111111111111111111111111111111111111',
+          contractAddress: '0x55d398326f99059fF775485246999027B3197955',
+          decimals: 18,
+        ),
+      );
+
+      expect(records, hasLength(2));
+      expect(records.map((record) => record.txHash).toSet(), {
+        '0xmulti-transfer',
+      });
+      expect(
+        records.map((record) => record.eventIndex),
+        containsAll(['4', '5']),
+      );
+    });
+
     test('loads BSC token transaction from receipt by hash', () async {
       final dio = Dio()
         ..httpClientAdapter = FallbackRpcAdapter(bscTokenReceiptLookup: true);

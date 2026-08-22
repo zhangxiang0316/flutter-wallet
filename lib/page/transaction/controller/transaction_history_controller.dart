@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -9,6 +11,7 @@ import '../../browser/controller/block_explorer_controller.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_transaction_record.dart';
 import '../../../wallet/services/transaction/transaction_history_cache.dart';
+import '../../../wallet/services/transaction/transaction_record_merger.dart';
 import '../../../wallet/services/transaction/wallet_block_explorer_service.dart';
 import '../../../wallet/services/transaction/wallet_transaction_status_service.dart';
 import '../../../wallet/services/wallet_transaction_history_service.dart';
@@ -53,6 +56,13 @@ class TransactionHistoryController extends BaseController {
   final WalletBlockExplorerService _blockExplorerService;
   final WalletTransactionStatusService _transactionStatusService;
   final TransactionHistoryCache _cache;
+  final TransactionRecordMerger _recordMerger = const TransactionRecordMerger();
+
+  /// pending 状态查询的最大并发数，避免进入页面时同时压满 RPC 节点。
+  static const int _statusRefreshConcurrency = 3;
+
+  /// 首屏加载版本号，用于忽略快速切换资产后返回的旧异步结果。
+  int _loadRequestId = 0;
 
   /// 路由传入的当前钱包和资产参数。
   TransactionHistoryPageArguments? arguments;
@@ -94,62 +104,81 @@ class TransactionHistoryController extends BaseController {
   Future<void> loadRecords() async {
     final args = arguments;
     if (args == null) return;
+    final requestId = ++_loadRequestId;
     _nextCursor = null;
     hasMore = false;
-    final local = await _loadAndRefreshLocalRecords(args);
+    isLoading = true;
+    errorMessage = '';
+    update();
 
-    // ✅ 步骤 1: 立即显示缓存记录（如果有）
-    final cached = await _cache.load(
+    // 普通缓存和本地提交缓存同时读取。此处不等待任何链上状态请求，存储返回后
+    // 立即绘制首屏；pending 刷新会在下方作为独立后台任务启动。
+    final cachedFuture = _cache.load(
       args.walletId,
       args.asset.chainId,
       args.asset.symbol,
       contractAddress: args.asset.contractAddress,
     );
-    if (cached != null && cached.isNotEmpty) {
-      records = _mergeRecords(local, cached);
-      errorMessage = '';
-      update(); // 立即显示缓存，用户感知 < 100ms
-    } else if (local.isNotEmpty) {
-      records = local;
+    final localFuture = _cache.loadLocalRecords(
+      args.walletId,
+      args.asset.chainId,
+      args.asset.symbol,
+      contractAddress: args.asset.contractAddress,
+    );
+    final cached = await cachedFuture;
+    final local = await localFuture;
+    if (!_isActiveLoad(requestId, args)) return;
+
+    final cachedRemote = (cached ?? const <WalletTransactionRecord>[]).where(
+      (record) => record.source == WalletTransactionSource.remote,
+    );
+    records = _recordMerger.merge(local, cachedRemote);
+    if (records.isNotEmpty) {
       errorMessage = '';
       update();
     }
+    unawaited(_refreshPendingLocalRecords(args, local, requestId));
 
-    // ✅ 步骤 2: 后台加载最新数据
+    // 缓存已经可见后，再请求远程第一页并更新普通缓存。
     try {
-      isLoading = true;
-      errorMessage = '';
-      update();
-
       final result = await _historyService.loadAssetRecordPage(
         walletId: args.walletId,
         asset: args.asset,
       );
+      if (!_isActiveLoad(requestId, args)) return;
       final fresh = result.records;
 
       if (fresh.isNotEmpty || records.isEmpty) {
-        records = _mergeRecords(local, fresh);
-
-        // ✅ 步骤 3: 保存新缓存
+        final visibleLocal = records.where(
+          (record) => record.source == WalletTransactionSource.local,
+        );
+        records = _recordMerger.merge(visibleLocal, fresh);
         await _cache.save(
           args.walletId,
           args.asset.chainId,
           args.asset.symbol,
-          records,
+          records
+              .where(
+                (record) => record.source == WalletTransactionSource.remote,
+              )
+              .toList(growable: false),
           contractAddress: args.asset.contractAddress,
         );
       }
       _nextCursor = result.nextCursor;
       hasMore = result.hasMore;
     } catch (error) {
+      if (!_isActiveLoad(requestId, args)) return;
       if (records.isEmpty) {
         errorMessage = _historyLoadErrorMessage(error);
       } else {
         Toast.show(_historyLoadErrorMessage(error));
       }
     } finally {
-      isLoading = false;
-      update();
+      if (_isActiveLoad(requestId, args)) {
+        isLoading = false;
+        update();
+      }
     }
   }
 
@@ -168,14 +197,16 @@ class TransactionHistoryController extends BaseController {
         asset: args.asset,
         cursor: cursor,
       );
-      records = _mergeRecords(records, result.records);
+      records = _recordMerger.merge(records, result.records);
       _nextCursor = result.nextCursor;
       hasMore = result.hasMore;
       await _cache.save(
         args.walletId,
         args.asset.chainId,
         args.asset.symbol,
-        records,
+        records
+            .where((record) => record.source == WalletTransactionSource.remote)
+            .toList(growable: false),
         contractAddress: args.asset.contractAddress,
       );
     } catch (error) {
@@ -208,88 +239,87 @@ class TransactionHistoryController extends BaseController {
         : S.current.transactionLoadFailed;
   }
 
-  List<WalletTransactionRecord> _mergeRecords(
-    List<WalletTransactionRecord> current,
-    List<WalletTransactionRecord> next,
-  ) {
-    if (next.isEmpty) return current;
-    final seen = current.map(_recordMergeKey).toSet();
-    final merged = [...current];
-    for (final record in next) {
-      final key = _recordMergeKey(record);
-      final existingIndex = merged.indexWhere(
-        (item) => _recordMergeKey(item) == key,
-      );
-      if (existingIndex >= 0) {
-        merged[existingIndex] = _preferRecord(merged[existingIndex], record);
-      } else if (seen.add(key)) {
-        merged.add(record);
-      }
-    }
-    merged.sort((left, right) {
-      final leftTime = left.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final rightTime =
-          right.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return rightTime.compareTo(leftTime);
-    });
-    return merged;
-  }
-
-  String _recordMergeKey(WalletTransactionRecord record) {
-    final hash = record.txHash.trim().toLowerCase();
-    if (hash.isNotEmpty) return hash;
-    return record.id;
-  }
-
-  WalletTransactionRecord _preferRecord(
-    WalletTransactionRecord current,
-    WalletTransactionRecord next,
-  ) {
-    if (next.source == WalletTransactionSource.remote) return next;
-    if (current.status == WalletTransactionStatus.pending &&
-        next.status != WalletTransactionStatus.pending) {
-      return next;
-    }
-    return current;
-  }
-
-  Future<List<WalletTransactionRecord>> _loadAndRefreshLocalRecords(
+  Future<void> _refreshPendingLocalRecords(
     TransactionHistoryPageArguments args,
+    List<WalletTransactionRecord> local,
+    int requestId,
   ) async {
-    final local = await _cache.loadLocalRecords(
-      args.walletId,
-      args.asset.chainId,
-      args.asset.symbol,
-      contractAddress: args.asset.contractAddress,
-    );
-    if (local.isEmpty) return local;
-    final refreshed = <WalletTransactionRecord>[];
-    for (final record in local) {
-      refreshed.add(await _refreshRecordStatus(record, showToast: false));
+    final pending = local
+        .where(
+          (record) =>
+              record.source == WalletTransactionSource.local &&
+              record.status == WalletTransactionStatus.pending &&
+              record.txHash.trim().isNotEmpty,
+        )
+        .toList(growable: false);
+    if (pending.isEmpty) return;
+
+    final refreshedLocal = [...local];
+    for (
+      var start = 0;
+      start < pending.length;
+      start += _statusRefreshConcurrency
+    ) {
+      final end = start + _statusRefreshConcurrency < pending.length
+          ? start + _statusRefreshConcurrency
+          : pending.length;
+      final batch = pending.sublist(start, end);
+      final refreshed = await Future.wait(
+        batch.map(
+          (record) =>
+              _refreshRecordStatus(record, showToast: false, persist: false),
+        ),
+      );
+      if (!_isActiveLoad(requestId, args)) return;
+
+      for (final next in refreshed) {
+        final index = refreshedLocal.indexWhere(
+          (record) => _sameLocalSubmission(record, next),
+        );
+        if (index >= 0) {
+          refreshedLocal[index] = TransactionRecordMerger.withMonotonicStatus(
+            refreshedLocal[index],
+            next,
+          );
+        }
+      }
+      records = _recordMerger.merge(records, refreshed);
+      update();
     }
     await _cache.saveLocalRecords(
       args.walletId,
       args.asset.chainId,
       args.asset.symbol,
-      refreshed,
+      refreshedLocal,
       contractAddress: args.asset.contractAddress,
     );
-    return refreshed;
   }
 
   Future<WalletTransactionRecord> _refreshRecordStatus(
     WalletTransactionRecord record, {
     bool showToast = true,
+    bool persist = true,
   }) async {
     final asset = arguments?.asset;
-    if (asset == null || record.txHash.isEmpty) return record;
+    if (asset == null ||
+        record.source != WalletTransactionSource.local ||
+        record.status != WalletTransactionStatus.pending ||
+        record.txHash.isEmpty) {
+      return record;
+    }
     try {
       final status = await _transactionStatusService.loadStatus(
         chain: asset.chainRef,
         txHash: record.txHash,
       );
+      if (status != WalletTransactionStatus.success &&
+          status != WalletTransactionStatus.failed) {
+        return record;
+      }
       final next = record.copyWith(status: status);
-      await _cache.upsertLocalRecord(next);
+      if (persist) {
+        await _cache.upsertLocalRecord(next);
+      }
       return next;
     } catch (_) {
       if (showToast) {
@@ -301,13 +331,23 @@ class TransactionHistoryController extends BaseController {
 
   Future<void> refreshRecordStatus(WalletTransactionRecord record) async {
     final next = await _refreshRecordStatus(record);
-    records = records
-        .map(
-          (item) =>
-              _recordMergeKey(item) == _recordMergeKey(record) ? next : item,
-        )
-        .toList(growable: false);
+    records = _recordMerger.merge(records, [next]);
     update();
+  }
+
+  bool _sameLocalSubmission(
+    WalletTransactionRecord left,
+    WalletTransactionRecord right,
+  ) {
+    if (left.id.isNotEmpty && right.id.isNotEmpty) {
+      return left.id == right.id;
+    }
+    return left.txHash.trim().toLowerCase() ==
+        right.txHash.trim().toLowerCase();
+  }
+
+  bool _isActiveLoad(int requestId, TransactionHistoryPageArguments args) {
+    return requestId == _loadRequestId && identical(arguments, args);
   }
 
   /// 复制交易哈希。

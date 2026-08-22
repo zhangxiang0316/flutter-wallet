@@ -9,6 +9,7 @@ import 'package:solana/solana.dart';
 Map<String, dynamic> bscTokenTxItem({
   required String hash,
   required int timestamp,
+  int? logIndex,
 }) {
   return {
     'blockNumber': timestamp.toString(),
@@ -21,6 +22,7 @@ Map<String, dynamic> bscTokenTxItem({
     'gasUsed': '21000',
     'gasPrice': '1000000000',
     'contractAddress': '0x55d398326f99059fF775485246999027B3197955',
+    if (logIndex != null) 'logIndex': logIndex.toString(),
   };
 }
 

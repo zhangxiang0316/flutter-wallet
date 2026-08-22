@@ -139,6 +139,16 @@ mixin _TransactionHistoryProviderHelpers {
     ].join(':');
   }
 
+  /// 将不同 EVM 数据源返回的十六进制/十进制事件序号统一为十进制字符串。
+  String? _normalizedEventIndex(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return null;
+    final parsed = text.toLowerCase().startsWith('0x')
+        ? BigInt.tryParse(text.substring(2), radix: 16)
+        : BigInt.tryParse(text);
+    return parsed?.toString() ?? text;
+  }
+
   String _assetKey(ChainBalance asset) {
     final contract = asset.contractAddress?.trim() ?? '';
     return [

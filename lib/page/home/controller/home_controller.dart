@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:decimal/decimal.dart';
 
@@ -43,6 +44,7 @@ class HomeController extends BaseController {
     WalletChainConfigService? chainConfigService,
     ChainBalanceCache? balanceCache,
     TokenPortfolioService? tokenPortfolioService,
+    Duration balanceRetryDelay = const Duration(seconds: 2),
   }) : _repository = repository ?? WalletRepository(),
        _cryptoService = cryptoService ?? WalletCryptoService(),
        _balanceService = balanceService ?? ChainBalanceService(),
@@ -54,7 +56,8 @@ class HomeController extends BaseController {
        _chainConfigService = chainConfigService ?? WalletChainConfigService(),
        _balanceCache = balanceCache ?? ChainBalanceCache(),
        _tokenPortfolioService =
-           tokenPortfolioService ?? TokenPortfolioService();
+           tokenPortfolioService ?? TokenPortfolioService(),
+       _balanceRetryDelay = balanceRetryDelay;
 
   final WalletRepository _repository;
   final WalletCryptoService _cryptoService;
@@ -65,6 +68,9 @@ class HomeController extends BaseController {
   final WalletChainConfigService _chainConfigService;
   final ChainBalanceCache _balanceCache;
   final TokenPortfolioService _tokenPortfolioService;
+
+  /// 部分网络刷新失败后的单次补偿刷新间隔。
+  final Duration _balanceRetryDelay;
 
   /// 本地保存的钱包列表。
   List<WalletAccount> wallets = [];
@@ -148,6 +154,7 @@ class HomeController extends BaseController {
   bool isUpgradingChainAddresses = false;
 
   Timer? _balanceRefreshTimer;
+  Timer? _balanceRetryTimer;
 
   /// 余额请求版本号。
   ///
@@ -501,6 +508,13 @@ class HomeController extends BaseController {
   void _stopBalanceRefreshTimer() {
     _balanceRefreshTimer?.cancel();
     _balanceRefreshTimer = null;
+    _cancelBalanceRetry();
+  }
+
+  /// 取消尚未执行的余额补偿刷新。
+  void _cancelBalanceRetry() {
+    _balanceRetryTimer?.cancel();
+    _balanceRetryTimer = null;
   }
 
   /// 页面可见时恢复定时刷新。

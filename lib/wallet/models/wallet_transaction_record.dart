@@ -28,6 +28,7 @@ class WalletTransactionRecord {
     required this.direction,
     required this.status,
     required this.source,
+    this.eventIndex,
     this.contractAddress,
     this.feeAmount,
     this.feeSymbol,
@@ -50,6 +51,12 @@ class WalletTransactionRecord {
   final WalletTransactionDirection direction;
   final WalletTransactionStatus status;
   final WalletTransactionSource source;
+
+  /// 链上交易内的事件序号。
+  ///
+  /// Token Transfer 等一笔交易可产生多条事件，远程记录使用该字段与 [txHash]
+  /// 组成稳定唯一键。原生转账和本地提交记录通常为空。
+  final String? eventIndex;
   final String? contractAddress;
   final String? feeAmount;
   final String? feeSymbol;
@@ -82,6 +89,7 @@ class WalletTransactionRecord {
       direction: direction,
       status: status ?? this.status,
       source: source ?? this.source,
+      eventIndex: eventIndex,
       contractAddress: contractAddress,
       feeAmount: feeAmount ?? this.feeAmount,
       feeSymbol: feeSymbol ?? this.feeSymbol,
@@ -116,6 +124,7 @@ class WalletTransactionRecord {
       'direction': direction.name,
       'status': status.name,
       'source': source.name,
+      'eventIndex': eventIndex,
       'contractAddress': contractAddress,
       'feeAmount': feeAmount,
       'feeSymbol': feeSymbol,
@@ -153,6 +162,7 @@ class WalletTransactionRecord {
         json['source']?.toString(),
         WalletTransactionSource.local,
       ),
+      eventIndex: json['eventIndex']?.toString(),
       contractAddress: json['contractAddress']?.toString(),
       feeAmount: json['feeAmount']?.toString(),
       feeSymbol: json['feeSymbol']?.toString(),
