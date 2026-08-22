@@ -9,6 +9,7 @@ import '../../../generated/route_table.dart';
 import '../../address_book/view/address_book_page.dart';
 import '../controller/transfer_controller.dart';
 import 'widgets/transfer_fee_panel.dart';
+import 'widgets/payment_request_confirmation_sheet.dart';
 import 'widgets/transfer_address_scanner_page.dart';
 import 'widgets/transfer_form_panel.dart';
 import 'widgets/transfer_hero.dart';
@@ -108,7 +109,14 @@ class TransferPage extends BaseScaffoldPage<TransferController> {
       ),
     );
     if (result == null || result.trim().isEmpty) return;
-    controller.fillRecipientAddressFromScan(result);
+    final resolution = controller.resolvePaymentRequest(result);
+    if (resolution == null || !context.mounted) return;
+    final confirmed = await PaymentRequestConfirmationSheet.show(
+      context,
+      resolution,
+    );
+    if (!confirmed) return;
+    controller.applyPaymentRequest(resolution);
   }
 
   /// 从地址簿选择当前链的收款人。

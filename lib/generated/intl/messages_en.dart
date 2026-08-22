@@ -33,28 +33,45 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m5(ms) => "${ms} ms";
 
-  static String m6(symbol) => "Receive ${symbol}";
+  static String m6(current, target) =>
+      "This request is for ${target}. Continuing will switch from ${current}.";
 
-  static String m7(name) => "Remove \"${name}\" from the address book?";
+  static String m7(asset) => "The requested asset is unavailable: ${asset}";
 
-  static String m8(symbol) =>
+  static String m8(current, target) =>
+      "This request uses ${target}. Continuing will switch from ${current}.";
+
+  static String m9(network) =>
+      "The requested network is unavailable: ${network}";
+
+  static String m10(network) =>
+      "This QR code contains only an address. It will be used on ${network}.";
+
+  static String m11(symbol) => "Receive ${symbol}";
+
+  static String m12(network) =>
+      "This QR code is for ${network}. Verify the network before sending.";
+
+  static String m13(name) => "Remove \"${name}\" from the address book?";
+
+  static String m14(symbol) =>
       "Remove \"${symbol}\"? The home page will no longer query this asset balance.";
 
-  static String m9(name) =>
+  static String m15(name) =>
       "Remove \"${name}\"? Assets on this custom network will no longer be queried.";
 
-  static String m10(name) =>
+  static String m16(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m11(count) => "${count} networks";
+  static String m17(count) => "${count} networks";
 
-  static String m12(symbol) => "Transfer ${symbol}";
+  static String m18(symbol) => "Transfer ${symbol}";
 
-  static String m13(symbol) => "Insufficient ${symbol} balance";
+  static String m19(symbol) => "Insufficient ${symbol} balance";
 
-  static String m14(symbol) => "Insufficient ${symbol} to pay the network fee";
+  static String m20(symbol) => "Insufficient ${symbol} to pay the network fee";
 
-  static String m15(network) =>
+  static String m21(network) =>
       "EVM addresses can be reused across networks. Confirm the recipient expects funds on ${network}.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -299,6 +316,23 @@ class MessageLookup extends MessageLookupByLibrary {
             "The password is only cached in memory"),
         "passwordCacheSecurityNoteTitle":
             MessageLookupByLibrary.simpleMessage("Security Notes"),
+        "paymentRequestAmountOverwrite": MessageLookupByLibrary.simpleMessage(
+            "The requested amount will replace the amount already entered."),
+        "paymentRequestApply":
+            MessageLookupByLibrary.simpleMessage("Use request"),
+        "paymentRequestAssetSwitch": m6,
+        "paymentRequestAssetUnavailable": m7,
+        "paymentRequestConfirmTip": MessageLookupByLibrary.simpleMessage(
+            "Nothing will be filled until you confirm these details."),
+        "paymentRequestConfirmTitle":
+            MessageLookupByLibrary.simpleMessage("Review payment request"),
+        "paymentRequestInvalid": MessageLookupByLibrary.simpleMessage(
+            "Unsupported or invalid payment QR code"),
+        "paymentRequestMemoReferenceOnly": MessageLookupByLibrary.simpleMessage(
+            "The memo is shown for reference and is not written to the blockchain."),
+        "paymentRequestNetworkSwitch": m8,
+        "paymentRequestNetworkUnavailable": m9,
+        "paymentRequestPlainAddressNetwork": m10,
         "phone": MessageLookupByLibrary.simpleMessage("phone"),
         "popularTokens": MessageLookupByLibrary.simpleMessage("Popular tokens"),
         "primaryMultiChainWallet": MessageLookupByLibrary.simpleMessage(
@@ -312,16 +346,17 @@ class MessageLookup extends MessageLookupByLibrary {
             "This wallet does not have an address for this network"),
         "receiveAmount": MessageLookupByLibrary.simpleMessage("Amount"),
         "receiveAmountHint": MessageLookupByLibrary.simpleMessage("Optional"),
-        "receiveAsset": m6,
+        "receiveAmountInvalid": MessageLookupByLibrary.simpleMessage(
+            "Enter a valid amount within the asset precision"),
+        "receiveAsset": m11,
         "receiveMemo": MessageLookupByLibrary.simpleMessage("Memo"),
         "receiveMemoHint": MessageLookupByLibrary.simpleMessage(
             "Optional, up to 80 characters"),
-        "receiveQrTip": MessageLookupByLibrary.simpleMessage(
-            "Only send this asset on the selected network."),
+        "receiveQrNetworkTip": m12,
         "receiveQrTitle":
             MessageLookupByLibrary.simpleMessage("Scan to receive"),
         "receiveRequestTip": MessageLookupByLibrary.simpleMessage(
-            "The QR code includes request details when amount or memo is filled."),
+            "Adding an amount or memo creates a network-aware payment request. Otherwise the QR code stays a plain address."),
         "receiveRequestTitle":
             MessageLookupByLibrary.simpleMessage("Payment request"),
         "receiveUnavailable": MessageLookupByLibrary.simpleMessage(
@@ -330,14 +365,14 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Recipient address"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
         "removeContact": MessageLookupByLibrary.simpleMessage("Remove contact"),
-        "removeContactConfirm": m7,
+        "removeContactConfirm": m13,
         "removeCustomAsset":
             MessageLookupByLibrary.simpleMessage("Remove asset"),
-        "removeCustomAssetConfirmMessage": m8,
+        "removeCustomAssetConfirmMessage": m14,
         "removeNetwork": MessageLookupByLibrary.simpleMessage("Remove network"),
-        "removeNetworkConfirm": m9,
+        "removeNetworkConfirm": m15,
         "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
-        "removeWalletConfirmMessage": m10,
+        "removeWalletConfirmMessage": m16,
         "retry": MessageLookupByLibrary.simpleMessage("Retry"),
         "reviewTransfer":
             MessageLookupByLibrary.simpleMessage("Review transfer"),
@@ -346,12 +381,10 @@ class MessageLookup extends MessageLookupByLibrary {
         "saveWalletName": MessageLookupByLibrary.simpleMessage("Save name"),
         "scanCameraError": MessageLookupByLibrary.simpleMessage(
             "Camera is unavailable. Check camera permission and try again."),
-        "scanNoAddressFound": MessageLookupByLibrary.simpleMessage(
-            "No wallet address found in this QR code"),
         "scanRecipientAddress":
             MessageLookupByLibrary.simpleMessage("Scan address"),
         "scanRecipientAddressTip": MessageLookupByLibrary.simpleMessage(
-            "Align the QR code inside the frame to fill the recipient address."),
+            "Align the QR code inside the frame, then review the network and payment details."),
         "scanSwitchCamera":
             MessageLookupByLibrary.simpleMessage("Switch camera"),
         "scanToggleFlash": MessageLookupByLibrary.simpleMessage("Toggle flash"),
@@ -393,7 +426,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "tokenContractAsset":
             MessageLookupByLibrary.simpleMessage("Token contract"),
         "tokenDetails": MessageLookupByLibrary.simpleMessage("Token details"),
-        "tokenNetworkCount": m11,
+        "tokenNetworkCount": m17,
         "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("Total"),
         "transactionAddresses":
@@ -470,8 +503,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Wallet address"),
         "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-        "transferAsset": m12,
-        "transferBalanceInsufficient": m13,
+        "transferAsset": m18,
+        "transferBalanceInsufficient": m19,
         "transferBalanceRefreshFailed": MessageLookupByLibrary.simpleMessage(
             "Unable to refresh the latest on-chain balance. Try again."),
         "transferDetails":
@@ -485,12 +518,12 @@ class MessageLookup extends MessageLookupByLibrary {
         "transferInputInvalid": MessageLookupByLibrary.simpleMessage(
             "Enter a valid recipient address and transfer amount"),
         "transferMax": MessageLookupByLibrary.simpleMessage("Max"),
-        "transferNativeFeeBalanceInsufficient": m14,
+        "transferNativeFeeBalanceInsufficient": m20,
         "transferRiskBurnAddress": MessageLookupByLibrary.simpleMessage(
             "The recipient is a known burn or system address. Funds sent there are likely unrecoverable."),
         "transferRiskClipboardMismatch": MessageLookupByLibrary.simpleMessage(
             "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly."),
-        "transferRiskEvmNetworkConfirm": m15,
+        "transferRiskEvmNetworkConfirm": m21,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "Network fee is not available yet. Confirm you still have enough native balance before continuing."),
         "transferRiskSelfTransfer": MessageLookupByLibrary.simpleMessage(

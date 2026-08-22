@@ -81,7 +81,7 @@ class ReceiveQrAddressPanel extends StatelessWidget {
           ),
           SizedBox(height: 14.h),
           Text(
-            S.of(context).receiveQrTip,
+            S.of(context).receiveQrNetworkTip(chain.name),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Theme.of(

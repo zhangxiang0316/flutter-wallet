@@ -28,12 +28,17 @@ class ReceiveRequestPanel extends StatelessWidget {
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,18}')),
             ],
-            decoration: _inputDecoration(
-              context,
-              label: S.of(context).receiveAmount,
-              hint: S.of(context).receiveAmountHint,
-              icon: Icons.payments_rounded,
-            ),
+            decoration:
+                _inputDecoration(
+                  context,
+                  label: S.of(context).receiveAmount,
+                  hint: S.of(context).receiveAmountHint,
+                  icon: Icons.payments_rounded,
+                ).copyWith(
+                  errorText: controller.isRequestAmountValid
+                      ? null
+                      : S.of(context).receiveAmountInvalid,
+                ),
             style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 10.h),

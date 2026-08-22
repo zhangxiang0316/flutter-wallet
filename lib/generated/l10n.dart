@@ -1710,13 +1710,13 @@ class S {
     );
   }
 
-  /// `Only send this asset on the selected network.`
-  String get receiveQrTip {
+  /// `This QR code is for {network}. Verify the network before sending.`
+  String receiveQrNetworkTip(Object network) {
     return Intl.message(
-      'Only send this asset on the selected network.',
-      name: 'receiveQrTip',
+      'This QR code is for $network. Verify the network before sending.',
+      name: 'receiveQrNetworkTip',
       desc: '',
-      args: [],
+      args: [network],
     );
   }
 
@@ -1750,6 +1750,16 @@ class S {
     );
   }
 
+  /// `Enter a valid amount within the asset precision`
+  String get receiveAmountInvalid {
+    return Intl.message(
+      'Enter a valid amount within the asset precision',
+      name: 'receiveAmountInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Memo`
   String get receiveMemo {
     return Intl.message(
@@ -1770,10 +1780,10 @@ class S {
     );
   }
 
-  /// `The QR code includes request details when amount or memo is filled.`
+  /// `Adding an amount or memo creates a network-aware payment request. Otherwise the QR code stays a plain address.`
   String get receiveRequestTip {
     return Intl.message(
-      'The QR code includes request details when amount or memo is filled.',
+      'Adding an amount or memo creates a network-aware payment request. Otherwise the QR code stays a plain address.',
       name: 'receiveRequestTip',
       desc: '',
       args: [],
@@ -1990,21 +2000,121 @@ class S {
     );
   }
 
-  /// `Align the QR code inside the frame to fill the recipient address.`
+  /// `Align the QR code inside the frame, then review the network and payment details.`
   String get scanRecipientAddressTip {
     return Intl.message(
-      'Align the QR code inside the frame to fill the recipient address.',
+      'Align the QR code inside the frame, then review the network and payment details.',
       name: 'scanRecipientAddressTip',
       desc: '',
       args: [],
     );
   }
 
-  /// `No wallet address found in this QR code`
-  String get scanNoAddressFound {
+  /// `Unsupported or invalid payment QR code`
+  String get paymentRequestInvalid {
     return Intl.message(
-      'No wallet address found in this QR code',
-      name: 'scanNoAddressFound',
+      'Unsupported or invalid payment QR code',
+      name: 'paymentRequestInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The requested network is unavailable: {network}`
+  String paymentRequestNetworkUnavailable(Object network) {
+    return Intl.message(
+      'The requested network is unavailable: $network',
+      name: 'paymentRequestNetworkUnavailable',
+      desc: '',
+      args: [network],
+    );
+  }
+
+  /// `The requested asset is unavailable: {asset}`
+  String paymentRequestAssetUnavailable(Object asset) {
+    return Intl.message(
+      'The requested asset is unavailable: $asset',
+      name: 'paymentRequestAssetUnavailable',
+      desc: '',
+      args: [asset],
+    );
+  }
+
+  /// `Review payment request`
+  String get paymentRequestConfirmTitle {
+    return Intl.message(
+      'Review payment request',
+      name: 'paymentRequestConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Nothing will be filled until you confirm these details.`
+  String get paymentRequestConfirmTip {
+    return Intl.message(
+      'Nothing will be filled until you confirm these details.',
+      name: 'paymentRequestConfirmTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This QR code contains only an address. It will be used on {network}.`
+  String paymentRequestPlainAddressNetwork(Object network) {
+    return Intl.message(
+      'This QR code contains only an address. It will be used on $network.',
+      name: 'paymentRequestPlainAddressNetwork',
+      desc: '',
+      args: [network],
+    );
+  }
+
+  /// `This request uses {target}. Continuing will switch from {current}.`
+  String paymentRequestNetworkSwitch(Object current, Object target) {
+    return Intl.message(
+      'This request uses $target. Continuing will switch from $current.',
+      name: 'paymentRequestNetworkSwitch',
+      desc: '',
+      args: [current, target],
+    );
+  }
+
+  /// `This request is for {target}. Continuing will switch from {current}.`
+  String paymentRequestAssetSwitch(Object current, Object target) {
+    return Intl.message(
+      'This request is for $target. Continuing will switch from $current.',
+      name: 'paymentRequestAssetSwitch',
+      desc: '',
+      args: [current, target],
+    );
+  }
+
+  /// `The requested amount will replace the amount already entered.`
+  String get paymentRequestAmountOverwrite {
+    return Intl.message(
+      'The requested amount will replace the amount already entered.',
+      name: 'paymentRequestAmountOverwrite',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The memo is shown for reference and is not written to the blockchain.`
+  String get paymentRequestMemoReferenceOnly {
+    return Intl.message(
+      'The memo is shown for reference and is not written to the blockchain.',
+      name: 'paymentRequestMemoReferenceOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Use request`
+  String get paymentRequestApply {
+    return Intl.message(
+      'Use request',
+      name: 'paymentRequestApply',
       desc: '',
       args: [],
     );

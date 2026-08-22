@@ -213,13 +213,19 @@
   "selectReceiveChain": "选择收款网络",
   "selectReceiveAsset": "选择收款币种",
   "receiveQrTitle": "扫码收款",
-  "receiveQrTip": "请仅通过当前选择的网络转入该币种。",
+  "receiveQrNetworkTip": "当前二维码对应 {network}，付款前请再次核对网络。",
+  "@receiveQrNetworkTip": {
+    "placeholders": {
+      "network": {}
+    }
+  },
   "receiveRequestTitle": "收款请求",
   "receiveAmount": "金额",
   "receiveAmountHint": "选填",
+  "receiveAmountInvalid": "请输入符合当前资产精度的有效金额",
   "receiveMemo": "备注",
   "receiveMemoHint": "选填，最多 80 个字符",
-  "receiveRequestTip": "填写金额或备注后，二维码会包含收款请求信息。",
+  "receiveRequestTip": "填写金额或备注后会生成链感知付款请求；未填写时保持纯地址二维码。",
   "receiveAddress": "收款地址",
   "copyReceiveAddress": "复制地址",
   "receiveAddressEmpty": "当前钱包没有该网络地址",
@@ -256,8 +262,45 @@
   "selectTransferAsset": "转账币种",
   "transferFromAddress": "发起地址",
   "scanRecipientAddress": "扫码地址",
-  "scanRecipientAddressTip": "将二维码对准取景框，识别后会自动填写收款地址。",
-  "scanNoAddressFound": "未在二维码中识别到钱包地址",
+  "scanRecipientAddressTip": "将二维码对准取景框，识别后请核对网络和付款信息。",
+  "paymentRequestInvalid": "不支持或无效的付款二维码",
+  "paymentRequestNetworkUnavailable": "付款请求使用了当前不可用的网络：{network}",
+  "@paymentRequestNetworkUnavailable": {
+    "placeholders": {
+      "network": {}
+    }
+  },
+  "paymentRequestAssetUnavailable": "付款请求使用了当前不可用的资产：{asset}",
+  "@paymentRequestAssetUnavailable": {
+    "placeholders": {
+      "asset": {}
+    }
+  },
+  "paymentRequestConfirmTitle": "核对付款请求",
+  "paymentRequestConfirmTip": "确认前不会修改当前转账信息。",
+  "paymentRequestPlainAddressNetwork": "该二维码仅包含地址，将按照 {network} 网络使用。",
+  "@paymentRequestPlainAddressNetwork": {
+    "placeholders": {
+      "network": {}
+    }
+  },
+  "paymentRequestNetworkSwitch": "该请求使用 {target}，继续后将从 {current} 切换网络。",
+  "@paymentRequestNetworkSwitch": {
+    "placeholders": {
+      "current": {},
+      "target": {}
+    }
+  },
+  "paymentRequestAssetSwitch": "该请求指定 {target}，继续后将从 {current} 切换资产。",
+  "@paymentRequestAssetSwitch": {
+    "placeholders": {
+      "current": {},
+      "target": {}
+    }
+  },
+  "paymentRequestAmountOverwrite": "付款请求中的金额将替换当前已输入金额。",
+  "paymentRequestMemoReferenceOnly": "备注仅用于核对，不会写入区块链交易。",
+  "paymentRequestApply": "使用该请求",
   "scanCameraError": "相机不可用，请检查相机权限后重试。",
   "scanToggleFlash": "切换闪光灯",
   "scanSwitchCamera": "切换摄像头",

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../base/base_controller.dart';
+import '../../../wallet/models/payment_request.dart';
 import '../../../wallet/models/wallet_account.dart';
 import '../../../wallet/models/wallet_asset.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/config/wallet_chain_config_service.dart';
 import '../../../wallet/services/config/wallet_custom_asset_service.dart';
+import '../../../wallet/services/wallet_transfer_service.dart';
 
 /// 收款页面控制器。
 ///
@@ -139,28 +141,40 @@ class ReceiveController extends BaseController {
 
   /// 当前二维码内容。
   ///
-  /// 未填写金额和备注时保持为纯地址，方便通用钱包直接识别；填写任一字段后使用
-  /// 应用内收款 URI，携带链、资产、金额和备注。
+  /// 填写金额或备注时使用链感知付款请求；未填写时保留纯地址二维码，兼容其他
+  /// 钱包。转账扫码对两种格式都会先展示网络确认，不会静默填入 EVM 共用地址。
   String currentQrPayload() {
     final address = currentAddress();
     if (address.trim().isEmpty) return '';
     final amount = amountController.text.trim();
     final memo = memoController.text.trim();
     final asset = selectedAsset;
+    if (!isRequestAmountValid) return '';
     final contractAddress = asset?.contractAddress?.trim() ?? '';
     if (amount.isEmpty && memo.isEmpty) return address;
-    return Uri(
+    return PaymentRequest(
       scheme: 'omnicast',
-      host: 'receive',
-      queryParameters: {
-        'address': address,
-        'chain': selectedChain.id,
-        if (asset != null) 'symbol': asset.symbol,
-        if (contractAddress.isNotEmpty) 'contract': contractAddress,
-        if (amount.isNotEmpty) 'amount': amount,
-        if (memo.isNotEmpty) 'memo': memo,
-      },
-    ).toString();
+      chainId: selectedChain.id,
+      address: address,
+      symbol: asset?.symbol,
+      contractAddress: contractAddress.isEmpty ? null : contractAddress,
+      amount: amount.isEmpty ? null : amount,
+      memo: memo.isEmpty ? null : memo,
+    ).toUri().toString();
+  }
+
+  /// 当前可选收款金额是否符合所选资产精度。
+  bool get isRequestAmountValid {
+    final amount = amountController.text.trim();
+    if (amount.isEmpty) return true;
+    final asset = selectedAsset;
+    if (asset == null) return false;
+    try {
+      WalletTransferService.amountToRawUnits(amount, asset.decimals);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// 保证 [selectedAsset] 始终指向当前链中存在的资产。

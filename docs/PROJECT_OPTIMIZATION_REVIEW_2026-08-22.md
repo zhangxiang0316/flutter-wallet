@@ -163,9 +163,9 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
 - 错误私钥无法签名当前账户交易；
 - legacy 和 EIP-1559 网络均有覆盖测试。
 
-### 3.4 链感知二维码与付款请求
+### 3.4 链感知二维码与付款请求（已完成，2026-08-22）
 
-#### 当前问题
+#### 改造前问题
 
 收款二维码可以携带 chain、symbol、contract、amount 和 memo，但转账扫码目前只提取地址。EVM 地址在多条链通用，因此可能把其他 EVM 网络的二维码地址填入当前网络。
 
@@ -175,10 +175,10 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
 - `lib/page/transfer/controller/transfer_scan_address_parser.dart:7`
 - `lib/page/transfer/controller/transfer_controller.dart:188`
 
-#### 改造任务
+#### 完成内容
 
-1. 新增 `PaymentRequest` 数据模型。
-2. 解析并保留以下字段：
+1. [x] 新增 `PaymentRequest` 数据模型；填写金额或备注时生成 `omnicast://receive` 链感知 URI，空请求保留纯地址兼容性。
+2. [x] 严格解析并保留以下字段：
    - scheme；
    - chain ID；
    - address；
@@ -186,10 +186,12 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
    - contract；
    - amount；
    - memo。
-3. 当前链与二维码链不一致时禁止静默填入。
-4. Token 合约不一致时要求用户切换资产或取消。
-5. 二维码携带金额和备注时展示二次确认，不能直接覆盖已有输入。
-6. 支持纯地址二维码，同时明确提示当前使用的网络。
+3. [x] 当前链与二维码链不一致时禁止静默填入，通过二次确认明确展示目标网络并切链。
+4. [x] Token 优先按合约匹配；合约不一致时要求用户确认切换资产，不存在的资产直接拒绝。
+5. [x] 金额、备注、已有金额覆盖行为全部进入二次确认，确认前不修改表单。
+6. [x] 兼容纯地址二维码，并在确认面板明确展示当前使用的网络。
+7. [x] 未知 scheme、任意文本、缺失字段、非法金额和损坏地址不再自动提取。
+8. [x] 增加 EVM、TRON、Solana、Bitcoin、Sui、Aptos、跨链、Token 合约和纯地址测试。
 
 #### 验收标准
 

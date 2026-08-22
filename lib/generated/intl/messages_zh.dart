@@ -32,25 +32,37 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m5(ms) => "${ms} ms";
 
-  static String m6(symbol) => "收款 ${symbol}";
+  static String m6(current, target) => "该请求指定 ${target}，继续后将从 ${current} 切换资产。";
 
-  static String m7(name) => "确定从地址簿移除「${name}」吗？";
+  static String m7(asset) => "付款请求使用了当前不可用的资产：${asset}";
 
-  static String m8(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
+  static String m8(current, target) => "该请求使用 ${target}，继续后将从 ${current} 切换网络。";
 
-  static String m9(name) => "确定要移除「${name}」吗？移除后不再查询该自定义网络资产。";
+  static String m9(network) => "付款请求使用了当前不可用的网络：${network}";
 
-  static String m10(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+  static String m10(network) => "该二维码仅包含地址，将按照 ${network} 网络使用。";
 
-  static String m11(count) => "${count} 个网络";
+  static String m11(symbol) => "收款 ${symbol}";
 
-  static String m12(symbol) => "转账 ${symbol}";
+  static String m12(network) => "当前二维码对应 ${network}，付款前请再次核对网络。";
 
-  static String m13(symbol) => "${symbol} 余额不足";
+  static String m13(name) => "确定从地址簿移除「${name}」吗？";
 
-  static String m14(symbol) => "${symbol} 余额不足，无法支付网络手续费";
+  static String m14(symbol) => "确定要移除「${symbol}」吗？移除后首页不再查询该币种余额。";
 
-  static String m15(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
+  static String m15(name) => "确定要移除「${name}」吗？移除后不再查询该自定义网络资产。";
+
+  static String m16(name) => "确定要移除「${name}」吗？本地保存的钱包信息会被删除。";
+
+  static String m17(count) => "${count} 个网络";
+
+  static String m18(symbol) => "转账 ${symbol}";
+
+  static String m19(symbol) => "${symbol} 余额不足";
+
+  static String m20(symbol) => "${symbol} 余额不足，无法支付网络手续费";
+
+  static String m21(network) => "EVM 地址可在多个网络复用，请确认收款方希望在 ${network} 接收资产。";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -248,6 +260,22 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("密码仅缓存在内存中"),
         "passwordCacheSecurityNoteTitle":
             MessageLookupByLibrary.simpleMessage("安全说明"),
+        "paymentRequestAmountOverwrite":
+            MessageLookupByLibrary.simpleMessage("付款请求中的金额将替换当前已输入金额。"),
+        "paymentRequestApply": MessageLookupByLibrary.simpleMessage("使用该请求"),
+        "paymentRequestAssetSwitch": m6,
+        "paymentRequestAssetUnavailable": m7,
+        "paymentRequestConfirmTip":
+            MessageLookupByLibrary.simpleMessage("确认前不会修改当前转账信息。"),
+        "paymentRequestConfirmTitle":
+            MessageLookupByLibrary.simpleMessage("核对付款请求"),
+        "paymentRequestInvalid":
+            MessageLookupByLibrary.simpleMessage("不支持或无效的付款二维码"),
+        "paymentRequestMemoReferenceOnly":
+            MessageLookupByLibrary.simpleMessage("备注仅用于核对，不会写入区块链交易。"),
+        "paymentRequestNetworkSwitch": m8,
+        "paymentRequestNetworkUnavailable": m9,
+        "paymentRequestPlainAddressNetwork": m10,
         "phone": MessageLookupByLibrary.simpleMessage("手机"),
         "popularTokens": MessageLookupByLibrary.simpleMessage("热门币种"),
         "primaryMultiChainWallet":
@@ -260,26 +288,27 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("当前钱包没有该网络地址"),
         "receiveAmount": MessageLookupByLibrary.simpleMessage("金额"),
         "receiveAmountHint": MessageLookupByLibrary.simpleMessage("选填"),
-        "receiveAsset": m6,
+        "receiveAmountInvalid":
+            MessageLookupByLibrary.simpleMessage("请输入符合当前资产精度的有效金额"),
+        "receiveAsset": m11,
         "receiveMemo": MessageLookupByLibrary.simpleMessage("备注"),
         "receiveMemoHint": MessageLookupByLibrary.simpleMessage("选填，最多 80 个字符"),
-        "receiveQrTip":
-            MessageLookupByLibrary.simpleMessage("请仅通过当前选择的网络转入该币种。"),
+        "receiveQrNetworkTip": m12,
         "receiveQrTitle": MessageLookupByLibrary.simpleMessage("扫码收款"),
-        "receiveRequestTip":
-            MessageLookupByLibrary.simpleMessage("填写金额或备注后，二维码会包含收款请求信息。"),
+        "receiveRequestTip": MessageLookupByLibrary.simpleMessage(
+            "填写金额或备注后会生成链感知付款请求；未填写时保持纯地址二维码。"),
         "receiveRequestTitle": MessageLookupByLibrary.simpleMessage("收款请求"),
         "receiveUnavailable": MessageLookupByLibrary.simpleMessage("收款信息不可用"),
         "recipientAddress": MessageLookupByLibrary.simpleMessage("收款地址"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("刷新余额"),
         "removeContact": MessageLookupByLibrary.simpleMessage("移除联系人"),
-        "removeContactConfirm": m7,
+        "removeContactConfirm": m13,
         "removeCustomAsset": MessageLookupByLibrary.simpleMessage("移除币种"),
-        "removeCustomAssetConfirmMessage": m8,
+        "removeCustomAssetConfirmMessage": m14,
         "removeNetwork": MessageLookupByLibrary.simpleMessage("移除网络"),
-        "removeNetworkConfirm": m9,
+        "removeNetworkConfirm": m15,
         "removeWallet": MessageLookupByLibrary.simpleMessage("移除钱包"),
-        "removeWalletConfirmMessage": m10,
+        "removeWalletConfirmMessage": m16,
         "retry": MessageLookupByLibrary.simpleMessage("重试"),
         "reviewTransfer": MessageLookupByLibrary.simpleMessage("检查转账"),
         "saveContact": MessageLookupByLibrary.simpleMessage("保存联系人"),
@@ -287,11 +316,9 @@ class MessageLookup extends MessageLookupByLibrary {
         "saveWalletName": MessageLookupByLibrary.simpleMessage("保存名称"),
         "scanCameraError":
             MessageLookupByLibrary.simpleMessage("相机不可用，请检查相机权限后重试。"),
-        "scanNoAddressFound":
-            MessageLookupByLibrary.simpleMessage("未在二维码中识别到钱包地址"),
         "scanRecipientAddress": MessageLookupByLibrary.simpleMessage("扫码地址"),
         "scanRecipientAddressTip":
-            MessageLookupByLibrary.simpleMessage("将二维码对准取景框，识别后会自动填写收款地址。"),
+            MessageLookupByLibrary.simpleMessage("将二维码对准取景框，识别后请核对网络和付款信息。"),
         "scanSwitchCamera": MessageLookupByLibrary.simpleMessage("切换摄像头"),
         "scanToggleFlash": MessageLookupByLibrary.simpleMessage("切换闪光灯"),
         "screenshotNotAllowed":
@@ -323,7 +350,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "tokenAssetsEmpty": MessageLookupByLibrary.simpleMessage("暂无资产"),
         "tokenContractAsset": MessageLookupByLibrary.simpleMessage("代币合约"),
         "tokenDetails": MessageLookupByLibrary.simpleMessage("代币详情"),
-        "tokenNetworkCount": m11,
+        "tokenNetworkCount": m17,
         "totalAssets": MessageLookupByLibrary.simpleMessage("总资产估值"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("合计"),
         "transactionAddresses": MessageLookupByLibrary.simpleMessage("地址信息"),
@@ -384,8 +411,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("钱包地址"),
         "transfer": MessageLookupByLibrary.simpleMessage("转账"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("转账数量"),
-        "transferAsset": m12,
-        "transferBalanceInsufficient": m13,
+        "transferAsset": m18,
+        "transferBalanceInsufficient": m19,
         "transferBalanceRefreshFailed":
             MessageLookupByLibrary.simpleMessage("无法刷新最新链上余额，请稍后重试"),
         "transferDetails": MessageLookupByLibrary.simpleMessage("转账信息"),
@@ -397,12 +424,12 @@ class MessageLookup extends MessageLookupByLibrary {
         "transferInputInvalid":
             MessageLookupByLibrary.simpleMessage("请输入有效的收款地址和转账数量"),
         "transferMax": MessageLookupByLibrary.simpleMessage("全部"),
-        "transferNativeFeeBalanceInsufficient": m14,
+        "transferNativeFeeBalanceInsufficient": m20,
         "transferRiskBurnAddress":
             MessageLookupByLibrary.simpleMessage("收款地址是常见销毁或系统地址，转入后大概率无法找回。"),
         "transferRiskClipboardMismatch":
             MessageLookupByLibrary.simpleMessage("剪贴板中存在另一个地址，请确认收款地址没有被意外替换。"),
-        "transferRiskEvmNetworkConfirm": m15,
+        "transferRiskEvmNetworkConfirm": m21,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "暂未获取到网络手续费，请确认钱包中仍有足够原生币支付手续费。"),
         "transferRiskSelfTransfer":

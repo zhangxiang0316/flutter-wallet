@@ -10,6 +10,7 @@ import '../../../generated/route_table.dart';
 import '../../../utils/toast_util.dart';
 import '../../browser/controller/block_explorer_controller.dart';
 import '../../../wallet/models/chain_balance.dart';
+import '../../../wallet/models/payment_request.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/models/wallet_chain_extensions.dart';
 import '../../../wallet/models/wallet_transaction_record.dart';
@@ -109,6 +110,13 @@ class TransferController extends BaseController {
   /// 链上广播后返回的交易哈希。
   String transactionHash = '';
 
+  /// 最近一次已确认付款请求携带的备注。
+  ///
+  /// 当前链上转账实现不写入 memo，该字段只用于扫码确认页和最终交易复核展示。
+  String? scannedPaymentMemo;
+
+  String? _paymentRequestAddress;
+
   /// 当前提交交易的链上确认状态。
   WalletTransactionStatus submittedStatus = WalletTransactionStatus.unknown;
 
@@ -128,7 +136,7 @@ class TransferController extends BaseController {
     final value = Get.arguments;
     if (value is TransferPageArguments) {
       _applyArguments(value);
-      addressController.addListener(_scheduleFeeEstimate);
+      addressController.addListener(_handleAddressChanged);
       amountController.addListener(_scheduleFeeEstimate);
     }
   }
@@ -170,6 +178,7 @@ class TransferController extends BaseController {
     final assets = assetsForChain(chain.id);
     if (assets.isEmpty) return;
     selectedAsset = assets.first;
+    _clearPaymentRequestMetadata();
     _resetEstimateAndSubmittedState();
     update();
     _scheduleFeeEstimate();
@@ -185,30 +194,85 @@ class TransferController extends BaseController {
       return;
     }
     selectedAsset = asset;
+    _clearPaymentRequestMetadata();
     _resetEstimateAndSubmittedState();
     update();
     _scheduleFeeEstimate();
   }
 
-  /// 将扫码结果写入收款地址输入框。
+  /// 解析并匹配扫码付款请求，但不修改当前表单。
   ///
-  /// 二维码可能只包含纯地址，也可能包含 `ethereum:0x...`、`tron:T...` 或
-  /// `solana:<address>?amount=...` 这类 URI。这里会优先按当前链格式提取地址，
-  /// 找不到时再退回到 URI/path/query 中的地址片段。
-  void fillRecipientAddressFromScan(String rawValue) {
-    final address = TransferScanAddressParser.extract(
+  /// 调用方必须展示二次确认，并在用户同意后调用 [applyPaymentRequest]。链或 Token
+  /// 不匹配时会解析到目标资产，找不到对应链/资产则直接拒绝。
+  PaymentRequestResolution? resolvePaymentRequest(String rawValue) {
+    final current = currentAsset;
+    if (current == null) return null;
+    final request = TransferScanAddressParser.parse(
       rawValue,
-      currentAsset?.chainConfig ?? currentAsset?.chain?.config,
+      current.chainConfig ?? current.chain?.config,
     );
-    if (address == null || address.isEmpty) {
-      Toast.show(S.current.scanNoAddressFound);
-      return;
+    if (request == null) {
+      Toast.show(S.current.paymentRequestInvalid);
+      return null;
     }
-    addressController.text = address;
-    addressController.selection = TextSelection.collapsed(
-      offset: address.length,
+
+    final targetChainId = request.chainId ?? current.chainId;
+    final chainAssets = assetsForChain(targetChainId);
+    if (chainAssets.isEmpty) {
+      Toast.show(S.current.paymentRequestNetworkUnavailable(targetChainId));
+      return null;
+    }
+    final targetAsset = _assetForPaymentRequest(
+      request,
+      chainAssets,
+      current: current,
     );
-    transactionHash = '';
+    if (targetAsset == null) {
+      Toast.show(
+        S.current.paymentRequestAssetUnavailable(
+          request.symbol ?? request.contractAddress ?? targetChainId,
+        ),
+      );
+      return null;
+    }
+    try {
+      TransferInputValidator.validateAddress(targetAsset, request.address);
+      final amount = request.amount;
+      if (amount != null) {
+        WalletTransferService.amountToRawUnits(amount, targetAsset.decimals);
+      }
+    } catch (_) {
+      Toast.show(S.current.paymentRequestInvalid);
+      return null;
+    }
+
+    return PaymentRequestResolution(
+      request: request,
+      currentAsset: current,
+      targetAsset: targetAsset,
+      existingAmount: amountController.text.trim(),
+    );
+  }
+
+  /// 将用户已确认的付款请求应用到转账表单。
+  void applyPaymentRequest(PaymentRequestResolution resolution) {
+    if (isSubmitting) return;
+    selectedAsset = resolution.targetAsset;
+    _resetEstimateAndSubmittedState();
+    final request = resolution.request;
+    _paymentRequestAddress = request.address;
+    scannedPaymentMemo = request.memo;
+    addressController.text = request.address;
+    addressController.selection = TextSelection.collapsed(
+      offset: request.address.length,
+    );
+    final requestedAmount = request.amount;
+    if (requestedAmount != null) {
+      amountController.text = requestedAmount;
+      amountController.selection = TextSelection.collapsed(
+        offset: requestedAmount.length,
+      );
+    }
     update();
     _scheduleFeeEstimate();
   }
@@ -220,8 +284,65 @@ class TransferController extends BaseController {
     addressController.text = value;
     addressController.selection = TextSelection.collapsed(offset: value.length);
     transactionHash = '';
+    scannedPaymentMemo = null;
     update();
     _scheduleFeeEstimate();
+  }
+
+  ChainBalance? _assetForPaymentRequest(
+    PaymentRequest request,
+    List<ChainBalance> chainAssets, {
+    required ChainBalance current,
+  }) {
+    final contract = request.contractAddress?.trim();
+    if (contract != null && contract.isNotEmpty) {
+      final requestedContract = _normalizedContract(
+        chainAssets.first.chainRef,
+        contract,
+      );
+      for (final asset in chainAssets) {
+        final candidate = asset.contractAddress?.trim();
+        if (candidate != null &&
+            candidate.isNotEmpty &&
+            _normalizedContract(asset.chainRef, candidate) ==
+                requestedContract) {
+          return asset;
+        }
+      }
+      return null;
+    }
+
+    final symbol = request.symbol?.trim();
+    if (symbol != null && symbol.isNotEmpty) {
+      for (final asset in chainAssets) {
+        if (asset.symbol.toUpperCase() == symbol.toUpperCase()) return asset;
+      }
+      return null;
+    }
+    if (current.chainId == chainAssets.first.chainId) return current;
+    for (final asset in chainAssets) {
+      if (asset.isNative) return asset;
+    }
+    return null;
+  }
+
+  String _normalizedContract(WalletChainRef chain, String contract) {
+    return chain.isEvm ? contract.toLowerCase() : contract;
+  }
+
+  void _handleAddressChanged() {
+    final requestAddress = _paymentRequestAddress;
+    if (requestAddress != null &&
+        addressController.text.trim() != requestAddress) {
+      _clearPaymentRequestMetadata();
+      update();
+    }
+    _scheduleFeeEstimate();
+  }
+
+  void _clearPaymentRequestMetadata() {
+    _paymentRequestAddress = null;
+    scannedPaymentMemo = null;
   }
 
   /// 校验当前地址和金额输入是否能进入提交流程。
@@ -709,4 +830,31 @@ class _TransferPreflight {
   const _TransferPreflight({required this.asset});
 
   final ChainBalance asset;
+}
+
+/// 扫码付款请求与当前表单资产的匹配结果。
+class PaymentRequestResolution {
+  const PaymentRequestResolution({
+    required this.request,
+    required this.currentAsset,
+    required this.targetAsset,
+    required this.existingAmount,
+  });
+
+  final PaymentRequest request;
+  final ChainBalance currentAsset;
+  final ChainBalance targetAsset;
+  final String existingAmount;
+
+  bool get requiresNetworkSwitch => currentAsset.chainId != targetAsset.chainId;
+
+  bool get requiresAssetSwitch => requiresNetworkSwitch
+      ? currentAsset.symbol.toUpperCase() != targetAsset.symbol.toUpperCase()
+      : TransferAssetUtils.assetKey(currentAsset) !=
+            TransferAssetUtils.assetKey(targetAsset);
+
+  bool get overwritesAmount =>
+      request.amount != null &&
+      existingAmount.isNotEmpty &&
+      existingAmount != request.amount;
 }

@@ -297,6 +297,11 @@ class TransferReviewFlow {
       ),
     ];
 
+    final paymentMemo = controller.scannedPaymentMemo;
+    if (paymentMemo != null && paymentMemo.isNotEmpty) {
+      items.add(ReviewItem(label: S.current.receiveMemo, value: paymentMemo));
+    }
+
     if (feeEstimate != null && feeEstimate.amount.isNotEmpty) {
       items.add(
         ReviewItem(
