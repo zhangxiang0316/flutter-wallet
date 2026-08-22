@@ -300,7 +300,7 @@ class TransferReviewFlow {
     if (feeEstimate != null && feeEstimate.amount.isNotEmpty) {
       items.add(
         ReviewItem(
-          label: S.current.estimatedNetworkFee,
+          label: S.current.estimatedNetworkFeeOnNetwork(chainName),
           value: '${feeEstimate.amount} ${feeEstimate.symbol}',
         ),
       );
@@ -321,7 +321,7 @@ class TransferReviewFlow {
     } else {
       items.add(
         ReviewItem(
-          label: S.current.estimatedNetworkFee,
+          label: S.current.estimatedNetworkFeeOnNetwork(chainName),
           value: S.current.feeEstimating,
         ),
       );

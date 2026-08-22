@@ -319,6 +319,93 @@ class ChainBalanceService {
     return balances;
   }
 
+  /// 仅刷新一条链的余额。
+  ///
+  /// 转账确认后使用该入口获取最新资产余额和原生币余额，避免为了签名前校验
+  /// 重复请求钱包中的所有网络。查询失败时返回带 [ChainBalance.error] 的兜底
+  /// 余额，由调用方停止签名。
+  Future<List<ChainBalance>> loadChainBalances({
+    required WalletChainConfig chain,
+    required String address,
+  }) async {
+    final customAssets = await _customAssetService.loadCustomAssets();
+    final assets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
+      chain,
+      customAssets,
+    );
+    late final Future<List<ChainBalance>> operation;
+    late final List<ChainBalance> Function(String error) fallback;
+
+    switch (chain.type) {
+      case WalletChainType.evm:
+        operation = _loadEvmBalances(
+          chain: chain,
+          assets: assets,
+          address: address,
+        );
+        fallback = (error) => _fallbackBalancesForAssets(
+          chain: chain,
+          assets: assets,
+          address: address,
+          error: error,
+        );
+      case WalletChainType.solana:
+        operation = _loadSolanaBalances(
+          chain: chain,
+          address: address,
+          customAssets: customAssets,
+        );
+        fallback = (error) => _fallbackSolanaBalances(
+          chain: chain,
+          address: address,
+          customAssets: customAssets,
+          error: error,
+        );
+      case WalletChainType.tron:
+        operation = _loadTronBalances(
+          chain: chain,
+          address: address,
+          customAssets: customAssets,
+        );
+        fallback = (error) => _fallbackBalancesForAssets(
+          chain: chain,
+          assets: assets,
+          address: address,
+          error: error,
+        );
+      case WalletChainType.bitcoin:
+        operation = _loadBitcoinBalances(chain: chain, address: address);
+        fallback = (error) => _fallbackBalancesForAssets(
+          chain: chain,
+          assets: assets,
+          address: address,
+          error: error,
+        );
+      case WalletChainType.sui:
+        operation = _loadSuiBalances(chain: chain, address: address);
+        fallback = (error) => _fallbackBalancesForAssets(
+          chain: chain,
+          assets: assets,
+          address: address,
+          error: error,
+        );
+      case WalletChainType.aptos:
+        operation = _loadAptosBalances(chain: chain, address: address);
+        fallback = (error) => _fallbackBalancesForAssets(
+          chain: chain,
+          assets: assets,
+          address: address,
+          error: error,
+        );
+    }
+
+    return _runChainBalanceLoad(
+      chainName: chain.name,
+      operation: operation,
+      fallback: fallback,
+    );
+  }
+
   /// 限制单条链的总等待时间，并在完成时立即通知首页。
   Future<List<ChainBalance>> _runChainBalanceLoad({
     required String chainName,

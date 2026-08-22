@@ -55,7 +55,9 @@ class TransferFeePanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  S.of(context).estimatedNetworkFee,
+                  S
+                      .of(context)
+                      .estimatedNetworkFeeOnNetwork(asset.chainRef.name),
                   style: TextStyle(
                     fontSize: 12.5.sp,
                     fontWeight: FontWeight.w800,
@@ -75,7 +77,7 @@ class TransferFeePanel extends StatelessWidget {
                       ),
                     ],
                   )
-                else if (estimate != null)
+                else if (estimate != null) ...[
                   Text(
                     estimate.isFallback
                         ? S.of(context).feeFallback(estimate.displayText)
@@ -86,14 +88,42 @@ class TransferFeePanel extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
-                  )
-                else
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    S
+                        .of(context)
+                        .networkFeeAssetOnNetwork(
+                          asset.chainRef.name,
+                          estimate.symbol,
+                        ),
+                    style: _feeTextStyle(context),
+                  ),
+                ] else ...[
                   Text(
                     controller.feeEstimateUnavailable
                         ? S.of(context).feeUnavailable
-                        : S.of(context).networkFeeAsset(asset.chainRef.symbol),
+                        : S
+                              .of(context)
+                              .networkFeeAssetOnNetwork(
+                                asset.chainRef.name,
+                                asset.chainRef.symbol,
+                              ),
                     style: _feeTextStyle(context),
                   ),
+                  if (controller.feeEstimateUnavailable) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      S
+                          .of(context)
+                          .networkFeeAssetOnNetwork(
+                            asset.chainRef.name,
+                            asset.chainRef.symbol,
+                          ),
+                      style: _feeTextStyle(context),
+                    ),
+                  ],
+                ],
               ],
             ),
           ),

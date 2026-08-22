@@ -20,35 +20,41 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'en';
 
-  static String m0(amount) => "Up to ${amount}";
+  static String m0(network) => "${network} network fee estimate";
 
-  static String m1(index) => "Word #${index}";
+  static String m1(amount) => "Up to ${amount}";
 
-  static String m2(symbol) =>
-      "The network fee is paid in ${symbol}. Make sure this wallet has enough balance.";
+  static String m2(index) => "Word #${index}";
 
-  static String m3(ms) => "Backup available · ${ms} ms";
+  static String m3(network, symbol) =>
+      "${network} network fees are paid in ${symbol}.";
 
-  static String m4(ms) => "${ms} ms";
+  static String m4(ms) => "Backup available · ${ms} ms";
 
-  static String m5(symbol) => "Receive ${symbol}";
+  static String m5(ms) => "${ms} ms";
 
-  static String m6(name) => "Remove \"${name}\" from the address book?";
+  static String m6(symbol) => "Receive ${symbol}";
 
-  static String m7(symbol) =>
+  static String m7(name) => "Remove \"${name}\" from the address book?";
+
+  static String m8(symbol) =>
       "Remove \"${symbol}\"? The home page will no longer query this asset balance.";
 
-  static String m8(name) =>
+  static String m9(name) =>
       "Remove \"${name}\"? Assets on this custom network will no longer be queried.";
 
-  static String m9(name) =>
+  static String m10(name) =>
       "Remove \"${name}\"? The wallet data saved on this device will be deleted.";
 
-  static String m10(count) => "${count} networks";
+  static String m11(count) => "${count} networks";
 
-  static String m11(symbol) => "Transfer ${symbol}";
+  static String m12(symbol) => "Transfer ${symbol}";
 
-  static String m12(network) =>
+  static String m13(symbol) => "Insufficient ${symbol} balance";
+
+  static String m14(symbol) => "Insufficient ${symbol} to pay the network fee";
+
+  static String m15(network) =>
       "EVM addresses can be reused across networks. Confirm the recipient expects funds on ${network}.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -151,11 +157,10 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Edit wallet name"),
         "email": MessageLookupByLibrary.simpleMessage("email"),
         "encryptWallet": MessageLookupByLibrary.simpleMessage("Encrypt wallet"),
-        "estimatedNetworkFee":
-            MessageLookupByLibrary.simpleMessage("Estimated network fee"),
+        "estimatedNetworkFeeOnNetwork": m0,
         "feeEstimating":
             MessageLookupByLibrary.simpleMessage("Estimating fee..."),
-        "feeFallback": m0,
+        "feeFallback": m1,
         "feeUnavailable": MessageLookupByLibrary.simpleMessage(
             "Fee estimate is unavailable. Try again later."),
         "fetchTokenInfo":
@@ -190,7 +195,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "Enter 12 English words separated by spaces"),
         "mnemonicNotBackedUpStatus":
             MessageLookupByLibrary.simpleMessage("Not backed up"),
-        "mnemonicWordNumber": m1,
+        "mnemonicWordNumber": m2,
         "more": MessageLookupByLibrary.simpleMessage("More"),
         "nativeAsset": MessageLookupByLibrary.simpleMessage("Native asset"),
         "network": MessageLookupByLibrary.simpleMessage("Network"),
@@ -209,7 +214,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "networkExplorerApiUrlHelper": MessageLookupByLibrary.simpleMessage(
             "Used for EVM transaction history. Supports Etherscan-compatible APIs."),
         "networkFee": MessageLookupByLibrary.simpleMessage("Network fee"),
-        "networkFeeAsset": m2,
+        "networkFeeAssetOnNetwork": m3,
         "networkInvalid": MessageLookupByLibrary.simpleMessage(
             "Check the network name, symbol, chain ID, and RPC URL"),
         "networkManagement": MessageLookupByLibrary.simpleMessage("Networks"),
@@ -220,9 +225,9 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Network removed"),
         "networkRpcBackupAvailable": MessageLookupByLibrary.simpleMessage(
             "Primary RPC is unavailable. A backup RPC is available."),
-        "networkRpcBackupHint": m3,
+        "networkRpcBackupHint": m4,
         "networkRpcDown": MessageLookupByLibrary.simpleMessage("Unavailable"),
-        "networkRpcLatency": m4,
+        "networkRpcLatency": m5,
         "networkRpcMismatch":
             MessageLookupByLibrary.simpleMessage("RPC chain ID does not match"),
         "networkRpcNotTested":
@@ -307,7 +312,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "This wallet does not have an address for this network"),
         "receiveAmount": MessageLookupByLibrary.simpleMessage("Amount"),
         "receiveAmountHint": MessageLookupByLibrary.simpleMessage("Optional"),
-        "receiveAsset": m5,
+        "receiveAsset": m6,
         "receiveMemo": MessageLookupByLibrary.simpleMessage("Memo"),
         "receiveMemoHint": MessageLookupByLibrary.simpleMessage(
             "Optional, up to 80 characters"),
@@ -325,14 +330,14 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Recipient address"),
         "refreshBalance": MessageLookupByLibrary.simpleMessage("Refresh"),
         "removeContact": MessageLookupByLibrary.simpleMessage("Remove contact"),
-        "removeContactConfirm": m6,
+        "removeContactConfirm": m7,
         "removeCustomAsset":
             MessageLookupByLibrary.simpleMessage("Remove asset"),
-        "removeCustomAssetConfirmMessage": m7,
+        "removeCustomAssetConfirmMessage": m8,
         "removeNetwork": MessageLookupByLibrary.simpleMessage("Remove network"),
-        "removeNetworkConfirm": m8,
+        "removeNetworkConfirm": m9,
         "removeWallet": MessageLookupByLibrary.simpleMessage("Remove wallet"),
-        "removeWalletConfirmMessage": m9,
+        "removeWalletConfirmMessage": m10,
         "retry": MessageLookupByLibrary.simpleMessage("Retry"),
         "reviewTransfer":
             MessageLookupByLibrary.simpleMessage("Review transfer"),
@@ -388,7 +393,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "tokenContractAsset":
             MessageLookupByLibrary.simpleMessage("Token contract"),
         "tokenDetails": MessageLookupByLibrary.simpleMessage("Token details"),
-        "tokenNetworkCount": m10,
+        "tokenNetworkCount": m11,
         "totalAssets": MessageLookupByLibrary.simpleMessage("Total assets"),
         "totalTransferCost": MessageLookupByLibrary.simpleMessage("Total"),
         "transactionAddresses":
@@ -465,20 +470,27 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Wallet address"),
         "transfer": MessageLookupByLibrary.simpleMessage("Transfer"),
         "transferAmount": MessageLookupByLibrary.simpleMessage("Amount"),
-        "transferAsset": m11,
+        "transferAsset": m12,
+        "transferBalanceInsufficient": m13,
+        "transferBalanceRefreshFailed": MessageLookupByLibrary.simpleMessage(
+            "Unable to refresh the latest on-chain balance. Try again."),
         "transferDetails":
             MessageLookupByLibrary.simpleMessage("Transfer details"),
         "transferFailed": MessageLookupByLibrary.simpleMessage(
             "Transfer failed. Check the address, amount, and on-chain balance."),
+        "transferFeeRequired": MessageLookupByLibrary.simpleMessage(
+            "Wait for the network fee estimate before continuing."),
         "transferFromAddress":
             MessageLookupByLibrary.simpleMessage("From address"),
         "transferInputInvalid": MessageLookupByLibrary.simpleMessage(
             "Enter a valid recipient address and transfer amount"),
+        "transferMax": MessageLookupByLibrary.simpleMessage("Max"),
+        "transferNativeFeeBalanceInsufficient": m14,
         "transferRiskBurnAddress": MessageLookupByLibrary.simpleMessage(
             "The recipient is a known burn or system address. Funds sent there are likely unrecoverable."),
         "transferRiskClipboardMismatch": MessageLookupByLibrary.simpleMessage(
             "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly."),
-        "transferRiskEvmNetworkConfirm": m12,
+        "transferRiskEvmNetworkConfirm": m15,
         "transferRiskFeeUnavailable": MessageLookupByLibrary.simpleMessage(
             "Network fee is not available yet. Confirm you still have enough native balance before continuing."),
         "transferRiskSelfTransfer": MessageLookupByLibrary.simpleMessage(

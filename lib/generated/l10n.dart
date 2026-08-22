@@ -1880,6 +1880,56 @@ class S {
     );
   }
 
+  /// `Wait for the network fee estimate before continuing.`
+  String get transferFeeRequired {
+    return Intl.message(
+      'Wait for the network fee estimate before continuing.',
+      name: 'transferFeeRequired',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Insufficient {symbol} balance`
+  String transferBalanceInsufficient(Object symbol) {
+    return Intl.message(
+      'Insufficient $symbol balance',
+      name: 'transferBalanceInsufficient',
+      desc: '',
+      args: [symbol],
+    );
+  }
+
+  /// `Insufficient {symbol} to pay the network fee`
+  String transferNativeFeeBalanceInsufficient(Object symbol) {
+    return Intl.message(
+      'Insufficient $symbol to pay the network fee',
+      name: 'transferNativeFeeBalanceInsufficient',
+      desc: '',
+      args: [symbol],
+    );
+  }
+
+  /// `Unable to refresh the latest on-chain balance. Try again.`
+  String get transferBalanceRefreshFailed {
+    return Intl.message(
+      'Unable to refresh the latest on-chain balance. Try again.',
+      name: 'transferBalanceRefreshFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Max`
+  String get transferMax {
+    return Intl.message(
+      'Max',
+      name: 'transferMax',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Transfer details are unavailable`
   String get transferUnavailable {
     return Intl.message(
@@ -2100,23 +2150,23 @@ class S {
     );
   }
 
-  /// `Estimated network fee`
-  String get estimatedNetworkFee {
+  /// `{network} network fee estimate`
+  String estimatedNetworkFeeOnNetwork(Object network) {
     return Intl.message(
-      'Estimated network fee',
-      name: 'estimatedNetworkFee',
+      '$network network fee estimate',
+      name: 'estimatedNetworkFeeOnNetwork',
       desc: '',
-      args: [],
+      args: [network],
     );
   }
 
-  /// `The network fee is paid in {symbol}. Make sure this wallet has enough balance.`
-  String networkFeeAsset(Object symbol) {
+  /// `{network} network fees are paid in {symbol}.`
+  String networkFeeAssetOnNetwork(Object network, Object symbol) {
     return Intl.message(
-      'The network fee is paid in $symbol. Make sure this wallet has enough balance.',
-      name: 'networkFeeAsset',
+      '$network network fees are paid in $symbol.',
+      name: 'networkFeeAssetOnNetwork',
       desc: '',
-      args: [symbol],
+      args: [network, symbol],
     );
   }
 

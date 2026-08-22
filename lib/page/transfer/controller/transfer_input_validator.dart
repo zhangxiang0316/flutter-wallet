@@ -1,5 +1,3 @@
-import 'package:decimal/decimal.dart';
-
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/wallet_chain_extensions.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
@@ -43,8 +41,6 @@ class TransferInputValidator {
     WalletTransferService.amountToRawUnits(amount, asset.decimals);
     validateAddress(asset, address);
 
-    final amountDecimal = Decimal.parse(amount);
-    final balanceDecimal = Decimal.parse(asset.amount);
-    return amountDecimal <= balanceDecimal;
+    return true;
   }
 }

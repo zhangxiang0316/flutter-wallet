@@ -235,6 +235,21 @@
   "confirmTransfer": "Transfer",
   "transferSubmitted": "Transaction submitted",
   "transferFailed": "Transfer failed. Check the address, amount, and on-chain balance.",
+  "transferFeeRequired": "Wait for the network fee estimate before continuing.",
+  "transferBalanceInsufficient": "Insufficient {symbol} balance",
+  "@transferBalanceInsufficient": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "transferNativeFeeBalanceInsufficient": "Insufficient {symbol} to pay the network fee",
+  "@transferNativeFeeBalanceInsufficient": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "transferBalanceRefreshFailed": "Unable to refresh the latest on-chain balance. Try again.",
+  "transferMax": "Max",
   "transferUnavailable": "Transfer details are unavailable",
   "availableBalance": "Available balance",
   "selectTransferChain": "Transfer network",
@@ -262,10 +277,16 @@
   "transferRiskBurnAddress": "The recipient is a known burn or system address. Funds sent there are likely unrecoverable.",
   "transferRiskClipboardMismatch": "Your clipboard contains a different address. Recheck that the recipient was not changed unexpectedly.",
   "networkFee": "Network fee",
-  "estimatedNetworkFee": "Estimated network fee",
-  "networkFeeAsset": "The network fee is paid in {symbol}. Make sure this wallet has enough balance.",
-  "@networkFeeAsset": {
+  "estimatedNetworkFeeOnNetwork": "{network} network fee estimate",
+  "@estimatedNetworkFeeOnNetwork": {
     "placeholders": {
+      "network": {}
+    }
+  },
+  "networkFeeAssetOnNetwork": "{network} network fees are paid in {symbol}.",
+  "@networkFeeAssetOnNetwork": {
+    "placeholders": {
+      "network": {},
       "symbol": {}
     }
   },

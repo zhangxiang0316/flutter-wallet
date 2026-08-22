@@ -18,8 +18,10 @@ import '../../../wallet/services/transaction/wallet_block_explorer_service.dart'
 import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/crypto/wallet_secret_store.dart';
 import '../../../wallet/services/transaction/wallet_transaction_status_service.dart';
+import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
 import 'transfer_asset_utils.dart';
+import 'transfer_balance_validator.dart';
 import 'transfer_input_validator.dart';
 import 'transfer_scan_address_parser.dart';
 
@@ -55,11 +57,13 @@ class TransferController extends BaseController {
   TransferController({
     WalletTransferService? transferService,
     WalletRepository? repository,
+    ChainBalanceService? balanceService,
     TransactionHistoryCache? transactionCache,
     WalletTransactionStatusService? transactionStatusService,
     WalletBlockExplorerService? blockExplorerService,
   }) : _transferService = transferService ?? WalletTransferService(),
        _repository = repository ?? WalletRepository(),
+       _balanceService = balanceService ?? ChainBalanceService(),
        _transactionCache = transactionCache ?? TransactionHistoryCache(),
        _transactionStatusService =
            transactionStatusService ?? WalletTransactionStatusService(),
@@ -68,6 +72,7 @@ class TransferController extends BaseController {
 
   final WalletTransferService _transferService;
   final WalletRepository _repository;
+  final ChainBalanceService _balanceService;
   final TransactionHistoryCache _transactionCache;
   final WalletTransactionStatusService _transactionStatusService;
   final WalletBlockExplorerService _blockExplorerService;
@@ -236,11 +241,47 @@ class TransferController extends BaseController {
         asset,
         addressController.text.trim(),
       );
+      final result = TransferBalanceValidator.validate(
+        asset: asset,
+        nativeAsset: _nativeAssetFor(asset, availableAssets),
+        amount: amountController.text.trim(),
+        feeEstimate: feeEstimate,
+      );
+      if (!result.isValid) {
+        _showBalanceValidationFailure(result.failure!, asset);
+        return false;
+      }
     } catch (_) {
       Toast.show(S.current.transferInputInvalid);
       return false;
     }
     return true;
+  }
+
+  /// 将当前资产的安全最大可转金额写入输入框。
+  ///
+  /// Token 使用完整 Token 余额；原生币会先扣除当前预估手续费，避免“全部”
+  /// 转出后没有余额支付网络费用。
+  void fillMaximumAmount() {
+    final asset = currentAsset;
+    if (asset == null || isSubmitting) return;
+    try {
+      final result = TransferBalanceValidator.maximumTransferAmount(
+        asset: asset,
+        feeEstimate: feeEstimate,
+      );
+      if (!result.isValid) {
+        _showBalanceValidationFailure(result.failure!, asset);
+        return;
+      }
+      final amount = result.amount!;
+      amountController.text = amount;
+      amountController.selection = TextSelection.collapsed(
+        offset: amount.length,
+      );
+    } catch (_) {
+      Toast.show(S.current.transferBalanceRefreshFailed);
+    }
   }
 
   /// 解锁当前钱包并提交交易。
@@ -262,29 +303,32 @@ class TransferController extends BaseController {
       transactionHash = '';
       submittedStatus = WalletTransactionStatus.unknown;
       update();
+      final preflight = await _refreshTransferPreflight(asset);
+      if (preflight == null) return;
+      final verifiedAsset = preflight.asset;
       var privateKeyHex = await _repository.readWalletPrivateKey(
         walletId: args.walletId,
         password: password,
       );
-      if (asset.chainRef.isBitcoin) {
+      if (verifiedAsset.chainRef.isBitcoin) {
         privateKeyHex = await _repository.readWalletBitcoinPrivateKey(
           walletId: args.walletId,
           password: password,
         );
       }
-      final solanaPrivateKey = asset.chainRef.isSolana
+      final solanaPrivateKey = verifiedAsset.chainRef.isSolana
           ? await _repository.readWalletSolanaPrivateKey(
               walletId: args.walletId,
               password: password,
             )
           : null;
-      final suiPrivateKey = asset.chainRef.isSui
+      final suiPrivateKey = verifiedAsset.chainRef.isSui
           ? await _repository.readWalletSuiPrivateKey(
               walletId: args.walletId,
               password: password,
             )
           : null;
-      final aptosPrivateKey = asset.chainRef.isAptos
+      final aptosPrivateKey = verifiedAsset.chainRef.isAptos
           ? await _repository.readWalletAptosPrivateKey(
               walletId: args.walletId,
               password: password,
@@ -292,7 +336,7 @@ class TransferController extends BaseController {
           : null;
       final hash = await _transferService.transfer(
         privateKeyHex: privateKeyHex,
-        asset: asset,
+        asset: verifiedAsset,
         toAddress: addressController.text.trim(),
         amount: amountController.text.trim(),
         solanaPrivateKey: solanaPrivateKey,
@@ -301,8 +345,8 @@ class TransferController extends BaseController {
       );
       transactionHash = hash;
       submittedStatus = WalletTransactionStatus.pending;
-      await _saveSubmittedTransaction(asset, hash);
-      _startSubmittedStatusTracking(asset, hash);
+      await _saveSubmittedTransaction(verifiedAsset, hash);
+      _startSubmittedStatusTracking(verifiedAsset, hash);
       Toast.show(S.current.transferSubmitted);
     } on WalletSecretMissingException {
       Toast.show(S.current.walletSecretMissing);
@@ -313,6 +357,124 @@ class TransferController extends BaseController {
     } finally {
       isSubmitting = false;
       update();
+    }
+  }
+
+  /// 用户确认并输入密码后，再次刷新当前链余额和手续费。
+  ///
+  /// 该方法必须在读取私钥之前完成；任何余额缺失、RPC 查询失败或手续费不足
+  /// 都会直接停止后续签名。
+  Future<_TransferPreflight?> _refreshTransferPreflight(
+    ChainBalance asset,
+  ) async {
+    final chain = asset.chainConfig ?? asset.chain!.config;
+    late final List<ChainBalance> freshBalances;
+    try {
+      freshBalances = await _balanceService.loadChainBalances(
+        chain: chain,
+        address: asset.address,
+      );
+    } catch (_) {
+      Toast.show(S.current.transferBalanceRefreshFailed);
+      return null;
+    }
+
+    final assetKey = TransferAssetUtils.assetKey(asset);
+    final refreshedAsset = freshBalances.cast<ChainBalance?>().firstWhere(
+      (candidate) =>
+          candidate != null &&
+          TransferAssetUtils.assetKey(candidate) == assetKey,
+      orElse: () => null,
+    );
+    if (refreshedAsset == null) {
+      Toast.show(S.current.transferBalanceRefreshFailed);
+      return null;
+    }
+    final refreshedNative = _nativeAssetFor(refreshedAsset, freshBalances);
+    if (refreshedAsset.hasError ||
+        refreshedNative == null ||
+        refreshedNative.hasError) {
+      Toast.show(S.current.transferBalanceRefreshFailed);
+      return null;
+    }
+
+    late final TransferFeeEstimate freshFee;
+    try {
+      freshFee = await _transferService.estimateFee(
+        asset: refreshedAsset,
+        toAddress: addressController.text.trim(),
+        amount: amountController.text.trim(),
+      );
+    } catch (_) {
+      Toast.show(S.current.transferFeeRequired);
+      return null;
+    }
+
+    final validation = TransferBalanceValidator.validate(
+      asset: refreshedAsset,
+      nativeAsset: refreshedNative,
+      amount: amountController.text.trim(),
+      feeEstimate: freshFee,
+    );
+    if (!validation.isValid) {
+      _showBalanceValidationFailure(validation.failure!, refreshedAsset);
+      return null;
+    }
+
+    feeEstimate = freshFee;
+    _replaceChainBalances(chain.id, freshBalances);
+    selectedAsset = refreshedAsset;
+    update();
+    return _TransferPreflight(asset: refreshedAsset);
+  }
+
+  ChainBalance? _nativeAssetFor(
+    ChainBalance asset,
+    List<ChainBalance> balances,
+  ) {
+    if (asset.isNative) return asset;
+    for (final candidate in balances) {
+      if (candidate.chainId == asset.chainId && candidate.isNative) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  void _replaceChainBalances(String chainId, List<ChainBalance> freshBalances) {
+    final refreshedByKey = {
+      for (final balance in freshBalances)
+        TransferAssetUtils.assetKey(balance): balance,
+    };
+    final merged = availableAssets.map((balance) {
+      if (balance.chainId != chainId) return balance;
+      return refreshedByKey.remove(TransferAssetUtils.assetKey(balance)) ??
+          balance;
+    }).toList();
+    merged.addAll(refreshedByKey.values);
+    availableAssets = TransferAssetUtils.deduplicateAssets(merged);
+  }
+
+  void _showBalanceValidationFailure(
+    TransferBalanceFailure failure,
+    ChainBalance asset,
+  ) {
+    switch (failure) {
+      case TransferBalanceFailure.insufficientAssetBalance:
+        Toast.show(S.current.transferBalanceInsufficient(asset.symbol));
+      case TransferBalanceFailure.insufficientNativeFeeBalance:
+        final nativeSymbol =
+            _nativeAssetFor(asset, availableAssets)?.symbol ??
+            feeEstimate?.symbol ??
+            asset.chainRef.symbol;
+        Toast.show(
+          S.current.transferNativeFeeBalanceInsufficient(nativeSymbol),
+        );
+      case TransferBalanceFailure.feeUnavailable:
+        Toast.show(S.current.transferFeeRequired);
+      case TransferBalanceFailure.assetBalanceUnavailable:
+      case TransferBalanceFailure.nativeBalanceUnavailable:
+        Toast.show(S.current.transferBalanceRefreshFailed);
     }
   }
 
@@ -541,4 +703,10 @@ class TransferController extends BaseController {
     amountController.dispose();
     super.onClose();
   }
+}
+
+class _TransferPreflight {
+  const _TransferPreflight({required this.asset});
+
+  final ChainBalance asset;
 }

@@ -235,6 +235,21 @@
   "confirmTransfer": "确认转账",
   "transferSubmitted": "交易已提交",
   "transferFailed": "转账失败，请检查地址、数量和链上余额",
+  "transferFeeRequired": "请等待网络手续费估算完成后再继续",
+  "transferBalanceInsufficient": "{symbol} 余额不足",
+  "@transferBalanceInsufficient": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "transferNativeFeeBalanceInsufficient": "{symbol} 余额不足，无法支付网络手续费",
+  "@transferNativeFeeBalanceInsufficient": {
+    "placeholders": {
+      "symbol": {}
+    }
+  },
+  "transferBalanceRefreshFailed": "无法刷新最新链上余额，请稍后重试",
+  "transferMax": "全部",
   "transferUnavailable": "转账信息不可用",
   "availableBalance": "可用余额",
   "selectTransferChain": "转账网络",
@@ -262,10 +277,16 @@
   "transferRiskBurnAddress": "收款地址是常见销毁或系统地址，转入后大概率无法找回。",
   "transferRiskClipboardMismatch": "剪贴板中存在另一个地址，请确认收款地址没有被意外替换。",
   "networkFee": "网络手续费",
-  "estimatedNetworkFee": "预计网络手续费",
-  "networkFeeAsset": "手续费将使用 {symbol} 支付，请确认钱包中有足够余额。",
-  "@networkFeeAsset": {
+  "estimatedNetworkFeeOnNetwork": "{network} 预计网络手续费",
+  "@estimatedNetworkFeeOnNetwork": {
     "placeholders": {
+      "network": {}
+    }
+  },
+  "networkFeeAssetOnNetwork": "{network} 网络使用 {symbol} 支付手续费。",
+  "@networkFeeAssetOnNetwork": {
+    "placeholders": {
+      "network": {},
       "symbol": {}
     }
   },

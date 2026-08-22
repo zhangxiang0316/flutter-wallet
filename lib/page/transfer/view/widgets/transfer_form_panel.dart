@@ -83,7 +83,29 @@ class TransferFormPanel extends StatelessWidget {
               icon: Icons.payments_outlined,
               suffix: asset.symbol,
             ),
-          ).marginOnly(bottom: 16.h),
+          ).marginOnly(bottom: 2.h),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Semantics(
+              button: true,
+              label: S.of(context).transferMax,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  minimumSize: Size(64.w, 38.h),
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  visualDensity: VisualDensity.compact,
+                  textStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                onPressed: controller.isSubmitting
+                    ? null
+                    : controller.fillMaximumAmount,
+                child: Text(S.of(context).transferMax),
+              ),
+            ),
+          ).marginOnly(bottom: 8.h),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(

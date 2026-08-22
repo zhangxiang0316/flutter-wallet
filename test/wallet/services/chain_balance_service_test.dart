@@ -52,6 +52,23 @@ void main() {
       expect(adapter.evmBalanceBatchCount, greaterThan(0));
     });
 
+    test('refreshes only the requested chain for transfer preflight', () async {
+      final dio = Dio();
+      final adapter = FallbackRpcAdapter();
+      dio.httpClientAdapter = adapter;
+      final service = ChainBalanceService(dio: dio);
+
+      final balances = await service.loadChainBalances(
+        chain: WalletChain.bsc.config,
+        address: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
+      );
+
+      expect(balances, isNotEmpty);
+      expect(balances.every((balance) => balance.chainId == 'bsc'), isTrue);
+      expect(balances.firstWhere((balance) => balance.isNative).amount, '1');
+      expect(adapter.solanaMethods, isEmpty);
+    });
+
     test('reports each chain as soon as its balance batch completes', () async {
       final dio = Dio();
       final adapter = FallbackRpcAdapter();
