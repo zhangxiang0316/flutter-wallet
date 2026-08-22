@@ -15,26 +15,6 @@ abstract class BasePage<T extends BaseController> extends GetView<T> {
     Get.back();
   }
 
-  void finishActivity() {
-    Get.back();
-  }
-
-  void showActivity(
-    String path, {
-    dynamic arguments,
-    int? id,
-    bool preventDuplicates = true,
-    Map<String, String>? parameters,
-  }) {
-    Get.toNamed(
-      path,
-      arguments: arguments,
-      id: id,
-      preventDuplicates: preventDuplicates,
-      parameters: parameters,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!Get.isRegistered<T>()) {

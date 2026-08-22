@@ -85,23 +85,6 @@ class ChainBalanceCache {
     }
   }
 
-  /// 清除所有钱包的余额缓存。
-  ///
-  /// 用于强制刷新或重置应用时使用。
-  Future<void> clearAll() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final keys = prefs.getKeys();
-      for (final key in keys) {
-        if (key.startsWith(_keyPrefix)) {
-          await prefs.remove(key);
-        }
-      }
-    } catch (_) {
-      // 清除失败不影响主流程
-    }
-  }
-
   /// 将 ChainBalance 转换为 JSON。
   Map<String, dynamic> _toJson(ChainBalance balance) {
     return {

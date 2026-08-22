@@ -279,11 +279,6 @@ class WalletRepository {
     }
   }
 
-  /// 判断钱包是否存在私钥。
-  Future<bool> hasWalletSecret(String walletId) {
-    return _secretStore.hasPrivateKey(walletId);
-  }
-
   /// 判断钱包是否存在助记词。
   Future<bool> hasWalletMnemonic(String walletId) {
     return _secretStore.hasMnemonic(walletId);

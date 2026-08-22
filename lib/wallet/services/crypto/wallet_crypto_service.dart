@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
@@ -85,23 +84,6 @@ class WalletCryptoService {
       aptosPrivateKey: aptosPrivateKey,
       mnemonic: mnemonic,
     );
-  }
-
-  /// 生成一个随机 EVM 私钥。
-  ///
-  /// 私钥必须在 `(0, secp256k1.n)` 区间内。返回 64 位小写十六进制字符串，
-  /// 不包含 `0x` 前缀。
-  String generatePrivateKeyHex() {
-    final random = Random.secure();
-    BigInt value;
-    do {
-      final bytes = Uint8List.fromList(
-        List<int>.generate(32, (_) => random.nextInt(256)),
-      );
-      value = _bytesToBigInt(bytes);
-    } while (value == BigInt.zero || value >= _domain.n);
-
-    return value.toRadixString(16).padLeft(64, '0');
   }
 
   /// 导入 EVM 私钥并派生多链地址。

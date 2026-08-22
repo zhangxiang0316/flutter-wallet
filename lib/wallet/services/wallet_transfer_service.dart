@@ -28,7 +28,6 @@ part 'transfer/solana_wallet_transfer.dart';
 part 'transfer/bitcoin_wallet_transfer.dart';
 part 'transfer/sui_wallet_transfer.dart';
 part 'transfer/aptos_wallet_transfer.dart';
-part 'transfer/wallet_transfer_signing.dart';
 
 /// 钱包转账服务。
 ///

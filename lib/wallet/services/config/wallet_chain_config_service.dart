@@ -145,17 +145,6 @@ class WalletChainConfigService {
     return _storage.setJsonList(_builtinChainOverridesKey, values);
   }
 
-  /// 根据 ID 查找链配置。
-  Future<WalletChainConfig?> findChain(String chainId) async {
-    final chains = await loadAllChains();
-    for (final chain in chains) {
-      if (chain.id == chainId) {
-        return chain;
-      }
-    }
-    return null;
-  }
-
   /// 把从本地读取的资产重新绑定到最新链配置。
   ///
   /// 动态 EVM 链资产持久化时只保存 chainId 和基础链信息，真正 RPC 列表以链配置为准。

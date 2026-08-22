@@ -58,9 +58,7 @@ class BiometricAuth {
   /// [localizedReason] 是向用户显示的原因文本，例如"验证身份以查看私钥"。
   ///
   /// 返回 true 表示认证成功，false 表示用户取消或认证失败。
-  static Future<bool> authenticate({
-    required String localizedReason,
-  }) async {
+  static Future<bool> authenticate({required String localizedReason}) async {
     try {
       developer.log('Starting biometric authentication...');
       final authenticated = await _auth.authenticate(
@@ -89,28 +87,5 @@ class BiometricAuth {
       developer.log('Authentication error: $e');
       return false;
     }
-  }
-
-  /// 停止当前的生物识别认证。
-  ///
-  /// 用于用户取消操作或页面关闭时。
-  static Future<bool> stopAuthentication() async {
-    try {
-      return await _auth.stopAuthentication();
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// 检查设备是否支持指纹识别。
-  static Future<bool> hasFingerprintSupport() async {
-    final biometrics = await getAvailableBiometrics();
-    return biometrics.contains(BiometricType.fingerprint);
-  }
-
-  /// 检查设备是否支持面容识别。
-  static Future<bool> hasFaceSupport() async {
-    final biometrics = await getAvailableBiometrics();
-    return biometrics.contains(BiometricType.face);
   }
 }

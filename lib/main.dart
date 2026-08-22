@@ -43,15 +43,6 @@ class ThemeController extends GetxController {
     await _storage.setString(_themeKey, mode.toString());
   }
 
-  // 切换主题并持久化 (Legacy)
-  Future<void> switchTheme() async {
-    if (themeMode.value == ThemeMode.light) {
-      setThemeMode(ThemeMode.dark);
-    } else {
-      setThemeMode(ThemeMode.light);
-    }
-  }
-
   // 将字符串还原为 ThemeMode
   ThemeMode _getThemeModeFromString(String theme) {
     if (theme.contains('dark')) {

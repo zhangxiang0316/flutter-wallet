@@ -5,8 +5,6 @@ import 'package:get/get.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
-import 'home_styles.dart';
-
 part 'wallet_overview/wallet_balance_hero.dart';
 part 'wallet_overview/wallet_panel.dart';
 part 'wallet_overview/wallet_picker.dart';
@@ -67,7 +65,6 @@ class WalletOverviewCard extends StatelessWidget {
           onReceivePressed: onReceivePressed,
           onTransferPressed: onTransferPressed,
         ).marginOnly(bottom: 12.h),
-        // const _PrimaryWalletPanel(),
       ],
     );
   }

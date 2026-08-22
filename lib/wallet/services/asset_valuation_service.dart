@@ -100,22 +100,6 @@ class AssetValuationService {
     return DateTime.now().difference(cachedAt) < _priceCacheTtl;
   }
 
-  /// 拉取价格并计算总资产 USD 估值。
-  ///
-  /// 价格请求失败时不向外抛错，而是使用空价格表继续计算。这样首页不会因为
-  /// 第三方行情接口异常而进入错误状态，最多显示为 `--` 或只统计稳定币。
-  Future<Decimal?> loadTotalUsdValue(List<ChainBalance> balances) async {
-    Map<String, Decimal> prices;
-    try {
-      prices = await loadUsdPrices(balances);
-    } catch (_) {
-      prices = const {};
-    }
-    final total = calculateTotalUsdValue(balances, prices: prices);
-    _logValuation(balances, prices, total);
-    return total;
-  }
-
   /// 根据余额列表拉取所需非稳定币价格。
   ///
   /// 这里只会提取服务已支持的非稳定币符号。稳定币无需询价，自定义但未配置
@@ -311,36 +295,6 @@ class AssetValuationService {
       return _oneUsd;
     }
     return prices[normalized];
-  }
-
-  /// 打印估值过程日志。
-  ///
-  /// 该日志用于排查“总资产不对”这类问题，会列出每个资产的原始数量、
-  /// 解析后的数量、匹配到的价格、计算出的价值以及链上查询错误。
-  void _logValuation(
-    List<ChainBalance> balances,
-    Map<String, Decimal> prices,
-    Decimal? total,
-  ) {
-    final buffer = StringBuffer()
-      ..writeln('----- AssetValuationService.loadTotalUsdValue -----')
-      ..writeln('prices=$prices')
-      ..writeln('total=${total?.toStringAsFixed(8) ?? '-'}');
-
-    for (final balance in balances) {
-      final amount = Decimal.tryParse(balance.amount);
-      final price = priceForSymbol(balance.symbol, prices);
-      final value = amount == null || price == null ? null : amount * price;
-      buffer.writeln(
-        '${balance.chainId}/${balance.symbol} '
-        'amount=${balance.amount} parsedAmount=${amount?.toString() ?? '-'} '
-        'price=${price?.toString() ?? '-'} '
-        'value=${value?.toStringAsFixed(8) ?? '-'} '
-        'error=${balance.error ?? '-'}',
-      );
-    }
-
-    developer.log(buffer.toString(), name: 'AssetValuationService');
   }
 
   /// 打印本次需要请求价格的币种列表。

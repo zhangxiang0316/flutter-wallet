@@ -54,8 +54,6 @@ class WalletChainRpcHealthReport {
           ..sort((left, right) => left.latencyMs!.compareTo(right.latencyMs!));
     return available.isEmpty ? null : available.first;
   }
-
-  bool get hasAvailableRpc => bestAvailableResult != null;
 }
 
 /// RPC 健康检查服务。

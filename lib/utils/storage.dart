@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// SharedPreferences 封装。
 ///
 /// 新代码优先使用类型化方法，例如 [getString]、[getJsonList]、[setJsonList]。
-/// [getStorage]、[setStorage]、[removeStorage] 保留给旧调用方做兼容迁移。
+/// [getStorage]、[setStorage] 保留给旧调用方做兼容迁移。
 class Storage {
   static final Storage _instance = Storage._();
 
@@ -63,26 +63,6 @@ class Storage {
     return prefs.getString(key);
   }
 
-  Future<int?> getInt(String key) async {
-    final prefs = await _preferences;
-    return prefs.getInt(key);
-  }
-
-  Future<double?> getDouble(String key) async {
-    final prefs = await _preferences;
-    return prefs.getDouble(key);
-  }
-
-  Future<bool?> getBool(String key) async {
-    final prefs = await _preferences;
-    return prefs.getBool(key);
-  }
-
-  Future<List<String>?> getStringList(String key) async {
-    final prefs = await _preferences;
-    return prefs.getStringList(key);
-  }
-
   Future<List<dynamic>?> getJsonList(String key) async {
     final value = await getValue(key);
     if (value is List) {
@@ -108,26 +88,6 @@ class Storage {
     await prefs.setString(key, value);
   }
 
-  Future<void> setInt(String key, int value) async {
-    final prefs = await _preferences;
-    await prefs.setInt(key, value);
-  }
-
-  Future<void> setDouble(String key, double value) async {
-    final prefs = await _preferences;
-    await prefs.setDouble(key, value);
-  }
-
-  Future<void> setBool(String key, bool value) async {
-    final prefs = await _preferences;
-    await prefs.setBool(key, value);
-  }
-
-  Future<void> setStringList(String key, List<String> value) async {
-    final prefs = await _preferences;
-    await prefs.setStringList(key, value);
-  }
-
   Future<void> setJsonList(String key, List<dynamic> value) async {
     final prefs = await _preferences;
     await prefs.setString(key, jsonEncode(value));
@@ -138,29 +98,9 @@ class Storage {
     await prefs.setString(key, jsonEncode(value));
   }
 
-  Future<bool> hasKey(String key) async {
-    final prefs = await _preferences;
-    return prefs.containsKey(key);
-  }
-
   Future<bool> remove(String key) async {
     final prefs = await _preferences;
     return prefs.remove(key);
-  }
-
-  /// 兼容旧入口。
-  Future<bool> removeStorage(String key) {
-    return remove(key);
-  }
-
-  Future<bool> clear() async {
-    final prefs = await _preferences;
-    return prefs.clear();
-  }
-
-  Future<Set<String>> getKeys() async {
-    final prefs = await _preferences;
-    return prefs.getKeys();
   }
 
   dynamic _decodeJsonString(Object? value) {

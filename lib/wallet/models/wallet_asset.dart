@@ -645,25 +645,6 @@ class WalletAssetRegistry {
     return assets;
   }
 
-  static WalletAsset? findTronAsset(String contractAddress) {
-    return findAssetByContract(WalletChain.tron, contractAddress);
-  }
-
-  static WalletAsset? findAssetByContract(
-    WalletChain chain,
-    String contractAddress, {
-    List<WalletAsset> customAssets = const [],
-  }) {
-    final normalized = _contractKey(chain, contractAddress);
-    final assets = mergeCustomAssets(chain, customAssets);
-    for (final asset in assets) {
-      if (_contractKey(chain, asset.contractAddress) == normalized) {
-        return asset;
-      }
-    }
-    return null;
-  }
-
   static String _assetContractKey(WalletAsset asset) {
     return '${asset.chainId}:${_contractKey(asset.chainRef, asset.contractAddress)}';
   }

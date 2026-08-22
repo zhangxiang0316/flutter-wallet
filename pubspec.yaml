@@ -8,7 +8,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: 1.0.8
   get: ^4.6.6
   flutter_screenutil: ^5.9.3
   flutter_localizations:
@@ -22,18 +21,10 @@ dependencies:
   pointycastle: ^4.0.0
   ed25519_edwards: ^0.3.1
   bip39_mnemonic: ^4.0.1
-  json_annotation: ^4.9.0
-  cached_network_image: ^3.4.1
   flutter_smart_dialog: ^4.9.8
-  styled_widget: ^0.4.1
-  pretty_dio_logger: ^1.4.0
   getx_route_annotations: ^1.0.2
   local_auth: ^2.3.0
-  flutter_svg: ^2.2.3
-  image_picker: ^1.2.1
-  easy_refresh: ^3.4.0
   decimal: ^3.2.4
-  rational: ^2.2.3
   flutter_secure_storage: ^9.2.4
   solana: ^0.32.0+1
   sui: ^0.5.0
@@ -52,7 +43,6 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   intl_utils: ^2.8.7
   build_runner: ^2.4.13
-  json_serializable: ^6.8.0
   getx_route_generator: ^1.0.2
 
 flutter:

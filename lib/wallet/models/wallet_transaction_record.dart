@@ -56,8 +56,6 @@ class WalletTransactionRecord {
   final int? blockNumber;
   final DateTime? timestamp;
 
-  bool get isIncoming => direction == WalletTransactionDirection.incoming;
-
   bool get isOutgoing => direction == WalletTransactionDirection.outgoing;
 
   WalletTransactionRecord copyWith({

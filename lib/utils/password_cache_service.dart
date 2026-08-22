@@ -123,29 +123,6 @@ class PasswordCacheService {
   static Future<bool> hasCachedPassword(String walletId) async {
     return await getCachedPassword(walletId) != null;
   }
-
-  /// 获取缓存剩余时间（秒）。
-  ///
-  /// 如果没有缓存或已禁用，返回 0。
-  static Future<int> getRemainingSeconds(String walletId) async {
-    final normalizedWalletId = walletId.trim();
-    final enabled = await isEnabled();
-    final cached = _cachedPasswords[normalizedWalletId];
-    if (!enabled || normalizedWalletId.isEmpty || cached == null) {
-      return 0;
-    }
-
-    final expiryMinutes = await getExpiryMinutes();
-    final elapsed = DateTime.now().difference(cached.cachedAt);
-    final expiry = Duration(minutes: expiryMinutes);
-
-    if (elapsed > expiry) {
-      clearCache(walletId: normalizedWalletId);
-      return 0;
-    }
-
-    return (expiry - elapsed).inSeconds;
-  }
 }
 
 class _CachedPassword {

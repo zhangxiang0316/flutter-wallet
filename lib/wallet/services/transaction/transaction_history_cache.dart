@@ -247,21 +247,4 @@ class TransactionHistoryCache {
       // 清除失败不影响主流程
     }
   }
-
-  /// 清除所有交易记录缓存。
-  ///
-  /// 用于强制刷新或重置应用时使用。
-  Future<void> clearAll() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final keys = prefs.getKeys();
-      for (final key in keys) {
-        if (key.startsWith(_keyPrefix) || key.startsWith(_localKeyPrefix)) {
-          await prefs.remove(key);
-        }
-      }
-    } catch (_) {
-      // 清除失败不影响主流程
-    }
-  }
 }

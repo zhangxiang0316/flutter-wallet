@@ -16,9 +16,6 @@ class TransactionRisk {
     required this.icon,
     required this.color,
   });
-
-  /// 是否需要显示警告
-  bool get shouldWarn => level != RiskLevel.low;
 }
 
 /// 交易风险检测器
