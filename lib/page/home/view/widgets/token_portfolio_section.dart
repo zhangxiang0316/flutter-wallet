@@ -5,6 +5,7 @@ import 'package:decimal/decimal.dart';
 
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/token_portfolio.dart';
+import '../../../../wallet/services/chain_balance_cache.dart';
 import '../../../../wallet/utils/asset_amount_formatter.dart';
 import 'home_styles.dart';
 
@@ -14,11 +15,19 @@ class TokenPortfolioSection extends StatelessWidget {
     super.key,
     required this.items,
     required this.isLoading,
+    required this.snapshotSource,
+    required this.refreshStatus,
+    required this.balanceAsOf,
+    required this.isStale,
     required this.onTokenTap,
   });
 
   final List<TokenPortfolioItem> items;
   final bool isLoading;
+  final BalanceSnapshotSource? snapshotSource;
+  final BalanceRefreshStatus refreshStatus;
+  final DateTime? balanceAsOf;
+  final bool isStale;
   final ValueChanged<TokenPortfolioItem> onTokenTap;
 
   @override
@@ -28,25 +37,37 @@ class TokenPortfolioSection extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 2.w),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  S.of(context).tokenAssets,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w900,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      S.of(context).tokenAssets,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
-                ),
+                  if (isLoading && items.isNotEmpty)
+                    SizedBox(
+                      width: 14.w,
+                      height: 14.w,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.8,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                ],
               ),
-              if (isLoading && items.isNotEmpty)
-                SizedBox(
-                  width: 14.w,
-                  height: 14.w,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.8,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+              if (_shouldShowSnapshotStatus)
+                _BalanceSnapshotStatus(
+                  source: snapshotSource,
+                  refreshStatus: refreshStatus,
+                  asOf: balanceAsOf,
+                  isStale: isStale,
                 ),
             ],
           ),
@@ -85,6 +106,109 @@ class TokenPortfolioSection extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  bool get _shouldShowSnapshotStatus {
+    return balanceAsOf != null ||
+        refreshStatus == BalanceRefreshStatus.refreshing ||
+        refreshStatus == BalanceRefreshStatus.partialFailure ||
+        refreshStatus == BalanceRefreshStatus.failure;
+  }
+}
+
+class _BalanceSnapshotStatus extends StatelessWidget {
+  const _BalanceSnapshotStatus({
+    required this.source,
+    required this.refreshStatus,
+    required this.asOf,
+    required this.isStale,
+  });
+
+  final BalanceSnapshotSource? source;
+  final BalanceRefreshStatus refreshStatus;
+  final DateTime? asOf;
+  final bool isStale;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasError =
+        refreshStatus == BalanceRefreshStatus.partialFailure ||
+        refreshStatus == BalanceRefreshStatus.failure;
+    final foreground = hasError || isStale
+        ? colorScheme.error
+        : colorScheme.onSurface.withValues(alpha: 0.56);
+    final labels = <String>[
+      if (isStale) S.of(context).balanceDataStale,
+      if (source != null) _sourceLabel(context, source!),
+      if (asOf != null)
+        S.of(context).balanceDataAsOf(_formatAsOf(context, asOf!)),
+      _refreshLabel(context, refreshStatus),
+    ].where((label) => label.isNotEmpty).toList(growable: false);
+
+    return Container(
+      margin: EdgeInsets.only(top: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+      decoration: BoxDecoration(
+        color: foreground.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(6.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            hasError || isStale
+                ? Icons.history_toggle_off_rounded
+                : Icons.cloud_done_outlined,
+            size: 13.w,
+            color: foreground,
+          ).marginOnly(right: 5.w, top: 1.h),
+          Expanded(
+            child: Text(
+              labels.join(' · '),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: foreground,
+                fontSize: 9.5.sp,
+                height: 1.3,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _sourceLabel(BuildContext context, BalanceSnapshotSource source) {
+    return switch (source) {
+      BalanceSnapshotSource.network => S.of(context).balanceSourceNetwork,
+      BalanceSnapshotSource.cache => S.of(context).balanceSourceCache,
+      BalanceSnapshotSource.mixed => S.of(context).balanceSourceMixed,
+    };
+  }
+
+  String _refreshLabel(BuildContext context, BalanceRefreshStatus status) {
+    return switch (status) {
+      BalanceRefreshStatus.idle => '',
+      BalanceRefreshStatus.refreshing => S.of(context).balanceRefreshing,
+      BalanceRefreshStatus.success => S.of(context).balanceRefreshSuccess,
+      BalanceRefreshStatus.partialFailure =>
+        S.of(context).balanceRefreshPartialFailure,
+      BalanceRefreshStatus.failure => S.of(context).balanceRefreshFailure,
+    };
+  }
+
+  String _formatAsOf(BuildContext context, DateTime value) {
+    final local = value.toLocal();
+    final material = MaterialLocalizations.of(context);
+    final date = material.formatCompactDate(local);
+    final time = material.formatTimeOfDay(
+      TimeOfDay.fromDateTime(local),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    );
+    return '$date $time';
   }
 }
 

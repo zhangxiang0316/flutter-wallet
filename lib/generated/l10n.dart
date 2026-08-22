@@ -1200,6 +1200,96 @@ class S {
     );
   }
 
+  /// `Stale data`
+  String get balanceDataStale {
+    return Intl.message(
+      'Stale data',
+      name: 'balanceDataStale',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network`
+  String get balanceSourceNetwork {
+    return Intl.message(
+      'Network',
+      name: 'balanceSourceNetwork',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cache`
+  String get balanceSourceCache {
+    return Intl.message(
+      'Cache',
+      name: 'balanceSourceCache',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network + cache`
+  String get balanceSourceMixed {
+    return Intl.message(
+      'Network + cache',
+      name: 'balanceSourceMixed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `As of {time}`
+  String balanceDataAsOf(Object time) {
+    return Intl.message(
+      'As of $time',
+      name: 'balanceDataAsOf',
+      desc: '',
+      args: [time],
+    );
+  }
+
+  /// `Refreshing`
+  String get balanceRefreshing {
+    return Intl.message(
+      'Refreshing',
+      name: 'balanceRefreshing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Up to date`
+  String get balanceRefreshSuccess {
+    return Intl.message(
+      'Up to date',
+      name: 'balanceRefreshSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Some networks failed`
+  String get balanceRefreshPartialFailure {
+    return Intl.message(
+      'Some networks failed',
+      name: 'balanceRefreshPartialFailure',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refresh failed`
+  String get balanceRefreshFailure {
+    return Intl.message(
+      'Refresh failed',
+      name: 'balanceRefreshFailure',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Loading...`
   String get loading {
     return Intl.message(

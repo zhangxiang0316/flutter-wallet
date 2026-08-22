@@ -152,6 +152,20 @@
   },
   "cancel": "Cancel",
   "balanceLoadFailed": "Some balance lookups failed",
+  "balanceDataStale": "Stale data",
+  "balanceSourceNetwork": "Network",
+  "balanceSourceCache": "Cache",
+  "balanceSourceMixed": "Network + cache",
+  "balanceDataAsOf": "As of {time}",
+  "@balanceDataAsOf": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "balanceRefreshing": "Refreshing",
+  "balanceRefreshSuccess": "Up to date",
+  "balanceRefreshPartialFailure": "Some networks failed",
+  "balanceRefreshFailure": "Refresh failed",
   "loading": "Loading...",
   "securityNotice": "Security notice",
   "securityNoticeDetail": "Private keys are encrypted with your wallet password and saved in secure device storage. Keep the password safe; this is not hardware-wallet grade security.",

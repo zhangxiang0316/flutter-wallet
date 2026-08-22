@@ -152,6 +152,20 @@
   },
   "cancel": "取消",
   "balanceLoadFailed": "部分余额查询失败",
+  "balanceDataStale": "旧数据",
+  "balanceSourceNetwork": "链上数据",
+  "balanceSourceCache": "缓存数据",
+  "balanceSourceMixed": "链上与缓存混合",
+  "balanceDataAsOf": "更新于 {time}",
+  "@balanceDataAsOf": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "balanceRefreshing": "正在刷新",
+  "balanceRefreshSuccess": "已是最新",
+  "balanceRefreshPartialFailure": "部分网络刷新失败",
+  "balanceRefreshFailure": "刷新失败",
   "loading": "加载中...",
   "securityNotice": "安全提醒",
   "securityNoticeDetail": "私钥会使用钱包密码加密后保存到系统安全存储。请牢记密码，当前版本仍不等同于硬件钱包安全级别。",

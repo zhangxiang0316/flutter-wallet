@@ -169,6 +169,10 @@ class HomePage extends BaseScaffoldPage<HomeController> {
                     child: TokenPortfolioSection(
                       items: controller.tokenPortfolioItems,
                       isLoading: controller.isLoading,
+                      snapshotSource: controller.balanceSnapshotSource,
+                      refreshStatus: controller.balanceRefreshStatus,
+                      balanceAsOf: controller.balanceAsOf,
+                      isStale: controller.isBalanceDataStale,
                       onTokenTap: _openTokenPortfolioDetailPage,
                     ),
                   ),

@@ -17,9 +17,13 @@ extension HomeControllerBalance on HomeController {
     await _applyCachedBalances(currentWallet);
 
     isLoading = true;
+    balanceRefreshStatus = BalanceRefreshStatus.refreshing;
+    balanceRefreshError = null;
     _updateBalanceView();
 
     try {
+      final previousBalances = balances;
+      final previousAsOf = balanceAsOf;
       final nextBalances = await _balanceService.loadBalances(
         bscAddress: currentWallet.bscAddress,
         tronAddress: currentWallet.tronAddress,
@@ -41,8 +45,50 @@ extension HomeControllerBalance on HomeController {
         return;
       }
 
-      balances = _preserveLastSuccessfulBalances(nextBalances, balances);
-      await _balanceCache.save(currentWallet.id, balances);
+      final failedBalances = nextBalances.where((balance) => balance.hasError);
+      final allFailed =
+          nextBalances.isEmpty || failedBalances.length == nextBalances.length;
+      balances = _preserveLastSuccessfulBalances(
+        nextBalances,
+        previousBalances,
+      );
+
+      if (allFailed) {
+        balanceSnapshotSource = previousBalances.isEmpty
+            ? BalanceSnapshotSource.network
+            : balanceSnapshotSource ?? BalanceSnapshotSource.cache;
+        balanceRefreshStatus = BalanceRefreshStatus.failure;
+        balanceRefreshError = 'balance_refresh_failed';
+        isBalanceDataStale = balances.isNotEmpty;
+        Toast.show(S.current.balanceLoadFailed);
+      } else {
+        final hasPartialFailure = failedBalances.isNotEmpty;
+        final refreshedAt = DateTime.now();
+        balanceAsOf = hasPartialFailure && previousAsOf != null
+            ? previousAsOf
+            : refreshedAt;
+        balanceSnapshotSource = hasPartialFailure && previousBalances.isNotEmpty
+            ? BalanceSnapshotSource.mixed
+            : BalanceSnapshotSource.network;
+        balanceRefreshStatus = hasPartialFailure
+            ? BalanceRefreshStatus.partialFailure
+            : BalanceRefreshStatus.success;
+        balanceRefreshError = hasPartialFailure
+            ? 'balance_refresh_partial'
+            : null;
+        isBalanceDataStale = hasPartialFailure;
+        await _balanceCache.save(
+          currentWallet.id,
+          ChainBalanceSnapshot(
+            balances: balances,
+            asOf: balanceAsOf!,
+            source: balanceSnapshotSource!,
+            refreshStatus: balanceRefreshStatus,
+            isStale: isBalanceDataStale,
+            error: balanceRefreshError,
+          ),
+        );
+      }
       await _refreshBalanceDisplayState();
       isLoading = false;
       _updateBalanceView();
@@ -57,6 +103,9 @@ extension HomeControllerBalance on HomeController {
       _updateBalanceView();
     } catch (_) {
       if (_isActiveBalanceRequest(requestId, currentWallet)) {
+        balanceRefreshStatus = BalanceRefreshStatus.failure;
+        balanceRefreshError = 'balance_refresh_failed';
+        isBalanceDataStale = balances.isNotEmpty;
         Toast.show(S.current.balanceLoadFailed);
       }
     } finally {
@@ -68,14 +117,22 @@ extension HomeControllerBalance on HomeController {
   }
 
   Future<void> _applyCachedBalances(WalletAccount currentWallet) async {
-    final cachedBalances = await _balanceCache.load(
+    final currentChains = await _chainConfigService.loadEnabledChains();
+    chains = currentChains;
+    final snapshot = await _balanceCache.load(
       currentWallet.id,
+      chains: currentChains,
       allowStale: true,
     );
-    if (cachedBalances == null || cachedBalances.isEmpty) {
+    if (snapshot == null || snapshot.balances.isEmpty) {
       return;
     }
-    balances = cachedBalances;
+    balances = snapshot.balances;
+    balanceAsOf = snapshot.asOf;
+    balanceSnapshotSource = snapshot.source;
+    balanceRefreshStatus = snapshot.refreshStatus;
+    balanceRefreshError = snapshot.error;
+    isBalanceDataStale = snapshot.isStale || snapshot.hasError;
     await _refreshBalanceDisplayState();
     _updateBalanceView();
   }
@@ -147,6 +204,11 @@ extension HomeControllerBalance on HomeController {
     tokenPortfolioItems = [];
     totalAssetsText = '--';
     isLoading = false;
+    balanceAsOf = null;
+    balanceSnapshotSource = null;
+    balanceRefreshStatus = BalanceRefreshStatus.idle;
+    isBalanceDataStale = false;
+    balanceRefreshError = null;
   }
 
   /// 根据用户资产显示配置过滤余额列表。

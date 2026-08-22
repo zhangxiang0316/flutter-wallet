@@ -97,6 +97,21 @@ class HomeController extends BaseController {
   /// 防止重复发起余额刷新，并驱动刷新按钮和链卡片 loading 状态。
   bool isLoading = false;
 
+  /// 当前展示余额对应的数据时间。
+  DateTime? balanceAsOf;
+
+  /// 当前展示余额来自网络、缓存或两者混合。
+  BalanceSnapshotSource? balanceSnapshotSource;
+
+  /// 当前余额刷新状态。
+  BalanceRefreshStatus balanceRefreshStatus = BalanceRefreshStatus.idle;
+
+  /// 当前余额是否包含超过有效期或刷新失败后保留的旧数据。
+  bool isBalanceDataStale = false;
+
+  /// 最近一次刷新错误代码，仅用于驱动明确的错误状态，不直接展示底层异常。
+  String? balanceRefreshError;
+
   /// 首次进入首页且尚无任何可展示的余额/资产数据时为 true。
   ///
   /// 该状态只用于代币列表骨架；钱包卡片和安全提示始终立即展示。
