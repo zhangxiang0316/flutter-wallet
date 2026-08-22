@@ -96,6 +96,13 @@ extension _TronWalletTransfer on WalletTransferService {
             amount: value,
           );
 
+    _validateTronTransactionForSigning(
+      privateKeyHex: privateKeyHex,
+      transaction: transaction,
+      asset: asset,
+      toAddress: toAddress,
+      amount: value,
+    );
     final signedTransaction = _signTronTransaction(
       privateKeyHex: privateKeyHex,
       transaction: transaction,

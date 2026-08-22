@@ -24,6 +24,10 @@ void main() {
           '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf',
         );
         expect(keyPair.tronAddress, 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC');
+        expect(
+          service.tronAddressFromPrivateKey(keyPair.privateKeyHex),
+          keyPair.tronAddress,
+        );
         expect(keyPair.bitcoinAddress, startsWith('bc1q'));
         expect(
           WalletTransferService.normalizeSuiAddress(keyPair.suiAddress),

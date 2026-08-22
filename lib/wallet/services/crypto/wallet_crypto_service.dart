@@ -187,6 +187,17 @@ class WalletCryptoService {
     return _bitcoinP2wpkhAddress(privateKey);
   }
 
+  /// 根据 secp256k1 私钥生成 TRON Base58Check 地址。
+  ///
+  /// 转账签名前可使用该方法验证实际 signer 与交易发送地址一致；这里只派生 TRON
+  /// 地址，避免为一次校验额外创建其他链的密钥对。
+  String tronAddressFromPrivateKey(String input) {
+    final privateKey = normalizePrivateKey(input);
+    final publicKey = _publicKeyFromPrivateKey(privateKey);
+    final ethAddressBytes = _ethereumAddressBytes(publicKey);
+    return _base58CheckEncode(Uint8List.fromList([0x41, ...ethAddressBytes]));
+  }
+
   /// 标准化并校验助记词。
   ///
   /// 会去掉首尾空白、压缩多个空白字符、统一转小写，并交给 bip39_mnemonic

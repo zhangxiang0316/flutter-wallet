@@ -21,9 +21,11 @@ import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_chain_extensions.dart';
 import '../utils/rpc_retry_helper.dart';
+import 'crypto/wallet_crypto_service.dart';
 
 part 'transfer/evm_wallet_transfer.dart';
 part 'transfer/tron_wallet_transfer.dart';
+part 'transfer/tron_transaction_validator.dart';
 part 'transfer/solana_wallet_transfer.dart';
 part 'transfer/bitcoin_wallet_transfer.dart';
 part 'transfer/sui_wallet_transfer.dart';
