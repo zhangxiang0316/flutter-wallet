@@ -198,6 +198,16 @@ class WalletCryptoService {
     return _base58CheckEncode(Uint8List.fromList([0x41, ...ethAddressBytes]));
   }
 
+  /// 根据 secp256k1 私钥派生 EVM 地址。
+  ///
+  /// 转账服务在签名前使用该方法校验实际 signer 与资产发送地址一致。
+  String evmAddressFromPrivateKey(String input) {
+    final privateKey = normalizePrivateKey(input);
+    final publicKey = _publicKeyFromPrivateKey(privateKey);
+    final addressBytes = _ethereumAddressBytes(publicKey);
+    return _toChecksumEthereumAddress('0x${hex.encode(addressBytes)}');
+  }
+
   /// 标准化并校验助记词。
   ///
   /// 会去掉首尾空白、压缩多个空白字符、统一转小写，并交给 bip39_mnemonic

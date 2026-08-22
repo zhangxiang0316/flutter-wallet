@@ -124,9 +124,9 @@ TRON 转账先请求 RPC 节点创建交易，然后直接对节点返回的 `ra
 - “全部转出”不会因为遗漏手续费而失败；
 - 所有计算使用 `Decimal` 或链上最小单位 `BigInt`。
 
-### 3.3 EVM Gas、nonce 和签名交易一致性
+### 3.3 EVM Gas、nonce 和签名交易一致性（已完成，2026-08-22）
 
-#### 当前问题
+#### 改造前问题
 
 EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使用固定 Gas Limit。nonce 使用 `latest`，有未确认交易时可能重复使用 nonce。发送前也没有显式校验私钥派生地址与资产发送地址一致。
 
@@ -137,9 +137,9 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
 - `lib/wallet/services/transfer/evm_wallet_transfer.dart:117`
 - `lib/wallet/services/transfer/evm_wallet_transfer.dart:131`
 
-#### 改造任务
+#### 已完成任务
 
-1. 建立不可变的 EVM 交易草稿对象，保存：
+1. [x] 建立不可变的 EVM 交易草稿对象，保存：
    - chain ID；
    - from/to；
    - value/data；
@@ -147,13 +147,14 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
    - gas limit；
    - gas price 或 EIP-1559 参数；
    - 最大手续费。
-2. 发送时使用确认页展示过的 Gas 参数，不再回退到另一套固定值。
-3. `eth_getTransactionCount` 使用 `pending`。
-4. `eth_estimateGas` 结果增加合理安全系数，并设置明确上限。
-5. 增加 EIP-1559 `maxFeePerGas` 和 `maxPriorityFeePerGas` 支持。
-6. 私钥派生地址必须与 `asset.address` 一致。
-7. 签名前可选执行 `eth_call` 或交易模拟。
-8. 为 Base 等 L2 保留 L1 数据费并绑定到确认结果。
+2. [x] 确认前刷新余额并生成草稿；发送时复用确认页展示的草稿，不再重新请求或使用固定 Gas 参数。
+3. [x] `eth_getTransactionCount` 使用 `pending`。
+4. [x] `eth_estimateGas` 增加 20% 安全系数，并设置 1,500,000 Gas 的拒绝上限；只有 RPC 估算失败时才使用链类型兜底值。
+5. [x] 根据最新区块 `baseFeePerGas` 自动选择 EIP-1559，支持 `maxFeePerGas`、`maxPriorityFeePerGas` 和 type-2 签名；不支持时回退 legacy。
+6. [x] 私钥派生 EVM 地址必须与 `asset.address` 和草稿 `from` 一致。
+7. [x] 签名前使用草稿的 from/to/value/data/Gas 参数执行 `eth_call` 模拟。
+8. [x] Base L1 数据费上限写入草稿并计入确认页最大手续费，签名广播期间保持不变。
+9. [x] 增加 legacy、EIP-1559、pending nonce、非标准 Token Gas、Gas 上限、错误私钥和 Base L1 费回归测试。
 
 #### 验收标准
 

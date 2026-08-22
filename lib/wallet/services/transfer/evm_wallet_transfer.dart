@@ -1,6 +1,10 @@
 part of '../wallet_transfer_service.dart';
 
 const int _baseMainnetChainId = 8453;
+const int _evmGasLimitSafetyNumerator = 120;
+const int _evmGasLimitSafetyDenominator = 100;
+const int _evmMaximumGasLimit = 1500000;
+const int _evmDefaultPriorityFeeWei = 1000000000;
 const String _baseGasPriceOracleAddress =
     '0x420000000000000000000000000000000000000F';
 const List<String> _baseEvmRpcFallbacks = [
@@ -34,58 +38,109 @@ extension _EvmWalletTransfer on WalletTransferService {
     required String toAddress,
     required String amount,
   }) async {
-    final normalizedTo = WalletTransferService.normalizeEvmAddress(toAddress);
-    final value = WalletTransferService.amountToRawUnits(
+    final draft = await _prepareEvmTransaction(
+      asset: asset,
+      toAddress: toAddress,
+      amount: amount,
+    );
+    return TransferFeeEstimate(
+      amount: WalletTransferService.rawUnitsToAmount(draft.maximumFee, 18),
+      symbol: asset.chainRef.symbol,
+      rawAmount: draft.maximumFee,
+      isFallback: draft.usedFallbackGasLimit,
+      evmDraft: draft,
+    );
+  }
+
+  Future<EvmTransactionDraft> _prepareEvmTransaction({
+    required ChainBalance asset,
+    required String toAddress,
+    required String amount,
+  }) async {
+    final chainId = asset.chainRef.evmChainId;
+    if (chainId == null) {
+      throw StateError('${asset.chainRef.name} is not an EVM chain');
+    }
+
+    final normalizedFrom = WalletTransferService.normalizeEvmAddress(
+      asset.address,
+    );
+    final normalizedRecipient = WalletTransferService.normalizeEvmAddress(
+      toAddress,
+    );
+    final transferValue = WalletTransferService.amountToRawUnits(
       amount,
       asset.decimals,
     );
     final isNative = asset.isNative;
-    final txTo = isNative ? normalizedTo : asset.contractAddress!;
-    final txValue = isNative ? value : BigInt.zero;
+    final txTo = isNative
+        ? normalizedRecipient
+        : WalletTransferService.normalizeEvmAddress(asset.contractAddress!);
+    final txValue = isNative ? transferValue : BigInt.zero;
     final data = isNative
         ? '0x'
-        : WalletTransferService.erc20TransferData(normalizedTo, value);
-    final gasPrice = await _evmRpcBigInt(
-      asset.chainRef,
-      'eth_gasPrice',
-      const [],
-    );
-    BigInt gasLimit;
-    var isFallback = false;
-    try {
-      gasLimit = await _evmRpcBigInt(asset.chainRef, 'eth_estimateGas', [
-        {
-          'from': asset.address,
-          'to': txTo,
-          'value': WalletTransferService._hexQuantity(txValue),
-          if (!isNative) 'data': data,
-        },
-      ]);
-    } catch (_) {
-      isFallback = true;
-      gasLimit = BigInt.from(
-        isNative
-            ? WalletTransferService._evmNativeGasLimit
-            : WalletTransferService._evmTokenGasLimit,
-      );
-    }
+        : WalletTransferService.erc20TransferData(
+            normalizedRecipient,
+            transferValue,
+          );
+    final rpcCall = <String, dynamic>{
+      'from': normalizedFrom,
+      'to': txTo,
+      'value': WalletTransferService._hexQuantity(txValue),
+      if (!isNative) 'data': data,
+    };
 
-    var feeWei = gasLimit * gasPrice;
+    final feeParameters = await _loadEvmFeeParameters(asset.chainRef);
+    final nonce = await _evmRpcBigInt(
+      asset.chainRef,
+      'eth_getTransactionCount',
+      [normalizedFrom, 'pending'],
+    );
+
+    BigInt? estimatedGasLimit;
+    try {
+      estimatedGasLimit = await _evmRpcBigInt(
+        asset.chainRef,
+        'eth_estimateGas',
+        [rpcCall],
+      );
+    } catch (_) {
+      estimatedGasLimit = null;
+    }
+    final usedFallbackGasLimit = estimatedGasLimit == null;
+    final gasLimit = estimatedGasLimit == null
+        ? BigInt.from(
+            isNative
+                ? WalletTransferService._evmNativeGasLimit
+                : WalletTransferService._evmTokenGasLimit,
+          )
+        : _applyEvmGasSafetyLimit(estimatedGasLimit);
+
+    var l1DataFee = BigInt.zero;
     if (_isBaseMainnet(asset.chainRef)) {
-      feeWei += await _estimateBaseL1FeeUpperBound(
+      l1DataFee = await _estimateBaseL1FeeUpperBound(
         chain: asset.chainRef,
-        gasPrice: gasPrice,
+        gasPrice: feeParameters.feePerGas,
         gasLimit: gasLimit,
         toAddress: txTo,
         value: txValue,
         data: data,
       );
     }
-    return TransferFeeEstimate(
-      amount: WalletTransferService.rawUnitsToAmount(feeWei, 18),
-      symbol: asset.chainRef.symbol,
-      rawAmount: feeWei,
-      isFallback: isFallback,
+    return EvmTransactionDraft(
+      chainId: chainId,
+      from: normalizedFrom,
+      to: txTo,
+      value: txValue,
+      data: data,
+      nonce: nonce,
+      gasLimit: gasLimit,
+      feeType: feeParameters.feeType,
+      gasPrice: feeParameters.gasPrice,
+      maxFeePerGas: feeParameters.maxFeePerGas,
+      maxPriorityFeePerGas: feeParameters.maxPriorityFeePerGas,
+      l1DataFee: l1DataFee,
+      usedFallbackGasLimit: usedFallbackGasLimit,
     );
   }
 
@@ -98,48 +153,43 @@ extension _EvmWalletTransfer on WalletTransferService {
     required ChainBalance asset,
     required String toAddress,
     required String amount,
+    EvmTransactionDraft? draft,
   }) async {
     final chainId = asset.chainRef.evmChainId;
     if (chainId == null) {
       throw StateError('${asset.chainRef.name} is not an EVM chain');
     }
 
-    final normalizedTo = WalletTransferService.normalizeEvmAddress(toAddress);
-    final value = WalletTransferService.amountToRawUnits(
-      amount,
-      asset.decimals,
+    final signerAddress = WalletCryptoService().evmAddressFromPrivateKey(
+      privateKeyHex,
     );
-    final gasPrice = await _evmRpcBigInt(
-      asset.chainRef,
-      'eth_gasPrice',
-      const [],
+    final expectedFrom = WalletTransferService.normalizeEvmAddress(
+      asset.address,
     );
-    final nonce = await _evmRpcBigInt(
-      asset.chainRef,
-      'eth_getTransactionCount',
-      [asset.address, 'latest'],
-    );
+    if (WalletTransferService.normalizeEvmAddress(signerAddress) !=
+        expectedFrom) {
+      throw StateError('EVM signer does not match transfer sender');
+    }
 
-    final isNative = asset.isNative;
-    final txTo = isNative ? normalizedTo : asset.contractAddress!;
-    final txValue = isNative ? value : BigInt.zero;
-    final data = isNative
-        ? Uint8List(0)
-        : WalletTransferService.hexToBytes(
-            WalletTransferService.erc20TransferData(normalizedTo, value),
-          );
-    final gasLimit = isNative
-        ? WalletTransferService._evmNativeGasLimit
-        : WalletTransferService._evmTokenGasLimit;
+    final transactionDraft =
+        draft ??
+        await _prepareEvmTransaction(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        );
+    _validateEvmDraft(
+      draft: transactionDraft,
+      asset: asset,
+      toAddress: toAddress,
+      amount: amount,
+    );
+    if (simulateEvmTransactions) {
+      await _simulateEvmTransaction(asset.chainRef, transactionDraft);
+    }
     final rawTx = _signEvmTransaction(
       privateKeyHex: privateKeyHex,
-      nonce: nonce,
-      gasPrice: gasPrice,
-      gasLimit: BigInt.from(gasLimit),
-      toAddress: txTo,
-      value: txValue,
-      data: data,
-      chainId: chainId,
+      draft: transactionDraft,
     );
     final response = await _evmRpc(asset.chainRef, 'eth_sendRawTransaction', [
       '0x$rawTx',
@@ -148,6 +198,128 @@ extension _EvmWalletTransfer on WalletTransferService {
       return response;
     }
     throw StateError('${asset.chainRef.name} transfer failed');
+  }
+
+  Future<_EvmFeeParameters> _loadEvmFeeParameters(WalletChainRef chain) async {
+    try {
+      final latestBlock = await _evmRpc(chain, 'eth_getBlockByNumber', [
+        'latest',
+        false,
+      ]);
+      if (latestBlock is Map && latestBlock['baseFeePerGas'] is String) {
+        final baseFee = _parseEvmQuantity(
+          latestBlock['baseFeePerGas'] as String,
+        );
+        if (baseFee > BigInt.zero) {
+          BigInt priorityFee;
+          try {
+            priorityFee = await _evmRpcBigInt(
+              chain,
+              'eth_maxPriorityFeePerGas',
+              const [],
+            );
+          } catch (_) {
+            final suggestedGasPrice = await _evmRpcBigInt(
+              chain,
+              'eth_gasPrice',
+              const [],
+            );
+            priorityFee = suggestedGasPrice > baseFee
+                ? suggestedGasPrice - baseFee
+                : BigInt.from(_evmDefaultPriorityFeeWei);
+          }
+          if (priorityFee <= BigInt.zero) {
+            priorityFee = BigInt.from(_evmDefaultPriorityFeeWei);
+          }
+          return _EvmFeeParameters.eip1559(
+            maxPriorityFeePerGas: priorityFee,
+            maxFeePerGas: baseFee * BigInt.two + priorityFee,
+          );
+        }
+      }
+    } catch (_) {
+      // 不支持 EIP-1559 的节点或网络继续走 legacy gasPrice。
+    }
+    return _EvmFeeParameters.legacy(
+      await _evmRpcBigInt(chain, 'eth_gasPrice', const []),
+    );
+  }
+
+  BigInt _applyEvmGasSafetyLimit(BigInt estimatedGasLimit) {
+    if (estimatedGasLimit <= BigInt.zero) {
+      throw StateError('Invalid EVM gas estimate');
+    }
+    final numerator = BigInt.from(_evmGasLimitSafetyNumerator);
+    final denominator = BigInt.from(_evmGasLimitSafetyDenominator);
+    final buffered =
+        (estimatedGasLimit * numerator + denominator - BigInt.one) ~/
+        denominator;
+    if (buffered > BigInt.from(_evmMaximumGasLimit)) {
+      throw StateError('EVM gas estimate exceeds safety limit');
+    }
+    return buffered;
+  }
+
+  void _validateEvmDraft({
+    required EvmTransactionDraft draft,
+    required ChainBalance asset,
+    required String toAddress,
+    required String amount,
+  }) {
+    final chainId = asset.chainRef.evmChainId;
+    final recipient = WalletTransferService.normalizeEvmAddress(toAddress);
+    final rawAmount = WalletTransferService.amountToRawUnits(
+      amount,
+      asset.decimals,
+    );
+    final expectedTo = asset.isNative
+        ? recipient
+        : WalletTransferService.normalizeEvmAddress(asset.contractAddress!);
+    final expectedValue = asset.isNative ? rawAmount : BigInt.zero;
+    final expectedData = asset.isNative
+        ? '0x'
+        : WalletTransferService.erc20TransferData(recipient, rawAmount);
+    if (draft.chainId != chainId ||
+        draft.from !=
+            WalletTransferService.normalizeEvmAddress(asset.address) ||
+        draft.to != expectedTo ||
+        draft.value != expectedValue ||
+        draft.data.toLowerCase() != expectedData.toLowerCase()) {
+      throw StateError('EVM transaction draft does not match transfer');
+    }
+    if (draft.nonce < BigInt.zero ||
+        draft.gasLimit <= BigInt.zero ||
+        draft.gasLimit > BigInt.from(_evmMaximumGasLimit) ||
+        draft.feePerGas <= BigInt.zero ||
+        draft.l1DataFee < BigInt.zero) {
+      throw StateError('Invalid EVM transaction draft parameters');
+    }
+  }
+
+  Future<void> _simulateEvmTransaction(
+    WalletChainRef chain,
+    EvmTransactionDraft draft,
+  ) async {
+    await _evmRpc(chain, 'eth_call', [
+      {
+        'from': draft.from,
+        'to': draft.to,
+        'value': WalletTransferService._hexQuantity(draft.value),
+        if (draft.data != '0x') 'data': draft.data,
+        'gas': WalletTransferService._hexQuantity(draft.gasLimit),
+        if (draft.feeType == EvmFeeType.legacy)
+          'gasPrice': WalletTransferService._hexQuantity(draft.gasPrice!),
+        if (draft.feeType == EvmFeeType.eip1559) ...{
+          'maxFeePerGas': WalletTransferService._hexQuantity(
+            draft.maxFeePerGas!,
+          ),
+          'maxPriorityFeePerGas': WalletTransferService._hexQuantity(
+            draft.maxPriorityFeePerGas!,
+          ),
+        },
+      },
+      'pending',
+    ]);
   }
 
   /// 发送 TRON 链交易。
@@ -265,44 +437,55 @@ extension _EvmWalletTransfer on WalletTransferService {
     if (result is! String) {
       throw StateError('Invalid ${chain.name} number response');
     }
-    return BigInt.parse(result.replaceFirst('0x', ''), radix: 16);
+    return _parseEvmQuantity(result);
   }
 
-  /// 发送 Solana JSON-RPC 请求并返回 result。
+  BigInt _parseEvmQuantity(String value) {
+    final normalized = value.toLowerCase().replaceFirst('0x', '');
+    if (normalized.isEmpty) {
+      throw const FormatException('Empty EVM quantity');
+    }
+    return BigInt.parse(normalized, radix: 16);
+  }
+
+  /// 使用交易草稿中的原始费用类型签名 EVM 交易。
   String _signEvmTransaction({
     required String privateKeyHex,
-    required BigInt nonce,
-    required BigInt gasPrice,
-    required BigInt gasLimit,
-    required String toAddress,
-    required BigInt value,
-    required Uint8List data,
-    required int chainId,
+    required EvmTransactionDraft draft,
   }) {
     final toBytes = WalletTransferService.hexToBytes(
-      WalletTransferService.normalizeBscAddress(toAddress),
+      WalletTransferService.normalizeBscAddress(draft.to),
     );
+    final data = WalletTransferService.hexToBytes(draft.data);
+    if (draft.feeType == EvmFeeType.eip1559) {
+      return _signEip1559Transaction(
+        privateKeyHex: privateKeyHex,
+        draft: draft,
+        toBytes: toBytes,
+        data: data,
+      );
+    }
     final signingPayload = WalletTransferService._rlpEncode([
-      nonce,
-      gasPrice,
-      gasLimit,
+      draft.nonce,
+      draft.gasPrice!,
+      draft.gasLimit,
       toBytes,
-      value,
+      draft.value,
       data,
-      BigInt.from(chainId),
+      BigInt.from(draft.chainId),
       BigInt.zero,
       BigInt.zero,
     ]);
     final hash = WalletTransferService._keccak(signingPayload);
     final signature = _signHash(privateKeyHex, hash);
     final recoveryId = _findRecoveryId(privateKeyHex, hash, signature);
-    final v = BigInt.from(recoveryId + 35 + chainId * 2);
+    final v = BigInt.from(recoveryId + 35 + draft.chainId * 2);
     final rawPayload = WalletTransferService._rlpEncode([
-      nonce,
-      gasPrice,
-      gasLimit,
+      draft.nonce,
+      draft.gasPrice!,
+      draft.gasLimit,
       toBytes,
-      value,
+      draft.value,
       data,
       v,
       signature.r,
@@ -311,8 +494,74 @@ extension _EvmWalletTransfer on WalletTransferService {
     return hex.encode(rawPayload);
   }
 
+  String _signEip1559Transaction({
+    required String privateKeyHex,
+    required EvmTransactionDraft draft,
+    required Uint8List toBytes,
+    required Uint8List data,
+  }) {
+    final unsignedFields = [
+      BigInt.from(draft.chainId),
+      draft.nonce,
+      draft.maxPriorityFeePerGas!,
+      draft.maxFeePerGas!,
+      draft.gasLimit,
+      toBytes,
+      draft.value,
+      data,
+      const <Object>[],
+    ];
+    final encodedUnsigned = WalletTransferService._rlpEncode(unsignedFields);
+    final signingPayload = Uint8List.fromList([0x02, ...encodedUnsigned]);
+    final hash = WalletTransferService._keccak(signingPayload);
+    final signature = _signHash(privateKeyHex, hash);
+    final recoveryId = _findRecoveryId(privateKeyHex, hash, signature);
+    if (recoveryId > 1) {
+      throw StateError('Unsupported EIP-1559 recovery id');
+    }
+    final signedFields = [
+      ...unsignedFields,
+      BigInt.from(recoveryId),
+      signature.r,
+      signature.s,
+    ];
+    final encodedSigned = WalletTransferService._rlpEncode(signedFields);
+    return hex.encode([0x02, ...encodedSigned]);
+  }
+
   /// 签名 TRON 未签名交易。
   ///
   /// TRON 使用 `sha256(raw_data_hex)` 作为签名哈希，签名结果需要拼接 recoveryId，
   /// 并放入 transaction 的 `signature` 数组。
+}
+
+class _EvmFeeParameters {
+  const _EvmFeeParameters._({
+    required this.feeType,
+    this.gasPrice,
+    this.maxFeePerGas,
+    this.maxPriorityFeePerGas,
+  });
+
+  factory _EvmFeeParameters.legacy(BigInt gasPrice) =>
+      _EvmFeeParameters._(feeType: EvmFeeType.legacy, gasPrice: gasPrice);
+
+  factory _EvmFeeParameters.eip1559({
+    required BigInt maxFeePerGas,
+    required BigInt maxPriorityFeePerGas,
+  }) => _EvmFeeParameters._(
+    feeType: EvmFeeType.eip1559,
+    maxFeePerGas: maxFeePerGas,
+    maxPriorityFeePerGas: maxPriorityFeePerGas,
+  );
+
+  final EvmFeeType feeType;
+  final BigInt? gasPrice;
+  final BigInt? maxFeePerGas;
+  final BigInt? maxPriorityFeePerGas;
+
+  BigInt get feePerGas => switch (feeType) {
+    EvmFeeType.legacy => gasPrice!,
+    EvmFeeType.eip1559 => maxFeePerGas!,
+  };
 }

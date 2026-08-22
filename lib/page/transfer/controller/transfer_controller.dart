@@ -405,6 +405,29 @@ class TransferController extends BaseController {
     }
   }
 
+  /// 在打开交易确认页前刷新余额和费用，并冻结本次 EVM 交易草稿。
+  ///
+  /// 用户在确认页看到的 EVM 最大手续费、nonce 和 Gas 参数会由 [submit] 原样复用，
+  /// 不会在密码确认后悄悄切换到另一套签名参数。
+  Future<bool> prepareTransferReview() async {
+    final asset = currentAsset;
+    if (asset == null || isSubmitting || !validateTransferInput()) {
+      return false;
+    }
+    _feeDebounce?.cancel();
+    _feeRequestId++;
+    isSubmitting = true;
+    isEstimatingFee = true;
+    update();
+    try {
+      return await _refreshTransferPreflight(asset) != null;
+    } finally {
+      isSubmitting = false;
+      isEstimatingFee = false;
+      update();
+    }
+  }
+
   /// 解锁当前钱包并提交交易。
   ///
   /// Solana 需要额外读取 32 字节 seed；Bitcoin 助记词钱包读取 BIP84 派生私钥；
@@ -418,13 +441,21 @@ class TransferController extends BaseController {
       Toast.show(S.current.walletPasswordRequired);
       return;
     }
+    if (asset.chainRef.isEvm && feeEstimate?.evmDraft == null) {
+      Toast.show(S.current.transferFeeRequired);
+      return;
+    }
 
     try {
       isSubmitting = true;
       transactionHash = '';
       submittedStatus = WalletTransactionStatus.unknown;
       update();
-      final preflight = await _refreshTransferPreflight(asset);
+      final confirmedEvmFee = asset.chainRef.isEvm ? feeEstimate : null;
+      final preflight = await _refreshTransferPreflight(
+        asset,
+        confirmedEvmFee: confirmedEvmFee,
+      );
       if (preflight == null) return;
       final verifiedAsset = preflight.asset;
       var privateKeyHex = await _repository.readWalletPrivateKey(
@@ -463,6 +494,7 @@ class TransferController extends BaseController {
         solanaPrivateKey: solanaPrivateKey,
         suiPrivateKey: suiPrivateKey,
         aptosPrivateKey: aptosPrivateKey,
+        evmDraft: confirmedEvmFee?.evmDraft,
       );
       transactionHash = hash;
       submittedStatus = WalletTransactionStatus.pending;
@@ -486,8 +518,9 @@ class TransferController extends BaseController {
   /// 该方法必须在读取私钥之前完成；任何余额缺失、RPC 查询失败或手续费不足
   /// 都会直接停止后续签名。
   Future<_TransferPreflight?> _refreshTransferPreflight(
-    ChainBalance asset,
-  ) async {
+    ChainBalance asset, {
+    TransferFeeEstimate? confirmedEvmFee,
+  }) async {
     final chain = asset.chainConfig ?? asset.chain!.config;
     late final List<ChainBalance> freshBalances;
     try {
@@ -521,11 +554,13 @@ class TransferController extends BaseController {
 
     late final TransferFeeEstimate freshFee;
     try {
-      freshFee = await _transferService.estimateFee(
-        asset: refreshedAsset,
-        toAddress: addressController.text.trim(),
-        amount: amountController.text.trim(),
-      );
+      freshFee =
+          confirmedEvmFee ??
+          await _transferService.estimateFee(
+            asset: refreshedAsset,
+            toAddress: addressController.text.trim(),
+            amount: amountController.text.trim(),
+          );
     } catch (_) {
       Toast.show(S.current.transferFeeRequired);
       return null;
@@ -607,8 +642,9 @@ class TransferController extends BaseController {
 
   /// 根据当前输入实时估算链上手续费。
   ///
-  /// EVM 会走 gas price/estimateGas，TRON 会估算带宽/能量，Solana 当前展示
-  /// 签名费兜底估算。请求返回时会通过 [_feeRequestId] 丢弃旧响应。
+  /// EVM 会生成包含 pending nonce、Gas 和费用参数的完整草稿，TRON 会估算
+  /// 带宽/能量，Solana 当前展示签名费兜底估算。请求返回时会通过
+  /// [_feeRequestId] 丢弃旧响应。
   Future<void> estimateFee() async {
     final asset = currentAsset;
     if (asset == null) return;

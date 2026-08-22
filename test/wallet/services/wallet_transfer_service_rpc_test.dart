@@ -101,11 +101,14 @@ void main() {
         asset: asset,
         toAddress: '0x2222222222222222222222222222222222222222',
         amount: '0.1',
+        evmDraft: estimate.evmDraft,
       );
 
-      expect(estimate.rawAmount, BigInt.from(21001000000000));
-      expect(estimate.amount, '0.00002100');
+      expect(estimate.rawAmount, BigInt.from(25201000000000));
+      expect(estimate.amount, '0.00002520');
       expect(estimate.isFallback, isFalse);
+      expect(estimate.evmDraft?.gasLimit, BigInt.from(25200));
+      expect(estimate.evmDraft?.l1DataFee, BigInt.from(1000000000));
       expect(hash, '0xbasehash');
       expect(adapter.mainnetMethods, contains('eth_gasPrice'));
       expect(adapter.fallbackMethods, contains('eth_call'));
@@ -140,10 +143,11 @@ void main() {
         asset: asset,
         toAddress: '0x2222222222222222222222222222222222222222',
         amount: '0.1',
+        evmDraft: estimate.evmDraft,
       );
 
-      expect(estimate.rawAmount, BigInt.from(21000000000000));
-      expect(estimate.amount, '0.000021');
+      expect(estimate.rawAmount, BigInt.from(25200000000000));
+      expect(estimate.amount, '0.0000252');
       expect(hash, '0xpolygonhash');
       expect(adapter.primaryMethods, contains('eth_gasPrice'));
       expect(adapter.fallbackMethods, contains('eth_estimateGas'));
@@ -176,10 +180,11 @@ void main() {
         asset: asset,
         toAddress: '0x2222222222222222222222222222222222222222',
         amount: '0.1',
+        evmDraft: estimate.evmDraft,
       );
 
-      expect(estimate.rawAmount, BigInt.from(21000000000000));
-      expect(estimate.amount, '0.000021');
+      expect(estimate.rawAmount, BigInt.from(25200000000000));
+      expect(estimate.amount, '0.0000252');
       expect(hash, '0xavalanchehash');
       expect(adapter.primaryMethods, contains('eth_gasPrice'));
       expect(adapter.fallbackMethods, contains('eth_estimateGas'));
@@ -608,14 +613,17 @@ class _BaseTransferAdapter implements HttpClientAdapter {
       if (method == 'eth_call' && data is Map) {
         final params = data['params'];
         final call = params is List && params.isNotEmpty ? params.first : null;
-        if (call is Map) {
+        if (call is Map &&
+            call['to']?.toString().toLowerCase() ==
+                '0x420000000000000000000000000000000000000f') {
           lastOracleCallData = call['data']?.toString();
+          return _jsonResponse({
+            'jsonrpc': '2.0',
+            'id': 1,
+            'result': '0x3b9aca00',
+          });
         }
-        return _jsonResponse({
-          'jsonrpc': '2.0',
-          'id': 1,
-          'result': '0x3b9aca00',
-        });
+        return _jsonResponse({'jsonrpc': '2.0', 'id': 1, 'result': '0x'});
       }
       final result = switch (method) {
         'eth_gasPrice' => '0x3b9aca00',

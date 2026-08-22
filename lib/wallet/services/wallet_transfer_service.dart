@@ -18,6 +18,7 @@ import 'package:aptos/aptos.dart' as aptos;
 
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
+import '../models/evm_transaction_draft.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_chain_extensions.dart';
 import '../utils/rpc_retry_helper.dart';
@@ -34,7 +35,7 @@ part 'transfer/aptos_wallet_transfer.dart';
 /// 钱包转账服务。
 ///
 /// 该服务负责把用户输入的转账信息转换成各链可广播的交易：
-/// - EVM 链：构造 legacy transaction，RLP 编码后用 secp256k1 私钥签名；
+/// - EVM 链：构造 legacy 或 EIP-1559 typed transaction 并用 secp256k1 签名；
 /// - TRON：先由节点创建交易，再对 raw_data 做 secp256k1 签名并广播；
 /// - Solana：使用 solana Dart 包构造 Message，并用 Ed25519 私钥签名发送。
 /// - Bitcoin：查询 UTXO，构造 BIP143 P2WPKH 交易并通过 Esplora 广播。
@@ -46,7 +47,7 @@ class WalletTransferService {
   /// 创建转账服务。
   ///
   /// 测试时可注入 [Dio]；业务场景使用独立 Dio，避免受业务接口 baseUrl 或拦截器影响。
-  WalletTransferService({Dio? dio})
+  WalletTransferService({Dio? dio, this.simulateEvmTransactions = true})
     : _dio =
           dio ??
           Dio(
@@ -60,6 +61,9 @@ class WalletTransferService {
 
   /// RPC/HTTP 请求客户端。
   final Dio _dio;
+
+  /// 是否在 EVM 签名前用完全相同的草稿执行 `eth_call` 模拟。
+  final bool simulateEvmTransactions;
 
   /// secp256k1 曲线参数，EVM 和 TRON 签名共用。
   final ECDomainParameters _domain;
@@ -87,6 +91,7 @@ class WalletTransferService {
     List<int>? solanaPrivateKey,
     List<int>? suiPrivateKey,
     List<int>? aptosPrivateKey,
+    EvmTransactionDraft? evmDraft,
   }) {
     if (asset.chainRef.isEvm) {
       return _transferEvm(
@@ -94,6 +99,7 @@ class WalletTransferService {
         asset: asset,
         toAddress: toAddress,
         amount: amount,
+        draft: evmDraft,
       );
     }
     if (asset.chainRef.isTron) {
@@ -540,7 +546,7 @@ class WalletTransferService {
 
   /// RLP 编码入口。
   ///
-  /// EVM legacy transaction 使用 RLP 编码。这里支持本文件需要的 BigInt、int、
+  /// EVM legacy 和 EIP-1559 transaction 使用 RLP 编码。这里支持 BigInt、int、
   /// Uint8List、List<int> 和嵌套 List。
   static Uint8List _rlpEncode(dynamic value) {
     if (value is BigInt) {
@@ -704,6 +710,7 @@ class TransferFeeEstimate {
     required this.symbol,
     required this.rawAmount,
     this.isFallback = false,
+    this.evmDraft,
   });
 
   /// 人类可读手续费数量。
@@ -717,6 +724,9 @@ class TransferFeeEstimate {
 
   /// true 表示使用兜底估算值，而不是节点实时估算结果。
   final bool isFallback;
+
+  /// EVM 费用估算对应的完整交易草稿；非 EVM 链为 null。
+  final EvmTransactionDraft? evmDraft;
 
   /// UI 展示文案。
   String get displayText => '$amount $symbol';

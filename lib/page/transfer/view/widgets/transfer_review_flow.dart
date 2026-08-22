@@ -24,6 +24,9 @@ class TransferReviewFlow {
   ) async {
     if (!controller.validateTransferInput()) return;
 
+    if (!await controller.prepareTransferReview()) return;
+    if (!context.mounted) return;
+
     final asset = controller.currentAsset;
     if (asset == null) return;
 

@@ -244,10 +244,10 @@ extension _TronWalletTransfer on WalletTransferService {
     }
   }
 
-  /// 签名 EVM legacy transaction。
+  /// 签名 TRON transaction。
   ///
-  /// 先对包含 chainId 的 payload 做 RLP 编码并 Keccak，然后 ECDSA 签名；最终把
-  /// `v/r/s` 回填到交易 payload，返回可直接广播的十六进制裸交易。
+  /// 对节点返回的 `raw_data_hex` 做 SHA-256 和 ECDSA 签名，并把签名追加到
+  /// transaction 后交给广播接口。
   Map<String, dynamic> _signTronTransaction({
     required String privateKeyHex,
     required Map<String, dynamic> transaction,
