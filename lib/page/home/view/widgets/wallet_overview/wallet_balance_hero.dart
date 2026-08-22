@@ -177,7 +177,7 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _WalletNamePill(
+              _WalletSwitcherButton(
                 wallet: widget.wallet,
                 wallets: widget.wallets,
                 onWalletSelected: widget.onWalletSelected,
@@ -270,11 +270,11 @@ class _BalanceHeroCardState extends State<_BalanceHeroCard>
   }
 }
 
-/// Hero 卡片左上角的钱包名称胶囊入口。
+/// Hero 卡片左上角的钱包切换入口。
 ///
-/// 点击后打开钱包切换底部弹窗，同时提供添加钱包和移除钱包入口。
-class _WalletNamePill extends StatelessWidget {
-  const _WalletNamePill({
+/// 通过头像、钱包名称和切换提示建立清晰的信息层级，点击后打开钱包切换弹窗。
+class _WalletSwitcherButton extends StatefulWidget {
+  const _WalletSwitcherButton({
     required this.wallet,
     required this.wallets,
     required this.onWalletSelected,
@@ -298,87 +298,130 @@ class _WalletNamePill extends StatelessWidget {
   final VoidCallback onAddWallet;
 
   @override
+  State<_WalletSwitcherButton> createState() => _WalletSwitcherButtonState();
+}
+
+class _WalletSwitcherButtonState extends State<_WalletSwitcherButton> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     // 只有存在钱包列表时才允许打开切换弹窗。
-    final canOpen = wallets.isNotEmpty;
-    final colorScheme = Theme.of(context).colorScheme;
+    final canOpen = widget.wallets.isNotEmpty;
     return Semantics(
       button: canOpen,
+      enabled: canOpen,
       label: S.of(context).switchWallet,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(999.r),
-        child: InkWell(
-          onTap: canOpen
-              ? () => _showWalletPicker(
-                  context: context,
-                  wallet: wallet,
-                  wallets: wallets,
-                  onWalletSelected: onWalletSelected,
-                  onWalletRemoved: onWalletRemoved,
-                  onAddWallet: onAddWallet,
-                )
-              : null,
-          borderRadius: BorderRadius.circular(999.r),
+      child: Listener(
+        onPointerDown: canOpen ? (_) => setState(() => _pressed = true) : null,
+        onPointerCancel: canOpen
+            ? (_) => setState(() => _pressed = false)
+            : null,
+        onPointerUp: canOpen ? (_) => setState(() => _pressed = false) : null,
+        child: AnimatedScale(
+          scale: _pressed ? 0.98 : 1,
+          duration: const Duration(milliseconds: 130),
+          curve: Curves.easeOutCubic,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            constraints: BoxConstraints(
-              maxWidth: 246.w,
-              minHeight: 38.h,
-            ), // 从 43.h 减少到 38.h
-            padding: EdgeInsets.fromLTRB(5.w, 4.h, 7.w, 4.h), // 减少 padding
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+            constraints: BoxConstraints(maxWidth: 232.w, minHeight: 46.h),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(999.r),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _WalletAvatar(
-                  wallet: wallet,
-                  selected: true,
-                  onDark: true,
-                  size: 28, // 从 32 减少到 28
+              color: Colors.white.withValues(alpha: _pressed ? 0.22 : 0.14),
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: _pressed ? 0.38 : 0.26),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, 4.h),
                 ),
-                SizedBox(width: 8.w), // 从 9.w 减少到 8.w
-                Flexible(
-                  child: Column(
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: canOpen
+                    ? () => _showWalletPicker(
+                        context: context,
+                        wallet: widget.wallet,
+                        wallets: widget.wallets,
+                        onWalletSelected: widget.onWalletSelected,
+                        onWalletRemoved: widget.onWalletRemoved,
+                        onAddWallet: widget.onAddWallet,
+                      )
+                    : null,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(6.w, 5.h, 8.w, 5.h),
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        wallet.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.sp, // 从 12.5.sp 减少到 12.sp
-                          fontWeight: FontWeight.w900,
-                          height: 1.1,
+                      _WalletAvatar(
+                        wallet: widget.wallet,
+                        selected: true,
+                        onDark: true,
+                        size: 34,
+                      ),
+                      SizedBox(width: 9.w),
+                      Flexible(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.wallet.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5.sp,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                              ),
+                            ),
+                            SizedBox(height: 3.h),
+                            Text(
+                              S.of(context).switchWallet,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 9.5.sp,
+                                fontWeight: FontWeight.w600,
+                                height: 1,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      if (canOpen) ...[
+                        SizedBox(width: 10.w),
+                        Container(
+                          width: 28.w,
+                          height: 28.w,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(9.r),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.16),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.swap_horiz_rounded,
+                            color: Colors.white,
+                            size: 17.w,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                if (canOpen) ...[
-                  SizedBox(width: 6.w), // 从 8.w 减少到 6.w
-                  Container(
-                    width: 22.w, // 从 24.w 减少到 22.w
-                    height: 22.w, // 从 24.w 减少到 22.w
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.expand_more_rounded,
-                      color: colorScheme.onPrimary,
-                      size: 16.w, // 从 17.w 减少到 16.w
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
         ),
