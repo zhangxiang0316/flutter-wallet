@@ -11,6 +11,7 @@ import 'package:omnicast/wallet/services/chain_balance_cache.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
 import 'package:omnicast/wallet/services/config/wallet_asset_visibility_service.dart';
 import 'package:omnicast/wallet/services/config/wallet_chain_config_service.dart';
+import 'package:omnicast/wallet/services/wallet_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -215,18 +216,113 @@ void main() {
     );
     controller.onClose();
   });
+
+  test(
+    'concurrent refreshes share the request started during cache load',
+    () async {
+      final cache = _DeferredBalanceCache();
+      final service = _ControlledBalanceService();
+      final controller = _controller(
+        cache: cache,
+        networkBalances: const [],
+        balanceService: service,
+      );
+
+      final firstRefresh = controller.refreshBalances();
+      expect(controller.isLoading, isTrue);
+      final duplicateRefresh = controller.refreshBalances();
+      cache.complete(null);
+      await service.waitForCallCount(1);
+
+      expect(service.callCount, 1);
+      service.complete(0, const [
+        ChainBalance(
+          chain: WalletChain.ethereum,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '1',
+          address: _evmAddress,
+          decimals: 18,
+        ),
+      ]);
+      await Future.wait([firstRefresh, duplicateRefresh]);
+
+      expect(service.callCount, 1);
+      expect(controller.balances.single.amount, '1');
+      controller.onClose();
+    },
+  );
+
+  test('wallet switch ignores the previous wallet network response', () async {
+    const secondAddress = '0x2222222222222222222222222222222222222222';
+    final service = _ControlledBalanceService();
+    final repository = _FakeWalletRepository();
+    final controller = _controller(
+      cache: _FakeBalanceCache(null),
+      networkBalances: const [],
+      balanceService: service,
+      repository: repository,
+    );
+    final oldRefresh = controller.refreshBalances();
+    await service.waitForCallCount(1);
+
+    final nextWallet = WalletAccount(
+      id: 'wallet-2',
+      name: 'Wallet 2',
+      bscAddress: secondAddress,
+      tronAddress: '',
+      createdAt: DateTime.utc(2026, 8, 23),
+    );
+    await controller.switchWallet(nextWallet);
+    await service.waitForCallCount(2);
+
+    expect(repository.currentWalletId, nextWallet.id);
+    expect(service.calls[1].address, secondAddress);
+    service.complete(1, const [
+      ChainBalance(
+        chain: WalletChain.base,
+        symbol: 'ETH',
+        name: 'Ethereum',
+        amount: '2',
+        address: secondAddress,
+        decimals: 18,
+      ),
+    ]);
+    await _waitUntil(() => !controller.isLoading);
+
+    service.complete(0, const [
+      ChainBalance(
+        chain: WalletChain.ethereum,
+        symbol: 'ETH',
+        name: 'Ethereum',
+        amount: '99',
+        address: _evmAddress,
+        decimals: 18,
+      ),
+    ]);
+    await oldRefresh;
+    await pumpEventQueue();
+
+    expect(controller.wallet?.id, nextWallet.id);
+    expect(controller.balances, hasLength(1));
+    expect(controller.balances.single.chainId, WalletChain.base.id);
+    expect(controller.balances.single.amount, '2');
+    controller.onClose();
+  });
 }
 
 const _evmAddress = '0x1111111111111111111111111111111111111111';
 
 HomeController _controller({
-  required _FakeBalanceCache cache,
+  required ChainBalanceCache cache,
   required List<ChainBalance> networkBalances,
-  _FakeBalanceService? balanceService,
+  ChainBalanceService? balanceService,
+  WalletRepository? repository,
   Duration balanceRetryDelay = const Duration(seconds: 2),
 }) {
   final chains = [WalletChain.ethereum.config, WalletChain.base.config];
   return HomeController(
+      repository: repository,
       balanceCache: cache,
       balanceService: balanceService ?? _FakeBalanceService([networkBalances]),
       valuationService: _FakeValuationService(),
@@ -289,6 +385,79 @@ class _FakeBalanceCache extends ChainBalanceCache {
   Future<void> save(String walletId, ChainBalanceSnapshot snapshot) async {
     savedSnapshot = snapshot;
   }
+}
+
+class _DeferredBalanceCache extends ChainBalanceCache {
+  final _completer = Completer<ChainBalanceSnapshot?>();
+
+  void complete(ChainBalanceSnapshot? snapshot) {
+    _completer.complete(snapshot);
+  }
+
+  @override
+  Future<ChainBalanceSnapshot?> load(
+    String walletId, {
+    required List<WalletChainConfig> chains,
+    bool allowStale = false,
+  }) {
+    return _completer.future;
+  }
+
+  @override
+  Future<void> save(String walletId, ChainBalanceSnapshot snapshot) async {}
+}
+
+class _ControlledBalanceService extends ChainBalanceService {
+  final List<_ControlledBalanceCall> calls = [];
+
+  int get callCount => calls.length;
+
+  @override
+  Future<List<ChainBalance>> loadBalances({
+    required String bscAddress,
+    required String tronAddress,
+    required String solanaAddress,
+    String suiAddress = '',
+    String aptosAddress = '',
+    String bitcoinAddress = '',
+    ChainBalancesCallback? onChainBalances,
+  }) {
+    final call = _ControlledBalanceCall(bscAddress);
+    calls.add(call);
+    return call.completer.future;
+  }
+
+  Future<void> waitForCallCount(int count) async {
+    await _waitUntil(() => calls.length >= count);
+  }
+
+  void complete(int index, List<ChainBalance> balances) {
+    calls[index].completer.complete(balances);
+  }
+}
+
+class _ControlledBalanceCall {
+  _ControlledBalanceCall(this.address);
+
+  final String address;
+  final Completer<List<ChainBalance>> completer = Completer();
+}
+
+class _FakeWalletRepository extends WalletRepository {
+  String? currentWalletId;
+
+  @override
+  Future<void> setCurrentWalletId(String walletId) async {
+    currentWalletId = walletId;
+  }
+}
+
+Future<void> _waitUntil(bool Function() condition) async {
+  for (var index = 0; index < 100; index++) {
+    if (condition()) return;
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Condition was not reached before timeout');
 }
 
 class _FakeChainConfigService extends WalletChainConfigService {

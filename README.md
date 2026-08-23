@@ -255,6 +255,7 @@ dart format lib test
 flutter analyze
 flutter test
 flutter test test/wallet_crypto_service_test.dart
+scripts/check_secrets.sh
 flutter pub run build_runner build
 flutter pub run intl_utils:generate
 ```
@@ -273,6 +274,12 @@ flutter pub run intl_utils:generate
 - EVM / Bitcoin / TRON / Solana / Sui / Aptos 交易历史 Provider
 - 首页跨链代币聚合、可信资产隔离、估值和排序
 - 缓存迁移、链级渐进加载及自定义网络/资产绑定
+- TRON 节点返回内容、EVM nonce/Gas/签名一致性等对抗场景
+- 全链付款请求、地址和金额的确定性属性测试
+- 首页并发刷新、钱包切换和旧请求隔离
+- 敏感信息展示、剪贴板自动清理和应用生命周期保护
+
+提交代码前建议依次执行敏感信息扫描、格式检查、静态分析、完整测试以及 Debug APK 构建。
 
 ## 安全说明
 

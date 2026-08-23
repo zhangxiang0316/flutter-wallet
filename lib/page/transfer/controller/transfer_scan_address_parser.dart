@@ -7,6 +7,8 @@ import '../../../wallet/models/wallet_chain.dart';
 class TransferScanAddressParser {
   const TransferScanAddressParser._();
 
+  static final RegExp _amountPattern = RegExp(r'^[0-9]+(?:\.[0-9]+)?$');
+
   static const Set<String> _supportedSchemes = {
     'omnicast',
     'ethereum',
@@ -110,6 +112,7 @@ class TransferScanAddressParser {
   }) {
     final amount = _trimmed(uri.queryParameters['amount']);
     if (amount != null) {
+      if (!_amountPattern.hasMatch(amount)) return null;
       final parsed = Decimal.tryParse(amount);
       if (parsed == null || parsed <= Decimal.zero) return null;
     }

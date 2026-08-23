@@ -131,7 +131,7 @@ class _ChainDropdown extends StatelessWidget {
 
     return DropdownButtonFormField<WalletChainConfig>(
       key: ValueKey(validSelectedChain.id),
-      value: validSelectedChain,  // 使用 value 而不是 initialValue
+      value: validSelectedChain, // 使用 value 而不是 initialValue
       isExpanded: true,
       icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18.w),
       decoration: _dropdownDecoration(

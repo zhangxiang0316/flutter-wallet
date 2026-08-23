@@ -18,17 +18,22 @@ extension HomeControllerBalance on HomeController {
     if (currentWallet == null) return;
     if (isLoading) return;
 
+    isLoading = true;
     _cancelBalanceRetry();
 
     final requestId = ++_balanceRequestId;
-    await _applyCachedBalances(currentWallet);
-
-    isLoading = true;
     balanceRefreshStatus = BalanceRefreshStatus.refreshing;
     balanceRefreshError = null;
     _updateBalanceView();
 
     try {
+      await _applyCachedBalances(currentWallet, requestId: requestId);
+      if (!_isActiveBalanceRequest(requestId, currentWallet)) {
+        return;
+      }
+      balanceRefreshStatus = BalanceRefreshStatus.refreshing;
+      balanceRefreshError = null;
+      _updateBalanceView();
       final previousBalances = balances;
       final previousAsOf = balanceAsOf;
       final nextBalances = await _balanceService.loadBalances(
@@ -111,7 +116,13 @@ extension HomeControllerBalance on HomeController {
           ),
         );
       }
-      await _refreshBalanceDisplayState();
+      await _refreshBalanceDisplayState(
+        requestId: requestId,
+        currentWallet: currentWallet,
+      );
+      if (!_isActiveBalanceRequest(requestId, currentWallet)) {
+        return;
+      }
       isLoading = false;
       _updateBalanceView();
 
@@ -155,14 +166,19 @@ extension HomeControllerBalance on HomeController {
     });
   }
 
-  Future<void> _applyCachedBalances(WalletAccount currentWallet) async {
+  Future<void> _applyCachedBalances(
+    WalletAccount currentWallet, {
+    required int requestId,
+  }) async {
     final currentChains = await _chainConfigService.loadEnabledChains();
-    chains = currentChains;
+    if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
     final snapshot = await _balanceCache.load(
       currentWallet.id,
       chains: currentChains,
       allowStale: true,
     );
+    if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
+    chains = currentChains;
     if (snapshot == null || snapshot.balances.isEmpty) {
       return;
     }
@@ -172,7 +188,11 @@ extension HomeControllerBalance on HomeController {
     balanceRefreshStatus = snapshot.refreshStatus;
     balanceRefreshError = snapshot.error;
     isBalanceDataStale = snapshot.isStale || snapshot.hasError;
-    await _refreshBalanceDisplayState();
+    await _refreshBalanceDisplayState(
+      requestId: requestId,
+      currentWallet: currentWallet,
+    );
+    if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
     _updateBalanceView();
   }
 
@@ -222,9 +242,20 @@ extension HomeControllerBalance on HomeController {
     update([HomeController.balanceViewId]);
   }
 
-  Future<void> _refreshBalanceDisplayState() async {
-    hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
-    chains = await _chainConfigService.loadEnabledChains();
+  Future<void> _refreshBalanceDisplayState({
+    int? requestId,
+    WalletAccount? currentWallet,
+  }) async {
+    final nextHiddenAssetKeys = await _assetVisibilityService
+        .loadHiddenAssetKeys();
+    final nextChains = await _chainConfigService.loadEnabledChains();
+    if (requestId != null &&
+        currentWallet != null &&
+        !_isActiveBalanceRequest(requestId, currentWallet)) {
+      return;
+    }
+    hiddenAssetKeys = nextHiddenAssetKeys;
+    chains = nextChains;
     _applyAssetVisibility();
     _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
   }

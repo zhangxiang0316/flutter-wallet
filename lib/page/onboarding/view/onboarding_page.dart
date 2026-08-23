@@ -121,10 +121,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       dotWidth: 8.w,
                       dotHeight: 8.h,
                       activeDotColor: Theme.of(context).colorScheme.primary,
-                      dotColor: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.2),
+                      dotColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.2),
                     ),
                   ),
                   SizedBox(height: 24.h),
@@ -205,11 +204,7 @@ class _OnboardingSlide extends StatelessWidget {
               color: data.iconColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              data.icon,
-              size: 60.w,
-              color: data.iconColor,
-            ),
+            child: Icon(data.icon, size: 60.w, color: data.iconColor),
           ),
           SizedBox(height: 48.h),
 
@@ -232,10 +227,9 @@ class _OnboardingSlide extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14.sp,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
               height: 1.6,
             ),
           ),

@@ -4,7 +4,10 @@ import 'dart:developer';
 bool isDebug = const bool.fromEnvironment('dart.vm.product') != true;
 Logger _logger = Logger(
   printer: PrettyPrinter(
-      stackTraceBeginIndex: 1, printTime: true, noBoxingByDefault: false),
+    stackTraceBeginIndex: 1,
+    printTime: true,
+    noBoxingByDefault: false,
+  ),
 );
 
 logV(dynamic msg) {

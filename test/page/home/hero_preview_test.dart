@@ -12,21 +12,35 @@ import 'package:omnicast/wallet/models/wallet_account.dart';
 
 final _wallet = WalletAccount(
   id: 'w1',
-  name: '主钱包 Main',
+  name: 'Main Wallet',
   bscAddress: '0x1234567890abcdef1234567890abcdef12345678',
   tronAddress: 'TXYZ1234567890',
   createdAt: DateTime(2026, 1, 1),
 );
 
 Future<void> _loadFont() async {
+  final flutterRoot = _flutterRoot();
   await _loadFamily(
-    'ArialUnicode',
-    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+    'TestRoboto',
+    '$flutterRoot/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
   );
   await _loadFamily(
     'MaterialIcons',
-    '/Users/zhangxiang/flutter/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
   );
+}
+
+String _flutterRoot() {
+  final configuredRoot = Platform.environment['FLUTTER_ROOT'];
+  if (configuredRoot != null && configuredRoot.isNotEmpty) {
+    return configuredRoot;
+  }
+
+  var directory = File(Platform.resolvedExecutable).parent;
+  for (var index = 0; index < 4; index++) {
+    directory = directory.parent;
+  }
+  return directory.path;
 }
 
 Future<void> _loadFamily(String family, String path) async {
@@ -46,7 +60,7 @@ Widget _app({required Brightness brightness}) {
     },
     builder: (_, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
-      locale: const Locale('zh'),
+      locale: const Locale('en'),
       localizationsDelegates: const [
         S.delegate,
         ...GlobalMaterialLocalizations.delegates,
@@ -55,7 +69,7 @@ Widget _app({required Brightness brightness}) {
       theme: ThemeData(
         useMaterial3: true,
         brightness: brightness,
-        fontFamily: 'ArialUnicode',
+        fontFamily: 'TestRoboto',
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
           brightness: brightness,

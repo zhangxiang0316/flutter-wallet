@@ -121,16 +121,28 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       dividerColor: Color.lerp(dividerColor, other.dividerColor, t),
       shadowColor: Color.lerp(shadowColor, other.shadowColor, t),
       shimmerBaseColor: Color.lerp(shimmerBaseColor, other.shimmerBaseColor, t),
-      shimmerHighlightColor:
-          Color.lerp(shimmerHighlightColor, other.shimmerHighlightColor, t),
-      inputBackgroundColor:
-          Color.lerp(inputBackgroundColor, other.inputBackgroundColor, t),
+      shimmerHighlightColor: Color.lerp(
+        shimmerHighlightColor,
+        other.shimmerHighlightColor,
+        t,
+      ),
+      inputBackgroundColor: Color.lerp(
+        inputBackgroundColor,
+        other.inputBackgroundColor,
+        t,
+      ),
       inputBorderColor: Color.lerp(inputBorderColor, other.inputBorderColor, t),
-      tagBackgroundColor:
-          Color.lerp(tagBackgroundColor, other.tagBackgroundColor, t),
+      tagBackgroundColor: Color.lerp(
+        tagBackgroundColor,
+        other.tagBackgroundColor,
+        t,
+      ),
       tagTextColor: Color.lerp(tagTextColor, other.tagTextColor, t),
-      bottomNavBarColor:
-          Color.lerp(bottomNavBarColor, other.bottomNavBarColor, t),
+      bottomNavBarColor: Color.lerp(
+        bottomNavBarColor,
+        other.bottomNavBarColor,
+        t,
+      ),
       cardShadowColor: Color.lerp(cardShadowColor, other.cardShadowColor, t),
     );
   }
