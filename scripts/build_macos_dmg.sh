@@ -19,11 +19,12 @@ flutter build macos --release
 
 echo ""
 echo "📂 Step 3: Checking build output..."
-APP_PATH="build/macos/Build/Products/Release/omnicast.app"
-if [ ! -d "$APP_PATH" ]; then
-    echo "❌ Error: App not found at $APP_PATH"
+APP_PATH=$(find "build/macos/Build/Products/Release" -maxdepth 1 -type d -name '*.app' -print -quit)
+if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+    echo "❌ Error: macOS app not found in build output"
     exit 1
 fi
+APP_NAME=$(basename "$APP_PATH")
 
 echo "✅ App found: $APP_PATH"
 
@@ -39,7 +40,7 @@ if ! command -v create-dmg &> /dev/null; then
 fi
 
 # 删除旧的 DMG（如果存在）
-DMG_NAME="Omnicast-Wallet-v${VERSION}.dmg"
+DMG_NAME="flutter-Wallet-v${VERSION}.dmg"
 if [ -f "$DMG_NAME" ]; then
     rm "$DMG_NAME"
     echo "🗑️  Removed old DMG"
@@ -47,17 +48,17 @@ fi
 
 # 创建 DMG
 create-dmg \
-  --volname "Omnicast Wallet" \
-  --volicon "omnicast.app/Contents/Resources/AppIcon.icns" \
+  --volname "flutter Wallet" \
+  --volicon "$APP_NAME/Contents/Resources/AppIcon.icns" \
   --window-pos 200 120 \
   --window-size 600 400 \
   --icon-size 100 \
-  --icon "omnicast.app" 175 120 \
-  --hide-extension "omnicast.app" \
+  --icon "$APP_NAME" 175 120 \
+  --hide-extension "$APP_NAME" \
   --app-drop-link 425 120 \
   --no-internet-enable \
   "$DMG_NAME" \
-  "omnicast.app"
+  "$APP_NAME"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

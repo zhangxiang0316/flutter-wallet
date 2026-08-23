@@ -60,6 +60,11 @@ class WalletSecretStore {
             iOptions: IOSOptions(
               accessibility: KeychainAccessibility.first_unlock_this_device,
             ),
+            // macOS ad-hoc/local builds do not have the provisioning
+            // entitlements required by the Data Protection Keychain.
+            // Use the regular login keychain so first-run wallet creation
+            // also works before Developer ID signing is configured.
+            mOptions: MacOsOptions(useDataProtectionKeyChain: false),
           );
 
   /// 平台安全存储。

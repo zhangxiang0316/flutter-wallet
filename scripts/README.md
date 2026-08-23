@@ -22,7 +22,7 @@ MORALIS_API_KEY=your_moralis_key
 ./scripts/build_android.sh
 ```
 
-生成文件：`releases/android/Omnicast-Wallet-vX.X.X.apk`
+生成文件：`releases/android/flutter-Wallet-vX.X.X.apk`
 
 **用途**：
 - ✅ 直接安装到设备
@@ -34,7 +34,7 @@ MORALIS_API_KEY=your_moralis_key
 ./scripts/build_android_bundle.sh
 ```
 
-生成文件：`releases/android/Omnicast-Wallet-vX.X.X.aab`
+生成文件：`releases/android/flutter-Wallet-vX.X.X.aab`
 
 **用途**：
 - ✅ 上传到 Google Play Console
@@ -74,7 +74,7 @@ MORALIS_API_KEY=your_moralis_key
 ./scripts/build_macos_zip.sh
 ```
 
-生成文件：`build/macos/Build/Products/Release/Omnicast-Wallet-vX.X.X-macos.zip`
+生成文件：`build/macos/Build/Products/Release/flutter-Wallet-vX.X.X-macos.zip`
 
 **优点**：
 - ✅ 快速简单
@@ -91,7 +91,7 @@ MORALIS_API_KEY=your_moralis_key
 brew install create-dmg
 ```
 
-生成文件：`build/macos/Build/Products/Release/Omnicast-Wallet-vX.X.X.dmg`
+生成文件：`build/macos/Build/Products/Release/flutter-Wallet-vX.X.X.dmg`
 
 **优点**：
 - ✅ 专业安装体验
@@ -120,13 +120,13 @@ brew install create-dmg
 ```
 releases/
 ├── android/
-│   ├── Omnicast-Wallet-v1.0.0.apk
-│   └── Omnicast-Wallet-v1.0.0.aab
+│   ├── flutter-Wallet-v1.0.0.apk
+│   └── flutter-Wallet-v1.0.0.aab
 ├── ios/
-│   └── Omnicast-Wallet-v1.0.0.ipa
+│   └── flutter-Wallet-v1.0.0.ipa
 └── macos/
-    ├── Omnicast-Wallet-v1.0.0.dmg
-    └── Omnicast-Wallet-v1.0.0-macos.zip
+    ├── flutter-Wallet-v1.0.0.dmg
+    └── flutter-Wallet-v1.0.0-macos.zip
 ```
 
 ---

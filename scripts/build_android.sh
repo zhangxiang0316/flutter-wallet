@@ -52,7 +52,7 @@ echo "✅ APK found: $APK_PATH"
 echo ""
 echo "📦 Step 5: Copying APK to release folder..."
 mkdir -p releases/android
-RELEASE_APK="releases/android/Omnicast-Wallet-v${VERSION}.apk"
+RELEASE_APK="releases/android/flutter-Wallet-v${VERSION}.apk"
 cp "$APK_PATH" "$RELEASE_APK"
 
 echo ""

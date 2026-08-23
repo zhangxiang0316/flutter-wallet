@@ -28,6 +28,6 @@ class MainFlutterWindow: NSWindow {
     self.minSize = NSSize(width: 375, height: 600)
 
     // 设置窗口标题
-    self.title = "Omnicast Wallet"
+    self.title = "flutter Wallet"
   }
 }

@@ -52,7 +52,7 @@ echo "✅ AAB found: $AAB_PATH"
 echo ""
 echo "📦 Step 5: Copying AAB to release folder..."
 mkdir -p releases/android
-RELEASE_AAB="releases/android/Omnicast-Wallet-v${VERSION}.aab"
+RELEASE_AAB="releases/android/flutter-Wallet-v${VERSION}.aab"
 cp "$AAB_PATH" "$RELEASE_AAB"
 
 echo ""
