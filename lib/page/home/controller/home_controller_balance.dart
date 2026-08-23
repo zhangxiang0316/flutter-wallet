@@ -63,7 +63,7 @@ extension HomeControllerBalance on HomeController {
           .map((balance) => balance.chainRef.name)
           .toSet();
       if (failedChainNames.isNotEmpty) {
-        developer.log(
+        SafeLog.error(
           'Balance refresh failed chains: ${failedChainNames.join(', ')}',
           name: 'HomeController',
         );

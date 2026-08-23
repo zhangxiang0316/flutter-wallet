@@ -12,6 +12,7 @@ import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
 import '../models/wallet_chain.dart';
 import '../utils/rpc_retry_helper.dart';
+import '../../utils/safe_log.dart';
 import 'config/wallet_chain_config_service.dart';
 import 'config/wallet_custom_asset_service.dart';
 import 'wallet_history_api_config.dart';
@@ -338,13 +339,13 @@ class ChainBalanceService {
       result = await operation.timeout(_chainBalanceTimeout);
     } on TimeoutException {
       final error = '$chainName balance lookup timed out';
-      developer.log(
+      SafeLog.error(
         '$error; using zero fallback balances',
         name: 'ChainBalanceService',
       );
       result = fallback(error);
     } catch (error) {
-      developer.log(
+      SafeLog.error(
         '$chainName balance lookup failed; using zero fallback balances',
         error: error,
         name: 'ChainBalanceService',

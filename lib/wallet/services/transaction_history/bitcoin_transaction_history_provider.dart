@@ -67,7 +67,7 @@ class _BitcoinTransactionHistoryProvider
         );
       } catch (error) {
         lastError = error;
-        developer.log(
+        SafeLog.error(
           'Bitcoin history request failed at $apiUrl: $error',
           name: 'WalletTransactionHistoryService',
         );

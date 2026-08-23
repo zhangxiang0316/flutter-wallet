@@ -37,7 +37,7 @@ class _SolanaTransactionHistoryProvider
         );
       } catch (error) {
         heliusError = error;
-        developer.log(
+        SafeLog.error(
           'Solana Helius history failed: $error',
           name: 'WalletTransactionHistoryService',
         );

@@ -80,7 +80,7 @@ class _TronTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         );
       } catch (error) {
         lastError = error;
-        developer.log(
+        SafeLog.error(
           'TRON history request failed at $apiUrl: $error',
           name: 'WalletTransactionHistoryService',
         );

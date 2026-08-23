@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 
 import 'package:decimal/decimal.dart';
 
@@ -7,6 +6,7 @@ import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/password_cache_service.dart';
 import '../../../utils/toast_util.dart';
+import '../../../utils/safe_log.dart';
 import '../../../wallet/models/chain_balance.dart';
 import '../../../wallet/models/token_portfolio.dart';
 import '../../../wallet/models/wallet_account.dart';
@@ -239,7 +239,7 @@ class HomeController extends BaseController {
       Toast.show(S.current.walletCreated);
       return CreatedWalletBackup(walletId: nextWallet.id, mnemonic: mnemonic);
     } catch (error, stackTrace) {
-      developer.log(
+      SafeLog.error(
         'Wallet creation failed',
         name: 'HomeController',
         error: error,

@@ -55,7 +55,7 @@ extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
         chain.id != WalletChain.bsc.id &&
         chain.id != WalletChain.xLayer.id;
     if (canUseEtherscanV2) {
-      developer.log(
+      SafeLog.error(
         'Using Etherscan V2 history provider for ${chain.name} '
         'chainId=${chain.evmChainId}',
         name: 'WalletTransactionHistoryService',
@@ -68,7 +68,7 @@ extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
         ),
       );
     } else if (chain.id == WalletChain.arbitrum.id) {
-      developer.log(
+      SafeLog.error(
         'Etherscan V2 API key is not injected for Arbitrum history',
         name: 'WalletTransactionHistoryService',
       );

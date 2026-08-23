@@ -235,10 +235,8 @@ extension _ChainBalanceRoutes on ChainBalanceService {
       buffer.writeln('[$chainName] count=${chainBalances.length}');
       for (final balance in chainBalances) {
         buffer.writeln(
-          '  ${balance.symbol} amount=${balance.amount} '
-          'decimals=${balance.decimals} native=${balance.isNative} '
-          'contract=${balance.contractAddress ?? '-'} '
-          'error=${balance.error ?? '-'}',
+          '  ${balance.symbol} decimals=${balance.decimals} '
+          'native=${balance.isNative} status=${balance.hasError ? 'error' : 'ok'}',
         );
       }
     }

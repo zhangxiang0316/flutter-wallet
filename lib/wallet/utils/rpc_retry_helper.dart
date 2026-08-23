@@ -1,6 +1,6 @@
-import 'dart:developer' as developer;
-
 import 'package:dio/dio.dart';
+
+import '../../utils/safe_log.dart';
 
 /// RPC 请求重试助手。
 ///
@@ -56,7 +56,7 @@ class RpcRetryHelper {
             StateError('Invalid response structure from $rpcUrl');
       } catch (error) {
         lastError = error;
-        developer.log(
+        SafeLog.error(
           '$chainName $operation failed at $rpcUrl',
           error: error,
           name: logName,

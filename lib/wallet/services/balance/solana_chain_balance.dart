@@ -99,7 +99,7 @@ extension _SolanaChainBalance on ChainBalanceService {
         decimals: asset.decimals,
       );
     } catch (e) {
-      developer.log(
+      SafeLog.error(
         'Solana native balance failed; using zero fallback: $e',
         name: 'ChainBalanceService',
       );
@@ -129,7 +129,7 @@ extension _SolanaChainBalance on ChainBalanceService {
     try {
       return await _loadSolanaAssociatedTokenBalance(chain, address, asset);
     } catch (e) {
-      developer.log(
+      SafeLog.error(
         'Solana ${asset.symbol} ATA balance failed; falling back to owner lookup: $e',
         name: 'ChainBalanceService',
       );
@@ -260,7 +260,7 @@ extension _SolanaChainBalance on ChainBalanceService {
         decimals: decimals,
       );
     } catch (e) {
-      developer.log(
+      SafeLog.error(
         'Solana ${asset.symbol} balance failed; using zero fallback: $e',
         name: 'ChainBalanceService',
       );
@@ -353,7 +353,7 @@ extension _SolanaChainBalance on ChainBalanceService {
       }
       return nextBalances;
     } catch (e) {
-      developer.log(
+      SafeLog.error(
         'Solana token account list fallback failed: $e',
         name: 'ChainBalanceService',
       );

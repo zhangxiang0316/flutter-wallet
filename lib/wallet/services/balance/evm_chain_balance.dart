@@ -76,7 +76,7 @@ extension _EvmChainBalance on ChainBalanceService {
       }
       return resolvedBalances;
     } catch (error) {
-      developer.log(
+      SafeLog.error(
         '${chain.name} batch balance lookup failed; retrying individually',
         error: error,
         name: 'ChainBalanceService',

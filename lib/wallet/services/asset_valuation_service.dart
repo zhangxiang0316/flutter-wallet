@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 
 import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 
 import '../models/chain_balance.dart';
+import '../../utils/safe_log.dart';
 
 part 'asset_valuation/price_source_constants.dart';
 part 'asset_valuation/price_provider.dart';
@@ -299,7 +299,7 @@ class AssetValuationService {
 
   /// 打印本次需要请求价格的币种列表。
   void _logPriceRequest(List<String> requestedSymbols) {
-    developer.log(
+    SafeLog.error(
       'requesting USD prices for ${requestedSymbols.join(', ')}',
       name: 'AssetValuationService',
     );
@@ -311,7 +311,7 @@ class AssetValuationService {
     List<String> requestedSymbols,
     Map<String, Decimal> prices,
   ) {
-    developer.log(
+    SafeLog.error(
       '$source requested=${requestedSymbols.join(', ')} '
       'prices=$prices',
       name: 'AssetValuationService',
@@ -326,7 +326,7 @@ class AssetValuationService {
     final missingSymbols = requestedSymbols
         .where((symbol) => !prices.containsKey(symbol))
         .join(', ');
-    developer.log(
+    SafeLog.error(
       'resolved USD prices=$prices missing=${missingSymbols.isEmpty ? '-' : missingSymbols}',
       name: 'AssetValuationService',
     );
@@ -336,7 +336,7 @@ class AssetValuationService {
   ///
   /// 行情源失败不会中断整体估值，只记录日志并继续尝试其他来源。
   void _logPriceSourceError(String source, Object error) {
-    developer.log(
+    SafeLog.error(
       '$source price request failed: $error',
       name: 'AssetValuationService',
     );

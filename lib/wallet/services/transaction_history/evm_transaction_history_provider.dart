@@ -74,7 +74,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         if (asset.isNative) return result;
       } catch (error) {
         lastExplorerError = error;
-        developer.log(
+        SafeLog.error(
           '${asset.chainRef.name} explorer history failed at '
           '${provider.url}: $error',
           name: 'WalletTransactionHistoryService',
@@ -91,7 +91,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         );
       }
       if (_nativeHistoryCanBeEmpty(asset.chainRef)) {
-        developer.log(
+        SafeLog.error(
           '${asset.chainRef.name} native history provider failed; '
           'returning empty result: '
           '${lastExplorerError ?? 'no explorer provider'}',
@@ -127,7 +127,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
           .timeout(
             _limitedLogFallbackTimeout,
             onTimeout: () {
-              developer.log(
+              SafeLog.error(
                 '${asset.chainRef.name} token log fallback timed out',
                 name: 'WalletTransactionHistoryService',
               );
@@ -178,7 +178,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         txHash: normalizedHash,
       );
     } catch (error) {
-      developer.log(
+      SafeLog.error(
         '${asset.chainRef.name} transaction hash lookup failed: $error',
         name: 'WalletTransactionHistoryService',
       );

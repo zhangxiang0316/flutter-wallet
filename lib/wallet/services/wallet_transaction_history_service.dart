@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -17,6 +16,7 @@ import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
 import '../models/wallet_transaction_record.dart';
 import '../utils/rpc_retry_helper.dart';
+import '../../utils/safe_log.dart';
 import 'wallet_history_api_config.dart';
 import 'wallet_transfer_service.dart';
 
@@ -318,7 +318,7 @@ class WalletTransactionHistoryService {
         (cursor == null || cursor.moralisCursor != null);
     if (canUseMoralisEvm) {
       try {
-        developer.log(
+        SafeLog.error(
           'Using Moralis EVM history provider for ${chain.name} '
           'chainId=${chain.evmChainId}',
           name: 'WalletTransactionHistoryService',
@@ -335,7 +335,7 @@ class WalletTransactionHistoryService {
                 error.kind == TransactionHistoryFailureKind.apiKeyInvalid)) {
           rethrow;
         }
-        developer.log(
+        SafeLog.error(
           'Moralis ${chain.name} history failed; '
           'falling back to EVM providers: $error',
           name: 'WalletTransactionHistoryService',
