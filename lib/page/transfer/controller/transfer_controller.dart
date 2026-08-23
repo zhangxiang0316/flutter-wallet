@@ -22,6 +22,7 @@ import '../../../wallet/services/crypto/wallet_secret_store.dart';
 import '../../../wallet/services/transaction/wallet_transaction_status_service.dart';
 import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
+import '../../../wallet/services/config/wallet_custom_asset_service.dart';
 import 'transfer_asset_utils.dart';
 import 'transfer_balance_validator.dart';
 import 'transfer_input_validator.dart';
@@ -71,6 +72,7 @@ class TransferController extends BaseController {
     TransactionHistoryCache? transactionCache,
     WalletTransactionStatusService? transactionStatusService,
     WalletBlockExplorerService? blockExplorerService,
+    WalletCustomAssetService? customAssetService,
   }) : _transferService = transferService ?? WalletTransferService(),
        _repository = repository ?? WalletRepository(),
        _balanceService = balanceService ?? ChainBalanceService(),
@@ -78,7 +80,8 @@ class TransferController extends BaseController {
        _transactionStatusService =
            transactionStatusService ?? WalletTransactionStatusService(),
        _blockExplorerService =
-           blockExplorerService ?? WalletBlockExplorerService();
+           blockExplorerService ?? WalletBlockExplorerService(),
+       _customAssetService = customAssetService ?? WalletCustomAssetService();
 
   final WalletTransferService _transferService;
   final WalletRepository _repository;
@@ -86,6 +89,7 @@ class TransferController extends BaseController {
   final TransactionHistoryCache _transactionCache;
   final WalletTransactionStatusService _transactionStatusService;
   final WalletBlockExplorerService _blockExplorerService;
+  final WalletCustomAssetService _customAssetService;
 
   /// 收款地址输入框控制器。
   final TextEditingController addressController = TextEditingController();
@@ -425,6 +429,17 @@ class TransferController extends BaseController {
     final asset = currentAsset;
     if (asset == null || isSubmitting || !validateTransferInput()) {
       return false;
+    }
+    if (asset.chainRef.isEvm && !asset.isNative) {
+      final decimalsVerified = await _customAssetService.verifyEvmTokenDecimals(
+        chain: asset.chainConfig ?? asset.chain!.config,
+        contractAddress: asset.contractAddress!,
+        expectedDecimals: asset.decimals,
+      );
+      if (!decimalsVerified) {
+        Toast.show(S.current.customAssetMetadataUnavailable);
+        return false;
+      }
     }
     _feeDebounce?.cancel();
     _feeRequestId++;

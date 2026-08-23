@@ -39,6 +39,7 @@ class AddCustomAssetSheet extends StatefulWidget {
     required String symbol,
     required String name,
     required int decimals,
+    bool metadataVerified,
     String? logoUrl,
     String? canonicalTokenId,
   })
@@ -69,6 +70,10 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
 
   /// 是否正在提交自定义资产。
   bool _isSubmitting = false;
+
+  /// EVM 资产必须先读取链上 metadata，读取成功后 decimals 只读。
+  bool _hasVerifiedMetadata = false;
+  String? _verifiedContractAddress;
 
   /// 用户确认合约可信后，是否将该资产并入首页同名代币。
   bool _mergeWithSameToken = false;
@@ -219,6 +224,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
                   hint: '18',
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
+                  readOnly: widget.chain.isEvm && _hasVerifiedMetadata,
                   onSubmitted: (_) => _submit(),
                 ),
                 SizedBox(height: 12.h),
@@ -314,6 +320,8 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
     if (!mounted) return;
     setState(() {
       _isFetching = false;
+      _hasVerifiedMetadata = metadata != null;
+      _verifiedContractAddress = metadata?.contractAddress;
     });
 
     if (metadata == null) {
@@ -321,7 +329,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
       return;
     }
 
-    // 查询成功后回填表单，允许用户继续手动调整。
+    // 查询成功后回填表单。EVM decimals 来自链上，禁止用户修改。
     _contractController.text = metadata.contractAddress ?? contractAddress;
     _symbolController.text = metadata.symbol;
     _nameController.text = metadata.name;
@@ -341,6 +349,7 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
       symbol: asset.symbol,
       name: asset.name,
       decimals: asset.decimals,
+      metadataVerified: true,
       logoUrl: asset.logoUrl,
       canonicalTokenId: asset.canonicalTokenId,
     );
@@ -356,6 +365,14 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
 
   /// 校验并提交自定义资产表单。
   Future<void> _submit() async {
+    final contractAddress = _contractController.text.trim();
+    if (widget.chain.isEvm &&
+        (!_hasVerifiedMetadata ||
+            contractAddress.toLowerCase() !=
+                _verifiedContractAddress?.trim().toLowerCase())) {
+      Toast.show(S.current.customAssetMetadataUnavailable);
+      return;
+    }
     // 精度必须是整数，通常来自 ERC20 decimals。
     final decimals = int.tryParse(_decimalsController.text.trim());
     if (decimals == null) {
@@ -370,10 +387,11 @@ class _AddCustomAssetSheetState extends State<AddCustomAssetSheet> {
     // 具体地址规范化、重复校验和持久化由控制器完成。
     final success = await widget.onSubmit(
       chain: widget.chain,
-      contractAddress: _contractController.text.trim(),
+      contractAddress: contractAddress,
       symbol: _symbolController.text.trim(),
       name: _nameController.text.trim(),
       decimals: decimals,
+      metadataVerified: widget.chain.isEvm,
       logoUrl: _logoUrlController.text.trim(),
       canonicalTokenId: _mergeWithSameToken
           ? _symbolController.text.trim().toLowerCase()
@@ -554,6 +572,7 @@ class _CustomAssetTextField extends StatelessWidget {
     this.textInputAction,
     this.textCapitalization = TextCapitalization.none,
     this.onSubmitted,
+    this.readOnly = false,
   });
 
   /// 输入框控制器。
@@ -577,6 +596,9 @@ class _CustomAssetTextField extends StatelessWidget {
   /// 用户点击键盘提交按钮后的回调。
   final ValueChanged<String>? onSubmitted;
 
+  /// 是否禁止修改已从链上读取的不可变字段。
+  final bool readOnly;
+
   @override
   Widget build(BuildContext context) {
     // 当前主题色用于输入框背景和聚焦边框。
@@ -586,6 +608,7 @@ class _CustomAssetTextField extends StatelessWidget {
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
+      readOnly: readOnly,
       onSubmitted: onSubmitted,
       style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
       decoration: InputDecoration(

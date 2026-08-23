@@ -108,6 +108,7 @@ class AssetVisibilityController extends BaseController {
     required String symbol,
     required String name,
     required int decimals,
+    bool metadataVerified = false,
     String? logoUrl,
     String? canonicalTokenId,
   }) async {
@@ -118,6 +119,7 @@ class AssetVisibilityController extends BaseController {
         symbol: symbol,
         name: name,
         decimals: decimals,
+        metadataVerified: metadataVerified,
         logoUrl: logoUrl,
         canonicalTokenId: canonicalTokenId,
       );

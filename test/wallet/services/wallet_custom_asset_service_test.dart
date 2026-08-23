@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omnicast/wallet/models/wallet_asset.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/config/wallet_custom_asset_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +22,7 @@ void main() {
         symbol: 'cake',
         name: 'PancakeSwap Token',
         decimals: 18,
+        metadataVerified: true,
         logoUrl: 'https://example.com/cake.png',
         canonicalTokenId: 'cake',
       );
@@ -45,9 +47,51 @@ void main() {
           symbol: 'cake',
           name: 'PancakeSwap Token',
           decimals: 18,
+          metadataVerified: true,
           logoUrl: 'javascript:alert(1)',
         ),
         throwsA(isA<CustomAssetInvalidInputException>()),
+      );
+    });
+
+    test('requires verified metadata for manually added EVM assets', () {
+      final service = WalletCustomAssetService();
+
+      expect(
+        () => service.buildManualAsset(
+          chain: WalletChain.bsc.config,
+          contractAddress: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
+          symbol: 'cake',
+          name: 'PancakeSwap Token',
+          decimals: 18,
+        ),
+        throwsA(isA<CustomAssetUnverifiedMetadataException>()),
+      );
+    });
+
+    test('keeps saved token decimals immutable', () async {
+      final service = WalletCustomAssetService();
+      final asset = WalletAsset.config(
+        chainConfig: WalletChain.bsc.config,
+        symbol: 'CAKE',
+        name: 'PancakeSwap Token',
+        decimals: 18,
+        contractAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
+        isCustom: true,
+      );
+      await service.saveCustomAssets([asset]);
+
+      final modified = WalletAsset.config(
+        chainConfig: WalletChain.bsc.config,
+        symbol: 'CAKE',
+        name: 'PancakeSwap Token',
+        decimals: 6,
+        contractAddress: asset.contractAddress,
+        isCustom: true,
+      );
+      await expectLater(
+        service.saveCustomAssets([modified]),
+        throwsA(isA<CustomAssetDecimalsImmutableException>()),
       );
     });
 

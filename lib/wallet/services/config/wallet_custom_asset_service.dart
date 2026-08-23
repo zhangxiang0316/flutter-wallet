@@ -111,8 +111,30 @@ class WalletCustomAssetService {
 
   /// 保存自定义资产列表。
   ///
-  /// 资产会转换成 JSON 兼容结构写入本地存储。
-  Future<void> saveCustomAssets(List<WalletAsset> assets) {
+  /// 同一条链上的同一合约一旦保存，decimals 视为不可变元数据。这样网络配置
+  /// 更新、资产迁移或其他调用方即使重新写入列表，也不能悄悄改变余额和转账的数量级。
+  Future<void> saveCustomAssets(List<WalletAsset> assets) async {
+    final stored = await _storage.getJsonList(_customAssetsKey);
+    final storedAssets = stored == null
+        ? const <WalletAsset>[]
+        : stored
+              .whereType<Map>()
+              .map(
+                (item) => WalletAsset.fromJson(Map<String, dynamic>.from(item)),
+              )
+              .toList(growable: false);
+    for (final asset in assets) {
+      final previous = storedAssets.cast<WalletAsset?>().firstWhere(
+        (item) => item != null && _sameContractAsset(item, asset),
+        orElse: () => null,
+      );
+      if (previous != null && previous.decimals != asset.decimals) {
+        throw const CustomAssetDecimalsImmutableException();
+      }
+      if (asset.decimals < 0 || asset.decimals > 30) {
+        throw const CustomAssetInvalidInputException();
+      }
+    }
     return _storage.setJsonList(
       _customAssetsKey,
       assets.map((asset) => asset.toJson()).toList(growable: false),
@@ -165,6 +187,23 @@ class WalletCustomAssetService {
     );
   }
 
+  /// 在签名前重新读取 EVM decimals，防止本地配置或缓存被篡改后按错误精度转账。
+  Future<bool> verifyEvmTokenDecimals({
+    required WalletChainConfig chain,
+    required String contractAddress,
+    required int expectedDecimals,
+  }) async {
+    try {
+      final metadata = await fetchEvmTokenMetadata(
+        chain: chain,
+        contractAddress: contractAddress,
+      );
+      return metadata.decimals == expectedDecimals;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// 根据用户手动输入构造自定义资产。
   ///
   /// 用于非 EVM 链，或者 EVM 自动读取失败后用户手动填写 symbol/name/decimals 的场景。
@@ -175,10 +214,14 @@ class WalletCustomAssetService {
     required String symbol,
     required String name,
     required int decimals,
+    bool metadataVerified = false,
     String? logoUrl,
     String? canonicalTokenId,
   }) {
     final normalizedAddress = _normalizeAddress(chain, contractAddress);
+    if (chain.isEvm && !metadataVerified) {
+      throw const CustomAssetUnverifiedMetadataException();
+    }
     if (symbol.trim().isEmpty || name.trim().isEmpty) {
       throw const CustomAssetInvalidInputException();
     }
@@ -236,6 +279,16 @@ class CustomAssetInvalidInputException extends CustomAssetException {
 /// 自动读取到的链上合约元数据不完整或不可信。
 class CustomAssetInvalidMetadataException extends CustomAssetException {
   const CustomAssetInvalidMetadataException();
+}
+
+/// 自定义 EVM 资产未经过链上 metadata 校验。
+class CustomAssetUnverifiedMetadataException extends CustomAssetException {
+  const CustomAssetUnverifiedMetadataException();
+}
+
+/// 已保存资产的 decimals 不允许被覆盖。
+class CustomAssetDecimalsImmutableException extends CustomAssetException {
+  const CustomAssetDecimalsImmutableException();
 }
 
 /// 当前链不支持自动读取资产元数据。
