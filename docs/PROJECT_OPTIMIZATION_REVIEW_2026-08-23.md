@@ -235,12 +235,20 @@ SPL 转账可能创建目标 ATA，当前固定费用估算不一定包含账户
 4. RPC HTTPS 和网络身份校验；
 5. 日志脱敏与错误上报。
 
-### 第三批：链适配器重构
+### 第三批：链适配器重构（进行中，2026-08-23）
 
 1. 统一 ChainAdapter 契约；
 2. 迁移 EVM、Solana、TRON、Bitcoin、Sui、Aptos；
 3. 增加 Adapter contract tests；
 4. 删除散落在页面和服务中的链类型分支。
+
+本次已完成第一阶段：注册表新增统一 `route` 契约，转账、手续费、交易状态和交易历史
+服务通过注册表路由，不再直接读取 `adapter.type` 进行分发；EVM、Solana、TRON、
+Bitcoin、Sui、Aptos 均由默认注册表提供适配器，并补充了覆盖地址选择、地址标准化、
+浏览器链接和能力声明的 Adapter contract tests。余额服务此前已使用同一注册表。
+
+后续仍需把余额、RPC 健康检查、页面展示样式等链特有能力继续下沉到 Adapter，最终移除
+页面层的 `WalletChainType` 分支。
 
 ## 7. 建议补充的测试
 

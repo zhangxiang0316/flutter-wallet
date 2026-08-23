@@ -38,20 +38,18 @@ class WalletTransactionStatusService {
   }) async {
     final hash = txHash.trim();
     if (hash.isEmpty) return WalletTransactionStatus.unknown;
-    final adapter = _adapterRegistry.require(
+    return _adapterRegistry.route<Future<WalletTransactionStatus>>(
       chain,
       capability: ChainCapability.transactionStatus,
+      handlers: <WalletChainType, Future<WalletTransactionStatus> Function()>{
+        WalletChainType.evm: () => _loadEvmStatus(chain, hash),
+        WalletChainType.solana: () => _loadSolanaStatus(chain, hash),
+        WalletChainType.tron: () => _loadTronStatus(chain, hash),
+        WalletChainType.bitcoin: () => _loadBitcoinStatus(chain, hash),
+        WalletChainType.sui: () => _loadSuiStatus(chain, hash),
+        WalletChainType.aptos: () => _loadAptosStatus(chain, hash),
+      },
     );
-    final handlers =
-        <WalletChainType, Future<WalletTransactionStatus> Function()>{
-          WalletChainType.evm: () => _loadEvmStatus(chain, hash),
-          WalletChainType.solana: () => _loadSolanaStatus(chain, hash),
-          WalletChainType.tron: () => _loadTronStatus(chain, hash),
-          WalletChainType.bitcoin: () => _loadBitcoinStatus(chain, hash),
-          WalletChainType.sui: () => _loadSuiStatus(chain, hash),
-          WalletChainType.aptos: () => _loadAptosStatus(chain, hash),
-        };
-    return handlers[adapter.type]?.call() ?? WalletTransactionStatus.unknown;
   }
 
   Future<WalletTransactionStatus> _loadEvmStatus(

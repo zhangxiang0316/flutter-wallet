@@ -144,6 +144,25 @@ class ChainAdapterRegistry {
     }
     return adapter;
   }
+
+  /// 在注册表边界完成链类型路由，业务服务不再读取 `adapter.type` 自行分支。
+  ///
+  /// 处理器仍由具体业务服务提供，因为它们需要访问各自的 RPC 客户端和密钥上下文；
+  /// 注册表只负责校验链适配器和能力，并统一处理未注册链的错误。
+  T route<T>(
+    WalletChainRef chain, {
+    ChainCapability? capability,
+    required Map<WalletChainType, T Function()> handlers,
+  }) {
+    final adapter = require(chain, capability: capability);
+    final handler = handlers[adapter.type];
+    if (handler == null) {
+      throw StateError(
+        'Missing ${capability?.name ?? 'operation'} handler for ${adapter.type.name}',
+      );
+    }
+    return handler();
+  }
 }
 
 const _evmAddressTemplates = <String, String>{

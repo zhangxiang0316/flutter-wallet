@@ -100,66 +100,61 @@ class WalletTransferService {
     List<int>? aptosPrivateKey,
     EvmTransactionDraft? evmDraft,
   }) {
-    final adapter = _adapterRegistry.require(
+    return _adapterRegistry.route<Future<String>>(
       asset.chainRef,
       capability: ChainCapability.transfer,
+      handlers: <WalletChainType, Future<String> Function()>{
+        WalletChainType.evm: () => _transferEvm(
+          privateKeyHex: privateKeyHex,
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+          draft: evmDraft,
+        ),
+        WalletChainType.tron: () => _transferTron(
+          privateKeyHex: privateKeyHex,
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        ),
+        WalletChainType.solana: () {
+          final key = solanaPrivateKey;
+          if (key == null) throw StateError('Missing Solana private key');
+          return _transferSolana(
+            solanaPrivateKey: key,
+            asset: asset,
+            toAddress: toAddress,
+            amount: amount,
+          );
+        },
+        WalletChainType.bitcoin: () => _transferBitcoin(
+          privateKeyHex: privateKeyHex,
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        ),
+        WalletChainType.sui: () {
+          final key = suiPrivateKey;
+          if (key == null) throw StateError('Missing Sui private key');
+          return _transferSui(
+            suiPrivateKey: key,
+            asset: asset,
+            toAddress: toAddress,
+            amount: amount,
+          );
+        },
+        WalletChainType.aptos: () {
+          final key = aptosPrivateKey;
+          if (key == null) throw StateError('Missing Aptos private key');
+          return _transferAptos(
+            aptosPrivateKey: key,
+            asset: asset,
+            toAddress: toAddress,
+            amount: amount,
+          );
+        },
+      },
     );
-    final handlers = <WalletChainType, Future<String> Function()>{
-      WalletChainType.evm: () => _transferEvm(
-        privateKeyHex: privateKeyHex,
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-        draft: evmDraft,
-      ),
-      WalletChainType.tron: () => _transferTron(
-        privateKeyHex: privateKeyHex,
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      ),
-      WalletChainType.solana: () {
-        final key = solanaPrivateKey;
-        if (key == null) throw StateError('Missing Solana private key');
-        return _transferSolana(
-          solanaPrivateKey: key,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      },
-      WalletChainType.bitcoin: () => _transferBitcoin(
-        privateKeyHex: privateKeyHex,
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      ),
-      WalletChainType.sui: () {
-        final key = suiPrivateKey;
-        if (key == null) throw StateError('Missing Sui private key');
-        return _transferSui(
-          suiPrivateKey: key,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      },
-      WalletChainType.aptos: () {
-        final key = aptosPrivateKey;
-        if (key == null) throw StateError('Missing Aptos private key');
-        return _transferAptos(
-          aptosPrivateKey: key,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        );
-      },
-    };
-    final handler = handlers[adapter.type];
-    if (handler == null) {
-      throw StateError('Missing transfer handler for ${adapter.type.name}');
-    }
-    return handler();
   }
 
   /// 实时估算转账手续费。
@@ -171,35 +166,36 @@ class WalletTransferService {
     required String toAddress,
     required String amount,
   }) {
-    final adapter = _adapterRegistry.require(
+    return _adapterRegistry.route<Future<TransferFeeEstimate>>(
       asset.chainRef,
       capability: ChainCapability.feeEstimation,
+      handlers: <WalletChainType, Future<TransferFeeEstimate> Function()>{
+        WalletChainType.evm: () =>
+            _estimateEvmFee(asset: asset, toAddress: toAddress, amount: amount),
+        WalletChainType.tron: () => _estimateTronFee(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        ),
+        WalletChainType.solana: () => _estimateSolanaFee(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        ),
+        WalletChainType.bitcoin: () => _estimateBitcoinFee(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        ),
+        WalletChainType.sui: () =>
+            _estimateSuiFee(asset: asset, toAddress: toAddress, amount: amount),
+        WalletChainType.aptos: () => _estimateAptosFee(
+          asset: asset,
+          toAddress: toAddress,
+          amount: amount,
+        ),
+      },
     );
-    final handlers = <WalletChainType, Future<TransferFeeEstimate> Function()>{
-      WalletChainType.evm: () =>
-          _estimateEvmFee(asset: asset, toAddress: toAddress, amount: amount),
-      WalletChainType.tron: () =>
-          _estimateTronFee(asset: asset, toAddress: toAddress, amount: amount),
-      WalletChainType.solana: () => _estimateSolanaFee(
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      ),
-      WalletChainType.bitcoin: () => _estimateBitcoinFee(
-        asset: asset,
-        toAddress: toAddress,
-        amount: amount,
-      ),
-      WalletChainType.sui: () =>
-          _estimateSuiFee(asset: asset, toAddress: toAddress, amount: amount),
-      WalletChainType.aptos: () =>
-          _estimateAptosFee(asset: asset, toAddress: toAddress, amount: amount),
-    };
-    final handler = handlers[adapter.type];
-    if (handler == null) {
-      throw StateError('Missing fee handler for ${adapter.type.name}');
-    }
-    return handler();
   }
 
   static ChainAdapterRegistry _createAdapterRegistry() {

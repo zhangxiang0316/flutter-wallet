@@ -221,36 +221,33 @@ class WalletTransactionHistoryService {
     required String txHash,
   }) async {
     final chain = asset.chainRef;
-    final adapter = _adapterRegistry.require(
+    return _adapterRegistry.route<Future<WalletTransactionRecord?>>(
       chain,
       capability: ChainCapability.history,
+      handlers: <WalletChainType, Future<WalletTransactionRecord?> Function()>{
+        WalletChainType.evm: () => _evmProvider.loadRecordByTransactionHash(
+          walletId: walletId,
+          asset: asset,
+          txHash: txHash,
+        ),
+        WalletChainType.bitcoin: () =>
+            _bitcoinProvider.loadRecordByTransactionHash(
+              walletId: walletId,
+              asset: asset,
+              txHash: txHash,
+            ),
+        WalletChainType.sui: () => _suiProvider.loadRecordByTransactionHash(
+          walletId: walletId,
+          asset: asset,
+          txHash: txHash,
+        ),
+        WalletChainType.aptos: () => _aptosProvider.loadRecordByTransactionHash(
+          walletId: walletId,
+          asset: asset,
+          txHash: txHash,
+        ),
+      },
     );
-    final handlers =
-        <WalletChainType, Future<WalletTransactionRecord?> Function()>{
-          WalletChainType.evm: () => _evmProvider.loadRecordByTransactionHash(
-            walletId: walletId,
-            asset: asset,
-            txHash: txHash,
-          ),
-          WalletChainType.bitcoin: () =>
-              _bitcoinProvider.loadRecordByTransactionHash(
-                walletId: walletId,
-                asset: asset,
-                txHash: txHash,
-              ),
-          WalletChainType.sui: () => _suiProvider.loadRecordByTransactionHash(
-            walletId: walletId,
-            asset: asset,
-            txHash: txHash,
-          ),
-          WalletChainType.aptos: () =>
-              _aptosProvider.loadRecordByTransactionHash(
-                walletId: walletId,
-                asset: asset,
-                txHash: txHash,
-              ),
-        };
-    return handlers[adapter.type]?.call();
   }
 
   /// 分页读取某个资产的链上交易记录。
@@ -260,49 +257,42 @@ class WalletTransactionHistoryService {
     TransactionHistoryCursor? cursor,
   }) async {
     final chain = asset.chainRef;
-    final adapter = _adapterRegistry.require(
+    return _adapterRegistry.route<Future<TransactionHistoryPageResult>>(
       chain,
       capability: ChainCapability.history,
-    );
-    final handlers =
-        <WalletChainType, Future<TransactionHistoryPageResult> Function()>{
-          WalletChainType.evm: () => _loadEvmRecordPage(
-            walletId: walletId,
-            asset: asset,
-            cursor: cursor,
-          ),
-          WalletChainType.tron: () => _tronProvider.loadRecordPage(
-            walletId: walletId,
-            asset: asset,
-            cursor: cursor,
-          ),
-          WalletChainType.solana: () => _solanaProvider.loadRecordPage(
-            walletId: walletId,
-            asset: asset,
-            cursor: cursor,
-          ),
-          WalletChainType.bitcoin: () => _bitcoinProvider.loadRecordPage(
-            walletId: walletId,
-            asset: asset,
-            cursor: cursor,
-          ),
-          WalletChainType.sui: () => _suiProvider.loadRecordPage(
-            walletId: walletId,
-            asset: asset,
-            cursor: cursor,
-          ),
-          WalletChainType.aptos: () => _aptosProvider.loadRecordPage(
-            walletId: walletId,
-            asset: asset,
-            cursor: cursor,
-          ),
-        };
-    final handler = handlers[adapter.type];
-    if (handler != null) return handler();
-    return const TransactionHistoryPageResult(
-      records: [],
-      nextCursor: null,
-      emptyReason: TransactionHistoryFailureKind.noRecords,
+      handlers:
+          <WalletChainType, Future<TransactionHistoryPageResult> Function()>{
+            WalletChainType.evm: () => _loadEvmRecordPage(
+              walletId: walletId,
+              asset: asset,
+              cursor: cursor,
+            ),
+            WalletChainType.tron: () => _tronProvider.loadRecordPage(
+              walletId: walletId,
+              asset: asset,
+              cursor: cursor,
+            ),
+            WalletChainType.solana: () => _solanaProvider.loadRecordPage(
+              walletId: walletId,
+              asset: asset,
+              cursor: cursor,
+            ),
+            WalletChainType.bitcoin: () => _bitcoinProvider.loadRecordPage(
+              walletId: walletId,
+              asset: asset,
+              cursor: cursor,
+            ),
+            WalletChainType.sui: () => _suiProvider.loadRecordPage(
+              walletId: walletId,
+              asset: asset,
+              cursor: cursor,
+            ),
+            WalletChainType.aptos: () => _aptosProvider.loadRecordPage(
+              walletId: walletId,
+              asset: asset,
+              cursor: cursor,
+            ),
+          },
     );
   }
 

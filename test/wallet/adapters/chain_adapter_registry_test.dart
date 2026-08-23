@@ -56,6 +56,28 @@ void main() {
       }
     });
 
+    test('all adapters satisfy the common contract', () {
+      final registry = createDefaultChainAdapterRegistry();
+      for (final chain in WalletChain.values) {
+        final adapter = registry.require(chain);
+        final address = adapter.walletAddress(_addresses);
+        expect(address, isNotEmpty);
+        expect(adapter.normalizeAddress(address), isNotEmpty);
+        expect(adapter.addressExplorerUri(chain, address), isA<Uri>());
+        expect(adapter.transactionExplorerUri(chain, 'tx-hash'), isA<Uri>());
+        expect(
+          adapter.capabilities.supports(
+            ChainCapability.walletAddressResolution,
+          ),
+          isTrue,
+        );
+        expect(
+          adapter.capabilities.supports(ChainCapability.blockExplorer),
+          isTrue,
+        );
+      }
+    });
+
     test('rejects duplicate registration unless replace is explicit', () {
       final registry = ChainAdapterRegistry([_testAdapter]);
 
@@ -82,11 +104,11 @@ void main() {
 
 const _addresses = ChainWalletAddresses(
   evm: '0x1111111111111111111111111111111111111111',
-  tron: 'tron-address',
-  solana: 'solana-address',
-  bitcoin: 'bitcoin-address',
-  sui: 'sui-address',
-  aptos: 'aptos-address',
+  tron: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+  solana: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+  bitcoin: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+  sui: '0x0000000000000000000000000000000000000000000000000000000000000001',
+  aptos: '0x1',
 );
 
 final _testAdapter = RegisteredChainAdapter(
