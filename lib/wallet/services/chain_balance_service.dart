@@ -179,10 +179,12 @@ class ChainBalanceService {
     String suiAddress = '',
     String aptosAddress = '',
     String bitcoinAddress = '',
+    List<WalletChainConfig>? enabledChains,
     ChainBalancesCallback? onChainBalances,
   }) async {
     final customAssets = await _customAssetService.loadCustomAssets();
-    final enabledChains = await _chainConfigService.loadEnabledChains();
+    final chains =
+        enabledChains ?? await _chainConfigService.loadEnabledChains();
     final addresses = ChainWalletAddresses(
       evm: bscAddress,
       tron: tronAddress,
@@ -193,7 +195,7 @@ class ChainBalanceService {
     );
     final tasks = <Future<List<ChainBalance>>>[];
 
-    for (final chain in enabledChains) {
+    for (final chain in chains) {
       final adapter = _adapterRegistry.require(
         chain,
         capability: ChainCapability.balance,

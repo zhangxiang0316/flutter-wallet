@@ -47,13 +47,13 @@ class HomeController extends BaseController {
     Duration balanceRetryDelay = const Duration(seconds: 2),
   }) : _repository = repository ?? WalletRepository(),
        _cryptoService = cryptoService ?? WalletCryptoService(),
+       _chainConfigService = chainConfigService ?? WalletChainConfigService(),
        _balanceService = balanceService ?? ChainBalanceService(),
        _valuationService = valuationService ?? AssetValuationService(),
        _assetVisibilityService =
            assetVisibilityService ?? WalletAssetVisibilityService(),
        _backupStatusService =
            backupStatusService ?? WalletBackupStatusService(),
-       _chainConfigService = chainConfigService ?? WalletChainConfigService(),
        _balanceCache = balanceCache ?? ChainBalanceCache(),
        _tokenPortfolioService =
            tokenPortfolioService ?? TokenPortfolioService(),
@@ -169,10 +169,18 @@ class HomeController extends BaseController {
 
   /// 启动时读取本地钱包；如果存在钱包，立即拉取当前钱包的链上余额。
   Future<void> loadWallet() async {
-    hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
-    chains = await _chainConfigService.loadEnabledChains();
-    wallets = await _repository.loadWallets();
-    wallet = await _repository.loadCurrentWallet();
+    final results = await Future.wait<Object>([
+      _assetVisibilityService.loadHiddenAssetKeys(),
+      _chainConfigService.loadEnabledChains(),
+      _repository.loadWalletSnapshot(),
+    ]);
+    hiddenAssetKeys = results[0] as Set<String>;
+    chains = results[1] as List<WalletChainConfig>;
+    final walletSnapshot =
+        results[2]
+            as ({List<WalletAccount> wallets, WalletAccount? currentWallet});
+    wallets = walletSnapshot.wallets;
+    wallet = walletSnapshot.currentWallet;
     _updateWalletMaintenanceState();
     update();
     if (wallet != null) {

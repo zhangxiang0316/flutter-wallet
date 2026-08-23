@@ -354,6 +354,7 @@ class _FakeBalanceService extends ChainBalanceService {
     String suiAddress = '',
     String aptosAddress = '',
     String bitcoinAddress = '',
+    List<WalletChainConfig>? enabledChains,
     ChainBalancesCallback? onChainBalances,
   }) async {
     final index = callCount < results.length ? callCount : results.length - 1;
@@ -420,6 +421,7 @@ class _ControlledBalanceService extends ChainBalanceService {
     String suiAddress = '',
     String aptosAddress = '',
     String bitcoinAddress = '',
+    List<WalletChainConfig>? enabledChains,
     ChainBalancesCallback? onChainBalances,
   }) {
     final call = _ControlledBalanceCall(bscAddress);

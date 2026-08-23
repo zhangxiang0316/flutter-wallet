@@ -65,6 +65,21 @@ class WalletRepository {
     return [legacyWallet];
   }
 
+  /// 一次读取钱包列表和当前钱包，避免启动时分别解析同一份钱包 JSON。
+  Future<({List<WalletAccount> wallets, WalletAccount? currentWallet})>
+  loadWalletSnapshot() async {
+    final wallets = await loadWallets();
+    if (wallets.isEmpty) {
+      return (wallets: wallets, currentWallet: null);
+    }
+    final currentId = await loadCurrentWalletId();
+    final currentWallet = wallets.firstWhere(
+      (wallet) => wallet.id == currentId,
+      orElse: () => wallets.first,
+    );
+    return (wallets: wallets, currentWallet: currentWallet);
+  }
+
   /// 加载当前选中的钱包。
   ///
   /// 如果当前钱包 ID 丢失或找不到对应钱包，则退回到列表第一个钱包。

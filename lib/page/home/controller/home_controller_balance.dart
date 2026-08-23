@@ -43,6 +43,7 @@ extension HomeControllerBalance on HomeController {
         suiAddress: currentWallet.suiAddress,
         aptosAddress: currentWallet.aptosAddress,
         bitcoinAddress: currentWallet.bitcoinAddress,
+        enabledChains: chains,
         onChainBalances: (chainBalances) {
           if (!_isActiveBalanceRequest(requestId, currentWallet)) {
             return;
@@ -119,6 +120,7 @@ extension HomeControllerBalance on HomeController {
       await _refreshBalanceDisplayState(
         requestId: requestId,
         currentWallet: currentWallet,
+        reloadConfig: false,
       );
       if (!_isActiveBalanceRequest(requestId, currentWallet)) {
         return;
@@ -170,15 +172,13 @@ extension HomeControllerBalance on HomeController {
     WalletAccount currentWallet, {
     required int requestId,
   }) async {
-    final currentChains = await _chainConfigService.loadEnabledChains();
     if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
     final snapshot = await _balanceCache.load(
       currentWallet.id,
-      chains: currentChains,
+      chains: chains,
       allowStale: true,
     );
     if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
-    chains = currentChains;
     if (snapshot == null || snapshot.balances.isEmpty) {
       return;
     }
@@ -191,6 +191,7 @@ extension HomeControllerBalance on HomeController {
     await _refreshBalanceDisplayState(
       requestId: requestId,
       currentWallet: currentWallet,
+      reloadConfig: false,
     );
     if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
     _updateBalanceView();
@@ -245,10 +246,14 @@ extension HomeControllerBalance on HomeController {
   Future<void> _refreshBalanceDisplayState({
     int? requestId,
     WalletAccount? currentWallet,
+    bool reloadConfig = true,
   }) async {
-    final nextHiddenAssetKeys = await _assetVisibilityService
-        .loadHiddenAssetKeys();
-    final nextChains = await _chainConfigService.loadEnabledChains();
+    final nextHiddenAssetKeys = reloadConfig
+        ? await _assetVisibilityService.loadHiddenAssetKeys()
+        : hiddenAssetKeys;
+    final nextChains = reloadConfig
+        ? await _chainConfigService.loadEnabledChains()
+        : chains;
     if (requestId != null &&
         currentWallet != null &&
         !_isActiveBalanceRequest(requestId, currentWallet)) {
