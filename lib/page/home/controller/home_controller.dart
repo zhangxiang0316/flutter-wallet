@@ -204,28 +204,42 @@ class HomeController extends BaseController {
 
   /// 生成助记词并创建钱包，保存后刷新链上余额。
   Future<CreatedWalletBackup?> createWallet(String password) async {
-    final mnemonic = _cryptoService.generateMnemonic();
-    final keyPair = _cryptoService.importMnemonic(mnemonic);
-    final nextWallet = WalletAccount(
-      id: HomeControllerUtils.createWalletId(keyPair.bscAddress),
-      name: 'Wallet ${wallets.length + 1}',
-      bscAddress: keyPair.bscAddress,
-      tronAddress: keyPair.tronAddress,
-      solanaAddress: keyPair.solanaAddress,
-      suiAddress: keyPair.suiAddress,
-      aptosAddress: keyPair.aptosAddress,
-      bitcoinAddress: keyPair.bitcoinAddress,
-      createdAt: DateTime.now(),
-    );
-    await _repository.saveWalletSecret(
-      walletId: nextWallet.id,
-      password: password,
-      privateKeyHex: keyPair.privateKeyHex,
-      mnemonic: keyPair.mnemonic,
-    );
-    await _saveAndSelectWallet(nextWallet);
-    Toast.show(S.current.walletCreated);
-    return CreatedWalletBackup(walletId: nextWallet.id, mnemonic: mnemonic);
+    try {
+      final keyPair = await _cryptoService.generateMnemonicWallet();
+      final mnemonic = keyPair.mnemonic;
+      if (mnemonic == null || mnemonic.isEmpty) {
+        throw StateError('Generated wallet is missing its mnemonic');
+      }
+      final nextWallet = WalletAccount(
+        id: HomeControllerUtils.createWalletId(keyPair.bscAddress),
+        name: 'Wallet ${wallets.length + 1}',
+        bscAddress: keyPair.bscAddress,
+        tronAddress: keyPair.tronAddress,
+        solanaAddress: keyPair.solanaAddress,
+        suiAddress: keyPair.suiAddress,
+        aptosAddress: keyPair.aptosAddress,
+        bitcoinAddress: keyPair.bitcoinAddress,
+        createdAt: DateTime.now(),
+      );
+      await _repository.saveWalletSecret(
+        walletId: nextWallet.id,
+        password: password,
+        privateKeyHex: keyPair.privateKeyHex,
+        mnemonic: mnemonic,
+      );
+      await _saveAndSelectWallet(nextWallet);
+      Toast.show(S.current.walletCreated);
+      return CreatedWalletBackup(walletId: nextWallet.id, mnemonic: mnemonic);
+    } catch (error, stackTrace) {
+      developer.log(
+        'Wallet creation failed',
+        name: 'HomeController',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      Toast.show(S.current.walletCreateFailed);
+      return null;
+    }
   }
 
   /// 导入用户输入的私钥，派生 EVM/TRON 地址并保存到本地。

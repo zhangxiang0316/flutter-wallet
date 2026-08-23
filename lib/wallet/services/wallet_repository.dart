@@ -160,18 +160,20 @@ class WalletRepository {
     required String privateKeyHex,
     String? mnemonic,
   }) async {
-    await _secretStore.savePrivateKey(
-      walletId: walletId,
-      password: password,
-      privateKeyHex: privateKeyHex,
-    );
-    if (mnemonic != null && mnemonic.trim().isNotEmpty) {
-      await _secretStore.saveMnemonic(
+    final normalizedMnemonic = mnemonic?.trim() ?? '';
+    await Future.wait<void>([
+      _secretStore.savePrivateKey(
         walletId: walletId,
         password: password,
-        mnemonic: mnemonic,
-      );
-    }
+        privateKeyHex: privateKeyHex,
+      ),
+      if (normalizedMnemonic.isNotEmpty)
+        _secretStore.saveMnemonic(
+          walletId: walletId,
+          password: password,
+          mnemonic: normalizedMnemonic,
+        ),
+    ]);
   }
 
   /// 使用密码读取钱包私钥。

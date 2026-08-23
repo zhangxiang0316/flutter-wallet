@@ -482,7 +482,12 @@ class MessageLookup extends MessageLookupByLibrary {
         "viewMnemonic": MessageLookupByLibrary.simpleMessage("查看助记词"),
         "viewPrivateKey": MessageLookupByLibrary.simpleMessage("查看私钥"),
         "walletAddresses": MessageLookupByLibrary.simpleMessage("链地址"),
+        "walletCreateFailed":
+            MessageLookupByLibrary.simpleMessage("钱包创建失败，请重试"),
         "walletCreated": MessageLookupByLibrary.simpleMessage("钱包已创建"),
+        "walletCreating": MessageLookupByLibrary.simpleMessage("正在创建钱包..."),
+        "walletCreatingHint":
+            MessageLookupByLibrary.simpleMessage("正在生成多链地址并在本机加密钱包，请保持当前页面开启。"),
         "walletDetails": MessageLookupByLibrary.simpleMessage("钱包详情"),
         "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
             "当前支持 EVM、Bitcoin、Solana、Sui、Aptos 和 TRON 网络的地址管理与多资产链上余额查询。"),

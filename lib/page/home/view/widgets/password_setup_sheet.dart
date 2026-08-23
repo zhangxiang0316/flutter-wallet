@@ -17,6 +17,8 @@ class PasswordSetupSheet extends StatefulWidget {
     super.key,
     required this.title,
     required this.submitLabel,
+    this.submittingLabel,
+    this.submittingHint,
     required this.isDismissible,
     required this.onSubmit,
     required this.validatePassword,
@@ -27,6 +29,12 @@ class PasswordSetupSheet extends StatefulWidget {
 
   /// 主按钮文案，由不同流程决定。
   final String submitLabel;
+
+  /// 提交中的按钮文案；为空时沿用 [submitLabel]。
+  final String? submittingLabel;
+
+  /// 提交中的状态说明；设置后会用明确的进度卡片替换密码输入区。
+  final String? submittingHint;
 
   /// 是否允许用户手势关闭；安全迁移流程会禁止关闭。
   final bool isDismissible;
@@ -103,33 +111,49 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         VantSheetTitle(title: widget.title),
-        Text(
-          S.of(context).walletPasswordHint,
-          style: TextStyle(
-            fontSize: 12.sp,
-            height: 1.35,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.62),
-          ),
-        ).marginOnly(bottom: 14.h),
-        PasswordTextField(
-          controller: _passwordController,
-          enabled: !_isSubmitting,
-          label: S.of(context).walletPassword,
-        ).marginOnly(bottom: 12.h),
-        PasswordTextField(
-          controller: _confirmPasswordController,
-          enabled: !_isSubmitting,
-          label: S.of(context).confirmWalletPassword,
-        ).marginOnly(bottom: 14.h),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: _isSubmitting && widget.submittingHint != null
+              ? _WalletSubmittingStatus(
+                  label: widget.submittingLabel ?? widget.submitLabel,
+                  hint: widget.submittingHint!,
+                ).marginOnly(bottom: 14.h)
+              : Column(
+                  key: const ValueKey('password-inputs'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      S.of(context).walletPasswordHint,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        height: 1.35,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.62),
+                      ),
+                    ).marginOnly(bottom: 14.h),
+                    PasswordTextField(
+                      controller: _passwordController,
+                      enabled: !_isSubmitting,
+                      label: S.of(context).walletPassword,
+                    ).marginOnly(bottom: 12.h),
+                    PasswordTextField(
+                      controller: _confirmPasswordController,
+                      enabled: !_isSubmitting,
+                      label: S.of(context).confirmWalletPassword,
+                    ).marginOnly(bottom: 14.h),
+                  ],
+                ),
+        ),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
             style: vantFilledButtonStyle(context),
             onPressed: _isSubmitting ? null : _submit,
             child: VantButtonLoadingLabel(
-              label: widget.submitLabel,
+              label: _isSubmitting
+                  ? widget.submittingLabel ?? widget.submitLabel
+                  : widget.submitLabel,
               loading: _isSubmitting,
             ),
           ),
@@ -258,6 +282,11 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
       return;
     }
 
+    FocusManager.instance.primaryFocus?.unfocus();
+    // 密码已复制到当前异步调用后，立即清空输入控制器，避免在助记词备份期间继续
+    // 将敏感信息保留在 Widget 的文本缓冲区中。创建失败时用户需要重新输入。
+    _passwordController.clear();
+    _confirmPasswordController.clear();
     setState(() => _isSubmitting = true);
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
@@ -327,6 +356,75 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     return candidates
         .where((index) => index >= 0 && index < wordCount)
         .toList(growable: false);
+  }
+}
+
+/// 创建钱包等耗时提交过程的可感知状态。
+class _WalletSubmittingStatus extends StatelessWidget {
+  const _WalletSubmittingStatus({required this.label, required this.hint});
+
+  final String label;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: '$label $hint',
+      child: ExcludeSemantics(
+        child: Container(
+          key: const ValueKey('wallet-submitting-status'),
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.16),
+            ),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24.w,
+                height: 24.w,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: colorScheme.primary,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      hint,
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.58),
+                        fontSize: 11.sp,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

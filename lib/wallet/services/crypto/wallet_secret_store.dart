@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/api.dart' as pc;
 import 'package:pointycastle/block/aes.dart';
@@ -111,23 +111,35 @@ class WalletSecretStore {
     required String password,
     required String value,
   }) async {
+    final payloadText = await compute(_encryptPayload, <String>[
+      password,
+      value,
+    ], debugLabel: 'encrypt-wallet-secret');
+
+    await _storage.write(key: key, value: payloadText);
+  }
+
+  /// 通过 Flutter 跨平台计算任务生成 PBKDF2 和 AES-GCM payload。
+  ///
+  /// Android/iOS 使用后台 isolate，Web 使用 Flutter 的兼容回退。参数只包含可传递的
+  /// 字符串，不会把平台安全存储对象带入计算任务。
+  static String _encryptPayload(List<String> values) {
+    final password = values[0];
+    final value = values[1];
     final salt = _randomBytes(32);
     final nonce = _randomBytes(_nonceBytes);
     final encryptionKey = _deriveKey(password, salt);
     final plainBytes = utf8.encode(value);
     final cipherText = _aesGcmEncrypt(encryptionKey, nonce, plainBytes);
 
-    await _storage.write(
-      key: key,
-      value: jsonEncode({
-        'version': 1,
-        'kdf': 'pbkdf2-hmac-sha256',
-        'iterations': _iterations,
-        'salt': hex.encode(salt),
-        'nonce': hex.encode(nonce),
-        'cipherText': hex.encode(cipherText),
-      }),
-    );
+    return jsonEncode({
+      'version': 1,
+      'kdf': 'pbkdf2-hmac-sha256',
+      'iterations': _iterations,
+      'salt': hex.encode(salt),
+      'nonce': hex.encode(nonce),
+      'cipherText': hex.encode(cipherText),
+    });
   }
 
   /// 读取并解密钱包私钥。
@@ -266,7 +278,7 @@ class WalletSecretStore {
   /// 使用 PBKDF2-HMAC-SHA256 从用户密码派生 AES 密钥。
   ///
   /// [iterations] 从 payload 读取，便于未来提高迭代次数时仍能解密旧数据。
-  Uint8List _deriveKey(
+  static Uint8List _deriveKey(
     String password,
     Uint8List salt, {
     int iterations = _iterations,
@@ -279,7 +291,7 @@ class WalletSecretStore {
   /// 使用 AES-GCM 加密明文。
   ///
   /// 返回值包含密文和认证标签，pointycastle 的 GCMBlockCipher 会把 tag 拼在末尾。
-  Uint8List _aesGcmEncrypt(
+  static Uint8List _aesGcmEncrypt(
     Uint8List key,
     Uint8List nonce,
     List<int> plainText,
@@ -298,7 +310,7 @@ class WalletSecretStore {
   /// 使用 AES-GCM 解密密文。
   ///
   /// 如果密码错误或认证标签不匹配，底层会抛异常，调用方统一转换为密码错误异常。
-  Uint8List _aesGcmDecrypt(
+  static Uint8List _aesGcmDecrypt(
     Uint8List key,
     Uint8List nonce,
     Uint8List cipherText,
@@ -315,7 +327,7 @@ class WalletSecretStore {
   }
 
   /// 生成加密用随机字节。
-  Uint8List _randomBytes(int length) {
+  static Uint8List _randomBytes(int length) {
     final rng = Random.secure();
     return Uint8List.fromList(List.generate(length, (_) => rng.nextInt(256)));
   }

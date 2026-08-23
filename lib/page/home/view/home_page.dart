@@ -219,6 +219,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       context: context,
       title: S.of(context).createWallet,
       submitLabel: S.of(context).createWallet,
+      submittingLabel: S.of(context).walletCreating,
+      submittingHint: S.of(context).walletCreatingHint,
       onSubmit: controller.createWallet,
     );
   }
@@ -243,6 +245,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
     required BuildContext context,
     required String title,
     required String submitLabel,
+    String? submittingLabel,
+    String? submittingHint,
     required Future<Object?> Function(String password) onSubmit,
     bool isDismissible = true,
   }) {
@@ -256,6 +260,8 @@ class HomePage extends BaseScaffoldPage<HomeController> {
       builder: (sheetContext) => PasswordSetupSheet(
         title: title,
         submitLabel: submitLabel,
+        submittingLabel: submittingLabel,
+        submittingHint: submittingHint,
         isDismissible: isDismissible,
         onSubmit: onSubmit,
         validatePassword: _validatePassword,

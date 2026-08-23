@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:convert/convert.dart';
+import 'package:flutter/foundation.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed25519;
 import 'package:pointycastle/digests/keccak.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
@@ -52,6 +51,26 @@ class WalletCryptoService {
       Language.english,
       length: MnemonicLength.words12,
     ).sentence;
+  }
+
+  /// 通过 Flutter 跨平台计算任务生成助记词并派生全部链地址。
+  ///
+  /// 首次创建会同时执行 BIP39、BIP32、SLIP-0010、Sui、Aptos 和 Bitcoin
+  /// 地址派生，计算量明显高于普通表单操作。Android/iOS 会放到后台 isolate；
+  /// Web 会使用 Flutter 提供的兼容回退，避免直接调用 Isolate.run 导致创建失败。
+  Future<WalletKeyPair> generateMnemonicWallet() {
+    return compute(
+      _generateMnemonicWallet,
+      true,
+      debugLabel: 'generate-mnemonic-wallet',
+    );
+  }
+
+  /// [compute] 使用的静态入口，参数仅用于满足跨 isolate 回调签名。
+  static WalletKeyPair _generateMnemonicWallet(bool _) {
+    final service = WalletCryptoService();
+    final mnemonic = service.generateMnemonic();
+    return service.importMnemonic(mnemonic);
   }
 
   /// 导入助记词并派生多链钱包信息。

@@ -60,6 +60,19 @@ void main() {
       );
     });
 
+    test('generates a complete mnemonic wallet asynchronously', () async {
+      final keyPair = await service.generateMnemonicWallet();
+
+      expect(keyPair.mnemonic?.split(' '), hasLength(12));
+      expect(keyPair.privateKeyHex, hasLength(64));
+      expect(keyPair.bscAddress, startsWith('0x'));
+      expect(keyPair.tronAddress, startsWith('T'));
+      expect(keyPair.solanaAddress, isNotEmpty);
+      expect(keyPair.suiAddress, startsWith('0x'));
+      expect(keyPair.aptosAddress, startsWith('0x'));
+      expect(keyPair.bitcoinAddress, startsWith('bc1q'));
+    });
+
     test('matches the Sui Ed25519 derivation test vector', () {
       const mnemonic =
           'result crisp session latin must fruit genuine question prevent '

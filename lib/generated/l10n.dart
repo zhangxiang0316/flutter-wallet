@@ -1710,6 +1710,36 @@ class S {
     );
   }
 
+  /// `Creating wallet...`
+  String get walletCreating {
+    return Intl.message(
+      'Creating wallet...',
+      name: 'walletCreating',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Generating addresses and encrypting your wallet locally. Keep this page open.`
+  String get walletCreatingHint {
+    return Intl.message(
+      'Generating addresses and encrypting your wallet locally. Keep this page open.',
+      name: 'walletCreatingHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to create wallet. Please try again.`
+  String get walletCreateFailed {
+    return Intl.message(
+      'Failed to create wallet. Please try again.',
+      name: 'walletCreateFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Import successful`
   String get walletImported {
     return Intl.message(

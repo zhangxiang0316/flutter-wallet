@@ -586,7 +586,13 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("View private key"),
         "walletAddresses":
             MessageLookupByLibrary.simpleMessage("Chain addresses"),
+        "walletCreateFailed": MessageLookupByLibrary.simpleMessage(
+            "Failed to create wallet. Please try again."),
         "walletCreated": MessageLookupByLibrary.simpleMessage("Wallet created"),
+        "walletCreating":
+            MessageLookupByLibrary.simpleMessage("Creating wallet..."),
+        "walletCreatingHint": MessageLookupByLibrary.simpleMessage(
+            "Generating addresses and encrypting your wallet locally. Keep this page open."),
         "walletDetails": MessageLookupByLibrary.simpleMessage("Wallet details"),
         "walletEmptySubtitle": MessageLookupByLibrary.simpleMessage(
             "Supports address management and multi-asset on-chain balance lookup across EVM, Bitcoin, Solana, Sui, Aptos, and TRON networks."),
