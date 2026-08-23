@@ -235,20 +235,28 @@ SPL 转账可能创建目标 ATA，当前固定费用估算不一定包含账户
 4. RPC HTTPS 和网络身份校验；
 5. 日志脱敏与错误上报。
 
-### 第三批：链适配器重构（进行中，2026-08-23）
+### 第三批：链适配器重构（已完成，2026-08-23）
 
 1. 统一 ChainAdapter 契约；
 2. 迁移 EVM、Solana、TRON、Bitcoin、Sui、Aptos；
 3. 增加 Adapter contract tests；
 4. 删除散落在页面和服务中的链类型分支。
 
-本次已完成第一阶段：注册表新增统一 `route` 契约，转账、手续费、交易状态和交易历史
-服务通过注册表路由，不再直接读取 `adapter.type` 进行分发；EVM、Solana、TRON、
-Bitcoin、Sui、Aptos 均由默认注册表提供适配器，并补充了覆盖地址选择、地址标准化、
-浏览器链接和能力声明的 Adapter contract tests。余额服务此前已使用同一注册表。
+本次已完成第一阶段：注册表新增统一 `route` 契约，转账、手续费、交易状态、交易历史、
+余额和 RPC 健康检查服务通过注册表路由，不再直接读取 `adapter.type` 进行分发；EVM、
+Solana、TRON、Bitcoin、Sui、Aptos 均由默认注册表提供适配器，并补充了覆盖地址选择、
+地址标准化、浏览器链接和能力声明的 Adapter contract tests。
 
-后续仍需把余额、RPC 健康检查、页面展示样式等链特有能力继续下沉到 Adapter，最终移除
-页面层的 `WalletChainType` 分支。
+另外，余额失败兜底策略和页面展示元数据也已纳入 Adapter 契约，Solana 的 owner token
+fallback、链颜色、链缩写和地址输入提示不再由业务页面直接判断链类型。
+
+本轮已继续完成：
+
+- 转账确认页的风险提示、销毁地址匹配和剪贴板地址提取改为 Adapter policy；
+- 转账扫码解析改为 Adapter 地址提取策略；
+- 地址簿、钱包地址、交易历史和主要首页/收款/转账展示组件改为读取 Adapter presentation；
+- 默认资产、常用资产和自定义资产规则集中为链/资产策略映射；
+- 新增链时，业务页面不再需要为颜色、缩写、地址提示和扫码解析增加链类型分支。
 
 ## 7. 建议补充的测试
 

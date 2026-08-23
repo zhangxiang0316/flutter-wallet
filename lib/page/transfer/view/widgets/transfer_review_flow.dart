@@ -8,8 +8,8 @@ import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
 import '../../../../utils/transaction_risk_checker.dart';
 import '../../../../wallet/models/chain_balance.dart';
-import '../../../../wallet/models/wallet_chain.dart';
-import '../../../../wallet/models/wallet_chain_extensions.dart';
+import '../../../../wallet/adapters/chain_adapter.dart';
+import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../../wallet/services/wallet_transfer_service.dart';
 import '../../../../widget/transaction_review_sheet.dart';
 import '../../controller/transfer_controller.dart';
@@ -179,6 +179,8 @@ class TransferReviewFlow {
     final feeValue = Decimal.tryParse(feeEstimate?.amount ?? '');
     final amountPrice = args?.usdPrices[asset.symbol.toUpperCase()];
     final feePrice = args?.usdPrices[feeEstimate?.symbol.toUpperCase()];
+    final adapter = createDefaultChainAdapterRegistry().require(asset.chainRef);
+    final policy = adapter.transferPolicy(asset.chainRef);
     final risks = TransactionRiskChecker.checkAllRisks(
       context: TransactionRiskContext(
         amount: amount,
@@ -186,7 +188,7 @@ class TransferReviewFlow {
         assetSymbol: asset.symbol,
         recipientAddress: recipientAddress,
         historyAddresses: controller.recipientHistoryAddresses,
-        recipientCaseInsensitive: _isCaseInsensitiveAsset(asset),
+        recipientCaseInsensitive: policy.caseInsensitiveAddress,
         fee: feeEstimate?.amount,
         feeSymbol: feeEstimate?.symbol,
         amountFiatValue: amountValue == null || amountPrice == null
@@ -210,7 +212,7 @@ class TransferReviewFlow {
           icon: Icons.info_outline_rounded,
           color: Colors.orange,
         ),
-      if (asset.chainRef.isEvm)
+      if (policy.requiresNetworkConfirmation)
         TransactionRisk(
           level: RiskLevel.medium,
           message: s.transferRiskEvmNetworkConfirm(
@@ -223,11 +225,7 @@ class TransferReviewFlow {
             recipientAddress: recipientAddress,
             walletAddress: asset.address,
             message: s.transferRiskSelfTransfer,
-            caseInsensitive:
-                asset.chainRef.isEvm ||
-                asset.chainRef.isBitcoin ||
-                asset.chainRef.isSui ||
-                asset.chainRef.isAptos,
+            caseInsensitive: policy.caseInsensitiveAddress,
           )
           case final risk?)
         risk,
@@ -235,22 +233,14 @@ class TransferReviewFlow {
             recipientAddress: recipientAddress,
             contractAddress: asset.contractAddress,
             message: s.transferRiskTokenContract,
-            caseInsensitive:
-                asset.chainRef.isEvm ||
-                asset.chainRef.isSui ||
-                asset.chainRef.isAptos,
+            caseInsensitive: policy.caseInsensitiveAddress,
           )
           case final risk?)
         risk,
-      if (TransactionRiskChecker.checkBurnAddress(
+      if (_checkBurnAddress(
             recipientAddress: recipientAddress,
             message: s.transferRiskBurnAddress,
-            isEvm: asset.chainRef.isEvm,
-            isSolana:
-                asset.chainRef.id == WalletChain.solana.id ||
-                asset.chainConfig?.type == WalletChainType.solana,
-            isSui: asset.chainRef.isSui,
-            isAptos: asset.chainRef.isAptos,
+            policy: policy,
           )
           case final risk?)
         risk,
@@ -264,11 +254,7 @@ class TransferReviewFlow {
       recipientAddress: recipientAddress,
       clipboardAddress: clipboardAddress,
       message: s.transferRiskClipboardMismatch,
-      caseInsensitive:
-          asset.chainRef.isEvm ||
-          asset.chainRef.isBitcoin ||
-          asset.chainRef.isSui ||
-          asset.chainRef.isAptos,
+      caseInsensitive: policy.caseInsensitiveAddress,
     );
     if (clipboardRisk != null) {
       risks.add(clipboardRisk);
@@ -375,42 +361,23 @@ class TransferReviewFlow {
     String value,
   ) {
     if (value.trim().isEmpty) return null;
-    if (asset.chainRef.isEvm) {
-      return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
-    }
-    if (asset.chainRef.id == WalletChain.tron.id ||
-        asset.chainConfig?.type == WalletChainType.tron) {
-      return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
-    }
-    if (asset.chainRef.id == WalletChain.solana.id ||
-        asset.chainConfig?.type == WalletChainType.solana) {
-      return RegExp(
-        r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
-      ).firstMatch(value)?.group(0);
-    }
-    if (asset.chainRef.id == WalletChain.bitcoin.id ||
-        asset.chainConfig?.type == WalletChainType.bitcoin) {
-      return RegExp(
-        r'(?<![02-9ac-hj-np-z])bc1q[02-9ac-hj-np-z]{38}(?![02-9ac-hj-np-z])',
-        caseSensitive: false,
-      ).firstMatch(value)?.group(0);
-    }
-    if (asset.chainRef.isSui) {
-      return RegExp(r'0x[a-fA-F0-9]{64}').firstMatch(value)?.group(0);
-    }
-    if (asset.chainRef.isAptos) {
-      return RegExp(
-        r'(?<![a-fA-F0-9])0x[a-fA-F0-9]{1,64}(?![a-fA-F0-9])',
-      ).firstMatch(value)?.group(0);
-    }
-    return null;
+    return createDefaultChainAdapterRegistry()
+        .require(asset.chainRef)
+        .extractAddress(value);
   }
 
-  static bool _isCaseInsensitiveAsset(ChainBalance asset) {
-    return asset.chainRef.isEvm ||
-        asset.chainRef.isBitcoin ||
-        asset.chainRef.isSui ||
-        asset.chainRef.isAptos;
+  static TransactionRisk? _checkBurnAddress({
+    required String recipientAddress,
+    required String message,
+    required ChainTransferPolicy policy,
+  }) {
+    if (!policy.isBurnAddress(recipientAddress)) return null;
+    return TransactionRisk(
+      level: RiskLevel.high,
+      message: message,
+      icon: Icons.local_fire_department_outlined,
+      color: Colors.red,
+    );
   }
 }
 

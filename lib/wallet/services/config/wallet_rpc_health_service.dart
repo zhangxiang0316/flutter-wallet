@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:sui/sui.dart';
 
 import '../../models/wallet_chain.dart';
+import '../../adapters/chain_adapter_registry.dart';
+import '../../adapters/default_chain_adapter_registry.dart';
 
 /// 单个 RPC 节点健康检查结果。
 class WalletRpcHealthResult {
@@ -58,7 +60,7 @@ class WalletChainRpcHealthReport {
 
 /// RPC 健康检查服务。
 class WalletRpcHealthService {
-  WalletRpcHealthService({Dio? dio})
+  WalletRpcHealthService({Dio? dio, ChainAdapterRegistry? adapterRegistry})
     : _dio =
           dio ??
           Dio(
@@ -67,9 +69,11 @@ class WalletRpcHealthService {
               receiveTimeout: _requestTimeout,
               sendTimeout: _requestTimeout,
             ),
-          );
+          ),
+      _adapterRegistry = adapterRegistry ?? createDefaultChainAdapterRegistry();
 
   final Dio _dio;
+  final ChainAdapterRegistry _adapterRegistry;
 
   static const Duration _requestTimeout = Duration(seconds: 5);
 
@@ -102,14 +106,17 @@ class WalletRpcHealthService {
 
     final stopwatch = Stopwatch()..start();
     try {
-      await switch (chain.type) {
-        WalletChainType.evm => _checkEvmRpc(chain, normalizedUrl),
-        WalletChainType.solana => _checkSolanaRpc(normalizedUrl),
-        WalletChainType.tron => _checkTronRpc(normalizedUrl),
-        WalletChainType.bitcoin => _checkBitcoinApi(normalizedUrl),
-        WalletChainType.sui => _checkSuiRpc(normalizedUrl),
-        WalletChainType.aptos => _checkAptosApi(normalizedUrl),
-      };
+      await _adapterRegistry.route<Future<void>>(
+        chain,
+        handlers: {
+          WalletChainType.evm: () => _checkEvmRpc(chain, normalizedUrl),
+          WalletChainType.solana: () => _checkSolanaRpc(normalizedUrl),
+          WalletChainType.tron: () => _checkTronRpc(normalizedUrl),
+          WalletChainType.bitcoin: () => _checkBitcoinApi(normalizedUrl),
+          WalletChainType.sui: () => _checkSuiRpc(normalizedUrl),
+          WalletChainType.aptos: () => _checkAptosApi(normalizedUrl),
+        },
+      );
       stopwatch.stop();
       return WalletRpcHealthResult(
         rpcUrl: normalizedUrl,

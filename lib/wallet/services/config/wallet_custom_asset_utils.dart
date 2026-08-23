@@ -47,18 +47,19 @@ String? _normalizeLogoUrl(String? value) {
 
 String? _defaultLogoUrl(WalletChainRef chain, String contractAddress) {
   if (!chain.isEvm) return null;
-  final folder = switch (chain.id) {
-    'ethereum' => 'ethereum',
-    'bsc' => 'smartchain',
-    'arbitrum' => 'arbitrum',
-    'base' => 'base',
-    'polygon' => 'polygon',
-    'avalanche' => 'avalanchec',
-    _ => null,
-  };
+  final folder = _trustWalletFolders[chain.id];
   if (folder == null) return null;
   return _trustWalletLogo(folder, contractAddress);
 }
+
+const Map<String, String> _trustWalletFolders = {
+  'ethereum': 'ethereum',
+  'bsc': 'smartchain',
+  'arbitrum': 'arbitrum',
+  'base': 'base',
+  'polygon': 'polygon',
+  'avalanche': 'avalanchec',
+};
 
 String _trustWalletLogo(String folder, String contractAddress) {
   final address = contractAddress.startsWith('0x')
@@ -129,14 +130,12 @@ String _contractKey(WalletChainRef chain, String? contractAddress) {
 
 /// 判断当前链是否为 TRON。
 bool _isTronChain(WalletChainRef chain) {
-  return chain.id == WalletChain.tron.id ||
-      (chain is WalletChainConfig && chain.type == WalletChainType.tron);
+  return chain.chainType == WalletChainType.tron;
 }
 
 /// 判断当前链是否为 Solana。
 bool _isSolanaChain(WalletChainRef chain) {
-  return chain.id == WalletChain.solana.id ||
-      (chain is WalletChainConfig && chain.type == WalletChainType.solana);
+  return chain.chainType == WalletChainType.solana;
 }
 
 List<String> _evmRpcUrls(WalletChainRef chain) {

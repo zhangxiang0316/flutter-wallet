@@ -9,9 +9,9 @@ import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_address_book_entry.dart';
 import '../../../wallet/models/wallet_chain.dart';
+import '../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../wallet/services/config/wallet_address_book_service.dart';
 import '../../../wallet/services/config/wallet_chain_config_service.dart';
-import '../../../wallet/services/wallet_transfer_service.dart';
 import 'widgets/address_book_action_sheet.dart';
 import 'widgets/address_book_confirm_dialog.dart';
 import 'widgets/address_book_empty_card.dart';
@@ -251,26 +251,10 @@ class AddressBookController extends BaseController {
 
   bool _isAddressValid(WalletChainConfig chain, String address) {
     try {
-      switch (chain.type) {
-        case WalletChainType.evm:
-          WalletTransferService.normalizeEvmAddress(address);
-          return true;
-        case WalletChainType.tron:
-          WalletTransferService.tronAddressToHex(address);
-          return true;
-        case WalletChainType.solana:
-          WalletTransferService.normalizeSolanaAddress(address);
-          return true;
-        case WalletChainType.bitcoin:
-          WalletTransferService.normalizeBitcoinAddress(address);
-          return true;
-        case WalletChainType.sui:
-          WalletTransferService.normalizeSuiAddress(address);
-          return true;
-        case WalletChainType.aptos:
-          WalletTransferService.normalizeAptosAddress(address);
-          return true;
-      }
+      createDefaultChainAdapterRegistry()
+          .require(chain)
+          .normalizeAddress(address);
+      return true;
     } catch (_) {
       return false;
     }

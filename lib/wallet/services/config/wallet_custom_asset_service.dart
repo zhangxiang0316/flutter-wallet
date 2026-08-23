@@ -8,6 +8,7 @@ import 'package:pointycastle/digests/keccak.dart';
 import '../../../utils/storage.dart';
 import '../../models/wallet_asset.dart';
 import '../../models/wallet_chain.dart';
+import '../../models/wallet_chain_extensions.dart';
 import '../../utils/rpc_retry_helper.dart';
 import 'wallet_chain_config_service.dart';
 import '../wallet_transfer_service.dart';

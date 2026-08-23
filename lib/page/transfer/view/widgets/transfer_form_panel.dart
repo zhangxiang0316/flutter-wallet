@@ -3,8 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
+import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../../wallet/models/chain_balance.dart';
-import '../../../../wallet/models/wallet_chain.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_review_flow.dart';
 import 'transfer_styles.dart';
@@ -141,30 +141,10 @@ class TransferFormPanel extends StatelessWidget {
 
   /// 根据链类型返回地址输入框占位提示。
   String _addressHint(ChainBalance asset) {
-    if (asset.chainRef.isEvm) {
-      return '0x...';
-    }
     final chain = asset.chainRef;
-    if (chain.id == WalletChain.tron.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.tron)) {
-      return 'T...';
-    }
-    if (chain.id == WalletChain.solana.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.solana)) {
-      return 'Solana address';
-    }
-    if (chain.id == WalletChain.bitcoin.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.bitcoin)) {
-      return 'bc1q...';
-    }
-    if (chain.id == WalletChain.sui.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.sui)) {
-      return '0x + 64 hex';
-    }
-    if (chain.id == WalletChain.aptos.id ||
-        (chain is WalletChainConfig && chain.type == WalletChainType.aptos)) {
-      return '0x + 1–64 hex';
-    }
-    return '0x...';
+    return createDefaultChainAdapterRegistry()
+        .require(chain)
+        .presentation(chain)
+        .addressHint;
   }
 }

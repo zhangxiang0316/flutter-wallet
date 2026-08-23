@@ -1,18 +1,22 @@
 part of 'wallet_custom_asset_service.dart';
 
 List<WalletAsset> _popularAssetsForChain(WalletChainConfig chain) {
-  return switch (chain.id) {
-    'ethereum' => _ethereumPopularAssets(chain),
-    'bsc' => _bscPopularAssets(chain),
-    'arbitrum' => _arbitrumPopularAssets(chain),
-    'base' => _basePopularAssets(chain),
-    'polygon' => _polygonPopularAssets(chain),
-    'avalanche' => _avalanchePopularAssets(chain),
-    'tron' => _tronPopularAssets(chain),
-    'solana' => _solanaPopularAssets(chain),
-    _ => const <WalletAsset>[],
-  };
+  return (_popularAssetBuilders[chain.id]?.call(chain)) ??
+      const <WalletAsset>[];
 }
+
+typedef _PopularAssetBuilder = List<WalletAsset> Function(WalletChainConfig);
+
+final Map<String, _PopularAssetBuilder> _popularAssetBuilders = {
+  'ethereum': _ethereumPopularAssets,
+  'bsc': _bscPopularAssets,
+  'arbitrum': _arbitrumPopularAssets,
+  'base': _basePopularAssets,
+  'polygon': _polygonPopularAssets,
+  'avalanche': _avalanchePopularAssets,
+  'tron': _tronPopularAssets,
+  'solana': _solanaPopularAssets,
+};
 
 List<WalletAsset> _ethereumPopularAssets(WalletChainConfig chain) {
   return [

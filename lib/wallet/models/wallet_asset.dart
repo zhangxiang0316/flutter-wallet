@@ -571,33 +571,27 @@ class WalletAssetRegistry {
     ...aptosAssets,
   ];
 
+  /// 内置链与默认资产的集中映射。
+  ///
+  /// 资产数据本身仍是静态配置，但调用方不需要再维护一份链类型分支；
+  /// 新增内置链时只需在这里注册对应资产集合。
+  static const Map<WalletChain, List<WalletAsset>> _assetsByChain = {
+    WalletChain.bsc: bscAssets,
+    WalletChain.ethereum: ethereumAssets,
+    WalletChain.tron: tronAssets,
+    WalletChain.xLayer: xLayerAssets,
+    WalletChain.arbitrum: arbitrumAssets,
+    WalletChain.base: baseAssets,
+    WalletChain.polygon: polygonAssets,
+    WalletChain.avalanche: avalancheAssets,
+    WalletChain.bitcoin: bitcoinAssets,
+    WalletChain.solana: solanaAssets,
+    WalletChain.sui: suiAssets,
+    WalletChain.aptos: aptosAssets,
+  };
+
   static List<WalletAsset> assetsForChain(WalletChain chain) {
-    switch (chain) {
-      case WalletChain.bsc:
-        return bscAssets;
-      case WalletChain.ethereum:
-        return ethereumAssets;
-      case WalletChain.tron:
-        return tronAssets;
-      case WalletChain.xLayer:
-        return xLayerAssets;
-      case WalletChain.arbitrum:
-        return arbitrumAssets;
-      case WalletChain.base:
-        return baseAssets;
-      case WalletChain.polygon:
-        return polygonAssets;
-      case WalletChain.avalanche:
-        return avalancheAssets;
-      case WalletChain.bitcoin:
-        return bitcoinAssets;
-      case WalletChain.solana:
-        return solanaAssets;
-      case WalletChain.sui:
-        return suiAssets;
-      case WalletChain.aptos:
-        return aptosAssets;
-    }
+    return _assetsByChain[chain] ?? const <WalletAsset>[];
   }
 
   static List<WalletAsset> assetsForChainConfig(WalletChainConfig chain) {

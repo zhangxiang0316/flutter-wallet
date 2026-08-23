@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
+import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
 import 'wallet_detail_common.dart';
 
 /// 各链地址列表区域。
@@ -134,52 +135,25 @@ class _ChainBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final adapter = createDefaultChainAdapterRegistry().require(chain);
+    final presentation = adapter.presentation(chain);
+    final color = Color(presentation.colorValue);
     return Container(
       width: 32.w,
       height: 32.w,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: _chainColor(chain).withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Text(
-        chain.symbol.characters.first,
+        presentation.label,
         style: TextStyle(
-          color: _chainColor(chain),
+          color: color,
           fontSize: 12.sp,
           fontWeight: FontWeight.w900,
         ),
       ),
     );
-  }
-
-  /// 获取链在详情页中的品牌色。
-  Color _chainColor(WalletChain chain) {
-    switch (chain) {
-      case WalletChain.bsc:
-        return const Color(0xFFF0B90B);
-      case WalletChain.ethereum:
-        return const Color(0xFF627EEA);
-      case WalletChain.xLayer:
-        return const Color(0xFF10B981);
-      case WalletChain.arbitrum:
-        return const Color(0xFF28A0F0);
-      case WalletChain.base:
-        return const Color(0xFF0052FF);
-      case WalletChain.polygon:
-        return const Color(0xFF8247E5);
-      case WalletChain.avalanche:
-        return const Color(0xFFE84142);
-      case WalletChain.bitcoin:
-        return const Color(0xFFF7931A);
-      case WalletChain.solana:
-        return const Color(0xFF14F195);
-      case WalletChain.sui:
-        return const Color(0xFF4DA2FF);
-      case WalletChain.aptos:
-        return const Color(0xFF13B5A4);
-      case WalletChain.tron:
-        return const Color(0xFFE11D48);
-    }
   }
 }

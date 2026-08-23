@@ -61,16 +61,32 @@ class ChainAdapterRegistry {
       RegisteredChainAdapter(
         type: WalletChainType.evm,
         capabilities: evmCapabilities,
+        presentationBuilder: (chain) =>
+            _presentationFor(WalletChainType.evm, chain),
+        transferPolicyBuilder: (_) => const ChainTransferPolicy(
+          caseInsensitiveAddress: true,
+          requiresNetworkConfirmation: true,
+          isBurnAddress: _isEvmBurnAddress,
+        ),
         walletAddressSelector: (addresses) => addresses.evm,
         addressNormalizer: normalizers.evm,
+        addressExtractor: _extractEvmAddress,
         addressExplorerBuilder: _evmAddressExplorerUri,
         transactionExplorerBuilder: _evmTransactionExplorerUri,
       ),
       RegisteredChainAdapter(
         type: WalletChainType.tron,
         capabilities: commonCapabilities,
+        presentationBuilder: (chain) =>
+            _presentationFor(WalletChainType.tron, chain),
+        transferPolicyBuilder: (_) => const ChainTransferPolicy(
+          caseInsensitiveAddress: false,
+          requiresNetworkConfirmation: false,
+          isBurnAddress: _neverBurnAddress,
+        ),
         walletAddressSelector: (addresses) => addresses.tron,
         addressNormalizer: normalizers.tron,
+        addressExtractor: _extractTronAddress,
         addressExplorerBuilder: (chain, address) =>
             Uri.parse('https://tronscan.org/#/address/$address'),
         transactionExplorerBuilder: (chain, hash) =>
@@ -79,8 +95,18 @@ class ChainAdapterRegistry {
       RegisteredChainAdapter(
         type: WalletChainType.solana,
         capabilities: commonCapabilities,
+        presentationBuilder: (chain) =>
+            _presentationFor(WalletChainType.solana, chain),
+        transferPolicyBuilder: (_) => const ChainTransferPolicy(
+          caseInsensitiveAddress: false,
+          requiresNetworkConfirmation: false,
+          isBurnAddress: _isSolanaBurnAddress,
+        ),
+        balanceFallbackStrategy:
+            ChainBalanceFallbackStrategy.solanaOwnerTokenLookup,
         walletAddressSelector: (addresses) => addresses.solana,
         addressNormalizer: normalizers.solana,
+        addressExtractor: _extractSolanaAddress,
         addressExplorerBuilder: (chain, address) =>
             Uri.parse('https://solscan.io/account/$address'),
         transactionExplorerBuilder: (chain, hash) =>
@@ -89,8 +115,16 @@ class ChainAdapterRegistry {
       RegisteredChainAdapter(
         type: WalletChainType.bitcoin,
         capabilities: commonCapabilities,
+        presentationBuilder: (chain) =>
+            _presentationFor(WalletChainType.bitcoin, chain),
+        transferPolicyBuilder: (_) => const ChainTransferPolicy(
+          caseInsensitiveAddress: true,
+          requiresNetworkConfirmation: false,
+          isBurnAddress: _neverBurnAddress,
+        ),
         walletAddressSelector: (addresses) => addresses.bitcoin,
         addressNormalizer: normalizers.bitcoin,
+        addressExtractor: _extractBitcoinAddress,
         addressExplorerBuilder: (chain, address) =>
             Uri.parse('https://mempool.space/address/$address'),
         transactionExplorerBuilder: (chain, hash) =>
@@ -99,8 +133,16 @@ class ChainAdapterRegistry {
       RegisteredChainAdapter(
         type: WalletChainType.sui,
         capabilities: commonCapabilities,
+        presentationBuilder: (chain) =>
+            _presentationFor(WalletChainType.sui, chain),
+        transferPolicyBuilder: (_) => const ChainTransferPolicy(
+          caseInsensitiveAddress: true,
+          requiresNetworkConfirmation: false,
+          isBurnAddress: _isZeroAddressBurnAddress,
+        ),
         walletAddressSelector: (addresses) => addresses.sui,
         addressNormalizer: normalizers.sui,
+        addressExtractor: _extractSuiAddress,
         addressExplorerBuilder: (chain, address) =>
             Uri.parse('https://suiscan.xyz/mainnet/account/$address'),
         transactionExplorerBuilder: (chain, hash) =>
@@ -109,8 +151,16 @@ class ChainAdapterRegistry {
       RegisteredChainAdapter(
         type: WalletChainType.aptos,
         capabilities: commonCapabilities,
+        presentationBuilder: (chain) =>
+            _presentationFor(WalletChainType.aptos, chain),
+        transferPolicyBuilder: (_) => const ChainTransferPolicy(
+          caseInsensitiveAddress: true,
+          requiresNetworkConfirmation: false,
+          isBurnAddress: _isZeroAddressBurnAddress,
+        ),
         walletAddressSelector: (addresses) => addresses.aptos,
         addressNormalizer: normalizers.aptos,
+        addressExtractor: _extractAptosAddress,
         addressExplorerBuilder: (chain, address) => Uri.parse(
           'https://explorer.aptoslabs.com/account/$address?network=mainnet',
         ),
@@ -174,6 +224,95 @@ const _evmAddressTemplates = <String, String>{
   'polygon': 'https://polygonscan.com/address/{value}',
   'avalanche': 'https://snowtrace.io/address/{value}',
 };
+
+String? _extractEvmAddress(String value) {
+  return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
+}
+
+bool _neverBurnAddress(String value) => false;
+
+bool _isEvmBurnAddress(String value) {
+  final address = value.trim().toLowerCase();
+  return address == '0x0000000000000000000000000000000000000000' ||
+      address == '0x000000000000000000000000000000000000dead';
+}
+
+bool _isSolanaBurnAddress(String value) =>
+    value.trim() == '11111111111111111111111111111111';
+
+bool _isZeroAddressBurnAddress(String value) =>
+    value.trim().toLowerCase() ==
+    '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+String? _extractBitcoinAddress(String value) {
+  return RegExp(
+    r'(?<![02-9ac-hj-np-z])bc1q[02-9ac-hj-np-z]{38}(?![02-9ac-hj-np-z])',
+    caseSensitive: false,
+  ).firstMatch(value)?.group(0);
+}
+
+String? _extractTronAddress(String value) {
+  return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
+}
+
+String? _extractSolanaAddress(String value) {
+  return RegExp(
+    r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
+  ).firstMatch(value)?.group(0);
+}
+
+String? _extractSuiAddress(String value) {
+  return RegExp(r'0x[a-fA-F0-9]{64}').firstMatch(value)?.group(0);
+}
+
+String? _extractAptosAddress(String value) {
+  return RegExp(
+    r'(?<![a-fA-F0-9])0x[a-fA-F0-9]{1,64}(?![a-fA-F0-9])',
+  ).firstMatch(value)?.group(0);
+}
+
+const _chainColors = <String, int>{
+  'bsc': 0xFFF0B90B,
+  'ethereum': 0xFF627EEA,
+  'x-layer': 0xFF111827,
+  'arbitrum': 0xFF28A0F0,
+  'base': 0xFF0052FF,
+  'polygon': 0xFF8247E5,
+  'avalanche': 0xFFE84142,
+  'bitcoin': 0xFFF7931A,
+  'solana': 0xFF14F195,
+  'sui': 0xFF4DA2FF,
+  'aptos': 0xFF13B5A4,
+  'tron': 0xFFE50914,
+};
+
+const _chainLabels = <String, String>{
+  'bsc': 'B',
+  'ethereum': 'E',
+  'x-layer': 'O',
+  'arbitrum': 'A',
+  'base': 'B',
+  'polygon': 'P',
+  'avalanche': 'V',
+};
+
+ChainPresentation _presentationFor(WalletChainType type, WalletChainRef chain) {
+  final configuredColor = chain is WalletChainConfig ? chain.colorValue : null;
+  final color = configuredColor ?? _chainColors[chain.id] ?? 0xFF2563EB;
+  final (defaultLabel, hint) = switch (type) {
+    WalletChainType.evm => ('E', '0x...'),
+    WalletChainType.tron => ('T', 'T...'),
+    WalletChainType.solana => ('S', 'Solana address'),
+    WalletChainType.bitcoin => ('₿', 'bc1q...'),
+    WalletChainType.sui => ('S', '0x + 64 hex'),
+    WalletChainType.aptos => ('A', '0x + 1–64 hex'),
+  };
+  return ChainPresentation(
+    colorValue: color,
+    label: _chainLabels[chain.id] ?? defaultLabel,
+    addressHint: hint,
+  );
+}
 
 const _evmTransactionTemplates = <String, String>{
   'bsc': 'https://bscscan.com/tx/{value}',

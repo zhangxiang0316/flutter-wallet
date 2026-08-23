@@ -63,6 +63,8 @@ void main() {
         final address = adapter.walletAddress(_addresses);
         expect(address, isNotEmpty);
         expect(adapter.normalizeAddress(address), isNotEmpty);
+        expect(adapter.presentation(chain).label, isNotEmpty);
+        expect(adapter.presentation(chain).addressHint, isNotEmpty);
         expect(adapter.addressExplorerUri(chain, address), isA<Uri>());
         expect(adapter.transactionExplorerUri(chain, 'tx-hash'), isA<Uri>());
         expect(
@@ -74,6 +76,12 @@ void main() {
         expect(
           adapter.capabilities.supports(ChainCapability.blockExplorer),
           isTrue,
+        );
+        expect(
+          adapter.balanceFallbackStrategy,
+          chain == WalletChain.solana
+              ? ChainBalanceFallbackStrategy.solanaOwnerTokenLookup
+              : ChainBalanceFallbackStrategy.genericAssets,
         );
       }
     });

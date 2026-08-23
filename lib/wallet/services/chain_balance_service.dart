@@ -207,35 +207,33 @@ class ChainBalanceService {
         chain,
         customAssets,
       );
-      final operations =
-          <WalletChainType, Future<List<ChainBalance>> Function()>{
-            WalletChainType.evm: () => _loadEvmBalances(
-              chain: chain,
-              assets: assets,
-              address: address,
-            ),
-            WalletChainType.solana: () => _loadSolanaBalances(
-              chain: chain,
-              address: address,
-              customAssets: customAssets,
-            ),
-            WalletChainType.tron: () => _loadTronBalances(
-              chain: chain,
-              address: address,
-              customAssets: customAssets,
-            ),
-            WalletChainType.bitcoin: () =>
-                _loadBitcoinBalances(chain: chain, address: address),
-            WalletChainType.sui: () =>
-                _loadSuiBalances(chain: chain, address: address),
-            WalletChainType.aptos: () =>
-                _loadAptosBalances(chain: chain, address: address),
-          };
-      final operation = operations[adapter.type];
-      if (operation == null) {
-        throw StateError('Missing balance handler for ${adapter.type.name}');
-      }
-      final fallback = adapter.type == WalletChainType.solana
+      final operation = _adapterRegistry.route<Future<List<ChainBalance>>>(
+        chain,
+        capability: ChainCapability.balance,
+        handlers: <WalletChainType, Future<List<ChainBalance>> Function()>{
+          WalletChainType.evm: () =>
+              _loadEvmBalances(chain: chain, assets: assets, address: address),
+          WalletChainType.solana: () => _loadSolanaBalances(
+            chain: chain,
+            address: address,
+            customAssets: customAssets,
+          ),
+          WalletChainType.tron: () => _loadTronBalances(
+            chain: chain,
+            address: address,
+            customAssets: customAssets,
+          ),
+          WalletChainType.bitcoin: () =>
+              _loadBitcoinBalances(chain: chain, address: address),
+          WalletChainType.sui: () =>
+              _loadSuiBalances(chain: chain, address: address),
+          WalletChainType.aptos: () =>
+              _loadAptosBalances(chain: chain, address: address),
+        },
+      );
+      final fallback =
+          adapter.balanceFallbackStrategy ==
+              ChainBalanceFallbackStrategy.solanaOwnerTokenLookup
           ? (String error) => _fallbackSolanaBalances(
               chain: chain,
               address: address,
@@ -251,7 +249,7 @@ class ChainBalanceService {
       tasks.add(
         _runChainBalanceLoad(
           chainName: chain.name,
-          operation: operation(),
+          operation: operation,
           fallback: fallback,
           onChainBalances: onChainBalances,
         ),
@@ -278,35 +276,33 @@ class ChainBalanceService {
       chain,
       customAssets,
     );
-    final adapter = _adapterRegistry.require(
+    final operation = _adapterRegistry.route<Future<List<ChainBalance>>>(
       chain,
       capability: ChainCapability.balance,
+      handlers: <WalletChainType, Future<List<ChainBalance>> Function()>{
+        WalletChainType.evm: () =>
+            _loadEvmBalances(chain: chain, assets: assets, address: address),
+        WalletChainType.solana: () => _loadSolanaBalances(
+          chain: chain,
+          address: address,
+          customAssets: customAssets,
+        ),
+        WalletChainType.tron: () => _loadTronBalances(
+          chain: chain,
+          address: address,
+          customAssets: customAssets,
+        ),
+        WalletChainType.bitcoin: () =>
+            _loadBitcoinBalances(chain: chain, address: address),
+        WalletChainType.sui: () =>
+            _loadSuiBalances(chain: chain, address: address),
+        WalletChainType.aptos: () =>
+            _loadAptosBalances(chain: chain, address: address),
+      },
     );
-    final operations = <WalletChainType, Future<List<ChainBalance>> Function()>{
-      WalletChainType.evm: () =>
-          _loadEvmBalances(chain: chain, assets: assets, address: address),
-      WalletChainType.solana: () => _loadSolanaBalances(
-        chain: chain,
-        address: address,
-        customAssets: customAssets,
-      ),
-      WalletChainType.tron: () => _loadTronBalances(
-        chain: chain,
-        address: address,
-        customAssets: customAssets,
-      ),
-      WalletChainType.bitcoin: () =>
-          _loadBitcoinBalances(chain: chain, address: address),
-      WalletChainType.sui: () =>
-          _loadSuiBalances(chain: chain, address: address),
-      WalletChainType.aptos: () =>
-          _loadAptosBalances(chain: chain, address: address),
-    };
-    final operation = operations[adapter.type];
-    if (operation == null) {
-      throw StateError('Missing balance handler for ${adapter.type.name}');
-    }
-    final fallback = adapter.type == WalletChainType.solana
+    final fallback =
+        _adapterRegistry.require(chain).balanceFallbackStrategy ==
+            ChainBalanceFallbackStrategy.solanaOwnerTokenLookup
         ? (String error) => _fallbackSolanaBalances(
             chain: chain,
             address: address,
@@ -322,7 +318,7 @@ class ChainBalanceService {
 
     return _runChainBalanceLoad(
       chainName: chain.name,
-      operation: operation(),
+      operation: operation,
       fallback: fallback,
     );
   }

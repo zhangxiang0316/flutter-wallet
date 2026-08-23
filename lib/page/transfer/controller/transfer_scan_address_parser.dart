@@ -2,6 +2,8 @@ import 'package:decimal/decimal.dart';
 
 import '../../../wallet/models/payment_request.dart';
 import '../../../wallet/models/wallet_chain.dart';
+import '../../../wallet/adapters/chain_adapter_registry.dart';
+import '../../../wallet/adapters/default_chain_adapter_registry.dart';
 
 /// 链感知二维码解析器。
 class TransferScanAddressParser {
@@ -25,12 +27,14 @@ class TransferScanAddressParser {
   /// 任意 URI/query 中宽松提取地址。
   static PaymentRequest? parse(
     String rawValue,
-    WalletChainConfig? currentChain,
-  ) {
+    WalletChainConfig? currentChain, {
+    ChainAdapterRegistry? adapterRegistry,
+  }) {
+    final registry = adapterRegistry ?? createDefaultChainAdapterRegistry();
     final value = rawValue.trim();
     if (value.isEmpty || value.contains(RegExp(r'[\r\n]'))) return null;
 
-    final plainAddress = _exactAddress(value, currentChain);
+    final plainAddress = _exactAddress(value, currentChain, registry);
     if (plainAddress != null) {
       return PaymentRequest(
         scheme: '',
@@ -45,9 +49,9 @@ class TransferScanAddressParser {
     final scheme = uri.scheme.toLowerCase();
     if (!_supportedSchemes.contains(scheme)) return null;
     if (scheme == 'omnicast') {
-      return _parseOmnicast(uri, currentChain);
+      return _parseOmnicast(uri, currentChain, registry);
     }
-    return _parseNativeUri(uri, scheme, currentChain);
+    return _parseNativeUri(uri, scheme, currentChain, registry);
   }
 
   /// 向后兼容只需要地址的调用方。
@@ -58,13 +62,16 @@ class TransferScanAddressParser {
   static PaymentRequest? _parseOmnicast(
     Uri uri,
     WalletChainConfig? currentChain,
+    ChainAdapterRegistry adapterRegistry,
   ) {
     if (uri.host.toLowerCase() != 'receive') return null;
     final chainId = _trimmed(uri.queryParameters['chain']);
     final address = _trimmed(uri.queryParameters['address']);
     if (chainId == null || address == null) return null;
     final targetChain = _chainConfigForId(chainId, currentChain);
-    if (!_isValidAddress(address, targetChain, chainId)) return null;
+    if (!_isValidAddress(address, targetChain, chainId, adapterRegistry)) {
+      return null;
+    }
     return _requestFromUri(
       uri: uri,
       scheme: 'omnicast',
@@ -77,6 +84,7 @@ class TransferScanAddressParser {
     Uri uri,
     String scheme,
     WalletChainConfig? currentChain,
+    ChainAdapterRegistry adapterRegistry,
   ) {
     var path = _trimmed(uri.path);
     if (path == null && uri.host.isNotEmpty) path = uri.host;
@@ -95,7 +103,9 @@ class TransferScanAddressParser {
     }
     declaredChainId ??= _chainIdForScheme(scheme, currentChain);
     final targetChain = _chainConfigForId(declaredChainId, currentChain);
-    if (!_isValidAddress(path, targetChain, declaredChainId)) return null;
+    if (!_isValidAddress(path, targetChain, declaredChainId, adapterRegistry)) {
+      return null;
+    }
     return _requestFromUri(
       uri: uri,
       scheme: scheme,
@@ -133,57 +143,26 @@ class TransferScanAddressParser {
   }
 
   /// 按当前链地址格式从任意文本中提取地址。
-  static String? extractByChain(String value, WalletChainConfig? chain) {
-    if (chain?.isEvm ?? false) {
-      return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
-    }
-    if (chain?.type == WalletChainType.bitcoin) {
-      return RegExp(
-        r'(?<![02-9ac-hj-np-z])bc1q[02-9ac-hj-np-z]{38}(?![02-9ac-hj-np-z])',
-        caseSensitive: false,
-      ).firstMatch(value)?.group(0);
-    }
-    if (chain?.type == WalletChainType.sui) {
-      return RegExp(r'0x[a-fA-F0-9]{64}').firstMatch(value)?.group(0);
-    }
-    if (chain?.type == WalletChainType.aptos) {
-      return RegExp(
-        r'(?<![a-fA-F0-9])0x[a-fA-F0-9]{1,64}(?![a-fA-F0-9])',
-      ).firstMatch(value)?.group(0);
-    }
-    switch (chain?.builtinChain) {
-      case WalletChain.bsc:
-      case WalletChain.ethereum:
-      case WalletChain.xLayer:
-      case WalletChain.arbitrum:
-      case WalletChain.base:
-      case WalletChain.polygon:
-      case WalletChain.avalanche:
-        return RegExp(r'0x[a-fA-F0-9]{40}').firstMatch(value)?.group(0);
-      case WalletChain.bitcoin:
-        return RegExp(
-          r'(?<![02-9ac-hj-np-z])bc1q[02-9ac-hj-np-z]{38}(?![02-9ac-hj-np-z])',
-          caseSensitive: false,
-        ).firstMatch(value)?.group(0);
-      case WalletChain.tron:
-        return RegExp(r'T[1-9A-HJ-NP-Za-km-z]{33}').firstMatch(value)?.group(0);
-      case WalletChain.solana:
-        return RegExp(
-          r'(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])',
-        ).firstMatch(value)?.group(0);
-      case WalletChain.sui:
-        return RegExp(r'0x[a-fA-F0-9]{64}').firstMatch(value)?.group(0);
-      case WalletChain.aptos:
-        return RegExp(
-          r'(?<![a-fA-F0-9])0x[a-fA-F0-9]{1,64}(?![a-fA-F0-9])',
-        ).firstMatch(value)?.group(0);
-      case null:
-        return null;
-    }
+  static String? extractByChain(
+    String value,
+    WalletChainConfig? chain, {
+    ChainAdapterRegistry? adapterRegistry,
+  }) {
+    if (chain == null) return null;
+    final registry = adapterRegistry ?? createDefaultChainAdapterRegistry();
+    return registry.find(chain)?.extractAddress(value);
   }
 
-  static String? _exactAddress(String value, WalletChainConfig? chain) {
-    final extracted = extractByChain(value, chain);
+  static String? _exactAddress(
+    String value,
+    WalletChainConfig? chain,
+    ChainAdapterRegistry adapterRegistry,
+  ) {
+    final extracted = extractByChain(
+      value,
+      chain,
+      adapterRegistry: adapterRegistry,
+    );
     return extracted == value ? extracted : null;
   }
 
@@ -191,8 +170,11 @@ class TransferScanAddressParser {
     String value,
     WalletChainConfig? chain,
     String? chainId,
+    ChainAdapterRegistry adapterRegistry,
   ) {
-    if (chain != null) return _exactAddress(value, chain) != null;
+    if (chain != null) {
+      return _exactAddress(value, chain, adapterRegistry) != null;
+    }
     if (chainId != null && chainId.startsWith('evm-')) {
       return RegExp(r'^0x[a-fA-F0-9]{40}$').hasMatch(value);
     }

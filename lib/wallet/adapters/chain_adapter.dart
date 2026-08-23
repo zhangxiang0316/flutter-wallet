@@ -16,6 +16,22 @@ enum ChainCapability {
   customNetworks,
 }
 
+/// 余额查询失败时的链特有兜底策略。
+enum ChainBalanceFallbackStrategy { genericAssets, solanaOwnerTokenLookup }
+
+/// 链在页面层使用的非业务展示元数据。
+class ChainPresentation {
+  const ChainPresentation({
+    required this.colorValue,
+    required this.label,
+    required this.addressHint,
+  });
+
+  final int colorValue;
+  final String label;
+  final String addressHint;
+}
+
 /// 一类链当前已经接入的能力集合。
 class ChainCapabilities {
   const ChainCapabilities(this.values);
@@ -56,10 +72,46 @@ class ChainWalletAddresses {
 }
 
 typedef ChainAddressNormalizer = String Function(String input);
+typedef ChainAddressExtractor = String? Function(String input);
 typedef ChainWalletAddressSelector =
     String Function(ChainWalletAddresses addresses);
 typedef ChainExplorerUriBuilder =
     Uri? Function(WalletChainRef chain, String value);
+typedef ChainBurnAddressMatcher = bool Function(String input);
+
+/// 转账确认页使用的链规则，避免页面直接依赖具体链类型。
+class ChainTransferPolicy {
+  const ChainTransferPolicy({
+    required this.caseInsensitiveAddress,
+    required this.requiresNetworkConfirmation,
+    required this.isBurnAddress,
+  });
+
+  final bool caseInsensitiveAddress;
+  final bool requiresNetworkConfirmation;
+  final ChainBurnAddressMatcher isBurnAddress;
+}
+
+bool _neverBurnAddress(String input) => false;
+
+const _defaultTransferPolicy = ChainTransferPolicy(
+  caseInsensitiveAddress: false,
+  requiresNetworkConfirmation: false,
+  isBurnAddress: _neverBurnAddress,
+);
+
+ChainTransferPolicy _defaultTransferPolicyBuilder(WalletChainRef chain) =>
+    _defaultTransferPolicy;
+
+String? _identityAddressExtractor(String input) => input;
+
+ChainPresentation _defaultPresentation(WalletChainRef chain) {
+  return const ChainPresentation(
+    colorValue: 0xFF2563EB,
+    label: '?',
+    addressHint: 'Address',
+  );
+}
 
 /// 单类链的统一能力入口。
 ///
@@ -68,10 +120,16 @@ typedef ChainExplorerUriBuilder =
 abstract interface class ChainAdapter {
   WalletChainType get type;
   ChainCapabilities get capabilities;
+  ChainBalanceFallbackStrategy get balanceFallbackStrategy;
+  ChainPresentation presentation(WalletChainRef chain);
+  ChainTransferPolicy transferPolicy(WalletChainRef chain);
 
   bool supports(WalletChainRef chain);
   String walletAddress(ChainWalletAddresses addresses);
   String normalizeAddress(String input);
+
+  /// Extracts a single address from arbitrary text (for QR/scanner input).
+  String? extractAddress(String input);
   Uri? addressExplorerUri(WalletChainRef chain, String address);
   Uri? transactionExplorerUri(WalletChainRef chain, String txHash);
 }
@@ -81,12 +139,17 @@ class RegisteredChainAdapter implements ChainAdapter {
   const RegisteredChainAdapter({
     required this.type,
     required this.capabilities,
+    this.balanceFallbackStrategy = ChainBalanceFallbackStrategy.genericAssets,
+    this.presentationBuilder = _defaultPresentation,
+    this.transferPolicyBuilder = _defaultTransferPolicyBuilder,
     required ChainWalletAddressSelector walletAddressSelector,
     required ChainAddressNormalizer addressNormalizer,
+    ChainAddressExtractor addressExtractor = _identityAddressExtractor,
     required ChainExplorerUriBuilder addressExplorerBuilder,
     required ChainExplorerUriBuilder transactionExplorerBuilder,
   }) : _walletAddressSelector = walletAddressSelector,
        _addressNormalizer = addressNormalizer,
+       _addressExtractor = addressExtractor,
        _addressExplorerBuilder = addressExplorerBuilder,
        _transactionExplorerBuilder = transactionExplorerBuilder;
 
@@ -96,8 +159,23 @@ class RegisteredChainAdapter implements ChainAdapter {
   @override
   final ChainCapabilities capabilities;
 
+  @override
+  final ChainBalanceFallbackStrategy balanceFallbackStrategy;
+  final ChainPresentation Function(WalletChainRef chain) presentationBuilder;
+  final ChainTransferPolicy Function(WalletChainRef chain)
+  transferPolicyBuilder;
+
+  @override
+  ChainPresentation presentation(WalletChainRef chain) =>
+      presentationBuilder(chain);
+
+  @override
+  ChainTransferPolicy transferPolicy(WalletChainRef chain) =>
+      transferPolicyBuilder(chain);
+
   final ChainWalletAddressSelector _walletAddressSelector;
   final ChainAddressNormalizer _addressNormalizer;
+  final ChainAddressExtractor _addressExtractor;
   final ChainExplorerUriBuilder _addressExplorerBuilder;
   final ChainExplorerUriBuilder _transactionExplorerBuilder;
 
@@ -111,6 +189,9 @@ class RegisteredChainAdapter implements ChainAdapter {
 
   @override
   String normalizeAddress(String input) => _addressNormalizer(input);
+
+  @override
+  String? extractAddress(String input) => _addressExtractor(input);
 
   @override
   Uri? addressExplorerUri(WalletChainRef chain, String address) {
