@@ -143,16 +143,17 @@ Release 构建明确使用 `signingConfigs.getByName("debug")`。这不适合作
 
 建议引入轻量事务协调器：保存阶段记录、失败回滚、删除 tombstone 和启动恢复；同时增加 secure storage 写入失败的故障注入测试。
 
-### 4.2 Web 端密码学仍可能阻塞主线程
+### 4.2 Web 端密码学仍可能阻塞主线程（已完成，2026-08-23）
 
-移动端已使用后台计算，但 Web 的 `compute` 只是兼容回退。多链地址派生和 PBKDF2 在浏览器中仍可能阻塞 UI。
+移动端继续使用 `compute`/isolate；Web 端新增条件导入的 Web Crypto 实现，将 PBKDF2-HMAC-SHA256 和 AES-GCM 放到浏览器原生异步 `SubtleCrypto` 中执行。这样钱包创建、导入和解锁时的本地加密不会再把 100000 次 KDF 迭代直接放在 Flutter UI 线程上。
 
-建议：
+本次实现：
 
-- 移动端保留 isolate；
-- Web 使用 Web Worker 或 Web Crypto；
-- 为钱包创建、导入、解锁增加耗时埋点；
-- Loading 文案中区分“派生地址”和“本地加密”阶段。
+- `lib/wallet/services/crypto/web_wallet_crypto.dart` 按平台选择 WebCrypto 或原有 PointyCastle 实现；
+- WebCrypto 生成的 payload 仍沿用现有 `version/kdf/iterations/salt/nonce/cipherText` 格式，可与移动端互解；
+- 浏览器不支持 `SubtleCrypto` 时自动回退到 PointyCastle，不影响钱包可用性；
+- 原生端保持 isolate 路径，避免改变既有密钥存储行为；
+- 已通过 Web release 构建和 `wallet_secret_store_test.dart` 回归测试。
 
 ### 4.3 启动和首页刷新存在重复读取
 

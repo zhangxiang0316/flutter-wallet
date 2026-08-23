@@ -12,6 +12,8 @@ import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/macs/hmac.dart';
 
+import 'web_wallet_crypto.dart' as web_crypto;
+
 /// 钱包密钥存储异常基类。
 class WalletSecretException implements Exception {
   const WalletSecretException(this.message);
@@ -116,10 +118,16 @@ class WalletSecretStore {
     required String password,
     required String value,
   }) async {
-    final payloadText = await compute(_encryptPayload, <String>[
-      password,
-      value,
-    ], debugLabel: 'encrypt-wallet-secret');
+    // WebCrypto runs PBKDF2/AES-GCM in the browser's asynchronous crypto
+    // implementation, so the Web build does not spend 100k iterations on the
+    // Flutter UI isolate. Native platforms continue to use compute/isolate.
+    final webPayload = await web_crypto.encryptPayload(password, value);
+    final payloadText =
+        webPayload ??
+        await compute(_encryptPayload, <String>[
+          password,
+          value,
+        ], debugLabel: 'encrypt-wallet-secret');
 
     await _storage.write(key: key, value: payloadText);
   }
@@ -200,6 +208,14 @@ class WalletSecretStore {
       final cipherText = Uint8List.fromList(
         hex.decode(payload['cipherText'] as String),
       );
+      final webPlainText = await web_crypto.decryptPayload(
+        password: password,
+        salt: salt,
+        nonce: nonce,
+        cipherText: cipherText,
+        iterations: iterations,
+      );
+      if (webPlainText != null) return webPlainText;
       final key = _deriveKey(password, salt, iterations: iterations);
       final plainBytes = _aesGcmDecrypt(key, nonce, cipherText);
       return utf8.decode(plainBytes);
@@ -230,6 +246,14 @@ class WalletSecretStore {
       final salt = Uint8List.fromList(hex.decode(saltHex));
       final nonce = Uint8List.fromList(hex.decode(nonceHex));
       final cipherText = Uint8List.fromList(hex.decode(cipherHex));
+      final webPlainText = await web_crypto.decryptPayload(
+        password: password,
+        salt: salt,
+        nonce: nonce,
+        cipherText: cipherText,
+        iterations: _iterations,
+      );
+      if (webPlainText != null) return webPlainText;
       final key = _deriveKey(password, salt);
       final plainBytes = _aesGcmDecrypt(key, nonce, cipherText);
       return utf8.decode(plainBytes);
