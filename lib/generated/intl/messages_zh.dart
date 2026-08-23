@@ -112,11 +112,17 @@ class MessageLookup extends MessageLookupByLibrary {
         "biometricAuthTitle": MessageLookupByLibrary.simpleMessage("生物识别验证"),
         "blockExplorer": MessageLookupByLibrary.simpleMessage("区块浏览器"),
         "blockExplorerBack": MessageLookupByLibrary.simpleMessage("后退"),
+        "blockExplorerExternalNavigation":
+            MessageLookupByLibrary.simpleMessage("跨域链接已在系统浏览器中打开"),
         "blockExplorerForward": MessageLookupByLibrary.simpleMessage("前进"),
         "blockExplorerOpenFailed":
             MessageLookupByLibrary.simpleMessage("无法打开区块浏览器"),
         "blockExplorerUnavailable":
             MessageLookupByLibrary.simpleMessage("当前网络暂未配置区块浏览器"),
+        "blockExplorerUnsafeNavigationBlocked":
+            MessageLookupByLibrary.simpleMessage("已拦截不安全链接"),
+        "blockExplorerUnsafeUrl":
+            MessageLookupByLibrary.simpleMessage("已拦截不安全的区块浏览器地址"),
         "blockNumber": MessageLookupByLibrary.simpleMessage("区块高度"),
         "cancel": MessageLookupByLibrary.simpleMessage("取消"),
         "chooseFromAddressBook": MessageLookupByLibrary.simpleMessage("从地址簿选择"),

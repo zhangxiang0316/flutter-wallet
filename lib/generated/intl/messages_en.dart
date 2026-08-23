@@ -133,11 +133,17 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Biometric Authentication"),
         "blockExplorer": MessageLookupByLibrary.simpleMessage("Block explorer"),
         "blockExplorerBack": MessageLookupByLibrary.simpleMessage("Back"),
+        "blockExplorerExternalNavigation": MessageLookupByLibrary.simpleMessage(
+            "Cross-domain link opened in your system browser"),
         "blockExplorerForward": MessageLookupByLibrary.simpleMessage("Forward"),
         "blockExplorerOpenFailed": MessageLookupByLibrary.simpleMessage(
             "Unable to open block explorer"),
         "blockExplorerUnavailable": MessageLookupByLibrary.simpleMessage(
             "Explorer is unavailable for this network"),
+        "blockExplorerUnsafeNavigationBlocked":
+            MessageLookupByLibrary.simpleMessage("Unsafe link blocked"),
+        "blockExplorerUnsafeUrl": MessageLookupByLibrary.simpleMessage(
+            "Blocked an unsafe block explorer URL"),
         "blockNumber": MessageLookupByLibrary.simpleMessage("Block number"),
         "cancel": MessageLookupByLibrary.simpleMessage("Cancel"),
         "chooseFromAddressBook":

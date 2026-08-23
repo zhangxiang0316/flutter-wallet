@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
+import 'block_explorer_navigation_policy.dart';
 
 /// 内嵌区块浏览器页面参数。
 ///
@@ -24,6 +25,8 @@ class BlockExplorerPageArguments {
 ///
 /// 管理 WebView 加载状态、进度、返回/前进能力，以及复制链接和外部浏览器打开。
 class BlockExplorerController extends BaseController {
+  BlockExplorerNavigationPolicy? _navigationPolicy;
+
   /// 路由传入的浏览器参数。
   BlockExplorerPageArguments? arguments;
 
@@ -64,10 +67,18 @@ class BlockExplorerController extends BaseController {
 
   /// 初始化 WebView 并加载目标地址。
   void _initWebView(Uri url) {
+    if (!BlockExplorerNavigationPolicy.isSafeHttpsUri(url)) {
+      isLoading = false;
+      errorMessage = S.current.blockExplorerUnsafeUrl;
+      update();
+      return;
+    }
+    _navigationPolicy = BlockExplorerNavigationPolicy(url);
     webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(JavaScriptMode.disabled)
       ..setNavigationDelegate(
         NavigationDelegate(
+          onNavigationRequest: _handleNavigationRequest,
           onProgress: (value) {
             progress = value;
             isLoading = value < 100;
@@ -94,6 +105,33 @@ class BlockExplorerController extends BaseController {
         ),
       )
       ..loadRequest(url);
+  }
+
+  Future<NavigationDecision> _handleNavigationRequest(
+    NavigationRequest request,
+  ) async {
+    final policy = _navigationPolicy;
+    if (policy == null) return NavigationDecision.prevent;
+
+    final decision = policy.evaluate(
+      request.url,
+      isMainFrame: request.isMainFrame,
+    );
+    switch (decision.disposition) {
+      case BlockExplorerNavigationDisposition.navigate:
+        return NavigationDecision.navigate;
+      case BlockExplorerNavigationDisposition.openExternally:
+        final uri = decision.uri;
+        if (uri != null) {
+          await _openExternalUri(uri, notifyCrossDomain: true);
+        }
+        return NavigationDecision.prevent;
+      case BlockExplorerNavigationDisposition.block:
+        if (request.isMainFrame) {
+          Toast.show(S.current.blockExplorerUnsafeNavigationBlocked);
+        }
+        return NavigationDecision.prevent;
+    }
   }
 
   /// WebView 后退；不能后退时退出当前页面。
@@ -131,14 +169,27 @@ class BlockExplorerController extends BaseController {
   /// 用系统浏览器打开当前链接，作为内嵌页面加载失败时的兜底操作。
   Future<void> openExternal() async {
     final uri = Uri.tryParse(currentUrl);
-    if (uri == null) {
-      Toast.show(S.current.blockExplorerOpenFailed);
+    if (uri == null || !BlockExplorerNavigationPolicy.isSafeHttpsUri(uri)) {
+      Toast.show(S.current.blockExplorerUnsafeNavigationBlocked);
+      return;
+    }
+    await _openExternalUri(uri);
+  }
+
+  Future<void> _openExternalUri(
+    Uri uri, {
+    bool notifyCrossDomain = false,
+  }) async {
+    if (!BlockExplorerNavigationPolicy.isSafeHttpsUri(uri)) {
+      Toast.show(S.current.blockExplorerUnsafeNavigationBlocked);
       return;
     }
     try {
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened) {
         Toast.show(S.current.blockExplorerOpenFailed);
+      } else if (notifyCrossDomain) {
+        Toast.show(S.current.blockExplorerExternalNavigation);
       }
     } catch (_) {
       Toast.show(S.current.blockExplorerOpenFailed);

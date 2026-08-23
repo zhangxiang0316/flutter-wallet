@@ -2960,6 +2960,36 @@ class S {
     );
   }
 
+  /// `Blocked an unsafe block explorer URL`
+  String get blockExplorerUnsafeUrl {
+    return Intl.message(
+      'Blocked an unsafe block explorer URL',
+      name: 'blockExplorerUnsafeUrl',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unsafe link blocked`
+  String get blockExplorerUnsafeNavigationBlocked {
+    return Intl.message(
+      'Unsafe link blocked',
+      name: 'blockExplorerUnsafeNavigationBlocked',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cross-domain link opened in your system browser`
+  String get blockExplorerExternalNavigation {
+    return Intl.message(
+      'Cross-domain link opened in your system browser',
+      name: 'blockExplorerExternalNavigation',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Copy hash`
   String get copyHash {
     return Intl.message(

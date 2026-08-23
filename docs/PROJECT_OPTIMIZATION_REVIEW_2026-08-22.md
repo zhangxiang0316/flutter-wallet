@@ -340,22 +340,38 @@ EVM 手续费估算阶段使用 `eth_estimateGas`，但真正发送时重新使�
 - 同时存在多条 pending 时，状态查询最大并发数不超过 3；
 - success/failed 记录不会被稍后返回的 pending/unknown 响应覆盖。
 
-### 4.5 WebView 导航限制
+### 4.5 WebView 导航限制（已完成，2026-08-23）
 
-当前区块浏览器 WebView 开启 unrestricted JavaScript，但没有导航域名限制。
+改造前问题：
+
+- 区块浏览器 WebView 开启 unrestricted JavaScript；
+- 首次 URL、页面跳转和重定向均没有协议与域名限制；
+- 外部浏览器入口可以尝试打开任意 scheme；
+- 跨域主页面与第三方子页面都可以继续留在应用内加载。
 
 相关代码：
 
-- `lib/page/browser/controller/block_explorer_controller.dart:65`
-- `lib/page/browser/controller/block_explorer_controller.dart:131`
+- `lib/page/browser/controller/block_explorer_controller.dart`
+- `lib/page/browser/controller/block_explorer_navigation_policy.dart`
+- `test/page/browser/controller/block_explorer_navigation_policy_test.dart`
 
 改造要求：
 
-1. 仅允许 HTTPS；
-2. 仅允许当前区块浏览器配置的 host；
-3. 跨域链接交给系统浏览器并提示用户；
-4. 非必要时关闭 JavaScript；
-5. 禁止危险 scheme。
+1. [x] 首次加载、页面跳转、重定向和手动外部打开统一只接受无凭据的 HTTPS URL。
+2. [x] WebView 只允许当前区块浏览器配置的精确 host 和 HTTPS 端口，拒绝相似域名及端口切换。
+3. [x] 跨域主页面阻止 WebView 导航，校验后交给系统浏览器，并向用户显示提示；外部打开失败时保留原有错误提示。
+4. [x] WebView 默认使用 `JavaScriptMode.disabled`，区块浏览器页面不再执行 JavaScript。
+5. [x] 禁止 `javascript:`、`data:`、`file:`、`content:`、`blob:`、`about:` 和 `intent:` 等危险 scheme，同时阻止 HTTP、邮件、电话等非 HTTPS 导航。
+6. [x] 跨域子页面直接阻止且不拉起系统浏览器，避免嵌入页借助 iframe 触发外部应用。
+7. [x] 增加域名伪装、端口变化、危险 scheme、凭据 URL、跨域主页面/子页面及不安全初始地址测试。
+
+#### 验收标准
+
+- 配置为 HTTPS 的区块浏览器地址可以在应用内打开，同域路径、查询参数和锚点跳转正常；
+- HTTP、危险 scheme、带用户名或密码的 URL 不会进入 WebView，也不会交给系统浏览器；
+- `explorer.example.com.attacker.test` 等相似域名和非配置端口不能留在 WebView；
+- 跨域主页面只在系统浏览器中打开且用户能看到提示，跨域子页面被静默阻止；
+- WebView JavaScript 保持关闭，外部打开入口也执行相同的 HTTPS 安全校验。
 
 ### 4.6 密钥存储和仓储原子性
 
