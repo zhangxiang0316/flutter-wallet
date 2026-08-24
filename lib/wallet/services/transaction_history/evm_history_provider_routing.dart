@@ -35,8 +35,16 @@ const Map<String, List<String>> _evmRpcFallbacks = {
   ],
 };
 
-extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
-  List<String> _evmRpcUrls(WalletChainRef chain) {
+class _EvmHistoryProviderRouter with _TransactionHistoryProviderHelpers {
+  _EvmHistoryProviderRouter({required this.dio, required this.apiConfig});
+
+  @override
+  final Dio dio;
+
+  @override
+  final WalletHistoryApiConfig apiConfig;
+
+  List<String> rpcUrls(WalletChainRef chain) {
     final fallback = _evmRpcFallbacks[chain.id] ?? const [];
     if (chain is WalletChainConfig) {
       return _mergeUrls(chain.rpcUrls, fallback);
@@ -44,7 +52,7 @@ extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
     return _mergeUrls([chain.rpcUrl], fallback);
   }
 
-  List<_EvmHistoryProvider> _evmHistoryProviders(WalletChainRef chain) {
+  List<_EvmHistoryProvider> historyProviders(WalletChainRef chain) {
     final providers = <_EvmHistoryProvider>[];
     final apiKey = _configuredExplorerApiKey(chain);
     final configuredApiUrl = _configuredExplorerApiUrl(chain);
@@ -153,7 +161,7 @@ extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
         uri.path.toLowerCase().contains('/api/v2');
   }
 
-  String _blockscoutApiBase(String value) {
+  String blockscoutApiBase(String value) {
     final normalized = _normalizeExplorerUrl(value);
     const marker = '/api/v2';
     final markerIndex = normalized.toLowerCase().indexOf(marker);
@@ -163,7 +171,7 @@ extension _EvmHistoryProviderRouting on _EvmTransactionHistoryProvider {
     return '$normalized$marker';
   }
 
-  bool _isEtherscanV2Api(String value) {
+  bool isEtherscanV2Api(String value) {
     final uri = Uri.tryParse(value.trim());
     if (uri == null) return false;
     return uri.path.toLowerCase().contains('/v2/api');

@@ -1,11 +1,35 @@
 part of '../wallet_transaction_history_service.dart';
 
-class _SolanaTransactionHistoryProvider
-    with _TransactionHistoryProviderHelpers {
-  _SolanaTransactionHistoryProvider({
-    required this.dio,
-    required this.apiConfig,
-  });
+class _SolanaHistoryLimits {
+  static const int historyLimit = _transactionHistoryPageSize;
+  static const int heliusPageLimit = 50;
+  static const int heliusMaxScanPages = 3;
+}
+
+class _SolanaHistoryCoordinator with _TransactionHistoryProviderHelpers {
+  _SolanaHistoryCoordinator({required this.dio, required this.apiConfig}) {
+    final rpcClient = _SolanaRpcClient(dio: dio, apiConfig: apiConfig);
+    final recordParser = _SolanaTransactionRecordParser(
+      dio: dio,
+      apiConfig: apiConfig,
+    );
+    _heliusClient = _SolanaHeliusClient(
+      dio: dio,
+      apiConfig: apiConfig,
+      parser: _SolanaHeliusTransactionParser(dio: dio, apiConfig: apiConfig),
+    );
+    _rpcHistoryClient = _SolanaRpcHistoryClient(
+      dio: dio,
+      apiConfig: apiConfig,
+      rpcClient: rpcClient,
+      tokenAccountClient: _SolanaTokenAccountClient(
+        dio: dio,
+        apiConfig: apiConfig,
+        rpcClient: rpcClient,
+      ),
+      parser: recordParser,
+    );
+  }
 
   @override
   final Dio dio;
@@ -13,14 +37,8 @@ class _SolanaTransactionHistoryProvider
   @override
   final WalletHistoryApiConfig apiConfig;
 
-  static const int _historyLimit = _transactionHistoryPageSize;
-  static const int _heliusPageLimit = 50;
-  static const int _heliusMaxScanPages = 3;
-
-  static const List<String> _solanaRpcFallbacks = [
-    'https://api.mainnet-beta.solana.com',
-    'https://solana-rpc.publicnode.com',
-  ];
+  late final _SolanaHeliusClient _heliusClient;
+  late final _SolanaRpcHistoryClient _rpcHistoryClient;
 
   Future<TransactionHistoryPageResult> loadRecordPage({
     required String walletId,
@@ -30,7 +48,7 @@ class _SolanaTransactionHistoryProvider
     Object? heliusError;
     if (apiConfig.hasHeliusApiKey) {
       try {
-        return await _loadSolanaHeliusRecordPage(
+        return await _heliusClient.loadRecordPage(
           walletId: walletId,
           asset: asset,
           cursor: cursor,
@@ -51,7 +69,7 @@ class _SolanaTransactionHistoryProvider
 
     if (asset.isNative) {
       try {
-        return await _loadSolanaNativeRecordPage(
+        return await _rpcHistoryClient.loadNativeRecordPage(
           walletId: walletId,
           asset: asset,
           cursor: cursor,
@@ -64,7 +82,7 @@ class _SolanaTransactionHistoryProvider
       }
     }
     try {
-      return await _loadSolanaTokenRecordPage(
+      return await _rpcHistoryClient.loadTokenRecordPage(
         walletId: walletId,
         asset: asset,
         cursor: cursor,

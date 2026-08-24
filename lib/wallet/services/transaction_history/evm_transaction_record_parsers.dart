@@ -1,7 +1,15 @@
 part of '../wallet_transaction_history_service.dart';
 
-extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
-  Map<String, dynamic>? _decodeBlockscoutCursor(String? cursor) {
+class _EvmTransactionRecordParser with _TransactionHistoryProviderHelpers {
+  _EvmTransactionRecordParser({required this.dio, required this.apiConfig});
+
+  @override
+  final Dio dio;
+
+  @override
+  final WalletHistoryApiConfig apiConfig;
+
+  Map<String, dynamic>? decodeBlockscoutCursor(String? cursor) {
     if (cursor == null || cursor.isEmpty) return null;
     try {
       final decoded = jsonDecode(cursor);
@@ -14,7 +22,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     }
   }
 
-  WalletTransactionRecord? _evmNativeRecordFromExplorer({
+  WalletTransactionRecord? nativeRecordFromExplorer({
     required String walletId,
     required ChainBalance asset,
     required Map<dynamic, dynamic> item,
@@ -61,7 +69,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     );
   }
 
-  WalletTransactionRecord? _evmTokenRecordFromExplorer({
+  WalletTransactionRecord? tokenRecordFromExplorer({
     required String walletId,
     required ChainBalance asset,
     required Map<dynamic, dynamic> item,
@@ -70,7 +78,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     final txHash = item['hash']?.toString() ?? '';
     if (txHash.isEmpty) return null;
     final contractAddress = item['contractAddress']?.toString() ?? '';
-    if (!_sameEvmAddress(contractAddress, asset.contractAddress ?? '')) {
+    if (!sameEvmAddress(contractAddress, asset.contractAddress ?? '')) {
       return null;
     }
 
@@ -118,7 +126,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     );
   }
 
-  WalletTransactionRecord? _evmNativeRecordFromBlockscout({
+  WalletTransactionRecord? nativeRecordFromBlockscout({
     required String walletId,
     required ChainBalance asset,
     required Map<dynamic, dynamic> item,
@@ -162,7 +170,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     );
   }
 
-  WalletTransactionRecord? _evmTokenRecordFromBlockscout({
+  WalletTransactionRecord? tokenRecordFromBlockscout({
     required String walletId,
     required ChainBalance asset,
     required Map<dynamic, dynamic> item,
@@ -175,7 +183,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     final contractAddress = token is Map
         ? token['address_hash']?.toString() ?? ''
         : '';
-    if (!_sameEvmAddress(contractAddress, asset.contractAddress ?? '')) {
+    if (!sameEvmAddress(contractAddress, asset.contractAddress ?? '')) {
       return null;
     }
 
@@ -224,6 +232,182 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     );
   }
 
+  WalletTransactionRecord nativeRecordFromRpc({
+    required String walletId,
+    required ChainBalance asset,
+    required String requestedHash,
+    required Map<dynamic, dynamic> transaction,
+    required Map<dynamic, dynamic> receipt,
+    required DateTime? timestamp,
+  }) {
+    final txHash =
+        transaction['hash']?.toString() ??
+        receipt['transactionHash']?.toString() ??
+        requestedHash;
+    final from = _normalizeEvmDisplayAddress(
+      transaction['from']?.toString() ?? receipt['from']?.toString() ?? '',
+    );
+    final to = _normalizeEvmDisplayAddress(
+      transaction['to']?.toString() ?? receipt['to']?.toString() ?? '',
+    );
+    final rawValue = rpcQuantityToBigInt(transaction['value']);
+
+    return WalletTransactionRecord(
+      id: _recordId(walletId, asset, txHash),
+      walletId: walletId,
+      chainId: asset.chainId,
+      chainName: asset.chainRef.name,
+      symbol: asset.symbol,
+      assetName: asset.name,
+      walletAddress: asset.address,
+      txHash: txHash,
+      fromAddress: from,
+      toAddress: to,
+      amount: WalletTransferService.rawUnitsToAmount(rawValue, asset.decimals),
+      decimals: asset.decimals,
+      direction: _directionForAddress(
+        walletAddress: asset.address,
+        fromAddress: from,
+        toAddress: to,
+        normalize: _normalizeEvmCompareAddress,
+      ),
+      status: _receiptStatus(receipt),
+      source: WalletTransactionSource.remote,
+      feeAmount: _receiptFeeAmount(
+        receipt,
+        fallbackGasPrice: transaction['gasPrice'],
+      ),
+      feeSymbol: asset.chainRef.symbol,
+      blockNumber: hexIntFromObject(
+        transaction['blockNumber'] ?? receipt['blockNumber'],
+      ),
+      timestamp: timestamp,
+    );
+  }
+
+  WalletTransactionRecord? tokenRecordFromRpcLog({
+    required String walletId,
+    required ChainBalance asset,
+    required String requestedHash,
+    required Map<dynamic, dynamic> receipt,
+    required Map<dynamic, dynamic> log,
+    required DateTime? timestamp,
+  }) {
+    if (!isMatchingTransferLog(asset, log)) return null;
+    final topics = log['topics'];
+    if (topics is! List || topics.length < 3) return null;
+
+    final from = _evmAddressFromTopic(topics[1]?.toString() ?? '');
+    final to = _evmAddressFromTopic(topics[2]?.toString() ?? '');
+    final direction = _directionForAddress(
+      walletAddress: asset.address,
+      fromAddress: from,
+      toAddress: to,
+      normalize: _normalizeEvmCompareAddress,
+    );
+    if (direction == WalletTransactionDirection.unknown) return null;
+
+    final txHash =
+        log['transactionHash']?.toString() ??
+        receipt['transactionHash']?.toString() ??
+        requestedHash;
+    final eventIndex = _normalizedEventIndex(log['logIndex']);
+    return WalletTransactionRecord(
+      id: _recordId(walletId, asset, '$txHash:${eventIndex ?? ''}'),
+      walletId: walletId,
+      chainId: asset.chainId,
+      chainName: asset.chainRef.name,
+      symbol: asset.symbol,
+      assetName: asset.name,
+      walletAddress: asset.address,
+      txHash: txHash,
+      fromAddress: from,
+      toAddress: to,
+      amount: WalletTransferService.rawUnitsToAmount(
+        rpcQuantityToBigInt(log['data']),
+        asset.decimals,
+      ),
+      decimals: asset.decimals,
+      direction: direction,
+      status: _receiptStatus(receipt),
+      source: WalletTransactionSource.remote,
+      eventIndex: eventIndex,
+      contractAddress: asset.contractAddress,
+      feeAmount: _receiptFeeAmount(receipt),
+      feeSymbol: asset.chainRef.symbol,
+      blockNumber: hexIntFromObject(
+        log['blockNumber'] ?? receipt['blockNumber'],
+      ),
+      timestamp: timestamp,
+    );
+  }
+
+  bool isMatchingTransferLog(ChainBalance asset, Map<dynamic, dynamic> log) {
+    final logAddress = log['address']?.toString() ?? '';
+    if (logAddress.isNotEmpty &&
+        !sameEvmAddress(logAddress, asset.contractAddress ?? '')) {
+      return false;
+    }
+    final topics = log['topics'];
+    if (topics is! List || topics.length < 3) return false;
+    return topics.first.toString().toLowerCase() ==
+        CryptoConstants.evmTransferEventTopic.toLowerCase();
+  }
+
+  DateTime? dateTimeFromRpcSeconds(Object? value) {
+    final seconds = hexIntFromObject(value);
+    if (seconds == null || seconds <= 0) return null;
+    return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+  }
+
+  int? hexIntFromObject(Object? value) {
+    if (value is int) return value;
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return null;
+    if (text.toLowerCase().startsWith('0x')) {
+      return _parseHexQuantity(text).toInt();
+    }
+    return int.tryParse(text);
+  }
+
+  BigInt rpcQuantityToBigInt(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return BigInt.zero;
+    if (text.toLowerCase().startsWith('0x')) return _parseHexQuantity(text);
+    return BigInt.tryParse(text) ?? BigInt.zero;
+  }
+
+  String? rpcQuantityParam(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return null;
+    if (text.toLowerCase().startsWith('0x')) return text;
+    final decimal = BigInt.tryParse(text);
+    return decimal == null ? null : _hexQuantity(decimal);
+  }
+
+  WalletTransactionStatus _receiptStatus(Map<dynamic, dynamic> receipt) {
+    final status = receipt['status']?.toString().toLowerCase() ?? '';
+    if (status == '0x0' || status == '0') {
+      return WalletTransactionStatus.failed;
+    }
+    if (status == '0x1' || status == '1') {
+      return WalletTransactionStatus.success;
+    }
+    return WalletTransactionStatus.unknown;
+  }
+
+  String? _receiptFeeAmount(
+    Map<dynamic, dynamic> receipt, {
+    Object? fallbackGasPrice,
+  }) {
+    final gasUsed = rpcQuantityToBigInt(receipt['gasUsed']);
+    final gasPrice = rpcQuantityToBigInt(
+      receipt['effectiveGasPrice'] ?? receipt['gasPrice'] ?? fallbackGasPrice,
+    );
+    if (gasUsed <= BigInt.zero || gasPrice <= BigInt.zero) return null;
+    return WalletTransferService.rawUnitsToAmount(gasUsed * gasPrice, 18);
+  }
+
   WalletTransactionStatus _evmExplorerStatus(Map<dynamic, dynamic> item) {
     if (item['isError']?.toString() == '1' ||
         item['txreceipt_status']?.toString() == '0') {
@@ -267,7 +451,7 @@ extension _EvmTransactionRecordParsers on _EvmTransactionHistoryProvider {
     return BigInt.tryParse(fee?.toString() ?? '') ?? BigInt.zero;
   }
 
-  bool _sameEvmAddress(String left, String right) {
+  bool sameEvmAddress(String left, String right) {
     final normalizedLeft = _normalizeEvmCompareAddress(left);
     final normalizedRight = _normalizeEvmCompareAddress(right);
     return normalizedLeft.isNotEmpty && normalizedLeft == normalizedRight;

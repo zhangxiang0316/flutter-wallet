@@ -1,7 +1,26 @@
 part of '../wallet_transaction_history_service.dart';
 
-class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
-  _EvmTransactionHistoryProvider({required this.dio, required this.apiConfig});
+class _EvmHistoryCoordinator with _TransactionHistoryProviderHelpers {
+  _EvmHistoryCoordinator({required this.dio, required this.apiConfig}) {
+    _router = _EvmHistoryProviderRouter(dio: dio, apiConfig: apiConfig);
+    _paginator = _EvmHistoryPaginator();
+    _parser = _EvmTransactionRecordParser(dio: dio, apiConfig: apiConfig);
+    _rpcClient = _EvmRpcHistoryClient(
+      dio: dio,
+      apiConfig: apiConfig,
+      router: _router,
+      paginator: _paginator,
+      parser: _parser,
+    );
+    _explorerClient = _EvmExplorerClient(
+      dio: dio,
+      apiConfig: apiConfig,
+      router: _router,
+      paginator: _paginator,
+      parser: _parser,
+      rpcClient: _rpcClient,
+    );
+  }
 
   @override
   final Dio dio;
@@ -9,19 +28,13 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
   @override
   final WalletHistoryApiConfig apiConfig;
 
-  static const int _historyLimit = _transactionHistoryPageSize;
-  static const int _bscExplorerPageSize = 100;
-  static const int _bscExplorerMaxScanPages = 3;
-  static const int _evmLogChunkSize = 50000;
-  static const int _evmLogPageBlockWindow = 500000;
-  static const int _evmLogScanBlockWindow = 5000000;
-  static const int _xLayerLogScanBlockWindow = 500000;
-  static const int _arbitrumLogScanBlockWindow = 200000;
-  static const int _blockscoutMaxPages = 4;
   static const Duration _limitedLogFallbackTimeout = Duration(seconds: 4);
 
-  static const String _evmTransferEventTopic =
-      CryptoConstants.evmTransferEventTopic;
+  late final _EvmHistoryProviderRouter _router;
+  late final _EvmHistoryPaginator _paginator;
+  late final _EvmTransactionRecordParser _parser;
+  late final _EvmRpcHistoryClient _rpcClient;
+  late final _EvmExplorerClient _explorerClient;
 
   Future<TransactionHistoryPageResult> loadRecordPage({
     required String walletId,
@@ -33,14 +46,14 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
     final isLoadMore = cursor != null;
     if (cursor?.evmLogBeforeBlock != null &&
         _supportsEvmTokenLogPaging(asset)) {
-      return _loadEvmTokenLogRecordPage(
+      return _explorerClient.loadTokenLogRecordPage(
         walletId: walletId,
         asset: asset,
         beforeBlock: cursor!.evmLogBeforeBlock!,
       );
     }
 
-    for (final provider in _evmHistoryProviders(asset.chainRef)) {
+    for (final provider in _router.historyProviders(asset.chainRef)) {
       if (cursor?.evmPage != null &&
           provider.type != _EvmHistoryProviderType.etherscanCompatible) {
         continue;
@@ -52,7 +65,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
       try {
         final result = switch (provider.type) {
           _EvmHistoryProviderType.etherscanCompatible =>
-            await _loadEvmExplorerRecordPage(
+            await _explorerClient.loadExplorerRecordPage(
               apiUrl: provider.url,
               apiKey: provider.apiKey,
               walletId: walletId,
@@ -60,7 +73,7 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
               page: cursor?.evmPage ?? 1,
             ),
           _EvmHistoryProviderType.blockscoutV2 =>
-            await _loadBlockscoutRecordPage(
+            await _explorerClient.loadBlockscoutRecordPage(
               baseUrl: provider.url,
               walletId: walletId,
               asset: asset,
@@ -118,12 +131,13 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
         );
       }
       if (_supportsEvmTokenLogPaging(asset)) {
-        return await _loadEvmTokenLogRecordPage(
+        return await _explorerClient.loadTokenLogRecordPage(
           walletId: walletId,
           asset: asset,
         );
       }
-      final records = await _loadEvmTokenLogs(walletId: walletId, asset: asset)
+      final records = await _rpcClient
+          .loadTokenLogs(walletId: walletId, asset: asset)
           .timeout(
             _limitedLogFallbackTimeout,
             onTimeout: () {
@@ -166,13 +180,13 @@ class _EvmTransactionHistoryProvider with _TransactionHistoryProviderHelpers {
 
     try {
       if (asset.isNative) {
-        return _loadEvmNativeRecordByHash(
+        return _rpcClient.loadNativeRecordByHash(
           walletId: walletId,
           asset: asset,
           txHash: normalizedHash,
         );
       }
-      return _loadEvmTokenRecordByHash(
+      return _rpcClient.loadTokenRecordByHash(
         walletId: walletId,
         asset: asset,
         txHash: normalizedHash,

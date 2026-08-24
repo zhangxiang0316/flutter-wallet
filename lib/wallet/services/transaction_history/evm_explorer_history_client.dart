@@ -1,13 +1,40 @@
 part of '../wallet_transaction_history_service.dart';
 
-extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
-  Future<TransactionHistoryPageResult> _loadEvmTokenLogRecordPage({
+class _EvmExplorerClient with _TransactionHistoryProviderHelpers {
+  _EvmExplorerClient({
+    required this.dio,
+    required this.apiConfig,
+    required _EvmHistoryProviderRouter router,
+    required _EvmHistoryPaginator paginator,
+    required _EvmTransactionRecordParser parser,
+    required _EvmRpcHistoryClient rpcClient,
+  }) : _router = router,
+       _paginator = paginator,
+       _parser = parser,
+       _rpcClient = rpcClient;
+
+  @override
+  final Dio dio;
+
+  @override
+  final WalletHistoryApiConfig apiConfig;
+
+  final _EvmHistoryProviderRouter _router;
+  final _EvmHistoryPaginator _paginator;
+  final _EvmTransactionRecordParser _parser;
+  final _EvmRpcHistoryClient _rpcClient;
+
+  Future<TransactionHistoryPageResult> loadTokenLogRecordPage({
     required String walletId,
     required ChainBalance asset,
     int? beforeBlock,
   }) async {
     final latestBlock = beforeBlock == null
-        ? await _evmRpcBigInt(asset.chainRef, 'eth_blockNumber', const [])
+        ? await _rpcClient.rpcBigInt(
+            asset.chainRef,
+            'eth_blockNumber',
+            const [],
+          )
         : BigInt.from(beforeBlock);
     final toBlock = latestBlock.toInt();
     if (toBlock <= 0) {
@@ -20,9 +47,9 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
 
     final fromBlock = math.max(
       0,
-      toBlock - _evmLogPageBlockWindowFor(asset.chainRef) + 1,
+      toBlock - _paginator.logPageBlockWindow(asset.chainRef) + 1,
     );
-    final records = await _loadEvmTokenLogsInRange(
+    final records = await _rpcClient.loadTokenLogsInRange(
       walletId: walletId,
       asset: asset,
       fromBlock: fromBlock,
@@ -40,15 +67,15 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
     );
   }
 
-  Future<TransactionHistoryPageResult> _loadEvmExplorerRecordPage({
+  Future<TransactionHistoryPageResult> loadExplorerRecordPage({
     required String apiUrl,
     String? apiKey,
     required String walletId,
     required ChainBalance asset,
     required int page,
   }) async {
-    final requestLimit = _evmExplorerRequestLimit(asset.chainRef);
-    final maxScanPages = _evmExplorerScanPages(asset.chainRef);
+    final requestLimit = _paginator.explorerRequestLimit(asset.chainRef);
+    final maxScanPages = _paginator.explorerScanPages(asset.chainRef);
     final normalizedApiKey = apiKey?.trim() ?? '';
     final records = <WalletTransactionRecord>[];
     final seenIds = <String>{};
@@ -67,7 +94,8 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
           'page': currentPage,
           'offset': requestLimit,
           'sort': 'desc',
-          if (_isEtherscanV2Api(apiUrl) && asset.chainRef.evmChainId != null)
+          if (_router.isEtherscanV2Api(apiUrl) &&
+              asset.chainRef.evmChainId != null)
             'chainid': asset.chainRef.evmChainId,
           if (normalizedApiKey.isNotEmpty) 'apikey': normalizedApiKey,
         },
@@ -91,12 +119,12 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
                     .update(txHash, (count) => count + 1, ifAbsent: () => 0)
                     .toString();
           final record = asset.isNative
-              ? _evmNativeRecordFromExplorer(
+              ? _parser.nativeRecordFromExplorer(
                   walletId: walletId,
                   asset: asset,
                   item: item,
                 )
-              : _evmTokenRecordFromExplorer(
+              : _parser.tokenRecordFromExplorer(
                   walletId: walletId,
                   asset: asset,
                   item: item,
@@ -108,7 +136,7 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
           }
         }
         records.sort(_compareRecordTimeDesc);
-        if (records.length >= _EvmTransactionHistoryProvider._historyLimit ||
+        if (records.length >= _EvmHistoryPaginator.historyLimit ||
             !hasMoreRawPages) {
           break;
         }
@@ -136,7 +164,7 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
     records.sort(_compareRecordTimeDesc);
     return TransactionHistoryPageResult(
       records: records
-          .take(_EvmTransactionHistoryProvider._historyLimit)
+          .take(_EvmHistoryPaginator.historyLimit)
           .toList(growable: false),
       nextCursor: hasMoreRawPages
           ? TransactionHistoryCursor.evmExplorerPage(currentPage + 1)
@@ -147,30 +175,16 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
     );
   }
 
-  int _evmExplorerRequestLimit(WalletChainRef chain) {
-    if (chain.id == WalletChain.bsc.id) {
-      return _EvmTransactionHistoryProvider._bscExplorerPageSize;
-    }
-    return _EvmTransactionHistoryProvider._historyLimit;
-  }
-
-  int _evmExplorerScanPages(WalletChainRef chain) {
-    if (chain.id == WalletChain.bsc.id) {
-      return _EvmTransactionHistoryProvider._bscExplorerMaxScanPages;
-    }
-    return 1;
-  }
-
-  Future<TransactionHistoryPageResult> _loadBlockscoutRecordPage({
+  Future<TransactionHistoryPageResult> loadBlockscoutRecordPage({
     required String baseUrl,
     required String walletId,
     required ChainBalance asset,
     String? cursor,
   }) async {
-    final apiBase = _blockscoutApiBase(baseUrl);
+    final apiBase = _router.blockscoutApiBase(baseUrl);
     final path = asset.isNative ? 'transactions' : 'token-transfers';
     var queryParameters =
-        _decodeBlockscoutCursor(cursor) ??
+        _parser.decodeBlockscoutCursor(cursor) ??
         (asset.isNative
             ? <String, dynamic>{}
             : <String, dynamic>{'type': 'ERC-20'});
@@ -182,11 +196,7 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
     final transferCountsByHash = <String, int>{};
     TransactionHistoryCursor? nextCursor;
 
-    for (
-      var page = 0;
-      page < _EvmTransactionHistoryProvider._blockscoutMaxPages;
-      page++
-    ) {
+    for (var page = 0; page < _EvmHistoryPaginator.blockscoutMaxPages; page++) {
       final requestQueryParameters = queryParameters;
       final response = await dio.get(
         '$apiBase/addresses/${Uri.encodeComponent(asset.address)}/$path',
@@ -217,12 +227,12 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
                   .update(txHash, (count) => count + 1, ifAbsent: () => 0)
                   .toString();
         final record = asset.isNative
-            ? _evmNativeRecordFromBlockscout(
+            ? _parser.nativeRecordFromBlockscout(
                 walletId: walletId,
                 asset: asset,
                 item: item,
               )
-            : _evmTokenRecordFromBlockscout(
+            : _parser.tokenRecordFromBlockscout(
                 walletId: walletId,
                 asset: asset,
                 item: item,
@@ -233,7 +243,7 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
         }
       }
       records.sort(_compareRecordTimeDesc);
-      if (records.length >= _EvmTransactionHistoryProvider._historyLimit) {
+      if (records.length >= _EvmHistoryPaginator.historyLimit) {
         break;
       }
 
@@ -254,7 +264,7 @@ extension _EvmExplorerHistoryClient on _EvmTransactionHistoryProvider {
     records.sort(_compareRecordTimeDesc);
     return TransactionHistoryPageResult(
       records: records
-          .take(_EvmTransactionHistoryProvider._historyLimit)
+          .take(_EvmHistoryPaginator.historyLimit)
           .toList(growable: false),
       nextCursor: nextCursor,
       emptyReason: records.isEmpty

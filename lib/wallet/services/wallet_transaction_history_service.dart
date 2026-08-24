@@ -24,6 +24,7 @@ part 'transaction_history/transaction_history_provider_helpers.dart';
 part 'transaction_history/transaction_history_models.dart';
 part 'transaction_history/evm_history_provider_types.dart';
 part 'transaction_history/evm_history_provider_routing.dart';
+part 'transaction_history/evm_history_paginator.dart';
 part 'transaction_history/evm_transaction_history_provider.dart';
 part 'transaction_history/evm_explorer_history_client.dart';
 part 'transaction_history/evm_rpc_history_provider.dart';
@@ -31,8 +32,12 @@ part 'transaction_history/evm_transaction_record_parsers.dart';
 part 'transaction_history/moralis_evm_transaction_history_provider.dart';
 part 'transaction_history/tron_transaction_history_provider.dart';
 part 'transaction_history/solana_helius_history_helpers.dart';
+part 'transaction_history/solana_helius_transaction_parser.dart';
 part 'transaction_history/solana_helius_history_provider.dart';
 part 'transaction_history/solana_transaction_history_provider.dart';
+part 'transaction_history/solana_rpc_client.dart';
+part 'transaction_history/solana_token_account_client.dart';
+part 'transaction_history/solana_transaction_record_parser.dart';
 part 'transaction_history/solana_rpc_history_provider.dart';
 part 'transaction_history/bitcoin_transaction_history_provider.dart';
 part 'transaction_history/sui_transaction_history_provider.dart';
@@ -58,10 +63,7 @@ class WalletTransactionHistoryService {
        _apiConfig = apiConfig ?? const WalletHistoryApiConfig(),
        _adapterRegistry =
            adapterRegistry ?? createDefaultChainAdapterRegistry() {
-    _evmProvider = _EvmTransactionHistoryProvider(
-      dio: _dio,
-      apiConfig: _apiConfig,
-    );
+    _evmProvider = _EvmHistoryCoordinator(dio: _dio, apiConfig: _apiConfig);
     _moralisEvmProvider = _MoralisEvmTransactionHistoryProvider(
       dio: _dio,
       apiConfig: _apiConfig,
@@ -70,7 +72,7 @@ class WalletTransactionHistoryService {
       dio: _dio,
       apiConfig: _apiConfig,
     );
-    _solanaProvider = _SolanaTransactionHistoryProvider(
+    _solanaProvider = _SolanaHistoryCoordinator(
       dio: _dio,
       apiConfig: _apiConfig,
     );
@@ -94,10 +96,10 @@ class WalletTransactionHistoryService {
   final WalletHistoryApiConfig _apiConfig;
   final ChainAdapterRegistry _adapterRegistry;
 
-  late final _EvmTransactionHistoryProvider _evmProvider;
+  late final _EvmHistoryCoordinator _evmProvider;
   late final _MoralisEvmTransactionHistoryProvider _moralisEvmProvider;
   late final _TronTransactionHistoryProvider _tronProvider;
-  late final _SolanaTransactionHistoryProvider _solanaProvider;
+  late final _SolanaHistoryCoordinator _solanaProvider;
   late final _BitcoinTransactionHistoryProvider _bitcoinProvider;
   late final _SuiTransactionHistoryProvider _suiProvider;
   late final _AptosTransactionHistoryProvider _aptosProvider;
