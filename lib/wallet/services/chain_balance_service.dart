@@ -207,50 +207,12 @@ class ChainBalanceService {
         chain,
         customAssets,
       );
-      final operation = _adapterRegistry.route<Future<List<ChainBalance>>>(
-        chain,
-        capability: ChainCapability.balance,
-        handlers: <WalletChainType, Future<List<ChainBalance>> Function()>{
-          WalletChainType.evm: () =>
-              _loadEvmBalances(chain: chain, assets: assets, address: address),
-          WalletChainType.solana: () => _loadSolanaBalances(
-            chain: chain,
-            address: address,
-            customAssets: customAssets,
-          ),
-          WalletChainType.tron: () => _loadTronBalances(
-            chain: chain,
-            address: address,
-            customAssets: customAssets,
-          ),
-          WalletChainType.bitcoin: () =>
-              _loadBitcoinBalances(chain: chain, address: address),
-          WalletChainType.sui: () =>
-              _loadSuiBalances(chain: chain, address: address),
-          WalletChainType.aptos: () =>
-              _loadAptosBalances(chain: chain, address: address),
-        },
-      );
-      final fallback =
-          adapter.balanceFallbackStrategy ==
-              ChainBalanceFallbackStrategy.solanaOwnerTokenLookup
-          ? (String error) => _fallbackSolanaBalances(
-              chain: chain,
-              address: address,
-              customAssets: customAssets,
-              error: error,
-            )
-          : (String error) => _fallbackBalancesForAssets(
-              chain: chain,
-              assets: assets,
-              address: address,
-              error: error,
-            );
       tasks.add(
-        _runChainBalanceLoad(
-          chainName: chain.name,
-          operation: operation,
-          fallback: fallback,
+        _loadByChain(
+          chain: chain,
+          address: address,
+          assets: assets,
+          customAssets: customAssets,
           onChainBalances: onChainBalances,
         ),
       );
@@ -275,6 +237,29 @@ class ChainBalanceService {
     final assets = WalletAssetRegistry.mergeCustomAssetsForChainConfig(
       chain,
       customAssets,
+    );
+    return _loadByChain(
+      chain: chain,
+      address: address,
+      assets: assets,
+      customAssets: customAssets,
+    );
+  }
+
+  /// 使用统一的 Adapter 路由查询一条链，并应用该链声明的失败兜底策略。
+  ///
+  /// 全量刷新和转账前单链刷新共用此入口，新增或调整链实现时只需要维护一套
+  /// handler 映射。
+  Future<List<ChainBalance>> _loadByChain({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+    required List<WalletAsset> customAssets,
+    ChainBalancesCallback? onChainBalances,
+  }) {
+    final adapter = _adapterRegistry.require(
+      chain,
+      capability: ChainCapability.balance,
     );
     final operation = _adapterRegistry.route<Future<List<ChainBalance>>>(
       chain,
@@ -301,7 +286,7 @@ class ChainBalanceService {
       },
     );
     final fallback =
-        _adapterRegistry.require(chain).balanceFallbackStrategy ==
+        adapter.balanceFallbackStrategy ==
             ChainBalanceFallbackStrategy.solanaOwnerTokenLookup
         ? (String error) => _fallbackSolanaBalances(
             chain: chain,
@@ -320,6 +305,7 @@ class ChainBalanceService {
       chainName: chain.name,
       operation: operation,
       fallback: fallback,
+      onChainBalances: onChainBalances,
     );
   }
 
