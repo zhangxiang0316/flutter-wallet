@@ -103,6 +103,8 @@ Future<List<ChainBalance>> _loadByChain({
 
 ### 4. 交易历史 Provider 文件过大
 
+实施状态：已完成（2026-08-24）。EVM 已拆分为协调器、Explorer Client、RPC Provider 和 Record Parser；Solana 已拆分为协调器、Helius Provider、RPC Provider 和 Helius Helpers；分页模型也已从统一服务文件移出。
+
 主要文件：
 
 - `lib/wallet/services/transaction_history/evm_transaction_history_provider.dart`，约 898 行；
@@ -317,4 +319,3 @@ flutter analyze --no-pub
 ```
 
 结果：无 error，共 14 条 info/deprecation 提示。
-
