@@ -11,22 +11,19 @@ import '../../../generated/route_table.dart';
 import '../../../utils/toast_util.dart';
 import '../../browser/controller/block_explorer_controller.dart';
 import '../../../wallet/models/chain_balance.dart';
-import '../../../wallet/models/payment_request.dart';
 import '../../../wallet/models/wallet_chain.dart';
-import '../../../wallet/models/wallet_chain_extensions.dart';
 import '../../../wallet/models/wallet_transaction_record.dart';
-import '../../../wallet/services/transaction/transaction_history_cache.dart';
 import '../../../wallet/services/transaction/wallet_block_explorer_service.dart';
-import '../../../wallet/services/wallet_repository.dart';
 import '../../../wallet/services/crypto/wallet_secret_store.dart';
-import '../../../wallet/services/transaction/wallet_transaction_status_service.dart';
-import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/wallet_transfer_service.dart';
-import '../../../wallet/services/config/wallet_custom_asset_service.dart';
 import 'transfer_asset_utils.dart';
 import 'transfer_balance_validator.dart';
+import 'transfer_execution_service.dart';
+import 'transfer_form_service.dart';
 import 'transfer_input_validator.dart';
-import 'transfer_scan_address_parser.dart';
+import 'transfer_page_state.dart';
+import 'transfer_status_tracker.dart';
+import 'transfer_review_use_case.dart';
 
 /// 转账页面的路由参数。
 ///
@@ -66,30 +63,24 @@ class TransferPageArguments {
 /// 与本地加密私钥读取。
 class TransferController extends BaseController {
   TransferController({
-    WalletTransferService? transferService,
-    WalletRepository? repository,
-    ChainBalanceService? balanceService,
-    TransactionHistoryCache? transactionCache,
-    WalletTransactionStatusService? transactionStatusService,
+    TransferExecutionService? executionService,
     WalletBlockExplorerService? blockExplorerService,
-    WalletCustomAssetService? customAssetService,
-  }) : _transferService = transferService ?? WalletTransferService(),
-       _repository = repository ?? WalletRepository(),
-       _balanceService = balanceService ?? ChainBalanceService(),
-       _transactionCache = transactionCache ?? TransactionHistoryCache(),
-       _transactionStatusService =
-           transactionStatusService ?? WalletTransactionStatusService(),
+    TransferStatusTracker? statusTracker,
+    TransferReviewUseCase? reviewUseCase,
+  }) : _executionService = executionService ?? TransferExecutionService(),
        _blockExplorerService =
            blockExplorerService ?? WalletBlockExplorerService(),
-       _customAssetService = customAssetService ?? WalletCustomAssetService();
+       _statusTracker = statusTracker ?? TransferStatusTracker(),
+       _reviewUseCase =
+           reviewUseCase ??
+           TransferReviewUseCase(executionService: executionService);
 
-  final WalletTransferService _transferService;
-  final WalletRepository _repository;
-  final ChainBalanceService _balanceService;
-  final TransactionHistoryCache _transactionCache;
-  final WalletTransactionStatusService _transactionStatusService;
+  final TransferExecutionService _executionService;
+  final TransferFormService _formService = TransferFormService();
+  final TransferPageState _state = TransferPageState();
+  final TransferReviewUseCase _reviewUseCase;
   final WalletBlockExplorerService _blockExplorerService;
-  final WalletCustomAssetService _customAssetService;
+  final TransferStatusTracker _statusTracker;
 
   /// 收款地址输入框控制器。
   final TextEditingController addressController = TextEditingController();
@@ -97,51 +88,39 @@ class TransferController extends BaseController {
   /// 转账金额输入框控制器。
   final TextEditingController amountController = TextEditingController();
 
-  /// 当前页面接收到的转账参数。
-  TransferPageArguments? arguments;
-
-  /// 当前页面允许切换的资产列表。
-  ///
-  /// 这里保存的是首页已经查询好的余额数据，避免进入转账页后再次请求余额。
-  List<ChainBalance> availableAssets = [];
-
-  /// 当前选中的转账资产。
-  ChainBalance? selectedAsset;
-
-  /// 是否正在提交交易，提交期间会禁用表单和按钮。
-  bool isSubmitting = false;
-
-  /// 是否正在实时查询手续费。
-  bool isEstimatingFee = false;
-
-  /// 手续费查询是否失败，用于 UI 展示降级提示。
-  bool feeEstimateUnavailable = false;
-
-  /// 最近一次成功获取的手续费估算。
-  TransferFeeEstimate? feeEstimate;
-
-  /// 当前钱包在所选链上已有的历史收款地址。
-  List<String> recipientHistoryAddresses = const [];
-
-  /// 链上广播后返回的交易哈希。
-  String transactionHash = '';
-
-  /// 最近一次已确认付款请求携带的备注。
-  ///
-  /// 当前链上转账实现不写入 memo，该字段只用于扫码确认页和最终交易复核展示。
-  String? scannedPaymentMemo;
-
-  String? _paymentRequestAddress;
-
-  /// 当前提交交易的链上确认状态。
-  WalletTransactionStatus submittedStatus = WalletTransactionStatus.unknown;
+  TransferPageArguments? get arguments => _state.arguments;
+  set arguments(TransferPageArguments? value) => _state.arguments = value;
+  List<ChainBalance> get availableAssets => _state.availableAssets;
+  set availableAssets(List<ChainBalance> value) =>
+      _state.availableAssets = value;
+  ChainBalance? get selectedAsset => _state.selectedAsset;
+  set selectedAsset(ChainBalance? value) => _state.selectedAsset = value;
+  bool get isSubmitting => _state.isSubmitting;
+  set isSubmitting(bool value) => _state.isSubmitting = value;
+  bool get isEstimatingFee => _state.isEstimatingFee;
+  set isEstimatingFee(bool value) => _state.isEstimatingFee = value;
+  bool get feeEstimateUnavailable => _state.feeEstimateUnavailable;
+  set feeEstimateUnavailable(bool value) =>
+      _state.feeEstimateUnavailable = value;
+  TransferFeeEstimate? get feeEstimate => _state.feeEstimate;
+  set feeEstimate(TransferFeeEstimate? value) => _state.feeEstimate = value;
+  List<String> get recipientHistoryAddresses =>
+      _state.recipientHistoryAddresses;
+  set recipientHistoryAddresses(List<String> value) =>
+      _state.recipientHistoryAddresses = value;
+  String get transactionHash => _state.transactionHash;
+  set transactionHash(String value) => _state.transactionHash = value;
+  String? get scannedPaymentMemo => _state.scannedPaymentMemo;
+  set scannedPaymentMemo(String? value) => _state.scannedPaymentMemo = value;
+  String? get _paymentRequestAddress => _state.paymentRequestAddress;
+  set _paymentRequestAddress(String? value) =>
+      _state.paymentRequestAddress = value;
+  WalletTransactionStatus get submittedStatus => _state.submittedStatus;
+  set submittedStatus(WalletTransactionStatus value) =>
+      _state.submittedStatus = value;
 
   /// 手续费查询防抖计时器，避免输入过程中频繁请求 RPC。
   Timer? _feeDebounce;
-
-  Timer? _submittedStatusTimer;
-
-  int _submittedStatusPollCount = 0;
 
   /// 手续费请求序号，用于忽略过期异步响应。
   int _feeRequestId = 0;
@@ -223,51 +202,24 @@ class TransferController extends BaseController {
   PaymentRequestResolution? resolvePaymentRequest(String rawValue) {
     final current = currentAsset;
     if (current == null) return null;
-    final request = TransferScanAddressParser.parse(
-      rawValue,
-      current.chainConfig ?? current.chain?.config,
-    );
-    if (request == null) {
-      Toast.show(S.current.paymentRequestInvalid);
-      return null;
-    }
-
-    final targetChainId = request.chainId ?? current.chainId;
-    final chainAssets = assetsForChain(targetChainId);
-    if (chainAssets.isEmpty) {
-      Toast.show(S.current.paymentRequestNetworkUnavailable(targetChainId));
-      return null;
-    }
-    final targetAsset = _assetForPaymentRequest(
-      request,
-      chainAssets,
-      current: current,
-    );
-    if (targetAsset == null) {
-      Toast.show(
-        S.current.paymentRequestAssetUnavailable(
-          request.symbol ?? request.contractAddress ?? targetChainId,
-        ),
-      );
-      return null;
-    }
     try {
-      TransferInputValidator.validateAddress(targetAsset, request.address);
-      final amount = request.amount;
-      if (amount != null) {
-        WalletTransferService.amountToRawUnits(amount, targetAsset.decimals);
+      return _formService.resolvePaymentRequest(
+        rawValue: rawValue,
+        currentAsset: current,
+        availableAssets: availableAssets,
+        existingAmount: amountController.text.trim(),
+      );
+    } on TransferFormException catch (error) {
+      switch (error.failure) {
+        case TransferFormFailure.invalidRequest:
+          Toast.show(S.current.paymentRequestInvalid);
+        case TransferFormFailure.networkUnavailable:
+          Toast.show(S.current.paymentRequestNetworkUnavailable(error.detail!));
+        case TransferFormFailure.assetUnavailable:
+          Toast.show(S.current.paymentRequestAssetUnavailable(error.detail!));
       }
-    } catch (_) {
-      Toast.show(S.current.paymentRequestInvalid);
       return null;
     }
-
-    return PaymentRequestResolution(
-      request: request,
-      currentAsset: current,
-      targetAsset: targetAsset,
-      existingAmount: amountController.text.trim(),
-    );
   }
 
   /// 将用户已确认的付款请求应用到转账表单。
@@ -305,47 +257,6 @@ class TransferController extends BaseController {
     _scheduleFeeEstimate();
   }
 
-  ChainBalance? _assetForPaymentRequest(
-    PaymentRequest request,
-    List<ChainBalance> chainAssets, {
-    required ChainBalance current,
-  }) {
-    final contract = request.contractAddress?.trim();
-    if (contract != null && contract.isNotEmpty) {
-      final requestedContract = _normalizedContract(
-        chainAssets.first.chainRef,
-        contract,
-      );
-      for (final asset in chainAssets) {
-        final candidate = asset.contractAddress?.trim();
-        if (candidate != null &&
-            candidate.isNotEmpty &&
-            _normalizedContract(asset.chainRef, candidate) ==
-                requestedContract) {
-          return asset;
-        }
-      }
-      return null;
-    }
-
-    final symbol = request.symbol?.trim();
-    if (symbol != null && symbol.isNotEmpty) {
-      for (final asset in chainAssets) {
-        if (asset.symbol.toUpperCase() == symbol.toUpperCase()) return asset;
-      }
-      return null;
-    }
-    if (current.chainId == chainAssets.first.chainId) return current;
-    for (final asset in chainAssets) {
-      if (asset.isNative) return asset;
-    }
-    return null;
-  }
-
-  String _normalizedContract(WalletChainRef chain, String contract) {
-    return chain.isEvm ? contract.toLowerCase() : contract;
-  }
-
   void _handleAddressChanged() {
     final requestAddress = _paymentRequestAddress;
     if (requestAddress != null &&
@@ -369,27 +280,19 @@ class TransferController extends BaseController {
     final asset = currentAsset;
     if (asset == null) return false;
 
-    try {
-      WalletTransferService.amountToRawUnits(
-        amountController.text.trim(),
-        asset.decimals,
-      );
-      TransferInputValidator.validateAddress(
-        asset,
-        addressController.text.trim(),
-      );
-      final result = TransferBalanceValidator.validate(
-        asset: asset,
-        nativeAsset: _nativeAssetFor(asset, availableAssets),
-        amount: amountController.text.trim(),
-        feeEstimate: feeEstimate,
-      );
-      if (!result.isValid) {
-        _showBalanceValidationFailure(result.failure!, asset);
-        return false;
-      }
-    } catch (_) {
+    final result = _formService.validateInput(
+      asset: asset,
+      availableAssets: availableAssets,
+      address: addressController.text.trim(),
+      amount: amountController.text.trim(),
+      feeEstimate: feeEstimate,
+    );
+    if (result.invalidInput) {
       Toast.show(S.current.transferInputInvalid);
+      return false;
+    }
+    if (!result.isValid) {
+      _showBalanceValidationFailure(result.balanceFailure!, asset);
       return false;
     }
     return true;
@@ -402,23 +305,17 @@ class TransferController extends BaseController {
   void fillMaximumAmount() {
     final asset = currentAsset;
     if (asset == null || isSubmitting) return;
-    try {
-      final result = TransferBalanceValidator.maximumTransferAmount(
-        asset: asset,
-        feeEstimate: feeEstimate,
-      );
-      if (!result.isValid) {
-        _showBalanceValidationFailure(result.failure!, asset);
-        return;
-      }
-      final amount = result.amount!;
-      amountController.text = amount;
-      amountController.selection = TextSelection.collapsed(
-        offset: amount.length,
-      );
-    } catch (_) {
-      Toast.show(S.current.transferBalanceRefreshFailed);
+    final result = _formService.maximumTransferAmount(
+      asset: asset,
+      feeEstimate: feeEstimate,
+    );
+    if (!result.isValid) {
+      _showBalanceValidationFailure(result.failure!, asset);
+      return;
     }
+    final amount = result.amount!;
+    amountController.text = amount;
+    amountController.selection = TextSelection.collapsed(offset: amount.length);
   }
 
   /// 在打开交易确认页前刷新余额和费用，并冻结本次 EVM 交易草稿。
@@ -430,34 +327,34 @@ class TransferController extends BaseController {
     if (asset == null || isSubmitting || !validateTransferInput()) {
       return false;
     }
-    if (asset.chainRef.isEvm && !asset.isNative) {
-      final decimalsVerified = await _customAssetService.verifyEvmTokenDecimals(
-        chain: asset.chainConfig ?? asset.chain!.config,
-        contractAddress: asset.contractAddress!,
-        expectedDecimals: asset.decimals,
-      );
-      if (!decimalsVerified) {
-        Toast.show(S.current.customAssetMetadataUnavailable);
-        return false;
-      }
-    }
     _feeDebounce?.cancel();
     _feeRequestId++;
     isSubmitting = true;
     isEstimatingFee = true;
     update();
     try {
-      final preflight = await _refreshTransferPreflight(asset);
-      if (preflight == null) return false;
       final args = arguments;
       if (args == null) return false;
-      recipientHistoryAddresses = await _transactionCache
-          .loadChainRecipientAddresses(
-            walletId: args.walletId,
-            chainId: preflight.asset.chainId,
-            assets: assetsForChain(preflight.asset.chainId),
-          );
+      final preparation = await _reviewUseCase.prepare(
+        walletId: args.walletId,
+        asset: asset,
+        availableAssets: availableAssets,
+        recipientAddress: addressController.text.trim(),
+        amount: amountController.text.trim(),
+      );
+      final preflight = preparation.preflight;
+      feeEstimate = preflight.fee;
+      _replaceChainBalances(preflight.asset.chainId, preflight.balances);
+      selectedAsset = preflight.asset;
+      recipientHistoryAddresses = preparation.recipientHistoryAddresses;
+      update();
       return true;
+    } on TransferExecutionException catch (error) {
+      _showPreflightFailure(error, asset);
+      return false;
+    } catch (_) {
+      Toast.show(S.current.transferBalanceRefreshFailed);
+      return false;
     } finally {
       isSubmitting = false;
       isEstimatingFee = false;
@@ -489,54 +386,27 @@ class TransferController extends BaseController {
       submittedStatus = WalletTransactionStatus.unknown;
       update();
       final confirmedEvmFee = asset.chainRef.isEvm ? feeEstimate : null;
-      final preflight = await _refreshTransferPreflight(
-        asset,
-        confirmedEvmFee: confirmedEvmFee,
-      );
-      if (preflight == null) return;
-      final verifiedAsset = preflight.asset;
-      var privateKeyHex = await _repository.readWalletPrivateKey(
+      final result = await _executionService.submit(
         walletId: args.walletId,
         password: password,
-      );
-      if (verifiedAsset.chainRef.isBitcoin) {
-        privateKeyHex = await _repository.readWalletBitcoinPrivateKey(
-          walletId: args.walletId,
-          password: password,
-        );
-      }
-      final solanaPrivateKey = verifiedAsset.chainRef.isSolana
-          ? await _repository.readWalletSolanaPrivateKey(
-              walletId: args.walletId,
-              password: password,
-            )
-          : null;
-      final suiPrivateKey = verifiedAsset.chainRef.isSui
-          ? await _repository.readWalletSuiPrivateKey(
-              walletId: args.walletId,
-              password: password,
-            )
-          : null;
-      final aptosPrivateKey = verifiedAsset.chainRef.isAptos
-          ? await _repository.readWalletAptosPrivateKey(
-              walletId: args.walletId,
-              password: password,
-            )
-          : null;
-      final hash = await _transferService.transfer(
-        privateKeyHex: privateKeyHex,
-        asset: verifiedAsset,
-        toAddress: addressController.text.trim(),
+        asset: asset,
+        recipientAddress: addressController.text.trim(),
         amount: amountController.text.trim(),
-        solanaPrivateKey: solanaPrivateKey,
-        suiPrivateKey: suiPrivateKey,
-        aptosPrivateKey: aptosPrivateKey,
-        evmDraft: confirmedEvmFee?.evmDraft,
+        confirmedEvmFee: confirmedEvmFee,
       );
+      final verifiedAsset = result.preflight.asset;
+      feeEstimate = result.preflight.fee;
+      _replaceChainBalances(verifiedAsset.chainId, result.preflight.balances);
+      selectedAsset = verifiedAsset;
+      final hash = result.transactionHash;
       transactionHash = hash;
       submittedStatus = WalletTransactionStatus.pending;
-      await _saveSubmittedTransaction(verifiedAsset, hash);
-      _startSubmittedStatusTracking(verifiedAsset, hash);
+      final submission = _submissionContext(verifiedAsset, hash);
+      await _statusTracker.saveSubmittedTransaction(submission);
+      _statusTracker.start(
+        submission,
+        onStatusChanged: _handleSubmittedStatusChanged,
+      );
       Toast.show(S.current.transferSubmitted);
     } on WalletSecretMissingException {
       Toast.show(S.current.walletSecretMissing);
@@ -550,75 +420,25 @@ class TransferController extends BaseController {
     }
   }
 
-  /// 用户确认并输入密码后，再次刷新当前链余额和手续费。
-  ///
-  /// 该方法必须在读取私钥之前完成；任何余额缺失、RPC 查询失败或手续费不足
-  /// 都会直接停止后续签名。
-  Future<_TransferPreflight?> _refreshTransferPreflight(
-    ChainBalance asset, {
-    TransferFeeEstimate? confirmedEvmFee,
-  }) async {
-    final chain = asset.chainConfig ?? asset.chain!.config;
-    late final List<ChainBalance> freshBalances;
-    try {
-      freshBalances = await _balanceService.loadChainBalances(
-        chain: chain,
-        address: asset.address,
-      );
-    } catch (_) {
-      Toast.show(S.current.transferBalanceRefreshFailed);
-      return null;
-    }
-
-    final assetKey = TransferAssetUtils.assetKey(asset);
-    final refreshedAsset = freshBalances.cast<ChainBalance?>().firstWhere(
-      (candidate) =>
-          candidate != null &&
-          TransferAssetUtils.assetKey(candidate) == assetKey,
-      orElse: () => null,
-    );
-    if (refreshedAsset == null) {
-      Toast.show(S.current.transferBalanceRefreshFailed);
-      return null;
-    }
-    final refreshedNative = _nativeAssetFor(refreshedAsset, freshBalances);
-    if (refreshedAsset.hasError ||
-        refreshedNative == null ||
-        refreshedNative.hasError) {
-      Toast.show(S.current.transferBalanceRefreshFailed);
-      return null;
-    }
-
-    late final TransferFeeEstimate freshFee;
-    try {
-      freshFee =
-          confirmedEvmFee ??
-          await _transferService.estimateFee(
-            asset: refreshedAsset,
-            toAddress: addressController.text.trim(),
-            amount: amountController.text.trim(),
-          );
-    } catch (_) {
+  void _showPreflightFailure(
+    TransferExecutionException error,
+    ChainBalance asset,
+  ) {
+    if (error.failure ==
+        TransferExecutionFailure.customAssetMetadataUnavailable) {
+      Toast.show(S.current.customAssetMetadataUnavailable);
+    } else if (error.failure == TransferExecutionFailure.balanceValidation) {
+      final failure = error.balanceFailure;
+      if (failure != null) {
+        _showBalanceValidationFailure(failure, asset);
+      } else {
+        Toast.show(S.current.transferBalanceRefreshFailed);
+      }
+    } else if (error.failure == TransferExecutionFailure.feeUnavailable) {
       Toast.show(S.current.transferFeeRequired);
-      return null;
+    } else {
+      Toast.show(S.current.transferBalanceRefreshFailed);
     }
-
-    final validation = TransferBalanceValidator.validate(
-      asset: refreshedAsset,
-      nativeAsset: refreshedNative,
-      amount: amountController.text.trim(),
-      feeEstimate: freshFee,
-    );
-    if (!validation.isValid) {
-      _showBalanceValidationFailure(validation.failure!, refreshedAsset);
-      return null;
-    }
-
-    feeEstimate = freshFee;
-    _replaceChainBalances(chain.id, freshBalances);
-    selectedAsset = refreshedAsset;
-    update();
-    return _TransferPreflight(asset: refreshedAsset);
   }
 
   ChainBalance? _nativeAssetFor(
@@ -722,9 +542,9 @@ class TransferController extends BaseController {
     feeEstimateUnavailable = false;
     update();
     try {
-      final estimate = await _transferService.estimateFee(
+      final estimate = await _executionService.estimateFee(
         asset: asset,
-        toAddress: address,
+        recipientAddress: address,
         amount: amount,
       );
       if (requestId != _feeRequestId) return;
@@ -771,12 +591,10 @@ class TransferController extends BaseController {
     final hash = transactionHash;
     if (asset == null || hash.isEmpty) return;
     try {
-      final status = await _transactionStatusService.loadStatus(
-        chain: asset.chainRef,
-        txHash: hash,
+      final status = await _statusTracker.refreshStatus(
+        _submissionContext(asset, hash),
       );
       submittedStatus = status;
-      await _saveSubmittedTransaction(asset, hash, status: status);
       update();
     } catch (_) {
       Toast.show(S.current.transactionStatusRefreshFailed);
@@ -812,123 +630,43 @@ class TransferController extends BaseController {
     recipientHistoryAddresses = const [];
     transactionHash = '';
     submittedStatus = WalletTransactionStatus.unknown;
-    _stopSubmittedStatusTracking();
+    _statusTracker.stop();
   }
 
-  Future<void> _saveSubmittedTransaction(
+  TransferSubmissionContext _submissionContext(
     ChainBalance asset,
-    String txHash, {
-    WalletTransactionStatus status = WalletTransactionStatus.pending,
-  }) {
-    final record = WalletTransactionRecord(
-      id: _localRecordId(arguments!.walletId, asset, txHash),
+    String hash,
+  ) {
+    return TransferSubmissionContext(
       walletId: arguments!.walletId,
-      chainId: asset.chainId,
-      chainName: asset.chainRef.name,
-      symbol: asset.symbol,
-      assetName: asset.name,
-      walletAddress: asset.address,
-      txHash: txHash,
-      fromAddress: asset.address,
-      toAddress: addressController.text.trim(),
+      asset: asset,
+      txHash: hash,
+      recipientAddress: addressController.text.trim(),
       amount: amountController.text.trim(),
-      decimals: asset.decimals,
-      direction: WalletTransactionDirection.outgoing,
-      status: status,
-      source: WalletTransactionSource.local,
-      contractAddress: asset.contractAddress,
       feeAmount: feeEstimate?.amount,
       feeSymbol: feeEstimate?.symbol,
-      timestamp: DateTime.now(),
     );
-    return _transactionCache.upsertLocalRecord(record);
   }
 
-  String _localRecordId(String walletId, ChainBalance asset, String txHash) {
-    return [
-      'local',
-      walletId,
-      asset.chainId,
-      asset.contractAddress ?? 'native',
-      txHash.toLowerCase(),
-    ].join(':');
-  }
-
-  void _startSubmittedStatusTracking(ChainBalance asset, String txHash) {
-    _stopSubmittedStatusTracking();
-    _submittedStatusPollCount = 0;
-    _submittedStatusTimer = Timer.periodic(const Duration(seconds: 8), (_) {
-      _pollSubmittedStatus(asset, txHash);
-    });
-    _pollSubmittedStatus(asset, txHash);
-  }
-
-  Future<void> _pollSubmittedStatus(ChainBalance asset, String txHash) async {
-    if (txHash != transactionHash) return;
-    _submittedStatusPollCount++;
-    try {
-      final status = await _transactionStatusService.loadStatus(
-        chain: asset.chainRef,
-        txHash: txHash,
-      );
-      if (txHash != transactionHash) return;
-      submittedStatus = status;
-      await _saveSubmittedTransaction(asset, txHash, status: status);
-      update();
-      if (status != WalletTransactionStatus.pending) {
-        _stopSubmittedStatusTracking();
-      }
-    } catch (_) {
-      if (_submittedStatusPollCount >= 8) {
-        _stopSubmittedStatusTracking();
-      }
-    }
-  }
-
-  void _stopSubmittedStatusTracking() {
-    _submittedStatusTimer?.cancel();
-    _submittedStatusTimer = null;
+  Future<void> _handleSubmittedStatusChanged(
+    WalletTransactionStatus status,
+  ) async {
+    if (transactionHash.isEmpty) return;
+    submittedStatus = status;
+    update();
   }
 
   @override
   void onClose() {
     _feeDebounce?.cancel();
-    _stopSubmittedStatusTracking();
+    _statusTracker.dispose();
     addressController.dispose();
     amountController.dispose();
     super.onClose();
   }
 }
 
-class _TransferPreflight {
-  const _TransferPreflight({required this.asset});
-
-  final ChainBalance asset;
-}
+/// 保持页面和测试的既有类型名，实际实现位于表单领域服务。
+typedef PaymentRequestResolution = TransferPaymentRequestResolution;
 
 /// 扫码付款请求与当前表单资产的匹配结果。
-class PaymentRequestResolution {
-  const PaymentRequestResolution({
-    required this.request,
-    required this.currentAsset,
-    required this.targetAsset,
-    required this.existingAmount,
-  });
-
-  final PaymentRequest request;
-  final ChainBalance currentAsset;
-  final ChainBalance targetAsset;
-  final String existingAmount;
-
-  bool get requiresNetworkSwitch => currentAsset.chainId != targetAsset.chainId;
-
-  bool get requiresAssetSwitch => requiresNetworkSwitch
-      ? currentAsset.symbol.toUpperCase() != targetAsset.symbol.toUpperCase()
-      : TransferAssetUtils.assetKey(currentAsset) !=
-            TransferAssetUtils.assetKey(targetAsset);
-
-  bool get overwritesAmount =>
-      request.amount != null &&
-      existingAmount.isNotEmpty &&
-      existingAmount != request.amount;
-}
