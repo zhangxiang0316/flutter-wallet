@@ -80,7 +80,16 @@ class ReceiveController extends BaseController {
   Future<void> loadAssets() async {
     isLoadingAssets = true;
     update();
-    chains = await _chainConfigService.loadEnabledChains();
+    chains = (await _chainConfigService.loadEnabledChains())
+        .where(
+          (chain) =>
+              _adapterRegistry
+                  .find(chain)
+                  ?.capabilities
+                  .supports(ChainCapability.receive) ??
+              false,
+        )
+        .toList(growable: false);
     if (!chains.any((chain) => chain.id == selectedChain.id)) {
       selectedChain = chains.isEmpty ? WalletChain.bsc.config : chains.first;
     }

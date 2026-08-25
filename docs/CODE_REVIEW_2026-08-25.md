@@ -11,7 +11,7 @@
 - Web、Android、iOS、macOS 等平台兼容性；
 - 测试结构、静态分析和发布流程。
 
-本文初稿只记录审查结论；第 4.1、4.2、4.3 节已在后续改造中完成，落地情况记录在对应问题和文末验收记录。
+本文初稿只记录审查结论；第 4.1、4.2、4.3、4.5 节已在后续改造中完成，落地情况记录在对应问题和文末验收记录。
 
 ## 2. 当前质量基线
 
@@ -226,7 +226,7 @@ signingConfigs.getByName("debug")
 - 已增加删除后钱包级 SharedPreferences 数据清理，以及 `cleanupPending` 重试测试；
 - 缓存版本、最大保留期和总量上限仍属于后续独立优化，不影响钱包删除清理闭环。
 
-### 4.5 P1：ChainAdapter 尚未真正解除新增非 EVM 链的固定代码修改
+### 4.5 P1：ChainAdapter 尚未真正解除新增非 EVM 链的固定代码修改（已完成）
 
 位置：
 
@@ -264,6 +264,15 @@ evm / tron / solana / bitcoin / sui / aptos
 3. 让 Adapter 注册 `loadBalances/estimateFee/transfer/loadHistory/loadStatus` 实现，中心服务只负责编排和统一错误模型；
 4. 为付款 URI scheme、自定义资产、扫码、收款等增加明确 capability，不再使用链类型排除列表；
 5. 增加“注册一个测试链而不修改中心服务”的 contract test，作为架构验收条件。
+
+完成情况（2026-08-25）：
+
+- `WalletAccount` 改为持久化 `addressesByNamespace`；旧版 `bscAddress/tronAddress/...` 仅在反序列化时迁移，兼容 getter 暂时保留给现有调用方，新链地址不再要求增加模型字段；
+- `WalletChainConfig` 新增字符串 `adapterId`，注册表按 adapterId 而不是 `WalletChainType` 查找实现；`type` 仅保留为旧配置兼容元数据；
+- `WalletKeyPair` 改为 `derivedAccountsByNamespace`，`WalletCryptoService` 支持注入派生 Adapter；`WalletRepository` 按 Adapter 声明的 key-material namespace 读取签名材料，转账编排不再判断 Bitcoin/Solana/Sui/Aptos；
+- 新增泛型 `ChainOperationRegistry`，余额、转账、手续费、历史、交易状态和 RPC 健康检查均按 adapterId 注册类型安全实现，中心请求路径已删除 `WalletChainType -> handler` 映射；
+- 增加 `customAssets/paymentUri/rpcHealth` capability；自定义资产按钮、资产地址标准化、付款 URI scheme、扫码、收款链筛选和钱包地址展示均由 Adapter 能力与 namespace 驱动；
+- 新增扩展性 contract test：在不增加 `WalletChainType` 枚举值的情况下注册 `test-chain` adapter，并注入地址派生、KeyMaterial、余额、手续费、转账、历史、状态和付款 URI 实现，不修改任何中心 Service handler。
 
 ### 4.6 P1：密钥 payload 参数缺少严格验证和升级机制
 
@@ -460,7 +469,7 @@ if (!Get.isRegistered<T>()) {
 | 优先级 | 数量 | 建议处理时间 |
 | --- | ---: | --- |
 | P0 | 0（2 项均已完成） | 已完成，Release 前持续回归 |
-| P1 | 5（另 1 项已完成） | P0 完成后的第一个迭代 |
+| P1 | 4（另 2 项已完成） | P0 完成后的第一个迭代 |
 | P2 | 2 | 架构迭代内分批处理 |
 | P3 | 1 | 随近期 Flutter 兼容性维护清理 |
 
@@ -555,4 +564,24 @@ bash scripts/check_secrets.sh
 - `flutter test --no-pub` 共 410 项全部通过；
 - `flutter build web --release` 成功，屏幕保护代码未触发 `dart:io Platform` 不支持错误；
 - `flutter analyze --no-pub` 为 0 error、0 warning，保留审查时已有的 14 条 info；
+- 敏感信息扫描和 `git diff --check` 通过。
+
+## 12. 第 4.5 节改造验收记录（2026-08-25）
+
+主要实现：
+
+- `lib/wallet/models/wallet_account.dart`、`wallet_chain.dart`、`wallet_key_material.dart`；
+- `lib/wallet/adapters/chain_adapter.dart`、`chain_adapter_registry.dart`、`chain_operation_registry.dart`；
+- `lib/wallet/services/crypto/wallet_crypto_service.dart`、`wallet_repository.dart`；
+- 余额、转账、手续费、交易历史、交易状态和 RPC 健康检查服务；
+- 扫码、收款、钱包地址展示和自定义资产入口；
+- `test/wallet/adapters/chain_adapter_extensibility_contract_test.dart`。
+
+验证结果：
+
+- 扩展性 contract test 覆盖地址持久化、派生、KeyMaterial、余额、手续费、转账、历史、状态和付款 URI；
+- `flutter test --no-pub` 共 411 项全部通过；
+- `flutter analyze --no-pub` 为 0 error、0 warning，保留审查时已有的 14 条 info；
+- Web Release 构建成功；
+- 旧钱包 JSON、现有六类链、EVM 自定义网络、TRON/Solana 自定义资产和已有扫码协议定向测试全部通过；
 - 敏感信息扫描和 `git diff --check` 通过。

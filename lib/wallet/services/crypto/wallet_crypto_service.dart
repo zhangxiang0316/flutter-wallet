@@ -14,6 +14,7 @@ import 'package:sui/sui.dart' as sui;
 import 'package:aptos/aptos.dart' as aptos;
 
 import '../../constants/crypto_constants.dart';
+import '../../models/wallet_account.dart';
 
 /// 钱包密钥和地址派生服务。
 ///
@@ -25,14 +26,32 @@ import '../../constants/crypto_constants.dart';
 ///
 /// 注意：该服务只做本地纯计算，不负责密钥加密存储。私钥/助记词持久化由仓储层
 /// 和安全存储相关服务处理。
+typedef WalletAccountDeriver = DerivedAccount Function(String secret);
+
+class WalletAccountDerivationAdapter {
+  const WalletAccountDerivationAdapter({
+    required this.namespace,
+    required this.fromMnemonic,
+    required this.fromPrivateKey,
+  });
+
+  final String namespace;
+  final WalletAccountDeriver fromMnemonic;
+  final WalletAccountDeriver fromPrivateKey;
+}
+
 class WalletCryptoService {
   /// 创建钱包加密服务。
   ///
   /// EVM 和 TRON 地址都基于 secp256k1 曲线，因此初始化时缓存该曲线参数。
-  WalletCryptoService() : _domain = ECCurve_secp256k1();
+  WalletCryptoService({
+    Iterable<WalletAccountDerivationAdapter> accountDerivers = const [],
+  }) : _domain = ECCurve_secp256k1(),
+       _accountDerivers = List.unmodifiable(accountDerivers);
 
   /// secp256k1 曲线参数。
   final ECDomainParameters _domain;
+  final List<WalletAccountDerivationAdapter> _accountDerivers;
 
   // 从共享常量中引用派生路径
   static const String evmDerivationPath = CryptoConstants.evmDerivationPath;
@@ -58,12 +77,13 @@ class WalletCryptoService {
   /// 首次创建会同时执行 BIP39、BIP32、SLIP-0010、Sui、Aptos 和 Bitcoin
   /// 地址派生，计算量明显高于普通表单操作。Android/iOS 会放到后台 isolate；
   /// Web 会使用 Flutter 提供的兼容回退，避免直接调用 Isolate.run 导致创建失败。
-  Future<WalletKeyPair> generateMnemonicWallet() {
-    return compute(
+  Future<WalletKeyPair> generateMnemonicWallet() async {
+    final keyPair = await compute(
       _generateMnemonicWallet,
       true,
       debugLabel: 'generate-mnemonic-wallet',
     );
+    return _withRegisteredAccounts(keyPair);
   }
 
   /// [compute] 使用的静态入口，参数仅用于满足跨 isolate 回调签名。
@@ -95,13 +115,15 @@ class WalletCryptoService {
     );
     final suiPrivateKey = _deriveEd25519PrivateKey(seed, suiDerivationPath);
     final aptosPrivateKey = _deriveEd25519PrivateKey(seed, aptosDerivationPath);
-    return _keyPairFromPrivateKeys(
-      evmPrivateKeyHex: hex.encode(evmPrivateKey),
-      bitcoinPrivateKeyHex: hex.encode(bitcoinPrivateKey),
-      solanaPrivateKey: solanaPrivateKey,
-      suiPrivateKey: suiPrivateKey,
-      aptosPrivateKey: aptosPrivateKey,
-      mnemonic: mnemonic,
+    return _withRegisteredAccounts(
+      _keyPairFromPrivateKeys(
+        evmPrivateKeyHex: hex.encode(evmPrivateKey),
+        bitcoinPrivateKeyHex: hex.encode(bitcoinPrivateKey),
+        solanaPrivateKey: solanaPrivateKey,
+        suiPrivateKey: suiPrivateKey,
+        aptosPrivateKey: aptosPrivateKey,
+        mnemonic: mnemonic,
+      ),
     );
   }
 
@@ -111,11 +133,13 @@ class WalletCryptoService {
   /// Ed25519 seed 生成 Solana 地址。私钥导入没有助记词，因此返回对象的 mnemonic 为 null。
   WalletKeyPair importPrivateKey(String input) {
     final privateKey = normalizePrivateKey(input);
-    return _keyPairFromPrivateKeys(
-      evmPrivateKeyHex: privateKey,
-      solanaPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
-      suiPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
-      aptosPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
+    return _withRegisteredAccounts(
+      _keyPairFromPrivateKeys(
+        evmPrivateKeyHex: privateKey,
+        solanaPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
+        suiPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
+        aptosPrivateKey: Uint8List.fromList(hex.decode(privateKey)),
+      ),
     );
   }
 
@@ -269,12 +293,41 @@ class WalletCryptoService {
     return WalletKeyPair(
       privateKeyHex: privateKey,
       mnemonic: mnemonic,
-      bscAddress: _toChecksumEthereumAddress(bscAddress),
-      tronAddress: _base58CheckEncode(tronPayload),
-      solanaAddress: solanaAddress,
-      suiAddress: suiAddress,
-      aptosAddress: aptosAddress,
-      bitcoinAddress: _bitcoinP2wpkhAddress(bitcoinPrivateKey),
+      derivedAccountsByNamespace: {
+        WalletAddressNamespace.evm: DerivedAccount(
+          address: _toChecksumEthereumAddress(bscAddress),
+        ),
+        WalletAddressNamespace.tron: DerivedAccount(
+          address: _base58CheckEncode(tronPayload),
+        ),
+        WalletAddressNamespace.solana: DerivedAccount(address: solanaAddress),
+        WalletAddressNamespace.sui: DerivedAccount(address: suiAddress),
+        WalletAddressNamespace.aptos: DerivedAccount(address: aptosAddress),
+        WalletAddressNamespace.bitcoin: DerivedAccount(
+          address: _bitcoinP2wpkhAddress(bitcoinPrivateKey),
+        ),
+      },
+    );
+  }
+
+  WalletKeyPair _withRegisteredAccounts(WalletKeyPair keyPair) {
+    if (_accountDerivers.isEmpty) return keyPair;
+    final accounts = <String, DerivedAccount>{
+      ...keyPair.derivedAccountsByNamespace,
+    };
+    for (final deriver in _accountDerivers) {
+      final namespace = deriver.namespace.trim();
+      if (namespace.isEmpty) {
+        throw StateError('Derived account namespace cannot be empty');
+      }
+      accounts[namespace] = keyPair.mnemonic == null
+          ? deriver.fromPrivateKey(keyPair.privateKeyHex)
+          : deriver.fromMnemonic(keyPair.mnemonic!);
+    }
+    return WalletKeyPair(
+      privateKeyHex: keyPair.privateKeyHex,
+      mnemonic: keyPair.mnemonic,
+      derivedAccountsByNamespace: accounts,
     );
   }
 
@@ -641,17 +694,20 @@ class _DerivationIndex {
 /// - Solana 地址。
 /// - Sui 地址。
 /// - Bitcoin Native SegWit 地址。
+class DerivedAccount {
+  const DerivedAccount({required this.address});
+
+  final String address;
+}
+
 class WalletKeyPair {
-  const WalletKeyPair({
+  WalletKeyPair({
     required this.privateKeyHex,
-    required this.bscAddress,
-    required this.tronAddress,
-    required this.solanaAddress,
-    required this.suiAddress,
-    required this.aptosAddress,
-    required this.bitcoinAddress,
+    required Map<String, DerivedAccount> derivedAccountsByNamespace,
     this.mnemonic,
-  });
+  }) : derivedAccountsByNamespace = Map<String, DerivedAccount>.unmodifiable(
+         derivedAccountsByNamespace,
+       );
 
   /// EVM 私钥，64 位小写十六进制，不带 `0x`。
   final String privateKeyHex;
@@ -661,21 +717,24 @@ class WalletKeyPair {
   /// 通过助记词创建或导入的钱包会保留该字段；私钥导入的钱包没有助记词。
   final String? mnemonic;
 
-  /// EVM 地址，BSC、Ethereum、X Layer、Arbitrum、Base、Polygon、Avalanche 当前共用该地址。
-  final String bscAddress;
+  /// Adapter-owned derivation results. Adding another namespace no longer
+  /// requires adding another field to this model.
+  final Map<String, DerivedAccount> derivedAccountsByNamespace;
 
-  /// TRON Base58Check 地址。
-  final String tronAddress;
+  Map<String, String> get addressesByNamespace => {
+    for (final entry in derivedAccountsByNamespace.entries)
+      entry.key: entry.value.address,
+  };
 
-  /// Solana Base58 地址。
-  final String solanaAddress;
+  String addressForNamespace(String namespace) =>
+      derivedAccountsByNamespace[namespace]?.address ?? '';
 
-  /// Sui 32 字节十六进制地址。
-  final String suiAddress;
-
-  /// Aptos 32 字节十六进制地址。
-  final String aptosAddress;
-
-  /// Bitcoin Mainnet Native SegWit 地址。
-  final String bitcoinAddress;
+  String get bscAddress => addressForNamespace(WalletAddressNamespace.evm);
+  String get tronAddress => addressForNamespace(WalletAddressNamespace.tron);
+  String get solanaAddress =>
+      addressForNamespace(WalletAddressNamespace.solana);
+  String get suiAddress => addressForNamespace(WalletAddressNamespace.sui);
+  String get aptosAddress => addressForNamespace(WalletAddressNamespace.aptos);
+  String get bitcoinAddress =>
+      addressForNamespace(WalletAddressNamespace.bitcoin);
 }

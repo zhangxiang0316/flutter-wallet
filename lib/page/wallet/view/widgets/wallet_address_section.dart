@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../generated/l10n.dart';
+import '../../../../wallet/adapters/chain_adapter.dart';
+import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 import '../../../../widget/chain_presentation_scope.dart';
@@ -18,70 +20,29 @@ class WalletAddressSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final registry = createDefaultChainAdapterRegistry();
+    final addresses = ChainWalletAddresses.fromWallet(wallet);
+    final entries = WalletChain.values.map((chain) {
+      final adapter = registry.find(chain);
+      if (adapter == null ||
+          !adapter.capabilities.supports(ChainCapability.receive)) {
+        return null;
+      }
+      final address = adapter.walletAddress(addresses);
+      if (address.isEmpty) return null;
+      return (chain: chain, address: address);
+    }).whereType<({String address, WalletChain chain})>();
     return WalletDetailSectionPanel(
       title: S.of(context).walletAddresses,
-      children: [
-        _AddressTile(
-          chain: WalletChain.bsc,
-          label: WalletChain.bsc.name,
-          address: wallet.bscAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.ethereum,
-          label: WalletChain.ethereum.name,
-          address: wallet.bscAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.xLayer,
-          label: WalletChain.xLayer.name,
-          address: wallet.bscAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.arbitrum,
-          label: WalletChain.arbitrum.name,
-          address: wallet.bscAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.base,
-          label: WalletChain.base.name,
-          address: wallet.bscAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.polygon,
-          label: WalletChain.polygon.name,
-          address: wallet.bscAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.avalanche,
-          label: WalletChain.avalanche.name,
-          address: wallet.bscAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.bitcoin,
-          label: WalletChain.bitcoin.name,
-          address: wallet.bitcoinAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.solana,
-          label: WalletChain.solana.name,
-          address: wallet.solanaAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.sui,
-          label: WalletChain.sui.name,
-          address: wallet.suiAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.aptos,
-          label: WalletChain.aptos.name,
-          address: wallet.aptosAddress,
-        ),
-        _AddressTile(
-          chain: WalletChain.tron,
-          label: WalletChain.tron.name,
-          address: wallet.tronAddress,
-        ),
-      ],
+      children: entries
+          .map(
+            (entry) => _AddressTile(
+              chain: entry.chain,
+              label: entry.chain.name,
+              address: entry.address,
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }

@@ -7,10 +7,12 @@ import 'package:sui/sui.dart';
 
 import '../adapters/chain_adapter.dart';
 import '../adapters/chain_adapter_registry.dart';
+import '../adapters/chain_operation_registry.dart';
 import '../adapters/default_chain_adapter_registry.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
 import '../models/wallet_asset_registry.dart';
+import '../models/wallet_account.dart';
 import '../models/wallet_chain.dart';
 import '../utils/rpc_retry_helper.dart';
 import '../../utils/safe_log.dart';
@@ -29,6 +31,14 @@ part 'balance/aptos_chain_balance.dart';
 
 /// 单条链余额完成后的增量回调。
 typedef ChainBalancesCallback = void Function(List<ChainBalance> balances);
+
+typedef ChainBalanceLoader =
+    Future<List<ChainBalance>> Function({
+      required WalletChainConfig chain,
+      required String address,
+      required List<WalletAsset> assets,
+      required List<WalletAsset> customAssets,
+    });
 
 /// 多链余额查询服务。
 ///
@@ -50,6 +60,7 @@ class ChainBalanceService {
     WalletChainConfigService? chainConfigService,
     WalletHistoryApiConfig? apiConfig,
     ChainAdapterRegistry? adapterRegistry,
+    Map<String, ChainBalanceLoader> balanceLoaders = const {},
   }) : _dio =
            dio ??
            Dio(
@@ -63,7 +74,17 @@ class ChainBalanceService {
        _chainConfigService = chainConfigService ?? WalletChainConfigService(),
        _apiConfig = apiConfig ?? const WalletHistoryApiConfig(),
        _adapterRegistry =
-           adapterRegistry ?? createDefaultChainAdapterRegistry();
+           adapterRegistry ?? createDefaultChainAdapterRegistry() {
+    _balanceLoaders = ChainOperationRegistry({
+      WalletAddressNamespace.evm: _loadEvmBalanceOperation,
+      WalletAddressNamespace.solana: _loadSolanaBalanceOperation,
+      WalletAddressNamespace.tron: _loadTronBalanceOperation,
+      WalletAddressNamespace.bitcoin: _loadBitcoinBalanceOperation,
+      WalletAddressNamespace.sui: _loadSuiBalanceOperation,
+      WalletAddressNamespace.aptos: _loadAptosBalanceOperation,
+      ...balanceLoaders,
+    });
+  }
 
   /// RPC/HTTP 请求客户端。
   final Dio _dio;
@@ -78,6 +99,7 @@ class ChainBalanceService {
   final WalletHistoryApiConfig _apiConfig;
 
   final ChainAdapterRegistry _adapterRegistry;
+  late final ChainOperationRegistry<ChainBalanceLoader> _balanceLoaders;
 
   /// 常规链 RPC 请求超时时间。
   static const Duration _requestTimeout = Duration(seconds: 12);
@@ -175,26 +197,33 @@ class ChainBalanceService {
   /// [tronAddress] 和 [solanaAddress] 分别用于 TRON 和 Solana。
   /// 各链并发查询，最终把多链结果拍平成一个 [ChainBalance] 列表。
   Future<List<ChainBalance>> loadBalances({
-    required String bscAddress,
-    required String tronAddress,
-    required String solanaAddress,
+    String bscAddress = '',
+    String tronAddress = '',
+    String solanaAddress = '',
     String suiAddress = '',
     String aptosAddress = '',
     String bitcoinAddress = '',
+    Map<String, String> addressesByNamespace = const {},
     List<WalletChainConfig>? enabledChains,
     ChainBalancesCallback? onChainBalances,
   }) async {
     final customAssets = await _customAssetService.loadCustomAssets();
     final chains =
         enabledChains ?? await _chainConfigService.loadEnabledChains();
-    final addresses = ChainWalletAddresses(
-      evm: bscAddress,
-      tron: tronAddress,
-      solana: solanaAddress,
-      bitcoin: bitcoinAddress,
-      sui: suiAddress,
-      aptos: aptosAddress,
-    );
+    final addressValues = <String, String>{...addressesByNamespace};
+    void addLegacyAddress(String namespace, String value) {
+      if (value.trim().isNotEmpty) {
+        addressValues.putIfAbsent(namespace, () => value.trim());
+      }
+    }
+
+    addLegacyAddress(WalletAddressNamespace.evm, bscAddress);
+    addLegacyAddress(WalletAddressNamespace.tron, tronAddress);
+    addLegacyAddress(WalletAddressNamespace.solana, solanaAddress);
+    addLegacyAddress(WalletAddressNamespace.bitcoin, bitcoinAddress);
+    addLegacyAddress(WalletAddressNamespace.sui, suiAddress);
+    addLegacyAddress(WalletAddressNamespace.aptos, aptosAddress);
+    final addresses = ChainWalletAddresses(addressValues);
     final tasks = <Future<List<ChainBalance>>>[];
 
     for (final chain in chains) {
@@ -262,29 +291,16 @@ class ChainBalanceService {
       chain,
       capability: ChainCapability.balance,
     );
-    final operation = _adapterRegistry.route<Future<List<ChainBalance>>>(
+    final loader = _balanceLoaders.require(
       chain,
+      _adapterRegistry,
       capability: ChainCapability.balance,
-      handlers: <WalletChainType, Future<List<ChainBalance>> Function()>{
-        WalletChainType.evm: () =>
-            _loadEvmBalances(chain: chain, assets: assets, address: address),
-        WalletChainType.solana: () => _loadSolanaBalances(
-          chain: chain,
-          address: address,
-          customAssets: customAssets,
-        ),
-        WalletChainType.tron: () => _loadTronBalances(
-          chain: chain,
-          address: address,
-          customAssets: customAssets,
-        ),
-        WalletChainType.bitcoin: () =>
-            _loadBitcoinBalances(chain: chain, address: address),
-        WalletChainType.sui: () =>
-            _loadSuiBalances(chain: chain, address: address),
-        WalletChainType.aptos: () =>
-            _loadAptosBalances(chain: chain, address: address),
-      },
+    );
+    final operation = loader(
+      chain: chain,
+      address: address,
+      assets: assets,
+      customAssets: customAssets,
     );
     final fallback =
         adapter.balanceFallbackStrategy ==
@@ -309,6 +325,56 @@ class ChainBalanceService {
       onChainBalances: onChainBalances,
     );
   }
+
+  Future<List<ChainBalance>> _loadEvmBalanceOperation({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+    required List<WalletAsset> customAssets,
+  }) => _loadEvmBalances(chain: chain, assets: assets, address: address);
+
+  Future<List<ChainBalance>> _loadSolanaBalanceOperation({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+    required List<WalletAsset> customAssets,
+  }) => _loadSolanaBalances(
+    chain: chain,
+    address: address,
+    customAssets: customAssets,
+  );
+
+  Future<List<ChainBalance>> _loadTronBalanceOperation({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+    required List<WalletAsset> customAssets,
+  }) => _loadTronBalances(
+    chain: chain,
+    address: address,
+    customAssets: customAssets,
+  );
+
+  Future<List<ChainBalance>> _loadBitcoinBalanceOperation({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+    required List<WalletAsset> customAssets,
+  }) => _loadBitcoinBalances(chain: chain, address: address);
+
+  Future<List<ChainBalance>> _loadSuiBalanceOperation({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+    required List<WalletAsset> customAssets,
+  }) => _loadSuiBalances(chain: chain, address: address);
+
+  Future<List<ChainBalance>> _loadAptosBalanceOperation({
+    required WalletChainConfig chain,
+    required String address,
+    required List<WalletAsset> assets,
+    required List<WalletAsset> customAssets,
+  }) => _loadAptosBalances(chain: chain, address: address);
 
   /// 限制单条链的总等待时间，并在完成时立即通知首页。
   Future<List<ChainBalance>> _runChainBalanceLoad({

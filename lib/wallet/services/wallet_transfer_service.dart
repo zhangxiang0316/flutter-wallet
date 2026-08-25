@@ -18,10 +18,13 @@ import 'package:aptos/aptos.dart' as aptos;
 
 import '../adapters/chain_adapter.dart';
 import '../adapters/chain_adapter_registry.dart';
+import '../adapters/chain_operation_registry.dart';
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/evm_transaction_draft.dart';
+import '../models/wallet_account.dart';
 import '../models/wallet_chain.dart';
+import '../models/wallet_key_material.dart';
 import '../utils/rpc_retry_helper.dart';
 import 'crypto/wallet_crypto_service.dart';
 
@@ -32,6 +35,34 @@ part 'transfer/solana_wallet_transfer.dart';
 part 'transfer/bitcoin_wallet_transfer.dart';
 part 'transfer/sui_wallet_transfer.dart';
 part 'transfer/aptos_wallet_transfer.dart';
+
+class ChainTransferRequest {
+  const ChainTransferRequest({
+    required this.privateKeyHex,
+    required this.asset,
+    required this.toAddress,
+    required this.amount,
+    this.signingKeyBytes,
+    this.evmDraft,
+  });
+
+  final String privateKeyHex;
+  final List<int>? signingKeyBytes;
+  final ChainBalance asset;
+  final String toAddress;
+  final String amount;
+  final EvmTransactionDraft? evmDraft;
+}
+
+typedef ChainTransferOperation =
+    Future<String> Function(ChainTransferRequest request);
+
+typedef ChainFeeEstimator =
+    Future<TransferFeeEstimate> Function({
+      required ChainBalance asset,
+      required String toAddress,
+      required String amount,
+    });
 
 /// 钱包转账服务。
 ///
@@ -52,6 +83,8 @@ class WalletTransferService {
     Dio? dio,
     this.simulateEvmTransactions = true,
     ChainAdapterRegistry? adapterRegistry,
+    Map<String, ChainTransferOperation> transferOperations = const {},
+    Map<String, ChainFeeEstimator> feeEstimators = const {},
   }) : _dio =
            dio ??
            Dio(
@@ -62,7 +95,26 @@ class WalletTransferService {
              ),
            ),
        _domain = ECCurve_secp256k1(),
-       _adapterRegistry = adapterRegistry ?? _createAdapterRegistry();
+       _adapterRegistry = adapterRegistry ?? _createAdapterRegistry() {
+    _transferOperations = ChainOperationRegistry({
+      WalletAddressNamespace.evm: _transferEvmOperation,
+      WalletAddressNamespace.tron: _transferTronOperation,
+      WalletAddressNamespace.solana: _transferSolanaOperation,
+      WalletAddressNamespace.bitcoin: _transferBitcoinOperation,
+      WalletAddressNamespace.sui: _transferSuiOperation,
+      WalletAddressNamespace.aptos: _transferAptosOperation,
+      ...transferOperations,
+    });
+    _feeEstimators = ChainOperationRegistry({
+      WalletAddressNamespace.evm: _estimateEvmFee,
+      WalletAddressNamespace.tron: _estimateTronFee,
+      WalletAddressNamespace.solana: _estimateSolanaFee,
+      WalletAddressNamespace.bitcoin: _estimateBitcoinFee,
+      WalletAddressNamespace.sui: _estimateSuiFee,
+      WalletAddressNamespace.aptos: _estimateAptosFee,
+      ...feeEstimators,
+    });
+  }
 
   /// RPC/HTTP 请求客户端。
   final Dio _dio;
@@ -74,6 +126,8 @@ class WalletTransferService {
   final ECDomainParameters _domain;
 
   final ChainAdapterRegistry _adapterRegistry;
+  late final ChainOperationRegistry<ChainTransferOperation> _transferOperations;
+  late final ChainOperationRegistry<ChainFeeEstimator> _feeEstimators;
 
   /// 转账相关请求的整体超时时间。
   static const Duration _requestTimeout = Duration(seconds: 20);
@@ -91,7 +145,8 @@ class WalletTransferService {
   /// [asset] 决定链类型、资产精度、合约地址和发送方地址；[amount] 是用户输入的人类
   /// 可读数量，会按 decimals 转成链上最小单位。Solana 必须额外传入 Ed25519 私钥 seed。
   Future<String> transfer({
-    required String privateKeyHex,
+    String? privateKeyHex,
+    WalletKeyMaterial? keyMaterial,
     required ChainBalance asset,
     required String toAddress,
     required String amount,
@@ -100,60 +155,38 @@ class WalletTransferService {
     List<int>? aptosPrivateKey,
     EvmTransactionDraft? evmDraft,
   }) {
-    return _adapterRegistry.route<Future<String>>(
+    final resolvedPrivateKey =
+        keyMaterial?.privateKeyHex ?? privateKeyHex?.trim() ?? '';
+    if (resolvedPrivateKey.isEmpty) {
+      throw StateError('Missing private key material');
+    }
+    final adapter = _adapterRegistry.require(
       asset.chainRef,
       capability: ChainCapability.transfer,
-      handlers: <WalletChainType, Future<String> Function()>{
-        WalletChainType.evm: () => _transferEvm(
-          privateKeyHex: privateKeyHex,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-          draft: evmDraft,
-        ),
-        WalletChainType.tron: () => _transferTron(
-          privateKeyHex: privateKeyHex,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        ),
-        WalletChainType.solana: () {
-          final key = solanaPrivateKey;
-          if (key == null) throw StateError('Missing Solana private key');
-          return _transferSolana(
-            solanaPrivateKey: key,
-            asset: asset,
-            toAddress: toAddress,
-            amount: amount,
-          );
-        },
-        WalletChainType.bitcoin: () => _transferBitcoin(
-          privateKeyHex: privateKeyHex,
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        ),
-        WalletChainType.sui: () {
-          final key = suiPrivateKey;
-          if (key == null) throw StateError('Missing Sui private key');
-          return _transferSui(
-            suiPrivateKey: key,
-            asset: asset,
-            toAddress: toAddress,
-            amount: amount,
-          );
-        },
-        WalletChainType.aptos: () {
-          final key = aptosPrivateKey;
-          if (key == null) throw StateError('Missing Aptos private key');
-          return _transferAptos(
-            aptosPrivateKey: key,
-            asset: asset,
-            toAddress: toAddress,
-            amount: amount,
-          );
-        },
-      },
+    );
+    final legacySigningKeys = <String, List<int>>{
+      if (solanaPrivateKey != null)
+        WalletAddressNamespace.solana: solanaPrivateKey,
+      if (suiPrivateKey != null) WalletAddressNamespace.sui: suiPrivateKey,
+      if (aptosPrivateKey != null)
+        WalletAddressNamespace.aptos: aptosPrivateKey,
+    };
+    final operation = _transferOperations.require(
+      asset.chainRef,
+      _adapterRegistry,
+      capability: ChainCapability.transfer,
+    );
+    return operation(
+      ChainTransferRequest(
+        privateKeyHex: resolvedPrivateKey,
+        signingKeyBytes:
+            keyMaterial?.signingKeyBytes ??
+            legacySigningKeys[adapter.keyMaterialNamespace],
+        asset: asset,
+        toAddress: toAddress,
+        amount: amount,
+        evmDraft: evmDraft,
+      ),
     );
   }
 
@@ -166,35 +199,69 @@ class WalletTransferService {
     required String toAddress,
     required String amount,
   }) {
-    return _adapterRegistry.route<Future<TransferFeeEstimate>>(
+    final estimator = _feeEstimators.require(
       asset.chainRef,
+      _adapterRegistry,
       capability: ChainCapability.feeEstimation,
-      handlers: <WalletChainType, Future<TransferFeeEstimate> Function()>{
-        WalletChainType.evm: () =>
-            _estimateEvmFee(asset: asset, toAddress: toAddress, amount: amount),
-        WalletChainType.tron: () => _estimateTronFee(
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        ),
-        WalletChainType.solana: () => _estimateSolanaFee(
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        ),
-        WalletChainType.bitcoin: () => _estimateBitcoinFee(
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        ),
-        WalletChainType.sui: () =>
-            _estimateSuiFee(asset: asset, toAddress: toAddress, amount: amount),
-        WalletChainType.aptos: () => _estimateAptosFee(
-          asset: asset,
-          toAddress: toAddress,
-          amount: amount,
-        ),
-      },
+    );
+    return estimator(asset: asset, toAddress: toAddress, amount: amount);
+  }
+
+  Future<String> _transferEvmOperation(ChainTransferRequest request) =>
+      _transferEvm(
+        privateKeyHex: request.privateKeyHex,
+        asset: request.asset,
+        toAddress: request.toAddress,
+        amount: request.amount,
+        draft: request.evmDraft,
+      );
+
+  Future<String> _transferTronOperation(ChainTransferRequest request) =>
+      _transferTron(
+        privateKeyHex: request.privateKeyHex,
+        asset: request.asset,
+        toAddress: request.toAddress,
+        amount: request.amount,
+      );
+
+  Future<String> _transferSolanaOperation(ChainTransferRequest request) {
+    final key = request.signingKeyBytes;
+    if (key == null) throw StateError('Missing Solana private key');
+    return _transferSolana(
+      solanaPrivateKey: key,
+      asset: request.asset,
+      toAddress: request.toAddress,
+      amount: request.amount,
+    );
+  }
+
+  Future<String> _transferBitcoinOperation(ChainTransferRequest request) =>
+      _transferBitcoin(
+        privateKeyHex: request.privateKeyHex,
+        asset: request.asset,
+        toAddress: request.toAddress,
+        amount: request.amount,
+      );
+
+  Future<String> _transferSuiOperation(ChainTransferRequest request) {
+    final key = request.signingKeyBytes;
+    if (key == null) throw StateError('Missing Sui private key');
+    return _transferSui(
+      suiPrivateKey: key,
+      asset: request.asset,
+      toAddress: request.toAddress,
+      amount: request.amount,
+    );
+  }
+
+  Future<String> _transferAptosOperation(ChainTransferRequest request) {
+    final key = request.signingKeyBytes;
+    if (key == null) throw StateError('Missing Aptos private key');
+    return _transferAptos(
+      aptosPrivateKey: key,
+      asset: request.asset,
+      toAddress: request.toAddress,
+      amount: request.amount,
     );
   }
 

@@ -6,11 +6,13 @@ import 'package:dio/dio.dart';
 import 'package:pointycastle/digests/keccak.dart';
 
 import '../../../utils/storage.dart';
+import '../../adapters/chain_adapter.dart';
+import '../../adapters/chain_adapter_registry.dart';
+import '../../adapters/default_chain_adapter_registry.dart';
 import '../../models/wallet_asset.dart';
 import '../../models/wallet_asset_identity_policy.dart';
 import '../../models/wallet_asset_registry.dart';
 import '../../models/wallet_chain.dart';
-import '../../models/wallet_chain_extensions.dart';
 import '../../utils/rpc_retry_helper.dart';
 import 'wallet_chain_config_service.dart';
 import '../wallet_transfer_service.dart';
@@ -37,8 +39,11 @@ class WalletCustomAssetService {
     Storage? storage,
     Dio? dio,
     WalletChainConfigService? chainConfigService,
+    ChainAdapterRegistry? adapterRegistry,
   }) : _storage = storage ?? Storage(),
        _chainConfigService = chainConfigService ?? WalletChainConfigService(),
+       _adapterRegistry =
+           adapterRegistry ?? createDefaultChainAdapterRegistry(),
        _dio =
            dio ??
            Dio(
@@ -57,6 +62,7 @@ class WalletCustomAssetService {
 
   /// 动态链配置服务，用于把本地自定义资产重新绑定到最新链 RPC 配置。
   final WalletChainConfigService _chainConfigService;
+  final ChainAdapterRegistry _adapterRegistry;
 
   /// 本地存储中保存自定义资产列表的字段名。
   static const String _customAssetsKey = 'wallet_custom_assets';
@@ -221,7 +227,11 @@ class WalletCustomAssetService {
     String? logoUrl,
     String? canonicalTokenId,
   }) {
-    final normalizedAddress = _normalizeAddress(chain, contractAddress);
+    final normalizedAddress = _normalizeAddress(
+      chain,
+      contractAddress,
+      _adapterRegistry,
+    );
     if (chain.isEvm && !metadataVerified) {
       throw const CustomAssetUnverifiedMetadataException();
     }
@@ -254,7 +264,11 @@ class WalletCustomAssetService {
       symbol: asset.symbol.trim().toUpperCase(),
       name: asset.name.trim(),
       decimals: asset.decimals,
-      contractAddress: _normalizeAddress(asset.chainRef, asset.contractAddress),
+      contractAddress: _normalizeAddress(
+        asset.chainRef,
+        asset.contractAddress,
+        _adapterRegistry,
+      ),
       logoUrl: _normalizeLogoUrl(asset.logoUrl),
       canonicalTokenId: WalletCanonicalToken.normalizeId(
         asset.canonicalTokenId,

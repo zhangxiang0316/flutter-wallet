@@ -1,6 +1,7 @@
 import '../../../wallet/models/chain_balance.dart';
+import '../../../wallet/adapters/chain_adapter_registry.dart';
+import '../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../wallet/models/wallet_chain.dart';
-import '../../../wallet/models/wallet_chain_extensions.dart';
 import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/config/wallet_custom_asset_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
@@ -34,15 +35,19 @@ class TransferExecutionService {
     WalletRepository? repository,
     ChainBalanceService? balanceService,
     WalletCustomAssetService? customAssetService,
+    ChainAdapterRegistry? adapterRegistry,
   }) : _transferService = transferService ?? WalletTransferService(),
        _repository = repository ?? WalletRepository(),
        _balanceService = balanceService ?? ChainBalanceService(),
-       _customAssetService = customAssetService ?? WalletCustomAssetService();
+       _customAssetService = customAssetService ?? WalletCustomAssetService(),
+       _adapterRegistry =
+           adapterRegistry ?? createDefaultChainAdapterRegistry();
 
   final WalletTransferService _transferService;
   final WalletRepository _repository;
   final ChainBalanceService _balanceService;
   final WalletCustomAssetService _customAssetService;
+  final ChainAdapterRegistry _adapterRegistry;
 
   /// 估算输入中的交易手续费。
   Future<TransferFeeEstimate> estimateFee({
@@ -161,44 +166,19 @@ class TransferExecutionService {
       amount: amount,
       confirmedEvmFee: confirmedEvmFee,
     );
-    final privateKeyHex = await _repository.readWalletPrivateKey(
+    final adapter = _adapterRegistry.require(preflight.asset.chainRef);
+    final keyMaterial = await _repository.readWalletKeyMaterial(
+      namespace: adapter.keyMaterialNamespace,
       walletId: walletId,
       password: password,
     );
     final verifiedAsset = preflight.asset;
-    final bitcoinPrivateKey = verifiedAsset.chainRef.isBitcoin
-        ? await _repository.readWalletBitcoinPrivateKey(
-            walletId: walletId,
-            password: password,
-          )
-        : null;
-    final solanaPrivateKey = verifiedAsset.chainRef.isSolana
-        ? await _repository.readWalletSolanaPrivateKey(
-            walletId: walletId,
-            password: password,
-          )
-        : null;
-    final suiPrivateKey = verifiedAsset.chainRef.isSui
-        ? await _repository.readWalletSuiPrivateKey(
-            walletId: walletId,
-            password: password,
-          )
-        : null;
-    final aptosPrivateKey = verifiedAsset.chainRef.isAptos
-        ? await _repository.readWalletAptosPrivateKey(
-            walletId: walletId,
-            password: password,
-          )
-        : null;
 
     final transactionHash = await _transferService.transfer(
-      privateKeyHex: bitcoinPrivateKey ?? privateKeyHex,
+      keyMaterial: keyMaterial,
       asset: verifiedAsset,
       toAddress: recipientAddress,
       amount: amount,
-      solanaPrivateKey: solanaPrivateKey,
-      suiPrivateKey: suiPrivateKey,
-      aptosPrivateKey: aptosPrivateKey,
       evmDraft: preflight.fee.evmDraft,
     );
     return (preflight: preflight, transactionHash: transactionHash);

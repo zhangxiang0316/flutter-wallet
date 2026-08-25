@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../utils/storage.dart';
 import '../models/wallet_account.dart';
+import '../models/wallet_key_material.dart';
 import 'crypto/wallet_crypto_service.dart';
 import 'crypto/wallet_secret_store.dart';
 import 'wallet_local_data_cleanup_service.dart';
@@ -24,6 +25,7 @@ class WalletRepository {
     WalletSecretStore? secretStore,
     WalletCryptoService? cryptoService,
     WalletLocalDataCleanupService? cleanupService,
+    Map<String, WalletKeyMaterialReader> keyMaterialReaders = const {},
   }) : _storage = storage ?? Storage(),
        _secretStore = secretStore ?? WalletSecretStore(),
        _cryptoService = cryptoService ?? WalletCryptoService() {
@@ -33,6 +35,14 @@ class WalletRepository {
       cleanupService: cleanupService ?? WalletLocalDataCleanupService(),
       writeWalletState: _writeWalletStateRaw,
     );
+    _keyMaterialReaders = {
+      WalletAddressNamespace.evm: _readEvmKeyMaterial,
+      WalletAddressNamespace.solana: _readSolanaKeyMaterial,
+      WalletAddressNamespace.sui: _readSuiKeyMaterial,
+      WalletAddressNamespace.aptos: _readAptosKeyMaterial,
+      WalletAddressNamespace.bitcoin: _readBitcoinKeyMaterial,
+      ...keyMaterialReaders,
+    };
   }
 
   /// 钱包元数据存储。
@@ -45,6 +55,7 @@ class WalletRepository {
   final WalletCryptoService _cryptoService;
 
   late final WalletPersistenceCoordinator _persistence;
+  late final Map<String, WalletKeyMaterialReader> _keyMaterialReaders;
 
   /// 所有仓储实例共享的进程内写屏障，避免一个实例把另一个实例正在执行的 journal
   /// 当成启动残留事务恢复。
@@ -268,6 +279,95 @@ class WalletRepository {
     required String password,
   }) {
     return _secretStore.readMnemonic(walletId: walletId, password: password);
+  }
+
+  /// Resolve signing material through the namespace declared by the adapter.
+  /// New chains can inject another reader without changing transfer pages.
+  Future<WalletKeyMaterial> readWalletKeyMaterial({
+    required String namespace,
+    required String walletId,
+    required String password,
+  }) {
+    final reader = _keyMaterialReaders[namespace];
+    if (reader == null) {
+      throw StateError('No key material reader registered for $namespace');
+    }
+    return reader(walletId: walletId, password: password);
+  }
+
+  Future<WalletKeyMaterial> _readEvmKeyMaterial({
+    required String walletId,
+    required String password,
+  }) async {
+    return WalletKeyMaterial(
+      privateKeyHex: await readWalletPrivateKey(
+        walletId: walletId,
+        password: password,
+      ),
+    );
+  }
+
+  Future<WalletKeyMaterial> _readSolanaKeyMaterial({
+    required String walletId,
+    required String password,
+  }) async {
+    final privateKey = await readWalletPrivateKey(
+      walletId: walletId,
+      password: password,
+    );
+    return WalletKeyMaterial(
+      privateKeyHex: privateKey,
+      signingKeyBytes: await readWalletSolanaPrivateKey(
+        walletId: walletId,
+        password: password,
+      ),
+    );
+  }
+
+  Future<WalletKeyMaterial> _readSuiKeyMaterial({
+    required String walletId,
+    required String password,
+  }) async {
+    final privateKey = await readWalletPrivateKey(
+      walletId: walletId,
+      password: password,
+    );
+    return WalletKeyMaterial(
+      privateKeyHex: privateKey,
+      signingKeyBytes: await readWalletSuiPrivateKey(
+        walletId: walletId,
+        password: password,
+      ),
+    );
+  }
+
+  Future<WalletKeyMaterial> _readAptosKeyMaterial({
+    required String walletId,
+    required String password,
+  }) async {
+    final privateKey = await readWalletPrivateKey(
+      walletId: walletId,
+      password: password,
+    );
+    return WalletKeyMaterial(
+      privateKeyHex: privateKey,
+      signingKeyBytes: await readWalletAptosPrivateKey(
+        walletId: walletId,
+        password: password,
+      ),
+    );
+  }
+
+  Future<WalletKeyMaterial> _readBitcoinKeyMaterial({
+    required String walletId,
+    required String password,
+  }) async {
+    return WalletKeyMaterial(
+      privateKeyHex: await readWalletBitcoinPrivateKey(
+        walletId: walletId,
+        password: password,
+      ),
+    );
   }
 
   /// 读取 Solana 转账所需的 Ed25519 私钥 seed。

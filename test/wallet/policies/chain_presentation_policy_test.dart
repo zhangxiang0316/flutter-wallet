@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/adapters/chain_adapter.dart';
 import 'package:omnicast/wallet/adapters/chain_adapter_registry.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
+import 'package:omnicast/wallet/models/wallet_account.dart';
 import 'package:omnicast/wallet/policies/chain_presentation_policy.dart';
 
 void main() {
@@ -53,6 +54,7 @@ void main() {
 
 final _adapter = RegisteredChainAdapter(
   type: WalletChainType.evm,
+  addressNamespace: WalletAddressNamespace.evm,
   capabilities: const ChainCapabilities({ChainCapability.addressValidation}),
   presentationBuilder: (_) => const ChainPresentation(
     colorValue: 0xFF123456,
@@ -73,6 +75,7 @@ final _adapter = RegisteredChainAdapter(
 
 final _replacementAdapter = RegisteredChainAdapter(
   type: WalletChainType.evm,
+  addressNamespace: WalletAddressNamespace.evm,
   capabilities: const ChainCapabilities({ChainCapability.addressValidation}),
   presentationBuilder: (_) => const ChainPresentation(
     colorValue: 0xFF654321,

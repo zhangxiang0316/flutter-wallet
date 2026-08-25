@@ -11,16 +11,6 @@ class TransferScanAddressParser {
 
   static final RegExp _amountPattern = RegExp(r'^[0-9]+(?:\.[0-9]+)?$');
 
-  static const Set<String> _supportedSchemes = {
-    'omnicast',
-    'ethereum',
-    'tron',
-    'solana',
-    'bitcoin',
-    'sui',
-    'aptos',
-  };
-
   /// 解析付款请求或当前链的纯地址二维码。
   ///
   /// 未知 scheme、缺少必要字段、无效金额或地址格式损坏时返回 null，不再从
@@ -47,10 +37,10 @@ class TransferScanAddressParser {
     final uri = Uri.tryParse(value);
     if (uri == null || uri.scheme.isEmpty) return null;
     final scheme = uri.scheme.toLowerCase();
-    if (!_supportedSchemes.contains(scheme)) return null;
     if (scheme == 'omnicast') {
       return _parseOmnicast(uri, currentChain, registry);
     }
+    if (registry.findByPaymentUriScheme(scheme) == null) return null;
     return _parseNativeUri(uri, scheme, currentChain, registry);
   }
 
@@ -101,7 +91,11 @@ class TransferScanAddressParser {
         if (declaredChainId == null) return null;
       }
     }
-    declaredChainId ??= _chainIdForScheme(scheme, currentChain);
+    declaredChainId ??= _chainIdForScheme(
+      scheme,
+      currentChain,
+      adapterRegistry,
+    );
     final targetChain = _chainConfigForId(declaredChainId, currentChain);
     if (!_isValidAddress(path, targetChain, declaredChainId, adapterRegistry)) {
       return null;
@@ -205,19 +199,17 @@ class TransferScanAddressParser {
   static String? _chainIdForScheme(
     String scheme,
     WalletChainConfig? currentChain,
+    ChainAdapterRegistry adapterRegistry,
   ) {
-    switch (scheme) {
-      case 'bitcoin':
-      case 'tron':
-      case 'solana':
-      case 'sui':
-      case 'aptos':
-        return scheme;
-      case 'ethereum':
-        return currentChain?.isEvm ?? false ? currentChain!.id : null;
-      default:
-        return null;
+    final schemeAdapter = adapterRegistry.findByPaymentUriScheme(scheme);
+    if (schemeAdapter == null) return null;
+    if (currentChain?.adapterId == schemeAdapter.id) {
+      return currentChain!.id;
     }
+    for (final chain in WalletChain.values) {
+      if (chain.adapterId == schemeAdapter.id) return chain.id;
+    }
+    return null;
   }
 
   static String? _trimmed(String? value) {

@@ -86,23 +86,20 @@ String _checksumEvmAddress(String address) {
 /// 按链类型校验和标准化合约地址。
 ///
 /// EVM 地址会被标准化为 checksum 地址；TRON/Solana 地址只做合法性校验并保留用户输入。
-String _normalizeAddress(WalletChainRef chain, String? address) {
+String _normalizeAddress(
+  WalletChainRef chain,
+  String? address,
+  ChainAdapterRegistry adapterRegistry,
+) {
   final value = address?.trim() ?? '';
   if (value.isEmpty) {
     throw const CustomAssetInvalidInputException();
   }
-  if (chain.isEvm) {
-    return WalletTransferService.normalizeEvmAddress(value);
-  }
-  if (_isTronChain(chain)) {
-    WalletTransferService.tronAddressToHex(value);
-    return value;
-  }
-  if (_isSolanaChain(chain)) {
-    WalletTransferService.normalizeSolanaAddress(value);
-    return value;
-  }
-  return value;
+  final adapter = adapterRegistry.require(
+    chain,
+    capability: ChainCapability.customAssets,
+  );
+  return adapter.normalizeAddress(value);
 }
 
 /// 判断资产列表中是否已存在目标资产。
@@ -126,16 +123,6 @@ String _contractKey(WalletChainRef chain, String? contractAddress) {
     return 'native';
   }
   return chain.isEvm ? value.toLowerCase() : value;
-}
-
-/// 判断当前链是否为 TRON。
-bool _isTronChain(WalletChainRef chain) {
-  return chain.chainType == WalletChainType.tron;
-}
-
-/// 判断当前链是否为 Solana。
-bool _isSolanaChain(WalletChainRef chain) {
-  return chain.chainType == WalletChainType.solana;
 }
 
 List<String> _evmRpcUrls(WalletChainRef chain) {

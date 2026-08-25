@@ -2,8 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:sui/sui.dart';
 
 import '../../models/wallet_chain.dart';
+import '../../models/wallet_account.dart';
+import '../../adapters/chain_adapter.dart';
 import '../../adapters/chain_adapter_registry.dart';
+import '../../adapters/chain_operation_registry.dart';
 import '../../adapters/default_chain_adapter_registry.dart';
+
+typedef WalletRpcProbe =
+    Future<void> Function(WalletChainConfig chain, String rpcUrl);
 
 /// 单个 RPC 节点健康检查结果。
 class WalletRpcHealthResult {
@@ -60,20 +66,35 @@ class WalletChainRpcHealthReport {
 
 /// RPC 健康检查服务。
 class WalletRpcHealthService {
-  WalletRpcHealthService({Dio? dio, ChainAdapterRegistry? adapterRegistry})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              connectTimeout: _requestTimeout,
-              receiveTimeout: _requestTimeout,
-              sendTimeout: _requestTimeout,
-            ),
-          ),
-      _adapterRegistry = adapterRegistry ?? createDefaultChainAdapterRegistry();
+  WalletRpcHealthService({
+    Dio? dio,
+    ChainAdapterRegistry? adapterRegistry,
+    Map<String, WalletRpcProbe> rpcProbes = const {},
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: _requestTimeout,
+               receiveTimeout: _requestTimeout,
+               sendTimeout: _requestTimeout,
+             ),
+           ),
+       _adapterRegistry =
+           adapterRegistry ?? createDefaultChainAdapterRegistry() {
+    _rpcProbes = ChainOperationRegistry({
+      WalletAddressNamespace.evm: _checkEvmRpc,
+      WalletAddressNamespace.solana: (_, rpcUrl) => _checkSolanaRpc(rpcUrl),
+      WalletAddressNamespace.tron: (_, rpcUrl) => _checkTronRpc(rpcUrl),
+      WalletAddressNamespace.bitcoin: (_, rpcUrl) => _checkBitcoinApi(rpcUrl),
+      WalletAddressNamespace.sui: (_, rpcUrl) => _checkSuiRpc(rpcUrl),
+      WalletAddressNamespace.aptos: (_, rpcUrl) => _checkAptosApi(rpcUrl),
+      ...rpcProbes,
+    });
+  }
 
   final Dio _dio;
   final ChainAdapterRegistry _adapterRegistry;
+  late final ChainOperationRegistry<WalletRpcProbe> _rpcProbes;
 
   static const Duration _requestTimeout = Duration(seconds: 5);
 
@@ -106,17 +127,12 @@ class WalletRpcHealthService {
 
     final stopwatch = Stopwatch()..start();
     try {
-      await _adapterRegistry.route<Future<void>>(
+      final probe = _rpcProbes.require(
         chain,
-        handlers: {
-          WalletChainType.evm: () => _checkEvmRpc(chain, normalizedUrl),
-          WalletChainType.solana: () => _checkSolanaRpc(normalizedUrl),
-          WalletChainType.tron: () => _checkTronRpc(normalizedUrl),
-          WalletChainType.bitcoin: () => _checkBitcoinApi(normalizedUrl),
-          WalletChainType.sui: () => _checkSuiRpc(normalizedUrl),
-          WalletChainType.aptos: () => _checkAptosApi(normalizedUrl),
-        },
+        _adapterRegistry,
+        capability: ChainCapability.rpcHealth,
       );
+      await probe(chain, normalizedUrl);
       stopwatch.stop();
       return WalletRpcHealthResult(
         rpcUrl: normalizedUrl,

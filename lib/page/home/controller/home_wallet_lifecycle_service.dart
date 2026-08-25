@@ -162,12 +162,7 @@ class WalletLifecycleService {
     return WalletAccount(
       id: HomeControllerUtils.createWalletId(keyPair.bscAddress),
       name: name,
-      bscAddress: keyPair.bscAddress,
-      tronAddress: keyPair.tronAddress,
-      solanaAddress: keyPair.solanaAddress,
-      suiAddress: keyPair.suiAddress,
-      aptosAddress: keyPair.aptosAddress,
-      bitcoinAddress: keyPair.bitcoinAddress,
+      addressesByNamespace: keyPair.addressesByNamespace,
       createdAt: DateTime.now(),
     );
   }

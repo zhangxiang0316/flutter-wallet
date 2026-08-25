@@ -348,12 +348,13 @@ class _FakeBalanceService extends ChainBalanceService {
 
   @override
   Future<List<ChainBalance>> loadBalances({
-    required String bscAddress,
-    required String tronAddress,
-    required String solanaAddress,
+    String bscAddress = '',
+    String tronAddress = '',
+    String solanaAddress = '',
     String suiAddress = '',
     String aptosAddress = '',
     String bitcoinAddress = '',
+    Map<String, String> addressesByNamespace = const {},
     List<WalletChainConfig>? enabledChains,
     ChainBalancesCallback? onChainBalances,
   }) async {
@@ -415,12 +416,13 @@ class _ControlledBalanceService extends ChainBalanceService {
 
   @override
   Future<List<ChainBalance>> loadBalances({
-    required String bscAddress,
-    required String tronAddress,
-    required String solanaAddress,
+    String bscAddress = '',
+    String tronAddress = '',
+    String solanaAddress = '',
     String suiAddress = '',
     String aptosAddress = '',
     String bitcoinAddress = '',
+    Map<String, String> addressesByNamespace = const {},
     List<WalletChainConfig>? enabledChains,
     ChainBalancesCallback? onChainBalances,
   }) {

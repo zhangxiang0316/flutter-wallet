@@ -3,9 +3,17 @@ import 'package:sui/sui.dart';
 
 import '../../adapters/chain_adapter.dart';
 import '../../adapters/chain_adapter_registry.dart';
+import '../../adapters/chain_operation_registry.dart';
 import '../../adapters/default_chain_adapter_registry.dart';
 import '../../models/wallet_chain.dart';
+import '../../models/wallet_account.dart';
 import '../../models/wallet_transaction_record.dart';
+
+typedef ChainTransactionStatusLoader =
+    Future<WalletTransactionStatus> Function(
+      WalletChainRef chain,
+      String txHash,
+    );
 
 /// 单笔交易状态查询服务。
 ///
@@ -15,6 +23,7 @@ class WalletTransactionStatusService {
   WalletTransactionStatusService({
     Dio? dio,
     ChainAdapterRegistry? adapterRegistry,
+    Map<String, ChainTransactionStatusLoader> statusLoaders = const {},
   }) : _dio =
            dio ??
            Dio(
@@ -25,10 +34,22 @@ class WalletTransactionStatusService {
              ),
            ),
        _adapterRegistry =
-           adapterRegistry ?? createDefaultChainAdapterRegistry();
+           adapterRegistry ?? createDefaultChainAdapterRegistry() {
+    _statusLoaders = ChainOperationRegistry({
+      WalletAddressNamespace.evm: _loadEvmStatus,
+      WalletAddressNamespace.solana: _loadSolanaStatus,
+      WalletAddressNamespace.tron: _loadTronStatus,
+      WalletAddressNamespace.bitcoin: _loadBitcoinStatus,
+      WalletAddressNamespace.sui: _loadSuiStatus,
+      WalletAddressNamespace.aptos: _loadAptosStatus,
+      ...statusLoaders,
+    });
+  }
 
   final Dio _dio;
   final ChainAdapterRegistry _adapterRegistry;
+  late final ChainOperationRegistry<ChainTransactionStatusLoader>
+  _statusLoaders;
 
   static const Duration _requestTimeout = Duration(seconds: 6);
 
@@ -38,18 +59,12 @@ class WalletTransactionStatusService {
   }) async {
     final hash = txHash.trim();
     if (hash.isEmpty) return WalletTransactionStatus.unknown;
-    return _adapterRegistry.route<Future<WalletTransactionStatus>>(
+    final loader = _statusLoaders.require(
       chain,
+      _adapterRegistry,
       capability: ChainCapability.transactionStatus,
-      handlers: <WalletChainType, Future<WalletTransactionStatus> Function()>{
-        WalletChainType.evm: () => _loadEvmStatus(chain, hash),
-        WalletChainType.solana: () => _loadSolanaStatus(chain, hash),
-        WalletChainType.tron: () => _loadTronStatus(chain, hash),
-        WalletChainType.bitcoin: () => _loadBitcoinStatus(chain, hash),
-        WalletChainType.sui: () => _loadSuiStatus(chain, hash),
-        WalletChainType.aptos: () => _loadAptosStatus(chain, hash),
-      },
     );
+    return loader(chain, hash);
   }
 
   Future<WalletTransactionStatus> _loadEvmStatus(

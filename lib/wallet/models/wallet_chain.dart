@@ -100,6 +100,9 @@ enum WalletChain implements WalletChainRef {
 
   @override
   bool get isEvm => evmChainId != null;
+
+  @override
+  String get adapterId => isEvm ? WalletChainType.evm.name : id;
 }
 
 /// 钱包链的通用只读接口。
@@ -113,6 +116,7 @@ abstract interface class WalletChainRef {
   String get rpcUrl;
   int? get evmChainId;
   bool get isEvm;
+  String get adapterId;
 }
 
 /// 让内置链也能作为通用链配置使用。
@@ -131,13 +135,14 @@ class WalletChainConfig implements WalletChainRef {
     required this.symbol,
     required this.rpcUrls,
     required this.type,
+    String adapterId = '',
     this.evmChainId,
     this.builtinChain,
     this.colorValue,
     this.explorerApiUrl,
     this.explorerApiKey,
     this.isEnabled = true,
-  });
+  }) : _adapterId = adapterId;
 
   factory WalletChainConfig.builtin(WalletChain chain) {
     return WalletChainConfig(
@@ -155,6 +160,7 @@ class WalletChainConfig implements WalletChainRef {
               WalletChain.tron => WalletChainType.tron,
               _ => throw StateError('Unsupported builtin chain ${chain.id}'),
             },
+      adapterId: chain.adapterId,
       evmChainId: chain.evmChainId,
       builtinChain: chain,
       colorValue: _builtinColorValue(chain),
@@ -179,6 +185,7 @@ class WalletChainConfig implements WalletChainRef {
       symbol: symbol,
       rpcUrls: rpcUrls,
       type: WalletChainType.evm,
+      adapterId: WalletChainType.evm.name,
       evmChainId: evmChainId,
       colorValue: colorValue,
       explorerApiUrl: explorerApiUrl,
@@ -204,6 +211,7 @@ class WalletChainConfig implements WalletChainRef {
       symbol: json['symbol']?.toString() ?? '',
       rpcUrls: rpcUrls,
       type: type,
+      adapterId: json['adapterId']?.toString() ?? '',
       evmChainId: evmChainIdValue is int
           ? evmChainIdValue
           : int.tryParse(evmChainIdValue?.toString() ?? ''),
@@ -226,6 +234,22 @@ class WalletChainConfig implements WalletChainRef {
   final List<String> rpcUrls;
 
   final WalletChainType type;
+
+  /// Adapter registration key. Unlike [type], this can represent a newly
+  /// plugged-in non-EVM chain without changing a central enum.
+  final String _adapterId;
+
+  @override
+  String get adapterId => _adapterId.trim().isNotEmpty
+      ? _adapterId.trim()
+      : switch (type) {
+          WalletChainType.evm => 'evm',
+          WalletChainType.bitcoin => 'bitcoin',
+          WalletChainType.solana => 'solana',
+          WalletChainType.sui => 'sui',
+          WalletChainType.aptos => 'aptos',
+          WalletChainType.tron => 'tron',
+        };
 
   @override
   final int? evmChainId;
@@ -257,6 +281,7 @@ class WalletChainConfig implements WalletChainRef {
       'symbol': symbol,
       'rpcUrls': rpcUrls,
       'type': type.name,
+      'adapterId': adapterId,
       'evmChainId': evmChainId,
       'colorValue': colorValue,
       'explorerApiUrl': explorerApiUrl,
@@ -271,6 +296,7 @@ class WalletChainConfig implements WalletChainRef {
     String? symbol,
     List<String>? rpcUrls,
     WalletChainType? type,
+    String? adapterId,
     int? evmChainId,
     WalletChain? builtinChain,
     int? colorValue,
@@ -284,6 +310,7 @@ class WalletChainConfig implements WalletChainRef {
       symbol: symbol ?? this.symbol,
       rpcUrls: rpcUrls ?? this.rpcUrls,
       type: type ?? this.type,
+      adapterId: adapterId ?? this.adapterId,
       evmChainId: evmChainId ?? this.evmChainId,
       builtinChain: builtinChain ?? this.builtinChain,
       colorValue: colorValue ?? this.colorValue,

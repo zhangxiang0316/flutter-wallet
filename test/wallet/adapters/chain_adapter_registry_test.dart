@@ -3,6 +3,7 @@ import 'package:omnicast/wallet/adapters/chain_adapter.dart';
 import 'package:omnicast/wallet/adapters/chain_adapter_registry.dart';
 import 'package:omnicast/wallet/adapters/default_chain_adapter_registry.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
+import 'package:omnicast/wallet/models/wallet_account.dart';
 
 void main() {
   group('ChainAdapterRegistry', () {
@@ -117,20 +118,55 @@ void main() {
         throwsStateError,
       );
     });
+
+    test('declares custom asset and payment URI capabilities explicitly', () {
+      final registry = createDefaultChainAdapterRegistry();
+
+      for (final chain in [
+        WalletChain.ethereum,
+        WalletChain.tron,
+        WalletChain.solana,
+      ]) {
+        expect(
+          registry
+              .require(chain)
+              .capabilities
+              .supports(ChainCapability.customAssets),
+          isTrue,
+        );
+      }
+      for (final chain in [
+        WalletChain.bitcoin,
+        WalletChain.sui,
+        WalletChain.aptos,
+      ]) {
+        expect(
+          registry
+              .require(chain)
+              .capabilities
+              .supports(ChainCapability.customAssets),
+          isFalse,
+        );
+      }
+      expect(registry.findByPaymentUriScheme('bitcoin')?.id, 'bitcoin');
+      expect(registry.findByPaymentUriScheme('unknown'), isNull);
+    });
   });
 }
 
-const _addresses = ChainWalletAddresses(
-  evm: '0x1111111111111111111111111111111111111111',
-  tron: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
-  solana: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
-  bitcoin: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
-  sui: '0x0000000000000000000000000000000000000000000000000000000000000001',
-  aptos: '0x1',
-);
+const _addresses = ChainWalletAddresses({
+  WalletAddressNamespace.evm: '0x1111111111111111111111111111111111111111',
+  WalletAddressNamespace.tron: 'TMVQGm1qAQYVdetCeGRRkTWYYrLXuHK2HC',
+  WalletAddressNamespace.solana: 'H3MUoKR3cmCdodNLGfqYRfpvzgt4XNgePPzJDRB1BEd8',
+  WalletAddressNamespace.bitcoin: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+  WalletAddressNamespace.sui:
+      '0x0000000000000000000000000000000000000000000000000000000000000001',
+  WalletAddressNamespace.aptos: '0x1',
+});
 
 final _testAdapter = RegisteredChainAdapter(
   type: WalletChainType.evm,
+  addressNamespace: WalletAddressNamespace.evm,
   capabilities: const ChainCapabilities({ChainCapability.addressValidation}),
   walletAddressSelector: (addresses) => addresses.evm,
   addressNormalizer: (input) => input.trim(),

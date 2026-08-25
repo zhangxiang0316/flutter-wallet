@@ -15,6 +15,7 @@ void main() {
       aptosAddress:
           '0x1111111111111111111111111111111111111111111111111111111111111111',
       bitcoinAddress: 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',
+      addressesByNamespace: const {'future-chain': 'future-address'},
       createdAt: createdAt,
     );
 
@@ -30,6 +31,9 @@ void main() {
     expect(decoded.bitcoinAddress, wallet.bitcoinAddress);
     expect(decoded.suiAddress, wallet.suiAddress);
     expect(decoded.aptosAddress, wallet.aptosAddress);
+    expect(decoded.addressForNamespace('future-chain'), 'future-address');
+    expect(wallet.toJson().containsKey('bscAddress'), isFalse);
+    expect(wallet.toJson().containsKey('addressesByNamespace'), isTrue);
     expect(legacy.bitcoinAddress, isEmpty);
     expect(legacy.suiAddress, isEmpty);
     expect(legacy.aptosAddress, isEmpty);

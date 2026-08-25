@@ -3,6 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
+import '../../../../wallet/adapters/chain_adapter.dart';
+import '../../../../wallet/adapters/chain_adapter_registry.dart';
+import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../../wallet/models/wallet_asset.dart';
 import '../../../../wallet/models/wallet_chain.dart';
 import 'asset_visibility_styles.dart';
@@ -19,6 +22,7 @@ class ChainAssetVisibilityCard extends StatelessWidget {
     required this.onChanged,
     required this.onAddPressed,
     required this.onRemovePressed,
+    this.adapterRegistry,
   });
 
   /// 当前卡片对应的链。
@@ -39,6 +43,8 @@ class ChainAssetVisibilityCard extends StatelessWidget {
   /// 用户确认移除自定义资产后的回调。
   final Future<void> Function(WalletAsset asset) onRemovePressed;
 
+  final ChainAdapterRegistry? adapterRegistry;
+
   @override
   Widget build(BuildContext context) {
     // 当前主题色用于文字和添加按钮。
@@ -46,6 +52,12 @@ class ChainAssetVisibilityCard extends StatelessWidget {
 
     // 当前链品牌色用于链头像。
     final chainColor = _chainColor(chain);
+    final supportsCustomAssets =
+        (adapterRegistry ?? createDefaultChainAdapterRegistry())
+            .find(chain)
+            ?.capabilities
+            .supports(ChainCapability.customAssets) ??
+        false;
     return Container(
       padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 4.h),
       decoration: assetVisibilityPanelDecoration(context),
@@ -84,9 +96,7 @@ class ChainAssetVisibilityCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 8.w),
-              if (chain.type != WalletChainType.bitcoin &&
-                  chain.type != WalletChainType.sui &&
-                  chain.type != WalletChainType.aptos)
+              if (supportsCustomAssets)
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   constraints: BoxConstraints.tight(Size(32.w, 32.w)),

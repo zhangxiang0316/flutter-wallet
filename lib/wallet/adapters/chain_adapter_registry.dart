@@ -1,5 +1,5 @@
 import '../models/wallet_chain.dart';
-import '../models/wallet_chain_extensions.dart';
+import '../models/wallet_account.dart';
 import 'chain_adapter.dart';
 
 /// 地址编码器集合，由组合根注入，避免 Adapter 反向依赖转账服务。
@@ -23,8 +23,8 @@ class ChainAddressNormalizers {
 
 /// ChainAdapter 注册表。
 ///
-/// 默认按 [WalletChainType] 唯一注册。测试或后续链实现可显式 replace，业务代码
-/// 只通过 [require] 获取适配器，不再自行判断内置链 ID。
+/// 默认按 [ChainAdapter.id] 唯一注册。测试或后续链实现可显式 replace，业务代码
+/// 只通过 [require] 获取适配器，不再自行判断内置链 ID 或固定链类型。
 class ChainAdapterRegistry {
   ChainAdapterRegistry([Iterable<ChainAdapter> adapters = const []]) {
     for (final adapter in adapters) {
@@ -43,6 +43,8 @@ class ChainAdapterRegistry {
       ChainCapability.transactionStatus,
       ChainCapability.receive,
       ChainCapability.blockExplorer,
+      ChainCapability.paymentUri,
+      ChainCapability.rpcHealth,
     });
     const evmCapabilities = ChainCapabilities({
       ChainCapability.walletAddressResolution,
@@ -55,11 +57,30 @@ class ChainAdapterRegistry {
       ChainCapability.receive,
       ChainCapability.blockExplorer,
       ChainCapability.customNetworks,
+      ChainCapability.customAssets,
+      ChainCapability.paymentUri,
+      ChainCapability.rpcHealth,
+    });
+    const tokenChainCapabilities = ChainCapabilities({
+      ChainCapability.walletAddressResolution,
+      ChainCapability.addressValidation,
+      ChainCapability.balance,
+      ChainCapability.transfer,
+      ChainCapability.feeEstimation,
+      ChainCapability.history,
+      ChainCapability.transactionStatus,
+      ChainCapability.receive,
+      ChainCapability.blockExplorer,
+      ChainCapability.customAssets,
+      ChainCapability.paymentUri,
+      ChainCapability.rpcHealth,
     });
 
     return ChainAdapterRegistry([
       RegisteredChainAdapter(
         type: WalletChainType.evm,
+        addressNamespace: WalletAddressNamespace.evm,
+        paymentUriSchemes: const {'ethereum'},
         capabilities: evmCapabilities,
         presentationBuilder: (chain) =>
             _presentationFor(WalletChainType.evm, chain),
@@ -68,7 +89,6 @@ class ChainAdapterRegistry {
           requiresNetworkConfirmation: true,
           isBurnAddress: _isEvmBurnAddress,
         ),
-        walletAddressSelector: (addresses) => addresses.evm,
         addressNormalizer: normalizers.evm,
         addressExtractor: _extractEvmAddress,
         addressExplorerBuilder: _evmAddressExplorerUri,
@@ -76,7 +96,10 @@ class ChainAdapterRegistry {
       ),
       RegisteredChainAdapter(
         type: WalletChainType.tron,
-        capabilities: commonCapabilities,
+        addressNamespace: WalletAddressNamespace.tron,
+        keyMaterialNamespace: WalletAddressNamespace.evm,
+        paymentUriSchemes: const {'tron'},
+        capabilities: tokenChainCapabilities,
         presentationBuilder: (chain) =>
             _presentationFor(WalletChainType.tron, chain),
         transferPolicyBuilder: (_) => const ChainTransferPolicy(
@@ -84,7 +107,6 @@ class ChainAdapterRegistry {
           requiresNetworkConfirmation: false,
           isBurnAddress: _neverBurnAddress,
         ),
-        walletAddressSelector: (addresses) => addresses.tron,
         addressNormalizer: normalizers.tron,
         addressExtractor: _extractTronAddress,
         addressExplorerBuilder: (chain, address) =>
@@ -94,7 +116,9 @@ class ChainAdapterRegistry {
       ),
       RegisteredChainAdapter(
         type: WalletChainType.solana,
-        capabilities: commonCapabilities,
+        addressNamespace: WalletAddressNamespace.solana,
+        paymentUriSchemes: const {'solana'},
+        capabilities: tokenChainCapabilities,
         presentationBuilder: (chain) =>
             _presentationFor(WalletChainType.solana, chain),
         transferPolicyBuilder: (_) => const ChainTransferPolicy(
@@ -104,7 +128,6 @@ class ChainAdapterRegistry {
         ),
         balanceFallbackStrategy:
             ChainBalanceFallbackStrategy.solanaOwnerTokenLookup,
-        walletAddressSelector: (addresses) => addresses.solana,
         addressNormalizer: normalizers.solana,
         addressExtractor: _extractSolanaAddress,
         addressExplorerBuilder: (chain, address) =>
@@ -114,6 +137,8 @@ class ChainAdapterRegistry {
       ),
       RegisteredChainAdapter(
         type: WalletChainType.bitcoin,
+        addressNamespace: WalletAddressNamespace.bitcoin,
+        paymentUriSchemes: const {'bitcoin'},
         capabilities: commonCapabilities,
         presentationBuilder: (chain) =>
             _presentationFor(WalletChainType.bitcoin, chain),
@@ -122,7 +147,6 @@ class ChainAdapterRegistry {
           requiresNetworkConfirmation: false,
           isBurnAddress: _neverBurnAddress,
         ),
-        walletAddressSelector: (addresses) => addresses.bitcoin,
         addressNormalizer: normalizers.bitcoin,
         addressExtractor: _extractBitcoinAddress,
         addressExplorerBuilder: (chain, address) =>
@@ -132,6 +156,8 @@ class ChainAdapterRegistry {
       ),
       RegisteredChainAdapter(
         type: WalletChainType.sui,
+        addressNamespace: WalletAddressNamespace.sui,
+        paymentUriSchemes: const {'sui'},
         capabilities: commonCapabilities,
         presentationBuilder: (chain) =>
             _presentationFor(WalletChainType.sui, chain),
@@ -140,7 +166,6 @@ class ChainAdapterRegistry {
           requiresNetworkConfirmation: false,
           isBurnAddress: _isZeroAddressBurnAddress,
         ),
-        walletAddressSelector: (addresses) => addresses.sui,
         addressNormalizer: normalizers.sui,
         addressExtractor: _extractSuiAddress,
         addressExplorerBuilder: (chain, address) =>
@@ -150,6 +175,8 @@ class ChainAdapterRegistry {
       ),
       RegisteredChainAdapter(
         type: WalletChainType.aptos,
+        addressNamespace: WalletAddressNamespace.aptos,
+        paymentUriSchemes: const {'aptos'},
         capabilities: commonCapabilities,
         presentationBuilder: (chain) =>
             _presentationFor(WalletChainType.aptos, chain),
@@ -158,7 +185,6 @@ class ChainAdapterRegistry {
           requiresNetworkConfirmation: false,
           isBurnAddress: _isZeroAddressBurnAddress,
         ),
-        walletAddressSelector: (addresses) => addresses.aptos,
         addressNormalizer: normalizers.aptos,
         addressExtractor: _extractAptosAddress,
         addressExplorerBuilder: (chain, address) => Uri.parse(
@@ -171,18 +197,42 @@ class ChainAdapterRegistry {
     ]);
   }
 
-  final Map<WalletChainType, ChainAdapter> _adapters = {};
+  final Map<String, ChainAdapter> _adapters = {};
 
   Iterable<ChainAdapter> get adapters => _adapters.values;
 
   void register(ChainAdapter adapter, {bool replace = false}) {
-    if (!replace && _adapters.containsKey(adapter.type)) {
-      throw StateError('Adapter already registered for ${adapter.type.name}');
+    if (!replace && _adapters.containsKey(adapter.id)) {
+      throw StateError('Adapter already registered for ${adapter.id}');
     }
-    _adapters[adapter.type] = adapter;
+    for (final existing in _adapters.values) {
+      if (existing.id == adapter.id) continue;
+      final conflicts = existing.paymentUriSchemes.intersection(
+        adapter.paymentUriSchemes,
+      );
+      if (conflicts.isNotEmpty) {
+        throw StateError(
+          'Payment URI scheme already registered: ${conflicts.first}',
+        );
+      }
+    }
+    _adapters[adapter.id] = adapter;
   }
 
-  ChainAdapter? find(WalletChainRef chain) => _adapters[chain.chainType];
+  ChainAdapter? find(WalletChainRef chain) => _adapters[chain.adapterId];
+
+  ChainAdapter? findById(String adapterId) => _adapters[adapterId];
+
+  ChainAdapter? findByPaymentUriScheme(String scheme) {
+    final normalized = scheme.trim().toLowerCase();
+    for (final adapter in adapters) {
+      if (adapter.capabilities.supports(ChainCapability.paymentUri) &&
+          adapter.paymentUriSchemes.contains(normalized)) {
+        return adapter;
+      }
+    }
+    return null;
+  }
 
   ChainAdapter require(WalletChainRef chain, {ChainCapability? capability}) {
     final adapter = find(chain);
@@ -193,25 +243,6 @@ class ChainAdapterRegistry {
       throw StateError('${chain.name} does not support ${capability.name}');
     }
     return adapter;
-  }
-
-  /// 在注册表边界完成链类型路由，业务服务不再读取 `adapter.type` 自行分支。
-  ///
-  /// 处理器仍由具体业务服务提供，因为它们需要访问各自的 RPC 客户端和密钥上下文；
-  /// 注册表只负责校验链适配器和能力，并统一处理未注册链的错误。
-  T route<T>(
-    WalletChainRef chain, {
-    ChainCapability? capability,
-    required Map<WalletChainType, T Function()> handlers,
-  }) {
-    final adapter = require(chain, capability: capability);
-    final handler = handlers[adapter.type];
-    if (handler == null) {
-      throw StateError(
-        'Missing ${capability?.name ?? 'operation'} handler for ${adapter.type.name}',
-      );
-    }
-    return handler();
   }
 }
 

@@ -5,15 +5,21 @@ import 'package:omnicast/wallet/services/crypto/wallet_crypto_service.dart';
 import 'package:omnicast/wallet/services/wallet_repository.dart';
 
 void main() {
-  const keyPair = WalletKeyPair(
+  final keyPair = WalletKeyPair(
     privateKeyHex: 'private-key',
     mnemonic: 'test mnemonic',
-    bscAddress: '0x1111111111111111111111111111111111111111',
-    tronAddress: 'tron-address',
-    solanaAddress: 'solana-address',
-    suiAddress: 'sui-address',
-    aptosAddress: 'aptos-address',
-    bitcoinAddress: 'bitcoin-address',
+    derivedAccountsByNamespace: const {
+      WalletAddressNamespace.evm: DerivedAccount(
+        address: '0x1111111111111111111111111111111111111111',
+      ),
+      WalletAddressNamespace.tron: DerivedAccount(address: 'tron-address'),
+      WalletAddressNamespace.solana: DerivedAccount(address: 'solana-address'),
+      WalletAddressNamespace.sui: DerivedAccount(address: 'sui-address'),
+      WalletAddressNamespace.aptos: DerivedAccount(address: 'aptos-address'),
+      WalletAddressNamespace.bitcoin: DerivedAccount(
+        address: 'bitcoin-address',
+      ),
+    },
   );
 
   test('creates and selects a wallet through the lifecycle service', () async {

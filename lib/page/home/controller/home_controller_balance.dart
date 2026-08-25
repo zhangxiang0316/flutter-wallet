@@ -115,6 +115,7 @@ class HomeBalanceCoordinator {
       final previousBalances = _balances;
       final previousAsOf = _balanceAsOf;
       final nextBalances = await _balanceService.loadBalances(
+        addressesByNamespace: wallet.addressesByNamespace,
         bscAddress: wallet.bscAddress,
         tronAddress: wallet.tronAddress,
         solanaAddress: wallet.solanaAddress,

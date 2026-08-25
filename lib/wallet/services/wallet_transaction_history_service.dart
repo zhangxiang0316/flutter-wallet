@@ -10,10 +10,12 @@ import 'package:sui/sui.dart';
 
 import '../adapters/chain_adapter.dart';
 import '../adapters/chain_adapter_registry.dart';
+import '../adapters/chain_operation_registry.dart';
 import '../adapters/default_chain_adapter_registry.dart';
 import '../constants/crypto_constants.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_chain.dart';
+import '../models/wallet_account.dart';
 import '../models/wallet_transaction_record.dart';
 import '../utils/rpc_retry_helper.dart';
 import '../../utils/safe_log.dart';
@@ -43,6 +45,20 @@ part 'transaction_history/bitcoin_transaction_history_provider.dart';
 part 'transaction_history/sui_transaction_history_provider.dart';
 part 'transaction_history/aptos_transaction_history_provider.dart';
 
+typedef ChainTransactionLookup =
+    Future<WalletTransactionRecord?> Function({
+      required String walletId,
+      required ChainBalance asset,
+      required String txHash,
+    });
+
+typedef ChainHistoryPageLoader =
+    Future<TransactionHistoryPageResult> Function({
+      required String walletId,
+      required ChainBalance asset,
+      required TransactionHistoryCursor? cursor,
+    });
+
 /// 钱包链上交易记录服务。
 ///
 /// 对外保持统一入口；实际按链类型委托给 EVM、TRON、Solana Provider。
@@ -51,6 +67,8 @@ class WalletTransactionHistoryService {
     Dio? dio,
     WalletHistoryApiConfig? apiConfig,
     ChainAdapterRegistry? adapterRegistry,
+    Map<String, ChainTransactionLookup> transactionLookups = const {},
+    Map<String, ChainHistoryPageLoader> historyPageLoaders = const {},
   }) : _dio =
            dio ??
            Dio(
@@ -88,6 +106,22 @@ class WalletTransactionHistoryService {
       dio: _dio,
       apiConfig: _apiConfig,
     );
+    _transactionLookups = ChainOperationRegistry({
+      WalletAddressNamespace.evm: _lookupEvmTransaction,
+      WalletAddressNamespace.bitcoin: _lookupBitcoinTransaction,
+      WalletAddressNamespace.sui: _lookupSuiTransaction,
+      WalletAddressNamespace.aptos: _lookupAptosTransaction,
+      ...transactionLookups,
+    });
+    _historyPageLoaders = ChainOperationRegistry({
+      WalletAddressNamespace.evm: _loadEvmRecordPage,
+      WalletAddressNamespace.tron: _loadTronRecordPage,
+      WalletAddressNamespace.solana: _loadSolanaRecordPage,
+      WalletAddressNamespace.bitcoin: _loadBitcoinRecordPage,
+      WalletAddressNamespace.sui: _loadSuiRecordPage,
+      WalletAddressNamespace.aptos: _loadAptosRecordPage,
+      ...historyPageLoaders,
+    });
   }
 
   /// HTTP/RPC 请求客户端。
@@ -103,6 +137,8 @@ class WalletTransactionHistoryService {
   late final _BitcoinTransactionHistoryProvider _bitcoinProvider;
   late final _SuiTransactionHistoryProvider _suiProvider;
   late final _AptosTransactionHistoryProvider _aptosProvider;
+  late final ChainOperationRegistry<ChainTransactionLookup> _transactionLookups;
+  late final ChainOperationRegistry<ChainHistoryPageLoader> _historyPageLoaders;
 
   static const Duration _requestTimeout = Duration(seconds: 6);
 
@@ -124,33 +160,12 @@ class WalletTransactionHistoryService {
     required String txHash,
   }) async {
     final chain = asset.chainRef;
-    return _adapterRegistry.route<Future<WalletTransactionRecord?>>(
+    final lookup = _transactionLookups.require(
       chain,
+      _adapterRegistry,
       capability: ChainCapability.history,
-      handlers: <WalletChainType, Future<WalletTransactionRecord?> Function()>{
-        WalletChainType.evm: () => _evmProvider.loadRecordByTransactionHash(
-          walletId: walletId,
-          asset: asset,
-          txHash: txHash,
-        ),
-        WalletChainType.bitcoin: () =>
-            _bitcoinProvider.loadRecordByTransactionHash(
-              walletId: walletId,
-              asset: asset,
-              txHash: txHash,
-            ),
-        WalletChainType.sui: () => _suiProvider.loadRecordByTransactionHash(
-          walletId: walletId,
-          asset: asset,
-          txHash: txHash,
-        ),
-        WalletChainType.aptos: () => _aptosProvider.loadRecordByTransactionHash(
-          walletId: walletId,
-          asset: asset,
-          txHash: txHash,
-        ),
-      },
     );
+    return lookup(walletId: walletId, asset: asset, txHash: txHash);
   }
 
   /// 分页读取某个资产的链上交易记录。
@@ -160,44 +175,103 @@ class WalletTransactionHistoryService {
     TransactionHistoryCursor? cursor,
   }) async {
     final chain = asset.chainRef;
-    return _adapterRegistry.route<Future<TransactionHistoryPageResult>>(
+    final loader = _historyPageLoaders.require(
       chain,
+      _adapterRegistry,
       capability: ChainCapability.history,
-      handlers:
-          <WalletChainType, Future<TransactionHistoryPageResult> Function()>{
-            WalletChainType.evm: () => _loadEvmRecordPage(
-              walletId: walletId,
-              asset: asset,
-              cursor: cursor,
-            ),
-            WalletChainType.tron: () => _tronProvider.loadRecordPage(
-              walletId: walletId,
-              asset: asset,
-              cursor: cursor,
-            ),
-            WalletChainType.solana: () => _solanaProvider.loadRecordPage(
-              walletId: walletId,
-              asset: asset,
-              cursor: cursor,
-            ),
-            WalletChainType.bitcoin: () => _bitcoinProvider.loadRecordPage(
-              walletId: walletId,
-              asset: asset,
-              cursor: cursor,
-            ),
-            WalletChainType.sui: () => _suiProvider.loadRecordPage(
-              walletId: walletId,
-              asset: asset,
-              cursor: cursor,
-            ),
-            WalletChainType.aptos: () => _aptosProvider.loadRecordPage(
-              walletId: walletId,
-              asset: asset,
-              cursor: cursor,
-            ),
-          },
     );
+    return loader(walletId: walletId, asset: asset, cursor: cursor);
   }
+
+  Future<WalletTransactionRecord?> _lookupEvmTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) => _evmProvider.loadRecordByTransactionHash(
+    walletId: walletId,
+    asset: asset,
+    txHash: txHash,
+  );
+
+  Future<WalletTransactionRecord?> _lookupBitcoinTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) => _bitcoinProvider.loadRecordByTransactionHash(
+    walletId: walletId,
+    asset: asset,
+    txHash: txHash,
+  );
+
+  Future<WalletTransactionRecord?> _lookupSuiTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) => _suiProvider.loadRecordByTransactionHash(
+    walletId: walletId,
+    asset: asset,
+    txHash: txHash,
+  );
+
+  Future<WalletTransactionRecord?> _lookupAptosTransaction({
+    required String walletId,
+    required ChainBalance asset,
+    required String txHash,
+  }) => _aptosProvider.loadRecordByTransactionHash(
+    walletId: walletId,
+    asset: asset,
+    txHash: txHash,
+  );
+
+  Future<TransactionHistoryPageResult> _loadTronRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    required TransactionHistoryCursor? cursor,
+  }) => _tronProvider.loadRecordPage(
+    walletId: walletId,
+    asset: asset,
+    cursor: cursor,
+  );
+
+  Future<TransactionHistoryPageResult> _loadSolanaRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    required TransactionHistoryCursor? cursor,
+  }) => _solanaProvider.loadRecordPage(
+    walletId: walletId,
+    asset: asset,
+    cursor: cursor,
+  );
+
+  Future<TransactionHistoryPageResult> _loadBitcoinRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    required TransactionHistoryCursor? cursor,
+  }) => _bitcoinProvider.loadRecordPage(
+    walletId: walletId,
+    asset: asset,
+    cursor: cursor,
+  );
+
+  Future<TransactionHistoryPageResult> _loadSuiRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    required TransactionHistoryCursor? cursor,
+  }) => _suiProvider.loadRecordPage(
+    walletId: walletId,
+    asset: asset,
+    cursor: cursor,
+  );
+
+  Future<TransactionHistoryPageResult> _loadAptosRecordPage({
+    required String walletId,
+    required ChainBalance asset,
+    required TransactionHistoryCursor? cursor,
+  }) => _aptosProvider.loadRecordPage(
+    walletId: walletId,
+    asset: asset,
+    cursor: cursor,
+  );
 
   Future<TransactionHistoryPageResult> _loadEvmRecordPage({
     required String walletId,

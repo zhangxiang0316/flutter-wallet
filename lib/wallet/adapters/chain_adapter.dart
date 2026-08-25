@@ -1,6 +1,5 @@
 import '../models/wallet_account.dart';
 import '../models/wallet_chain.dart';
-import '../models/wallet_chain_extensions.dart';
 
 /// 链适配器可声明的业务能力。
 enum ChainCapability {
@@ -14,6 +13,9 @@ enum ChainCapability {
   receive,
   blockExplorer,
   customNetworks,
+  customAssets,
+  paymentUri,
+  rpcHealth,
 }
 
 /// 余额查询失败时的链特有兜底策略。
@@ -43,32 +45,22 @@ class ChainCapabilities {
 
 /// 不依赖具体钱包模型的多链地址集合。
 class ChainWalletAddresses {
-  const ChainWalletAddresses({
-    required this.evm,
-    required this.tron,
-    required this.solana,
-    required this.bitcoin,
-    required this.sui,
-    required this.aptos,
-  });
+  const ChainWalletAddresses(this.byNamespace);
 
   factory ChainWalletAddresses.fromWallet(WalletAccount wallet) {
-    return ChainWalletAddresses(
-      evm: wallet.bscAddress,
-      tron: wallet.tronAddress,
-      solana: wallet.solanaAddress,
-      bitcoin: wallet.bitcoinAddress,
-      sui: wallet.suiAddress,
-      aptos: wallet.aptosAddress,
-    );
+    return ChainWalletAddresses(wallet.addressesByNamespace);
   }
 
-  final String evm;
-  final String tron;
-  final String solana;
-  final String bitcoin;
-  final String sui;
-  final String aptos;
+  final Map<String, String> byNamespace;
+
+  String addressFor(String namespace) => byNamespace[namespace]?.trim() ?? '';
+
+  String get evm => addressFor(WalletAddressNamespace.evm);
+  String get tron => addressFor(WalletAddressNamespace.tron);
+  String get solana => addressFor(WalletAddressNamespace.solana);
+  String get bitcoin => addressFor(WalletAddressNamespace.bitcoin);
+  String get sui => addressFor(WalletAddressNamespace.sui);
+  String get aptos => addressFor(WalletAddressNamespace.aptos);
 }
 
 typedef ChainAddressNormalizer = String Function(String input);
@@ -115,10 +107,14 @@ ChainPresentation _defaultPresentation(WalletChainRef chain) {
 
 /// 单类链的统一能力入口。
 ///
-/// RPC 读写仍由各业务服务负责，Adapter 统一解决链类型识别、钱包地址选择、
-/// 地址校验和浏览器链接等跨服务路由问题。
+/// Adapter 统一声明链识别、钱包地址、密钥材料、页面 capability 和浏览器策略；
+/// 链上操作实现由同一 adapterId 注册到类型安全的 `ChainOperationRegistry`。
 abstract interface class ChainAdapter {
+  String get id;
   WalletChainType get type;
+  String get addressNamespace;
+  String get keyMaterialNamespace;
+  Set<String> get paymentUriSchemes;
   ChainCapabilities get capabilities;
   ChainBalanceFallbackStrategy get balanceFallbackStrategy;
   ChainPresentation presentation(WalletChainRef chain);
@@ -137,24 +133,46 @@ abstract interface class ChainAdapter {
 /// 使用注册回调组装的标准链适配器。
 class RegisteredChainAdapter implements ChainAdapter {
   const RegisteredChainAdapter({
+    String? id,
     required this.type,
+    required this.addressNamespace,
+    String? keyMaterialNamespace,
+    this.paymentUriSchemes = const {},
     required this.capabilities,
     this.balanceFallbackStrategy = ChainBalanceFallbackStrategy.genericAssets,
     this.presentationBuilder = _defaultPresentation,
     this.transferPolicyBuilder = _defaultTransferPolicyBuilder,
-    required ChainWalletAddressSelector walletAddressSelector,
+    ChainWalletAddressSelector? walletAddressSelector,
     required ChainAddressNormalizer addressNormalizer,
     ChainAddressExtractor addressExtractor = _identityAddressExtractor,
     required ChainExplorerUriBuilder addressExplorerBuilder,
     required ChainExplorerUriBuilder transactionExplorerBuilder,
-  }) : _walletAddressSelector = walletAddressSelector,
+  }) : _id = id,
+       _keyMaterialNamespace = keyMaterialNamespace,
+       _walletAddressSelector = walletAddressSelector,
        _addressNormalizer = addressNormalizer,
        _addressExtractor = addressExtractor,
        _addressExplorerBuilder = addressExplorerBuilder,
        _transactionExplorerBuilder = transactionExplorerBuilder;
 
+  final String? _id;
+
+  @override
+  String get id => _id ?? type.name;
+
   @override
   final WalletChainType type;
+
+  @override
+  final String addressNamespace;
+
+  final String? _keyMaterialNamespace;
+
+  @override
+  String get keyMaterialNamespace => _keyMaterialNamespace ?? addressNamespace;
+
+  @override
+  final Set<String> paymentUriSchemes;
 
   @override
   final ChainCapabilities capabilities;
@@ -173,18 +191,20 @@ class RegisteredChainAdapter implements ChainAdapter {
   ChainTransferPolicy transferPolicy(WalletChainRef chain) =>
       transferPolicyBuilder(chain);
 
-  final ChainWalletAddressSelector _walletAddressSelector;
+  final ChainWalletAddressSelector? _walletAddressSelector;
   final ChainAddressNormalizer _addressNormalizer;
   final ChainAddressExtractor _addressExtractor;
   final ChainExplorerUriBuilder _addressExplorerBuilder;
   final ChainExplorerUriBuilder _transactionExplorerBuilder;
 
   @override
-  bool supports(WalletChainRef chain) => chain.chainType == type;
+  bool supports(WalletChainRef chain) => chain.adapterId == id;
 
   @override
   String walletAddress(ChainWalletAddresses addresses) {
-    return _walletAddressSelector(addresses).trim();
+    return (_walletAddressSelector?.call(addresses) ??
+            addresses.addressFor(addressNamespace))
+        .trim();
   }
 
   @override
