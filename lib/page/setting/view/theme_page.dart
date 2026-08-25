@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -8,6 +7,7 @@ import 'package:omnicast/main.dart';
 
 import '../../../generated/l10n.dart';
 import '../controller/themes_controller.dart';
+import 'widgets/selection_check.dart';
 
 @GetXRoutePage('/theme')
 /// 应用主题设置页面。
@@ -79,10 +79,9 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                     Text(S.of(context).themeSystem),
                     const Spacer(),
                     Obx(
-                      () => Visibility(
-                        visible:
+                      () => SelectionCheck(
+                        selected:
                             themeController.themeMode.value == ThemeMode.system,
-                        child: Icon(CupertinoIcons.check_mark, size: 20.r),
                       ),
                     ),
                   ],
@@ -99,10 +98,9 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                     Text(S.of(context).themeLight),
                     const Spacer(),
                     Obx(
-                      () => Visibility(
-                        visible:
+                      () => SelectionCheck(
+                        selected:
                             themeController.themeMode.value == ThemeMode.light,
-                        child: Icon(CupertinoIcons.check_mark, size: 20.r),
                       ),
                     ),
                   ],
@@ -119,10 +117,9 @@ class ThemePage extends BaseScaffoldPage<ThemesController> {
                     Text(S.of(context).themeDark),
                     const Spacer(),
                     Obx(
-                      () => Visibility(
-                        visible:
+                      () => SelectionCheck(
+                        selected:
                             themeController.themeMode.value == ThemeMode.dark,
-                        child: Icon(CupertinoIcons.check_mark, size: 20.r),
                       ),
                     ),
                   ],

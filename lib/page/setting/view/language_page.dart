@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -6,6 +5,7 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 import 'package:omnicast/base/base_scaffold_page.dart';
 
 import '../controller/language_controller.dart';
+import 'widgets/selection_check.dart';
 
 @GetXRoutePage('/language')
 /// 应用语言设置页面。
@@ -75,9 +75,8 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
                   children: [
                     const Text('中文'),
                     const Spacer(),
-                    Visibility(
-                      visible: controller.currentLanguage.value == '中文',
-                      child: Icon(CupertinoIcons.check_mark, size: 20.r),
+                    SelectionCheck(
+                      selected: controller.currentLanguage.value == '中文',
                     ),
                   ],
                 ),
@@ -93,9 +92,8 @@ class LanguagePage extends BaseScaffoldPage<LanguageController> {
                   children: [
                     const Text('English'),
                     const Spacer(),
-                    Visibility(
-                      visible: controller.currentLanguage.value == 'English',
-                      child: Icon(CupertinoIcons.check_mark, size: 20.r),
+                    SelectionCheck(
+                      selected: controller.currentLanguage.value == 'English',
                     ),
                   ],
                 ),
