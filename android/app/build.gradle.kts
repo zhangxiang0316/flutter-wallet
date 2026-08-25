@@ -14,6 +14,66 @@ if (keystorePropertiesFile.exists()) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
 
+val releaseSigningPropertyNames = listOf(
+    "storeFile",
+    "storePassword",
+    "keyAlias",
+    "keyPassword",
+)
+val missingReleaseSigningProperties = releaseSigningPropertyNames.filter {
+    keystoreProperties[it]?.toString()?.trim().isNullOrEmpty()
+}
+val releaseStoreFile = keystoreProperties["storeFile"]
+    ?.toString()
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?.let { file(it) }
+fun isReleaseArtifactTask(taskName: String): Boolean {
+    val simpleName = taskName.substringAfterLast(':')
+    return simpleName.contains("release", ignoreCase = true) &&
+        listOf("assemble", "bundle", "package").any {
+            simpleName.startsWith(it, ignoreCase = true)
+        }
+}
+
+fun requireReleaseSigningConfig() {
+    when {
+        !keystorePropertiesFile.isFile -> throw GradleException(
+            "Android release signing requires android/key.properties",
+        )
+        missingReleaseSigningProperties.isNotEmpty() -> throw GradleException(
+            "Missing Android release signing properties: " +
+                missingReleaseSigningProperties.joinToString(", "),
+        )
+        releaseStoreFile?.isFile != true -> throw GradleException(
+            "Android release keystore does not exist: " +
+                (releaseStoreFile?.path ?: "<missing storeFile>"),
+        )
+    }
+}
+
+if (gradle.startParameter.taskNames.any(::isReleaseArtifactTask)) {
+    requireReleaseSigningConfig()
+}
+
+// Commands such as `gradlew build` add assembleRelease transitively, so their
+// start task name alone is not enough. Recheck the resolved task graph before
+// any Release artifact task can execute.
+val appProject = project
+gradle.taskGraph.whenReady {
+    if (allTasks.any { task ->
+            task.project == appProject && isReleaseArtifactTask(task.name)
+        }
+    ) {
+        requireReleaseSigningConfig()
+    }
+}
+
+val hasReleaseSigningConfig =
+    keystorePropertiesFile.isFile &&
+        missingReleaseSigningProperties.isEmpty() &&
+        releaseStoreFile?.isFile == true
+
 android {
     namespace = "com.zx.wallet"
     compileSdk = flutter.compileSdkVersion
@@ -40,23 +100,20 @@ android {
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (hasReleaseSigningConfig) {
             create("release") {
-                keyAlias = keystoreProperties["keyAlias"]?.toString()
-                keyPassword = keystoreProperties["keyPassword"]?.toString()
-                storeFile = keystoreProperties["storeFile"]?.toString()?.let { file(it) }
-                storePassword = keystoreProperties["storePassword"]?.toString()
+                keyAlias = keystoreProperties["keyAlias"].toString().trim()
+                keyPassword = keystoreProperties["keyPassword"].toString()
+                storeFile = releaseStoreFile
+                storePassword = keystoreProperties["storePassword"].toString()
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                // Keep local builds working when signing credentials are absent.
-                signingConfigs.getByName("debug")
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }

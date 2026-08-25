@@ -1,301 +1,150 @@
-# Android APK 签名配置文档
+# Android Release 签名指南
 
-## 📋 签名文件信息
+## 1. 安全边界
 
-### 密钥库详情
+Android Release 使用三类配置：
 
-- **文件路径**: `android/app/keystore/muchen-wallet.keystore`
-- **密钥库类型**: PKCS12
-- **密钥别名**: `muchen-wallet-key`
-- **密钥算法**: RSA 2048位
-- **有效期**: 10000天 (至 2053-10-29)
-- **签名算法**: SHA256withRSA
+| 文件 | 是否提交 | 内容 |
+| --- | --- | --- |
+| `android/keystore/*.jks` | 否 | Release 私钥库 |
+| `android/key.properties` | 否 | keystore 路径、别名和密码 |
+| `android/release-signing.properties` | 是 | applicationId 和公开的证书 SHA-256 |
 
-### 证书信息
+`.gitignore` 已忽略 keystore 和 `key.properties`。不要在文档、脚本、命令行参数、
+Issue 或聊天记录中写入真实密码，也不要把 keystore 放进 GitHub Release。
 
-- **所有者**: CN=Zhang Xiang, OU=Muchen Wallet Team, O=Muchen, L=Beijing, ST=Beijing, C=CN
-- **SHA256指纹**: `6A:9A:23:10:51:33:BD:23:11:16:D1:64:04:64:AD:83:3F:D6:6D:D7:6C:8D:2E:0B:29:50:90:89:E1:CF:94:9D`
-- **SHA1指纹**: `60:40:6C:71:55:DC:1F:7F:A7:D6:5A:62:E6:7E:8F:86:92:5E:05:2E`
+## 2. 创建或恢复 keystore
 
-### 密码信息 (重要 - 请安全保管)
-
-```
-密钥库密码: muchen2024
-密钥密码: muchen2024
-密钥别名: muchen-wallet-key
-```
-
-⚠️ **警告**: 这些密码非常重要！
-- 丢失后无法恢复
-- 用于应用更新时必须使用相同的密钥
-- 建议保存到密码管理器中
-
----
-
-## 🔧 配置步骤
-
-### 1. 密钥库文件已生成
-
-文件位置: `android/app/keystore/muchen-wallet.keystore`
-
-验证命令:
-```bash
-keytool -list -v -keystore android/app/keystore/muchen-wallet.keystore -storepass muchen2024
-```
-
-### 2. 配置文件已创建
-
-文件: `android/key.properties`
-```properties
-storePassword=muchen2024
-keyPassword=muchen2024
-keyAlias=muchen-wallet-key
-storeFile=keystore/muchen-wallet.keystore
-```
-
-### 3. 配置 build.gradle.kts
-
-需要在 `android/app/build.gradle.kts` 中添加签名配置：
-
-在文件顶部添加读取配置:
-```kotlin
-val keystorePropertiesFile = rootProject.file("../key.properties")
-val keystoreProperties = Properties()
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-}
-```
-
-在 `android` 块中添加签名配置:
-```kotlin
-signingConfigs {
-    create("release") {
-        keyAlias = keystoreProperties["keyAlias"] as String
-        keyPassword = keystoreProperties["keyPassword"] as String
-        storeFile = file(keystoreProperties["storeFile"] as String)
-        storePassword = keystoreProperties["storePassword"] as String
-    }
-}
-
-buildTypes {
-    getByName("release") {
-        signingConfig = signingConfigs.getByName("release")
-        // 其他配置...
-    }
-}
-```
-
-### 4. 配置 .gitignore
-
-确保密钥文件不会被提交到 Git:
-
-在 `.gitignore` 中添加:
-```
-# Android signing
-android/key.properties
-android/app/keystore/
-*.keystore
-*.jks
-```
-
----
-
-## 🏗️ 构建签名 APK
-
-### 本地构建
+新项目可以交互式创建 keystore：
 
 ```bash
-# 构建签名的 Release APK
-flutter build apk --release
-
-# 输出位置
-# build/app/outputs/flutter-apk/app-release.apk
-```
-
-### 验证签名
-
-```bash
-# 查看 APK 签名信息
-keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
-```
-
----
-
-## 🚀 GitHub Actions 配置
-
-### 添加 GitHub Secrets
-
-在 GitHub 仓库设置中添加以下 Secrets:
-
-1. **ANDROID_KEYSTORE_BASE64**
-   ```bash
-   # 将 keystore 文件转为 base64
-   base64 android/app/keystore/muchen-wallet.keystore | pbcopy
-   ```
-   将复制的内容添加到 GitHub Secrets
-
-2. **ANDROID_KEY_ALIAS**
-   ```
-   muchen-wallet-key
-   ```
-
-3. **ANDROID_KEY_PASSWORD**
-   ```
-   muchen2024
-   ```
-
-4. **ANDROID_KEYSTORE_PASSWORD**
-   ```
-   muchen2024
-   ```
-
-### 更新 GitHub Actions 工作流
-
-在 `.github/workflows/build-release.yml` 的 Android 构建任务中添加:
-
-```yaml
-- name: Decode keystore
-  run: |
-    echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore/muchen-wallet.keystore
-
-- name: Create key.properties
-  run: |
-    cat > android/key.properties << EOF
-    storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-    keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-    keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-    storeFile=keystore/muchen-wallet.keystore
-    EOF
-
-- name: Build signed APK
-  run: flutter build apk --release
-```
-
----
-
-## 📝 验证签名
-
-### 本地验证
-
-```bash
-# 查看 APK 签名信息
-jarsigner -verify -verbose -certs build/app/outputs/flutter-apk/app-release.apk
-
-# 或使用 apksigner
-apksigner verify --verbose build/app/outputs/flutter-apk/app-release.apk
-```
-
-### 检查签名匹配
-
-```bash
-# 提取 APK 的证书指纹
-keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk | grep SHA256
-
-# 对比 keystore 的证书指纹
-keytool -list -v -keystore android/app/keystore/muchen-wallet.keystore -storepass muchen2024 | grep SHA256
-```
-
-两者的 SHA256 指纹应该完全一致。
-
----
-
-## ⚠️ 安全建议
-
-### 密钥库备份
-
-1. 将 `muchen-wallet.keystore` 备份到安全位置
-2. 记录所有密码到密码管理器
-3. 建议至少 3 个备份副本（不同位置）
-
-### 密码安全
-
-- ❌ 不要提交到 Git
-- ❌ 不要分享给他人
-- ❌ 不要使用弱密码
-- ✅ 使用密码管理器
-- ✅ 定期检查备份
-- ✅ 限制访问权限
-
-### 生产环境建议
-
-当前密钥使用的是简单密码 `muchen2024`，仅供开发测试使用。
-
-对于生产环境，建议:
-1. 使用更强的密码（至少16位，包含大小写字母、数字、符号）
-2. 考虑使用 Google Play App Signing
-3. 定期轮换密钥（如果使用 App Signing）
-
----
-
-## 🔄 重新生成签名（如需要）
-
-如果需要重新生成签名文件:
-
-```bash
-# 删除旧的密钥库
-rm android/app/keystore/muchen-wallet.keystore
-
-# 生成新的密钥库
-keytool -genkey -v \
-  -storetype PKCS12 \
-  -keystore android/app/keystore/muchen-wallet.keystore \
-  -alias muchen-wallet-key \
+mkdir -p android/keystore
+keytool -genkeypair \
+  -keystore android/keystore/flutter-wallet-release.jks \
+  -alias flutter-wallet-release \
   -keyalg RSA \
   -keysize 2048 \
-  -validity 10000 \
-  -storepass 你的密码 \
-  -keypass 你的密码 \
-  -dname "CN=你的姓名, OU=组织单位, O=组织, L=城市, ST=省份, C=国家代码"
+  -validity 10000
 ```
 
-⚠️ **注意**: 更换签名密钥后，用户将无法直接升级应用，需要卸载重装。
+`keytool` 会交互式询问密码，避免密码进入终端历史。已有正式版本必须继续使用原
+keystore；更换私钥会导致已安装版本无法直接升级，启用 Google Play App Signing
+的项目应按 Play Console 的密钥升级流程处理。
 
----
+## 3. 配置 key.properties
 
-## 📱 应用发布
+创建被 Git 忽略的 `android/key.properties`：
 
-### Google Play Store
+```properties
+storeFile=../keystore/flutter-wallet-release.jks
+storePassword=<your-store-password>
+keyAlias=<your-key-alias>
+keyPassword=<your-key-password>
+```
 
-1. 上传 APK 到 Google Play Console
-2. Google 会验证签名
-3. 建议使用 Google Play App Signing
+`storeFile` 相对于 `android/app/` 解析。Release 构建会检查：
 
-### 其他渠道
+- `key.properties` 存在；
+- 四个字段都不是空值；
+- `storeFile` 指向真实文件；
+- Gradle 能使用别名和密码完成签名。
 
-- 可以直接分发签名的 APK
-- 用户需要启用"未知来源"安装
-- 确保通过安全渠道分发
+任一检查失败都会终止 Release 构建，不会回退到 Debug 签名。Debug/Profile 构建
+仍使用 Android Debug 证书。
 
----
+## 4. 固定正式证书指纹
 
-## 🆘 常见问题
+获取 keystore 的 SHA-256，密码由 `keytool` 交互式询问：
 
-### Q: 忘记密码怎么办？
-A: 密钥库密码无法恢复，只能重新生成新的密钥库。但这意味着用户需要卸载重装应用。
-
-### Q: 可以更改密码吗？
-A: 可以，使用 keytool 命令可以修改密码:
 ```bash
-keytool -storepasswd -keystore android/app/keystore/muchen-wallet.keystore
-keytool -keypasswd -alias muchen-wallet-key -keystore android/app/keystore/muchen-wallet.keystore
+keytool -list -v \
+  -keystore android/keystore/flutter-wallet-release.jks \
+  -alias flutter-wallet-release
 ```
 
-### Q: 签名文件可以共享吗？
-A: 不建议。每个开发者应该有自己的签名密钥。生产环境使用专用的、严格保管的密钥。
+将输出中的 SHA-256 去掉冒号后，保存到已提交的
+`android/release-signing.properties`：
 
-### Q: 如何验证 APK 是否正确签名？
-A: 使用 `jarsigner -verify` 或 `apksigner verify` 命令验证。
+```properties
+applicationId=com.zx.wallet
+certificateSha256=<64-character-certificate-sha256>
+```
 
----
+证书指纹不属于私钥，可以提交。不要在没有确认升级策略的情况下随意修改它。
 
-## 📚 相关资源
+## 5. 构建与自动验证
 
-- [Android 应用签名官方文档](https://developer.android.com/studio/publish/app-signing)
-- [Google Play App Signing](https://support.google.com/googleplay/android-developer/answer/9842756)
-- [Flutter 应用签名文档](https://docs.flutter.dev/deployment/android#signing-the-app)
+构建 APK：
 
----
+```bash
+./scripts/build_android.sh
+```
 
-**文档生成时间**: 2026-06-13  
-**密钥库生成时间**: 2026-06-13  
-**密钥有效期至**: 2053-10-29
+生成：
+
+- `releases/android/flutter-Wallet-vX.X.X.apk`；
+- `releases/android/flutter-Wallet-vX.X.X.apk.sha256`。
+
+脚本会自动验证 APK 签名完整性、固定证书 SHA-256、applicationId、versionName、
+versionCode 和文件名。
+
+构建 AAB：
+
+```bash
+./scripts/build_android_bundle.sh
+```
+
+生成：
+
+- `releases/android/flutter-Wallet-vX.X.X.aab`；
+- `releases/android/flutter-Wallet-vX.X.X.aab.sha256`。
+
+脚本会使用 `jarsigner` 验证 AAB 完整性，使用 `keytool` 精确匹配固定证书指纹，
+并核对 Release manifest 构建元数据中的 applicationId、versionName 和 versionCode。
+只有全部校验通过才会显示构建成功。
+
+## 6. 手动复核
+
+查看 APK 证书：
+
+```bash
+apksigner verify --verbose --print-certs \
+  releases/android/flutter-Wallet-vX.X.X.apk
+```
+
+复核下载文件哈希：
+
+```bash
+cd releases/android
+shasum -a 256 -c flutter-Wallet-vX.X.X.apk.sha256
+shasum -a 256 -c flutter-Wallet-vX.X.X.aab.sha256
+```
+
+查看 Gradle 各变体使用的证书：
+
+```bash
+cd android
+./gradlew :app:signingReport
+```
+
+Release 和 Debug 的 SHA-256 必须不同，Release 必须与
+`android/release-signing.properties` 一致。
+
+## 7. 发布检查清单
+
+- `pubspec.yaml` 的 versionName/versionCode 已更新；
+- Release 构建没有 Debug 签名回退；
+- APK/AAB 证书指纹匹配固定值；
+- APK applicationId 和版本匹配；
+- 产物名称包含正确版本；
+- APK、AAB 及对应 `.sha256` 一起上传；
+- 从 GitHub Release 下载后再次执行哈希校验；
+- keystore、密码和 `key.properties` 未被提交或上传。
+
+## 8. 备份与恢复
+
+- keystore 至少保留两份加密备份，存放在不同的受控位置；
+- 密码和 alias 存入团队密码管理器；
+- 定期验证备份 keystore 可以读取且证书指纹一致；
+- 不要用重新生成同名文件的方式“恢复”keystore，新文件拥有不同私钥；
+- 怀疑私钥或密码泄露时，立即停止发布并按应用商店密钥升级流程处置。

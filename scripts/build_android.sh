@@ -1,13 +1,20 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+PROJECT_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
+# shellcheck source=android_release_common.sh
+source "$SCRIPT_DIR/android_release_common.sh"
+cd "$PROJECT_ROOT"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🤖 Building Android APK"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# 版本号（从 pubspec.yaml 读取）
-VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+load_android_release_metadata
+require_android_release_signing
+VERSION="$ANDROID_VERSION_NAME"
 ENV_FILE=".env.local"
 
 if [ -f "$ENV_FILE" ]; then
@@ -22,6 +29,7 @@ fi
 
 echo ""
 echo "📦 Version: $VERSION"
+echo "🔏 Release signing configuration verified"
 
 echo ""
 echo "📦 Step 1: Cleaning previous builds..."
@@ -50,10 +58,12 @@ fi
 echo "✅ APK found: $APK_PATH"
 
 echo ""
-echo "📦 Step 5: Copying APK to release folder..."
+echo "📦 Step 5: Copying and verifying APK..."
 mkdir -p releases/android
 RELEASE_APK="releases/android/flutter-Wallet-v${VERSION}.apk"
 cp "$APK_PATH" "$RELEASE_APK"
+verify_android_apk "$RELEASE_APK"
+write_release_checksum "$RELEASE_APK"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -61,6 +71,7 @@ echo "✅ APK created successfully!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "📍 Location: $RELEASE_APK"
+echo "🔐 Checksum: ${RELEASE_APK}.sha256"
 echo ""
 echo "📊 File size:"
 du -h "$RELEASE_APK"

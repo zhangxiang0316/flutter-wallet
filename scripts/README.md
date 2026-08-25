@@ -17,12 +17,23 @@ MORALIS_API_KEY=your_moralis_key
 如果 `.env.local` 不存在，脚本仍会继续构建，但 EVM/TRON/Solana/BSC/Arbitrum
 交易历史会退回公共数据源，部分链的历史记录可能变慢或不完整。
 
+Release 签名是强制要求：
+
+- `android/key.properties` 和 keystore 只保存在本机，不得提交；
+- `android/release-signing.properties` 保存可公开的应用 ID 和正式证书 SHA-256；
+- 缺少签名字段、keystore 不存在或产物证书不匹配时，脚本立即失败；
+- APK/AAB 会额外校验 applicationId、versionName 和 versionCode；
+- APK/AAB 验证通过后会生成同名 `.sha256` 文件，上传 Release 时应一并上传。
+
 ### APK（直接安装）
 ```bash
 ./scripts/build_android.sh
 ```
 
-生成文件：`releases/android/flutter-Wallet-vX.X.X.apk`
+生成文件：
+
+- `releases/android/flutter-Wallet-vX.X.X.apk`
+- `releases/android/flutter-Wallet-vX.X.X.apk.sha256`
 
 **用途**：
 - ✅ 直接安装到设备
@@ -34,7 +45,10 @@ MORALIS_API_KEY=your_moralis_key
 ./scripts/build_android_bundle.sh
 ```
 
-生成文件：`releases/android/flutter-Wallet-vX.X.X.aab`
+生成文件：
+
+- `releases/android/flutter-Wallet-vX.X.X.aab`
+- `releases/android/flutter-Wallet-vX.X.X.aab.sha256`
 
 **用途**：
 - ✅ 上传到 Google Play Console

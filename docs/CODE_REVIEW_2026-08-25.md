@@ -11,7 +11,7 @@
 - Web、Android、iOS、macOS 等平台兼容性；
 - 测试结构、静态分析和发布流程。
 
-本文初稿只记录审查结论；第 4.1 节已在后续改造中完成，落地情况记录在对应问题和第 9 节。
+本文初稿只记录审查结论；第 4.1、4.2 节已在后续改造中完成，落地情况记录在对应问题和文末验收记录。
 
 ## 2. 当前质量基线
 
@@ -109,7 +109,7 @@ bash scripts/check_secrets.sh
 - 创建和导入入口已统一调用 `saveWalletWithSecret()`，不再由页面流程分别保存密钥和元数据；
 - 已增加 Secure Storage/元数据故障注入、删除回滚、应用中断恢复和钱包级缓存清理测试。
 
-### 4.2 P0：Android Release 缺少签名配置时会静默使用 Debug 签名
+### 4.2 P0：Android Release 缺少签名配置时会静默使用 Debug 签名（已完成）
 
 位置：
 
@@ -118,13 +118,13 @@ bash scripts/check_secrets.sh
 - `scripts/build_android.sh:35`
 - `scripts/build_android_bundle.sh:35`
 
-当前 `release` 在找不到 `key.properties` 时回退到：
+改造前，`release` 在找不到 `key.properties` 时回退到：
 
 ```kotlin
 signingConfigs.getByName("debug")
 ```
 
-构建脚本只检查 APK/AAB 是否生成，不校验证书。这样在新电脑、清理环境或路径配置错误时，仍会得到名为 `app-release` 的 Debug 签名产物，并可能被上传到 GitHub Release。后续使用正式证书构建时，该安装包无法作为同一签名身份正常升级。
+改造前的构建脚本只检查 APK/AAB 是否生成，不校验证书。这样在新电脑、清理环境或路径配置错误时，仍会得到名为 `app-release` 的 Debug 签名产物，并可能被上传到 GitHub Release。后续使用正式证书构建时，该安装包无法作为同一签名身份正常升级。
 
 建议：
 
@@ -133,6 +133,15 @@ signingConfigs.getByName("debug")
 3. 将预期证书 fingerprint 保存为非敏感配置并做精确匹配；
 4. Debug 签名只保留在 `debug` build type；
 5. GitHub Release 上传前同时校验版本号、签名、文件哈希和产物名称。
+
+完成情况（2026-08-25）：
+
+- Gradle 仅在签名文件、四个必填字段和 keystore 全部有效时创建 Release signing config；Release 任务缺少任一配置会直接失败，不再回退 Debug 签名；
+- 新增 `android/release-signing.properties`，保存可公开的 applicationId 和正式证书 SHA-256；
+- APK 构建后使用 Android SDK `apksigner` 验证签名和证书指纹，并使用 `aapt` 核对 applicationId、versionName、versionCode；
+- AAB 构建后使用 JDK `jarsigner` 和 `keytool` 验证归档签名及证书指纹，并核对 Release manifest 构建元数据中的 applicationId、versionName、versionCode；
+- APK/AAB 只接受 `flutter-Wallet-v<pubspec version>` 文件名，并生成同名 `.sha256` 文件；任一校验失败时不会报告构建成功；
+- APK 与 AAB 构建脚本复用 `scripts/android_release_common.sh`，避免两套发布校验逻辑漂移。
 
 ### 4.3 P1：创建和导入流程未接入敏感页面生命周期保护
 
@@ -440,16 +449,16 @@ if (!Get.isRegistered<T>()) {
 
 | 优先级 | 数量 | 建议处理时间 |
 | --- | ---: | --- |
-| P0 | 1（另 1 项已完成） | 下一次公开 Release 前 |
+| P0 | 0（2 项均已完成） | 已完成，Release 前持续回归 |
 | P1 | 6 | P0 完成后的第一个迭代 |
 | P2 | 2 | 架构迭代内分批处理 |
 | P3 | 1 | 随近期 Flutter 兼容性维护清理 |
 
 如果只选择三个任务立即开始，建议依次选择：
 
-1. Release 签名强校验；
-2. 敏感创建/导入页面保护；
-3. 钱包确认状态和广播结果校验。
+1. 敏感创建/导入页面保护；
+2. 钱包确认状态和广播结果校验；
+3. 密钥 payload 参数验证和升级机制。
 
 ## 8. 本次复核记录（2026-08-25）
 
@@ -486,7 +495,7 @@ bash scripts/check_secrets.sh
 
 ```bash
 flutter test --no-pub
-# 397 项全部通过
+# 400 项全部通过
 
 flutter analyze --no-pub
 # 0 error、0 warning；保留审查时已有的 14 条 info
@@ -496,3 +505,24 @@ bash scripts/check_secrets.sh
 ```
 
 本次未执行真实链转账、真实第三方 API 集成测试和各平台 Release 构建。
+
+## 10. 第 4.2 节改造验收记录（2026-08-25）
+
+实现文件：
+
+- `android/app/build.gradle.kts`；
+- `android/release-signing.properties`；
+- `scripts/android_release_common.sh`；
+- `scripts/build_android.sh`；
+- `scripts/build_android_bundle.sh`；
+- `test/tooling/android_release_configuration_test.dart`。
+
+验证结果：
+
+- Gradle `signingReport` 构建成功，Release 与 Debug 显示不同证书，Release SHA-256 与固定配置一致；
+- Gradle `assembleRelease --dry-run` 成功经过任务图级签名检查，覆盖 `gradlew build` 间接加入 Release 任务的场景；
+- `scripts/build_android.sh` 完整构建成功，APK 通过签名、固定证书指纹、`com.zx.wallet`、`1.0.0+1` 和文件名校验；
+- `scripts/build_android_bundle.sh` 完整构建成功，AAB 通过 JAR 签名、固定证书指纹和 Release manifest 构建元数据校验；
+- 将预期指纹临时替换为错误值后，校验函数按预期返回失败；
+- APK/AAB 均生成同名 `.sha256` 文件；
+- 新增 `test/tooling/android_release_configuration_test.dart`，防止 Debug 回退、固定指纹和共享校验入口回归。

@@ -218,6 +218,10 @@ scripts/build_android_bundle.sh
 flutter build ipa --release
 ```
 
+Android Release 构建必须提供被 Git 忽略的 `android/key.properties` 和对应 keystore。
+构建脚本会将产物证书与仓库中的 `android/release-signing.properties` 精确匹配，
+并在 `releases/android/` 同时生成 `.sha256` 校验文件；配置缺失或指纹不匹配时构建失败。
+
 ## 项目结构
 
 ```text
