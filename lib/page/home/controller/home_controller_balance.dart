@@ -1,62 +1,139 @@
 part of 'home_controller.dart';
 
-extension HomeControllerBalance on HomeController {
-  /// 查询多条链的资产余额。
-  ///
-  /// 优化策略：
-  /// 1. 立即显示缓存余额；
-  /// 2. 后台静默更新最新数据；
-  /// 3. 每条链完成后立即合并并局部刷新 UI；
-  /// 4. 部分网络失败时延迟补偿刷新一次；
-  /// 5. 全部完成后保存完整快照并更新价格。
-  Future<void> refreshBalances() {
-    return _refreshBalances(allowFailureRetry: true);
+class HomeBalanceState {
+  const HomeBalanceState({
+    required this.balances,
+    required this.visibleBalances,
+    required this.tokenPortfolioItems,
+    required this.totalAssetsText,
+    required this.isLoading,
+    required this.balanceAsOf,
+    required this.balanceSnapshotSource,
+    required this.balanceRefreshStatus,
+    required this.isBalanceDataStale,
+    required this.balanceRefreshError,
+  });
+
+  final List<ChainBalance> balances;
+  final List<ChainBalance> visibleBalances;
+  final List<TokenPortfolioItem> tokenPortfolioItems;
+  final String totalAssetsText;
+  final bool isLoading;
+  final DateTime? balanceAsOf;
+  final BalanceSnapshotSource? balanceSnapshotSource;
+  final BalanceRefreshStatus balanceRefreshStatus;
+  final bool isBalanceDataStale;
+  final String? balanceRefreshError;
+}
+
+/// Owns balance cache, network refresh, retries, timers and presentation state.
+class HomeBalanceCoordinator {
+  HomeBalanceCoordinator({
+    required ChainBalanceService balanceService,
+    required AssetValuationService valuationService,
+    required ChainBalanceCache balanceCache,
+    required HomePortfolioPresenter portfolioPresenter,
+    required Duration retryDelay,
+    required void Function(HomeBalanceState state) onStateChanged,
+    required void Function() onLoadFailed,
+  }) : _balanceService = balanceService,
+       _valuationService = valuationService,
+       _balanceCache = balanceCache,
+       _portfolioPresenter = portfolioPresenter,
+       _retryDelay = retryDelay,
+       _onStateChanged = onStateChanged,
+       _onLoadFailed = onLoadFailed;
+
+  final ChainBalanceService _balanceService;
+  final AssetValuationService _valuationService;
+  final ChainBalanceCache _balanceCache;
+  final HomePortfolioPresenter _portfolioPresenter;
+  final Duration _retryDelay;
+  final void Function(HomeBalanceState state) _onStateChanged;
+  final void Function() _onLoadFailed;
+
+  List<ChainBalance> _balances = [];
+  List<ChainBalance> _visibleBalances = [];
+  List<TokenPortfolioItem> _tokenPortfolioItems = [];
+  String _totalAssetsText = '--';
+  bool _isLoading = false;
+  DateTime? _balanceAsOf;
+  BalanceSnapshotSource? _balanceSnapshotSource;
+  BalanceRefreshStatus _balanceRefreshStatus = BalanceRefreshStatus.idle;
+  bool _isBalanceDataStale = false;
+  String? _balanceRefreshError;
+
+  Timer? _refreshTimer;
+  Timer? _retryTimer;
+  int _requestId = 0;
+
+  bool get hasAutoRefresh => _refreshTimer != null;
+
+  Map<String, Decimal> get transferUsdPrices {
+    return _portfolioPresenter.transferUsdPrices(_visibleBalances);
   }
 
-  Future<void> _refreshBalances({required bool allowFailureRetry}) async {
-    final currentWallet = wallet;
-    if (currentWallet == null) return;
-    if (isLoading) return;
+  Future<void> refresh({
+    required WalletAccount wallet,
+    required List<WalletChainConfig> chains,
+    required Set<String> hiddenAssetKeys,
+  }) {
+    return _refresh(
+      wallet: wallet,
+      chains: chains,
+      hiddenAssetKeys: hiddenAssetKeys,
+      allowFailureRetry: true,
+    );
+  }
 
-    isLoading = true;
-    _cancelBalanceRetry();
-
-    final requestId = ++_balanceRequestId;
-    balanceRefreshStatus = BalanceRefreshStatus.refreshing;
-    balanceRefreshError = null;
-    _updateBalanceView();
+  Future<void> _refresh({
+    required WalletAccount wallet,
+    required List<WalletChainConfig> chains,
+    required Set<String> hiddenAssetKeys,
+    required bool allowFailureRetry,
+  }) async {
+    if (_isLoading) return;
+    _isLoading = true;
+    _cancelRetry();
+    final requestId = ++_requestId;
+    _balanceRefreshStatus = BalanceRefreshStatus.refreshing;
+    _balanceRefreshError = null;
+    _publish();
 
     try {
-      await _applyCachedBalances(currentWallet, requestId: requestId);
-      if (!_isActiveBalanceRequest(requestId, currentWallet)) {
-        return;
-      }
-      balanceRefreshStatus = BalanceRefreshStatus.refreshing;
-      balanceRefreshError = null;
-      _updateBalanceView();
-      final previousBalances = balances;
-      final previousAsOf = balanceAsOf;
+      await _applyCache(
+        wallet: wallet,
+        chains: chains,
+        hiddenAssetKeys: hiddenAssetKeys,
+        requestId: requestId,
+      );
+      if (!_isActive(requestId)) return;
+
+      _balanceRefreshStatus = BalanceRefreshStatus.refreshing;
+      _balanceRefreshError = null;
+      _publish();
+      final previousBalances = _balances;
+      final previousAsOf = _balanceAsOf;
       final nextBalances = await _balanceService.loadBalances(
-        bscAddress: currentWallet.bscAddress,
-        tronAddress: currentWallet.tronAddress,
-        solanaAddress: currentWallet.solanaAddress,
-        suiAddress: currentWallet.suiAddress,
-        aptosAddress: currentWallet.aptosAddress,
-        bitcoinAddress: currentWallet.bitcoinAddress,
+        bscAddress: wallet.bscAddress,
+        tronAddress: wallet.tronAddress,
+        solanaAddress: wallet.solanaAddress,
+        suiAddress: wallet.suiAddress,
+        aptosAddress: wallet.aptosAddress,
+        bitcoinAddress: wallet.bitcoinAddress,
         enabledChains: chains,
         onChainBalances: (chainBalances) {
-          if (!_isActiveBalanceRequest(requestId, currentWallet)) {
-            return;
-          }
+          if (!_isActive(requestId)) return;
           _mergeChainBalances(chainBalances);
-          _applyAssetVisibility();
-          _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
-          _updateBalanceView();
+          _updatePresentation(
+            chains: chains,
+            hiddenAssetKeys: hiddenAssetKeys,
+            prices: _valuationService.cachedUsdPrices,
+          );
+          _publish();
         },
       );
-      if (!_isActiveBalanceRequest(requestId, currentWallet)) {
-        return;
-      }
+      if (!_isActive(requestId)) return;
 
       final failedBalances = nextBalances.where((balance) => balance.hasError);
       final failedChainNames = failedBalances
@@ -65,139 +142,211 @@ extension HomeControllerBalance on HomeController {
       if (failedChainNames.isNotEmpty) {
         SafeLog.error(
           'Balance refresh failed chains: ${failedChainNames.join(', ')}',
-          name: 'HomeController',
+          name: 'HomeBalanceCoordinator',
         );
       }
       final allFailed =
           nextBalances.isEmpty || failedBalances.length == nextBalances.length;
-      balances = _preserveLastSuccessfulBalances(
+      _balances = _preserveLastSuccessfulBalances(
         nextBalances,
         previousBalances,
       );
 
       if (allFailed) {
-        balanceSnapshotSource = previousBalances.isEmpty
+        _balanceSnapshotSource = previousBalances.isEmpty
             ? BalanceSnapshotSource.network
-            : balanceSnapshotSource ?? BalanceSnapshotSource.cache;
-        balanceRefreshStatus = BalanceRefreshStatus.failure;
-        balanceRefreshError = 'balance_refresh_failed';
-        isBalanceDataStale = balances.isNotEmpty;
-        Toast.show(S.current.balanceLoadFailed);
+            : _balanceSnapshotSource ?? BalanceSnapshotSource.cache;
+        _balanceRefreshStatus = BalanceRefreshStatus.failure;
+        _balanceRefreshError = 'balance_refresh_failed';
+        _isBalanceDataStale = _balances.isNotEmpty;
+        _onLoadFailed();
         if (allowFailureRetry) {
-          _scheduleBalanceRetry(requestId, currentWallet);
+          _scheduleRetry(
+            requestId: requestId,
+            wallet: wallet,
+            chains: chains,
+            hiddenAssetKeys: hiddenAssetKeys,
+          );
         }
       } else {
         final hasPartialFailure = failedBalances.isNotEmpty;
         final refreshedAt = DateTime.now();
-        balanceAsOf = hasPartialFailure && previousAsOf != null
+        _balanceAsOf = hasPartialFailure && previousAsOf != null
             ? previousAsOf
             : refreshedAt;
-        balanceSnapshotSource = hasPartialFailure && previousBalances.isNotEmpty
+        _balanceSnapshotSource =
+            hasPartialFailure && previousBalances.isNotEmpty
             ? BalanceSnapshotSource.mixed
             : BalanceSnapshotSource.network;
-        balanceRefreshStatus = hasPartialFailure
+        _balanceRefreshStatus = hasPartialFailure
             ? BalanceRefreshStatus.partialFailure
             : BalanceRefreshStatus.success;
-        balanceRefreshError = hasPartialFailure
+        _balanceRefreshError = hasPartialFailure
             ? 'balance_refresh_partial'
             : null;
-        isBalanceDataStale = hasPartialFailure;
+        _isBalanceDataStale = hasPartialFailure;
         if (hasPartialFailure && allowFailureRetry) {
-          _scheduleBalanceRetry(requestId, currentWallet);
+          _scheduleRetry(
+            requestId: requestId,
+            wallet: wallet,
+            chains: chains,
+            hiddenAssetKeys: hiddenAssetKeys,
+          );
         }
         await _balanceCache.save(
-          currentWallet.id,
+          wallet.id,
           ChainBalanceSnapshot(
-            balances: balances,
-            asOf: balanceAsOf!,
-            source: balanceSnapshotSource!,
-            refreshStatus: balanceRefreshStatus,
-            isStale: isBalanceDataStale,
-            error: balanceRefreshError,
+            balances: _balances,
+            asOf: _balanceAsOf!,
+            source: _balanceSnapshotSource!,
+            refreshStatus: _balanceRefreshStatus,
+            isStale: _isBalanceDataStale,
+            error: _balanceRefreshError,
           ),
         );
       }
-      await _refreshBalanceDisplayState(
-        requestId: requestId,
-        currentWallet: currentWallet,
-        reloadConfig: false,
+
+      _updatePresentation(
+        chains: chains,
+        hiddenAssetKeys: hiddenAssetKeys,
+        prices: _valuationService.cachedUsdPrices,
       );
-      if (!_isActiveBalanceRequest(requestId, currentWallet)) {
-        return;
-      }
-      isLoading = false;
-      _updateBalanceView();
+      _isLoading = false;
+      _publish();
 
       final latestPrices = await _valuationService
-          .loadUsdPrices(visibleBalances)
+          .loadUsdPrices(_visibleBalances)
           .catchError((_) => _valuationService.cachedUsdPrices);
-      if (!_isActiveBalanceRequest(requestId, currentWallet)) {
-        return;
-      }
-      _refreshTokenPortfolioItems(latestPrices);
-      _updateBalanceView();
+      if (!_isActive(requestId)) return;
+      _updatePresentation(
+        chains: chains,
+        hiddenAssetKeys: hiddenAssetKeys,
+        prices: latestPrices,
+      );
+      _publish();
     } catch (_) {
-      if (_isActiveBalanceRequest(requestId, currentWallet)) {
-        balanceRefreshStatus = BalanceRefreshStatus.failure;
-        balanceRefreshError = 'balance_refresh_failed';
-        isBalanceDataStale = balances.isNotEmpty;
-        Toast.show(S.current.balanceLoadFailed);
+      if (_isActive(requestId)) {
+        _balanceRefreshStatus = BalanceRefreshStatus.failure;
+        _balanceRefreshError = 'balance_refresh_failed';
+        _isBalanceDataStale = _balances.isNotEmpty;
+        _onLoadFailed();
         if (allowFailureRetry) {
-          _scheduleBalanceRetry(requestId, currentWallet);
+          _scheduleRetry(
+            requestId: requestId,
+            wallet: wallet,
+            chains: chains,
+            hiddenAssetKeys: hiddenAssetKeys,
+          );
         }
       }
     } finally {
-      if (_isActiveBalanceRequest(requestId, currentWallet)) {
-        isLoading = false;
-        _updateBalanceView();
+      if (_isActive(requestId)) {
+        _isLoading = false;
+        _publish();
       }
     }
   }
 
-  /// 公共 RPC 短暂抖动时自动补偿一次，不让瞬时失败状态保留到下一轮定时刷新。
-  ///
-  /// 补偿请求自身不再继续调度，避免节点持续不可用时形成无限重试。
-  void _scheduleBalanceRetry(int requestId, WalletAccount currentWallet) {
-    _cancelBalanceRetry();
-    _balanceRetryTimer = Timer(_balanceRetryDelay, () {
-      _balanceRetryTimer = null;
-      if (!_isActiveBalanceRequest(requestId, currentWallet) || isLoading) {
-        return;
-      }
-      _refreshBalances(allowFailureRetry: false);
+  void refreshPresentation({
+    required List<WalletChainConfig> chains,
+    required Set<String> hiddenAssetKeys,
+  }) {
+    _updatePresentation(
+      chains: chains,
+      hiddenAssetKeys: hiddenAssetKeys,
+      prices: _valuationService.cachedUsdPrices,
+    );
+    _publish();
+  }
+
+  void reset() {
+    _cancelRetry();
+    _requestId++;
+    _balances = [];
+    _visibleBalances = [];
+    _tokenPortfolioItems = [];
+    _totalAssetsText = '--';
+    _isLoading = false;
+    _balanceAsOf = null;
+    _balanceSnapshotSource = null;
+    _balanceRefreshStatus = BalanceRefreshStatus.idle;
+    _isBalanceDataStale = false;
+    _balanceRefreshError = null;
+    _publish();
+  }
+
+  void startAutoRefresh(Future<void> Function() refresh) {
+    stopAutoRefresh();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      unawaited(refresh());
     });
   }
 
-  Future<void> _applyCachedBalances(
-    WalletAccount currentWallet, {
+  void stopAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    _cancelRetry();
+  }
+
+  Future<void> _applyCache({
+    required WalletAccount wallet,
+    required List<WalletChainConfig> chains,
+    required Set<String> hiddenAssetKeys,
     required int requestId,
   }) async {
-    if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
+    if (!_isActive(requestId)) return;
     final snapshot = await _balanceCache.load(
-      currentWallet.id,
+      wallet.id,
       chains: chains,
       allowStale: true,
     );
-    if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
-    if (snapshot == null || snapshot.balances.isEmpty) {
+    if (!_isActive(requestId) ||
+        snapshot == null ||
+        snapshot.balances.isEmpty) {
       return;
     }
-    balances = snapshot.balances;
-    balanceAsOf = snapshot.asOf;
-    balanceSnapshotSource = snapshot.source;
-    balanceRefreshStatus = snapshot.refreshStatus;
-    balanceRefreshError = snapshot.error;
-    isBalanceDataStale = snapshot.isStale || snapshot.hasError;
-    await _refreshBalanceDisplayState(
-      requestId: requestId,
-      currentWallet: currentWallet,
-      reloadConfig: false,
+    _balances = snapshot.balances;
+    _balanceAsOf = snapshot.asOf;
+    _balanceSnapshotSource = snapshot.source;
+    _balanceRefreshStatus = snapshot.refreshStatus;
+    _balanceRefreshError = snapshot.error;
+    _isBalanceDataStale = snapshot.isStale || snapshot.hasError;
+    _updatePresentation(
+      chains: chains,
+      hiddenAssetKeys: hiddenAssetKeys,
+      prices: _valuationService.cachedUsdPrices,
     );
-    if (!_isActiveBalanceRequest(requestId, currentWallet)) return;
-    _updateBalanceView();
+    _publish();
   }
 
-  /// 用某条链的新结果替换缓存中的旧结果，不影响其它仍在请求中的链。
+  void _scheduleRetry({
+    required int requestId,
+    required WalletAccount wallet,
+    required List<WalletChainConfig> chains,
+    required Set<String> hiddenAssetKeys,
+  }) {
+    _cancelRetry();
+    _retryTimer = Timer(_retryDelay, () {
+      _retryTimer = null;
+      if (!_isActive(requestId) || _isLoading) return;
+      unawaited(
+        _refresh(
+          wallet: wallet,
+          chains: chains,
+          hiddenAssetKeys: hiddenAssetKeys,
+          allowFailureRetry: false,
+        ),
+      );
+    });
+  }
+
+  void _cancelRetry() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+  }
+
+  bool _isActive(int requestId) => requestId == _requestId;
+
   void _mergeChainBalances(List<ChainBalance> chainBalances) {
     if (chainBalances.isEmpty) return;
     final updatedChainIds = chainBalances
@@ -205,17 +354,16 @@ extension HomeControllerBalance on HomeController {
         .toSet();
     final resolvedBalances = _preserveLastSuccessfulBalances(
       chainBalances,
-      balances,
+      _balances,
     );
-    balances = [
-      ...balances.where(
+    _balances = [
+      ..._balances.where(
         (balance) => !updatedChainIds.contains(balance.chainId),
       ),
       ...resolvedBalances,
     ];
   }
 
-  /// 网络失败时保留同一资产最后一次成功余额，避免离线刷新把缓存覆盖成 0。
   List<ChainBalance> _preserveLastSuccessfulBalances(
     List<ChainBalance> freshBalances,
     List<ChainBalance> previousBalances,
@@ -224,10 +372,11 @@ extension HomeControllerBalance on HomeController {
       for (final balance in previousBalances) _balanceKey(balance): balance,
     };
     return freshBalances
-        .map((balance) {
-          if (!balance.hasError) return balance;
-          return previousByKey[_balanceKey(balance)] ?? balance;
-        })
+        .map(
+          (balance) => balance.hasError
+              ? previousByKey[_balanceKey(balance)] ?? balance
+              : balance,
+        )
         .toList(growable: false);
   }
 
@@ -239,63 +388,36 @@ extension HomeControllerBalance on HomeController {
     return '${balance.chainId}:$normalizedContract:${balance.symbol}';
   }
 
-  void _updateBalanceView() {
-    update([HomeController.balanceViewId]);
+  void _updatePresentation({
+    required List<WalletChainConfig> chains,
+    required Set<String> hiddenAssetKeys,
+    required Map<String, Decimal> prices,
+  }) {
+    final presentation = _portfolioPresenter.present(
+      balances: _balances,
+      chains: chains,
+      hiddenAssetKeys: hiddenAssetKeys,
+      prices: prices,
+    );
+    _visibleBalances = presentation.visibleBalances;
+    _tokenPortfolioItems = presentation.tokenPortfolioItems;
+    _totalAssetsText = presentation.totalAssetsText;
   }
 
-  Future<void> _refreshBalanceDisplayState({
-    int? requestId,
-    WalletAccount? currentWallet,
-    bool reloadConfig = true,
-  }) async {
-    final nextHiddenAssetKeys = reloadConfig
-        ? await _assetVisibilityService.loadHiddenAssetKeys()
-        : hiddenAssetKeys;
-    final nextChains = reloadConfig
-        ? await _chainConfigService.loadEnabledChains()
-        : chains;
-    if (requestId != null &&
-        currentWallet != null &&
-        !_isActiveBalanceRequest(requestId, currentWallet)) {
-      return;
-    }
-    hiddenAssetKeys = nextHiddenAssetKeys;
-    chains = nextChains;
-    _applyAssetVisibility();
-    _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
-  }
-
-  bool _isActiveBalanceRequest(int requestId, WalletAccount currentWallet) {
-    return requestId == _balanceRequestId && wallet?.id == currentWallet.id;
-  }
-
-  /// 清空当前钱包相关 UI 状态。
-  ///
-  /// 切换或删除钱包时调用，防止旧钱包余额和估值短暂显示在新钱包下。
-  void _resetWalletState() {
-    _cancelBalanceRetry();
-    _balanceRequestId++;
-    balances = [];
-    visibleBalances = [];
-    tokenPortfolioItems = [];
-    totalAssetsText = '--';
-    isLoading = false;
-    balanceAsOf = null;
-    balanceSnapshotSource = null;
-    balanceRefreshStatus = BalanceRefreshStatus.idle;
-    isBalanceDataStale = false;
-    balanceRefreshError = null;
-  }
-
-  /// 根据用户资产显示配置过滤余额列表。
-  void _applyAssetVisibility() {
-    visibleBalances = balances
-        .where(
-          (balance) => _assetVisibilityService.isBalanceVisible(
-            balance,
-            hiddenAssetKeys,
-          ),
-        )
-        .toList(growable: false);
+  void _publish() {
+    _onStateChanged(
+      HomeBalanceState(
+        balances: List.unmodifiable(_balances),
+        visibleBalances: List.unmodifiable(_visibleBalances),
+        tokenPortfolioItems: List.unmodifiable(_tokenPortfolioItems),
+        totalAssetsText: _totalAssetsText,
+        isLoading: _isLoading,
+        balanceAsOf: _balanceAsOf,
+        balanceSnapshotSource: _balanceSnapshotSource,
+        balanceRefreshStatus: _balanceRefreshStatus,
+        isBalanceDataStale: _isBalanceDataStale,
+        balanceRefreshError: _balanceRefreshError,
+      ),
+    );
   }
 }

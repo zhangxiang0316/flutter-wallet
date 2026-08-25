@@ -25,11 +25,13 @@ import 'home_controller_utils.dart';
 
 part 'home_controller_valuation.dart';
 part 'home_controller_balance.dart';
+part 'home_wallet_lifecycle_service.dart';
+part 'home_wallet_migration_service.dart';
+part 'home_wallet_address_upgrade_service.dart';
 
 /// 首页控制器。
 ///
-/// 负责钱包生命周期、余额刷新、资产可见性过滤、USD 估值、旧数据安全迁移和
-/// 多钱包切换。首页 Widget 只消费这里整理好的状态，不直接访问钱包服务。
+/// 组合钱包生命周期、迁移、地址升级、余额协调和资产展示服务，并向页面暴露状态。
 class HomeController extends BaseController {
   /// 余额和估值区域的局部刷新 ID，避免每条链返回时重建整个 Scaffold。
   static const String balanceViewId = 'home-balance-view';
@@ -45,32 +47,51 @@ class HomeController extends BaseController {
     ChainBalanceCache? balanceCache,
     TokenPortfolioService? tokenPortfolioService,
     Duration balanceRetryDelay = const Duration(seconds: 2),
-  }) : _repository = repository ?? WalletRepository(),
-       _cryptoService = cryptoService ?? WalletCryptoService(),
-       _chainConfigService = chainConfigService ?? WalletChainConfigService(),
-       _balanceService = balanceService ?? ChainBalanceService(),
-       _valuationService = valuationService ?? AssetValuationService(),
-       _assetVisibilityService =
-           assetVisibilityService ?? WalletAssetVisibilityService(),
-       _backupStatusService =
-           backupStatusService ?? WalletBackupStatusService(),
-       _balanceCache = balanceCache ?? ChainBalanceCache(),
-       _tokenPortfolioService =
-           tokenPortfolioService ?? TokenPortfolioService(),
-       _balanceRetryDelay = balanceRetryDelay;
+  }) {
+    final resolvedRepository = repository ?? WalletRepository();
+    final resolvedCryptoService = cryptoService ?? WalletCryptoService();
+    final resolvedValuationService =
+        valuationService ?? AssetValuationService();
+    final resolvedVisibilityService =
+        assetVisibilityService ?? WalletAssetVisibilityService();
+    final addressUpgradeService = WalletAddressUpgradeService(
+      repository: resolvedRepository,
+      cryptoService: resolvedCryptoService,
+    );
+    _assetVisibilityService = resolvedVisibilityService;
+    _chainConfigService = chainConfigService ?? WalletChainConfigService();
+    _walletLifecycleService = WalletLifecycleService(
+      repository: resolvedRepository,
+      cryptoService: resolvedCryptoService,
+      backupStatusService: backupStatusService ?? WalletBackupStatusService(),
+    );
+    _walletMigrationService = WalletMigrationService(
+      repository: resolvedRepository,
+      addressUpgradeService: addressUpgradeService,
+    );
+    _walletAddressUpgradeService = addressUpgradeService;
+    final portfolioPresenter = HomePortfolioPresenter(
+      assetVisibilityService: resolvedVisibilityService,
+      tokenPortfolioService: tokenPortfolioService ?? TokenPortfolioService(),
+      valuationService: resolvedValuationService,
+    );
+    _balanceCoordinator = HomeBalanceCoordinator(
+      balanceService: balanceService ?? ChainBalanceService(),
+      valuationService: resolvedValuationService,
+      balanceCache: balanceCache ?? ChainBalanceCache(),
+      portfolioPresenter: portfolioPresenter,
+      retryDelay: balanceRetryDelay,
+      onStateChanged: _applyBalanceState,
+      onLoadFailed: () => Toast.show(S.current.balanceLoadFailed),
+    );
+  }
 
-  final WalletRepository _repository;
-  final WalletCryptoService _cryptoService;
-  final ChainBalanceService _balanceService;
-  final AssetValuationService _valuationService;
-  final WalletAssetVisibilityService _assetVisibilityService;
-  final WalletBackupStatusService _backupStatusService;
-  final WalletChainConfigService _chainConfigService;
-  final ChainBalanceCache _balanceCache;
-  final TokenPortfolioService _tokenPortfolioService;
-
-  /// 部分网络刷新失败后的单次补偿刷新间隔。
-  final Duration _balanceRetryDelay;
+  late final WalletLifecycleService _walletLifecycleService;
+  late final WalletMigrationService _walletMigrationService;
+  late final WalletAddressUpgradeService _walletAddressUpgradeService;
+  late final HomeBalanceCoordinator _balanceCoordinator;
+  late final WalletAssetVisibilityService _assetVisibilityService;
+  late final WalletChainConfigService _chainConfigService;
 
   /// 本地保存的钱包列表。
   List<WalletAccount> wallets = [];
@@ -128,17 +149,7 @@ class HomeController extends BaseController {
   ///
   /// 稳定币由估值服务补为 1，避免转账页面再次请求行情接口。
   Map<String, Decimal> get transferUsdPrices {
-    final prices = <String, Decimal>{};
-    for (final balance in visibleBalances) {
-      final price = _valuationService.priceForSymbol(
-        balance.symbol,
-        _valuationService.cachedUsdPrices,
-      );
-      if (price != null) {
-        prices[balance.symbol.toUpperCase()] = price;
-      }
-    }
-    return Map.unmodifiable(prices);
+    return _balanceCoordinator.transferUsdPrices;
   }
 
   /// 旧版本钱包仍含明文私钥时为 true，需要先设置密码完成迁移。
@@ -153,14 +164,6 @@ class HomeController extends BaseController {
   /// 是否正在为旧钱包补全链地址。
   bool isUpgradingChainAddresses = false;
 
-  Timer? _balanceRefreshTimer;
-  Timer? _balanceRetryTimer;
-
-  /// 余额请求版本号。
-  ///
-  /// 切换钱包或重新发起刷新时递增，用于丢弃旧异步请求返回的过期结果。
-  int _balanceRequestId = 0;
-
   @override
   void onInit() {
     super.onInit();
@@ -172,20 +175,22 @@ class HomeController extends BaseController {
     final results = await Future.wait<Object>([
       _assetVisibilityService.loadHiddenAssetKeys(),
       _chainConfigService.loadEnabledChains(),
-      _repository.loadWalletSnapshot(),
+      _walletLifecycleService.loadSnapshot(),
     ]);
     hiddenAssetKeys = results[0] as Set<String>;
     chains = results[1] as List<WalletChainConfig>;
-    final walletSnapshot =
-        results[2]
-            as ({List<WalletAccount> wallets, WalletAccount? currentWallet});
+    final walletSnapshot = results[2] as WalletSnapshot;
     wallets = walletSnapshot.wallets;
     wallet = walletSnapshot.currentWallet;
     _updateWalletMaintenanceState();
+    _balanceCoordinator.refreshPresentation(
+      chains: chains,
+      hiddenAssetKeys: hiddenAssetKeys,
+    );
     update();
     if (wallet != null) {
-      _startBalanceRefreshTimer();
-      refreshBalances();
+      _balanceCoordinator.startAutoRefresh(refreshBalances);
+      unawaited(refreshBalances());
     }
   }
 
@@ -196,48 +201,35 @@ class HomeController extends BaseController {
   Future<void> syncWalletMetadata() async {
     hiddenAssetKeys = await _assetVisibilityService.loadHiddenAssetKeys();
     chains = await _chainConfigService.loadEnabledChains();
-    _applyAssetVisibility();
     final currentWalletId = wallet?.id;
-    wallets = await _repository.loadWallets();
-    wallet = currentWalletId == null
-        ? await _repository.loadCurrentWallet()
-        : wallets.firstWhere(
-            (item) => item.id == currentWalletId,
-            orElse: () => wallet!,
-          );
-    _updateWalletMaintenanceState();
-    _refreshTokenPortfolioItems(_valuationService.cachedUsdPrices);
+    final snapshot = await _walletLifecycleService.reloadKeepingSelection(
+      currentWalletId: currentWalletId,
+      fallbackWallet: wallet,
+    );
+    _applyWalletSnapshot(snapshot);
+    _balanceCoordinator.refreshPresentation(
+      chains: chains,
+      hiddenAssetKeys: hiddenAssetKeys,
+    );
     update();
   }
 
   /// 生成助记词并创建钱包，保存后刷新链上余额。
   Future<CreatedWalletBackup?> createWallet(String password) async {
     try {
-      final keyPair = await _cryptoService.generateMnemonicWallet();
-      final mnemonic = keyPair.mnemonic;
-      if (mnemonic == null || mnemonic.isEmpty) {
-        throw StateError('Generated wallet is missing its mnemonic');
-      }
-      final nextWallet = WalletAccount(
-        id: HomeControllerUtils.createWalletId(keyPair.bscAddress),
-        name: 'Wallet ${wallets.length + 1}',
-        bscAddress: keyPair.bscAddress,
-        tronAddress: keyPair.tronAddress,
-        solanaAddress: keyPair.solanaAddress,
-        suiAddress: keyPair.suiAddress,
-        aptosAddress: keyPair.aptosAddress,
-        bitcoinAddress: keyPair.bitcoinAddress,
-        createdAt: DateTime.now(),
-      );
-      await _repository.saveWalletSecret(
-        walletId: nextWallet.id,
+      final result = await _walletLifecycleService.create(
         password: password,
-        privateKeyHex: keyPair.privateKeyHex,
-        mnemonic: mnemonic,
+        walletCount: wallets.length,
       );
-      await _saveAndSelectWallet(nextWallet);
+      _applyWalletSnapshot(
+        WalletSnapshot(wallets: result.wallets, currentWallet: result.wallet),
+      );
+      _activateCurrentWallet();
       Toast.show(S.current.walletCreated);
-      return CreatedWalletBackup(walletId: nextWallet.id, mnemonic: mnemonic);
+      return CreatedWalletBackup(
+        walletId: result.wallet.id,
+        mnemonic: result.mnemonic,
+      );
     } catch (error, stackTrace) {
       SafeLog.error(
         'Wallet creation failed',
@@ -256,8 +248,15 @@ class HomeController extends BaseController {
     String password,
   ) async {
     try {
-      final keyPair = _cryptoService.importPrivateKey(privateKey);
-      return _saveImportedWallet(keyPair, password);
+      final snapshot = await _walletLifecycleService.importPrivateKey(
+        privateKey: privateKey,
+        password: password,
+        currentWallets: wallets,
+      );
+      _applyWalletSnapshot(snapshot);
+      _activateCurrentWallet();
+      Toast.show(S.current.walletImported);
+      return true;
     } catch (_) {
       Toast.show(S.current.invalidPrivateKey);
       return false;
@@ -269,8 +268,15 @@ class HomeController extends BaseController {
   /// 助记词会派生出 EVM、TRON 和 Solana 地址，并把私钥/助记词加密保存到本地。
   Future<bool> importMnemonicWallet(String mnemonic, String password) async {
     try {
-      final keyPair = _cryptoService.importMnemonic(mnemonic);
-      return _saveImportedWallet(keyPair, password);
+      final snapshot = await _walletLifecycleService.importMnemonic(
+        mnemonic: mnemonic,
+        password: password,
+        currentWallets: wallets,
+      );
+      _applyWalletSnapshot(snapshot);
+      _activateCurrentWallet();
+      Toast.show(S.current.walletImported);
+      return true;
     } catch (_) {
       Toast.show(S.current.invalidMnemonic);
       return false;
@@ -286,12 +292,12 @@ class HomeController extends BaseController {
     try {
       isMigratingSecrets = true;
       update();
-      final legacyWalletIds = wallets
-          .where((wallet) => wallet.needsSecretMigration)
-          .map((wallet) => wallet.id)
-          .toSet();
-      await _repository.migrateLegacyPlainSecrets(password);
-      await _upgradeMissingChainAddresses(password, walletIds: legacyWalletIds);
+      final snapshot = await _walletMigrationService.migrateLegacySecrets(
+        password: password,
+        wallets: wallets,
+        selectedWalletId: wallet?.id,
+      );
+      _applyWalletSnapshot(snapshot);
       Toast.show(S.current.walletSecurityMigrated);
       update();
       return true;
@@ -312,10 +318,15 @@ class HomeController extends BaseController {
     try {
       isUpgradingChainAddresses = true;
       update();
-      await _upgradeMissingChainAddresses(password);
+      final snapshot = await _walletAddressUpgradeService
+          .upgradeMissingAddresses(
+            password: password,
+            selectedWalletId: wallet?.id,
+          );
+      _applyWalletSnapshot(snapshot);
       Toast.show(S.current.walletSolanaAddressUpgraded);
       update();
-      refreshBalances();
+      unawaited(refreshBalances());
       return true;
     } on WalletSecretMissingException {
       Toast.show(S.current.walletSecretMissing);
@@ -337,15 +348,13 @@ class HomeController extends BaseController {
   /// 切换后会清空旧余额、重启 60 秒刷新定时器，并立即请求新钱包余额。
   Future<void> switchWallet(WalletAccount nextWallet) async {
     if (wallet?.id == nextWallet.id) return;
-    await _repository.setCurrentWalletId(nextWallet.id);
+    await _walletLifecycleService.select(nextWallet);
     wallet = nextWallet;
-    needsChainAddressUpgrade = HomeControllerUtils.needsChainAddressUpgrade(
-      nextWallet,
-    );
-    _resetWalletState();
+    _updateWalletMaintenanceState();
+    _balanceCoordinator.reset();
     update();
-    _startBalanceRefreshTimer();
-    refreshBalances();
+    _balanceCoordinator.startAutoRefresh(refreshBalances);
+    unawaited(refreshBalances());
   }
 
   /// 删除当前钱包和页面状态，不触发任何链上操作。
@@ -353,20 +362,15 @@ class HomeController extends BaseController {
     final walletToRemove = targetWallet ?? wallet;
     if (walletToRemove == null) return;
     final removedCurrentWallet = wallet?.id == walletToRemove.id;
-    await _repository.removeWallet(walletToRemove.id);
-    PasswordCacheService.clearCache(walletId: walletToRemove.id);
-    await _backupStatusService.clearMnemonicBackedUp(walletToRemove.id);
-    wallets = await _repository.loadWallets();
-    wallet = await _repository.loadCurrentWallet();
-    _updateWalletMaintenanceState();
+    _applyWalletSnapshot(await _walletLifecycleService.remove(walletToRemove));
     if (removedCurrentWallet) {
-      _resetWalletState();
+      _balanceCoordinator.reset();
       update();
       if (wallet == null) {
-        _stopBalanceRefreshTimer();
+        _balanceCoordinator.stopAutoRefresh();
       } else {
-        _startBalanceRefreshTimer();
-        refreshBalances();
+        _balanceCoordinator.startAutoRefresh(refreshBalances);
+        unawaited(refreshBalances());
       }
     } else {
       update();
@@ -374,138 +378,46 @@ class HomeController extends BaseController {
     Toast.show(S.current.walletRemoved);
   }
 
-  /// 保存钱包并把它设为当前钱包。
-  ///
-  /// 创建和导入流程共用该方法，确保钱包列表、当前钱包和余额刷新状态一致。
-  Future<void> _saveAndSelectWallet(WalletAccount nextWallet) async {
-    await _repository.saveWallet(nextWallet);
-    wallets = await _repository.loadWallets();
-    wallet = wallets.firstWhere(
-      (item) => item.id == nextWallet.id,
-      orElse: () => nextWallet,
+  /// 刷新当前钱包余额，具体缓存、网络、重试和估值流程由协调器负责。
+  Future<void> refreshBalances() {
+    final currentWallet = wallet;
+    if (currentWallet == null) return Future.value();
+    return _balanceCoordinator.refresh(
+      wallet: currentWallet,
+      chains: chains,
+      hiddenAssetKeys: hiddenAssetKeys,
     );
+  }
+
+  void _applyWalletSnapshot(WalletSnapshot snapshot) {
+    wallets = snapshot.wallets;
+    wallet = snapshot.currentWallet;
     _updateWalletMaintenanceState();
-    _resetWalletState();
+  }
+
+  void _activateCurrentWallet() {
+    _balanceCoordinator.reset();
     update();
-    _startBalanceRefreshTimer();
-    refreshBalances();
-  }
-
-  /// 保存导入的钱包。
-  ///
-  /// 如果同一 EVM 地址已经存在，则沿用原钱包名称；否则使用递增默认名称。
-  Future<bool> _saveImportedWallet(
-    WalletKeyPair keyPair,
-    String password,
-  ) async {
-    final existingIndex = wallets.indexWhere(
-      (wallet) =>
-          wallet.bscAddress.toLowerCase() == keyPair.bscAddress.toLowerCase(),
-    );
-    final nextWallet = WalletAccount(
-      id: HomeControllerUtils.createWalletId(keyPair.bscAddress),
-      name: existingIndex >= 0
-          ? wallets[existingIndex].name
-          : 'Wallet ${wallets.length + 1}',
-      bscAddress: keyPair.bscAddress,
-      tronAddress: keyPair.tronAddress,
-      solanaAddress: keyPair.solanaAddress,
-      suiAddress: keyPair.suiAddress,
-      aptosAddress: keyPair.aptosAddress,
-      bitcoinAddress: keyPair.bitcoinAddress,
-      createdAt: DateTime.now(),
-    );
-    await _repository.saveWalletSecret(
-      walletId: nextWallet.id,
-      password: password,
-      privateKeyHex: keyPair.privateKeyHex,
-      mnemonic: keyPair.mnemonic,
-    );
-    await _saveAndSelectWallet(nextWallet);
-    Toast.show(S.current.walletImported);
-    return true;
-  }
-
-  /// 遍历本地钱包并补全缺失的 Solana/Sui/Bitcoin 地址。
-  ///
-  /// [walletIds] 不为空时只处理指定钱包集合；为空时默认只处理当前钱包。
-  Future<void> _upgradeMissingChainAddresses(
-    String password, {
-    Set<String>? walletIds,
-  }) async {
-    final currentWalletId =
-        wallet?.id ?? await _repository.loadCurrentWalletId();
-    final nextWallets = <WalletAccount>[];
-    for (final item in await _repository.loadWallets()) {
-      final shouldUpgrade =
-          (item.solanaAddress.trim().isEmpty ||
-              item.suiAddress.trim().isEmpty ||
-              item.aptosAddress.trim().isEmpty ||
-              item.bitcoinAddress.trim().isEmpty) &&
-          (walletIds?.contains(item.id) ?? item.id == currentWalletId);
-      if (!shouldUpgrade) {
-        nextWallets.add(item);
-        continue;
-      }
-
-      var nextWallet = item;
-      if (item.solanaAddress.trim().isEmpty) {
-        final privateKeyHex = item.needsSecretMigration
-            ? item.privateKeyHex
-            : await _repository.readWalletPrivateKey(
-                walletId: item.id,
-                password: password,
-              );
-        final keyPair = _cryptoService.importPrivateKey(privateKeyHex);
-        nextWallet = nextWallet.copyWith(solanaAddress: keyPair.solanaAddress);
-      }
-      if (item.suiAddress.trim().isEmpty) {
-        final suiPrivateKey = item.needsSecretMigration
-            ? _cryptoService.suiPrivateKeyFromPrivateKey(item.privateKeyHex)
-            : await _repository.readWalletSuiPrivateKey(
-                walletId: item.id,
-                password: password,
-              );
-        nextWallet = nextWallet.copyWith(
-          suiAddress: _cryptoService.suiAddressFromPrivateKey(suiPrivateKey),
-        );
-      }
-      if (item.aptosAddress.trim().isEmpty) {
-        final aptosPrivateKey = item.needsSecretMigration
-            ? _cryptoService.aptosPrivateKeyFromPrivateKey(item.privateKeyHex)
-            : await _repository.readWalletAptosPrivateKey(
-                walletId: item.id,
-                password: password,
-              );
-        nextWallet = nextWallet.copyWith(
-          aptosAddress: _cryptoService.aptosAddressFromPrivateKey(
-            aptosPrivateKey,
-          ),
-        );
-      }
-      if (item.bitcoinAddress.trim().isEmpty) {
-        final bitcoinPrivateKey = item.needsSecretMigration
-            ? _cryptoService.bitcoinPrivateKeyFromPrivateKey(item.privateKeyHex)
-            : await _repository.readWalletBitcoinPrivateKey(
-                walletId: item.id,
-                password: password,
-              );
-        nextWallet = nextWallet.copyWith(
-          bitcoinAddress: _cryptoService.bitcoinAddressFromPrivateKey(
-            bitcoinPrivateKey,
-          ),
-        );
-      }
-      nextWallets.add(nextWallet);
+    if (wallet == null) {
+      _balanceCoordinator.stopAutoRefresh();
+      return;
     }
+    _balanceCoordinator.startAutoRefresh(refreshBalances);
+    unawaited(refreshBalances());
+  }
 
-    await _repository.saveWallets(
-      nextWallets,
-      currentWalletId: currentWalletId,
-    );
-    wallets = await _repository.loadWallets();
-    wallet = await _repository.loadCurrentWallet();
-    _updateWalletMaintenanceState();
+  void _applyBalanceState(HomeBalanceState state) {
+    balances = state.balances;
+    visibleBalances = state.visibleBalances;
+    tokenPortfolioItems = state.tokenPortfolioItems;
+    totalAssetsText = state.totalAssetsText;
+    isLoading = state.isLoading;
+    balanceAsOf = state.balanceAsOf;
+    balanceSnapshotSource = state.balanceSnapshotSource;
+    balanceRefreshStatus = state.balanceRefreshStatus;
+    isBalanceDataStale = state.isBalanceDataStale;
+    balanceRefreshError = state.balanceRefreshError;
+    update([balanceViewId]);
   }
 
   /// 根据当前钱包列表更新需要用户处理的兼容性状态。
@@ -516,50 +428,27 @@ class HomeController extends BaseController {
     );
   }
 
-  /// 启动 60 秒余额定时刷新。
-  ///
-  /// 每次进入或切换钱包都会先停止旧定时器，避免多个定时器并发刷新。
-  void _startBalanceRefreshTimer() {
-    _stopBalanceRefreshTimer();
-    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      refreshBalances();
-    });
-  }
-
-  /// 停止余额定时刷新。
-  void _stopBalanceRefreshTimer() {
-    _balanceRefreshTimer?.cancel();
-    _balanceRefreshTimer = null;
-    _cancelBalanceRetry();
-  }
-
-  /// 取消尚未执行的余额补偿刷新。
-  void _cancelBalanceRetry() {
-    _balanceRetryTimer?.cancel();
-    _balanceRetryTimer = null;
-  }
-
   /// 页面可见时恢复定时刷新。
   @override
   void onPageVisible() {
     super.onPageVisible();
     if (wallet == null) return;
-    if (_balanceRefreshTimer == null) {
-      _startBalanceRefreshTimer();
+    if (!_balanceCoordinator.hasAutoRefresh) {
+      _balanceCoordinator.startAutoRefresh(refreshBalances);
     }
-    refreshBalances();
+    unawaited(refreshBalances());
   }
 
   /// 页面不可见时暂停定时刷新，节省资源。
   @override
   void onPageInVisible() {
     super.onPageInVisible();
-    _stopBalanceRefreshTimer();
+    _balanceCoordinator.stopAutoRefresh();
   }
 
   @override
   void onClose() {
-    _stopBalanceRefreshTimer();
+    _balanceCoordinator.stopAutoRefresh();
     super.onClose();
   }
 }
