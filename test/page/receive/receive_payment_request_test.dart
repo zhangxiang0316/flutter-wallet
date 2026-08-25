@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/page/receive/controller/receive_controller.dart';
 import 'package:omnicast/page/transfer/controller/transfer_scan_address_parser.dart';
 import 'package:omnicast/wallet/models/wallet_account.dart';
-import 'package:omnicast/wallet/models/wallet_asset.dart';
+import 'package:omnicast/wallet/models/wallet_asset_registry.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 
 void main() {

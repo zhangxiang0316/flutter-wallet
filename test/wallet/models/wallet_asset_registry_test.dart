@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/wallet_asset.dart';
+import 'package:omnicast/wallet/models/wallet_asset_registry.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 
 void main() {

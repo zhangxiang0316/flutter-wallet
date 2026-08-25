@@ -10,6 +10,7 @@ import 'package:omnicast/wallet/constants/crypto_constants.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/wallet_account.dart';
 import 'package:omnicast/wallet/models/wallet_asset.dart';
+import 'package:omnicast/wallet/models/wallet_asset_registry.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/models/wallet_transaction_record.dart';
 import 'package:omnicast/wallet/services/asset_valuation_service.dart';
@@ -218,6 +219,7 @@ void main() {
         symbol: 'cake',
         name: 'PancakeSwap Token',
         decimals: 18,
+        metadataVerified: true,
         logoUrl: 'https://example.com/cake.png',
       );
 
@@ -240,6 +242,7 @@ void main() {
           symbol: 'cake',
           name: 'PancakeSwap Token',
           decimals: 18,
+          metadataVerified: true,
           logoUrl: 'javascript:alert(1)',
         ),
         throwsA(isA<CustomAssetInvalidInputException>()),

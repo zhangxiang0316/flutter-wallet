@@ -4,6 +4,7 @@ import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_asset.dart';
+import '../../../wallet/models/wallet_asset_registry.dart';
 import '../../../wallet/models/wallet_chain.dart';
 import '../../../wallet/services/config/wallet_asset_visibility_service.dart';
 import '../../../wallet/services/config/wallet_chain_config_service.dart';

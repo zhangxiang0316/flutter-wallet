@@ -1,7 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
-import 'package:omnicast/wallet/models/wallet_asset.dart';
+import 'package:omnicast/wallet/models/wallet_asset_registry.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/token_portfolio_service.dart';
 

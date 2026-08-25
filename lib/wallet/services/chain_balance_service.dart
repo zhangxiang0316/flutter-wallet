@@ -10,6 +10,7 @@ import '../adapters/chain_adapter_registry.dart';
 import '../adapters/default_chain_adapter_registry.dart';
 import '../models/chain_balance.dart';
 import '../models/wallet_asset.dart';
+import '../models/wallet_asset_registry.dart';
 import '../models/wallet_chain.dart';
 import '../utils/rpc_retry_helper.dart';
 import '../../utils/safe_log.dart';

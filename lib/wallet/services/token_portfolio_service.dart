@@ -2,7 +2,8 @@ import 'package:decimal/decimal.dart';
 
 import '../models/chain_balance.dart';
 import '../models/token_portfolio.dart';
-import '../models/wallet_asset.dart';
+import '../models/wallet_asset_identity_policy.dart';
+import '../models/wallet_asset_registry.dart';
 import '../models/wallet_chain.dart';
 import 'asset_valuation_service.dart';
 
