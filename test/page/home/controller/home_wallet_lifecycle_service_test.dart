@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/page/home/controller/home_controller.dart';
 import 'package:omnicast/wallet/models/wallet_account.dart';
-import 'package:omnicast/wallet/services/config/wallet_backup_status_service.dart';
 import 'package:omnicast/wallet/services/crypto/wallet_crypto_service.dart';
 import 'package:omnicast/wallet/services/wallet_repository.dart';
 
@@ -22,7 +21,6 @@ void main() {
     final service = WalletLifecycleService(
       repository: repository,
       cryptoService: _FakeWalletCryptoService(keyPair),
-      backupStatusService: _FakeBackupStatusService(),
     );
 
     final result = await service.create(password: 'password', walletCount: 0);
@@ -41,7 +39,6 @@ void main() {
     final service = WalletLifecycleService(
       repository: repository,
       cryptoService: _FakeWalletCryptoService(keyPair),
-      backupStatusService: _FakeBackupStatusService(),
     );
 
     final snapshot = await service.importPrivateKey(
@@ -54,21 +51,18 @@ void main() {
     expect(snapshot.wallets.single.name, 'Primary');
   });
 
-  test('removes wallet metadata and clears its backup status', () async {
+  test('removes wallet through the transactional repository', () async {
     final wallet = _wallet(name: 'Primary');
     final repository = _FakeWalletRepository([wallet]);
-    final backupStatus = _FakeBackupStatusService();
     final service = WalletLifecycleService(
       repository: repository,
       cryptoService: _FakeWalletCryptoService(keyPair),
-      backupStatusService: backupStatus,
     );
 
     final snapshot = await service.remove(wallet);
 
     expect(snapshot.wallets, isEmpty);
     expect(snapshot.currentWallet, isNull);
-    expect(backupStatus.clearedWalletId, wallet.id);
   });
 
   test('upgrades every missing chain address outside the controller', () async {
@@ -164,18 +158,14 @@ class _FakeWalletRepository extends WalletRepository {
   }
 
   @override
-  Future<void> saveWalletSecret({
-    required String walletId,
+  Future<void> saveWalletWithSecret({
+    required WalletAccount wallet,
     required String password,
     required String privateKeyHex,
     String? mnemonic,
   }) async {
-    savedSecretWalletId = walletId;
+    savedSecretWalletId = wallet.id;
     savedPassword = password;
-  }
-
-  @override
-  Future<void> saveWallet(WalletAccount wallet) async {
     final index = wallets.indexWhere((item) => item.id == wallet.id);
     if (index < 0) {
       wallets.add(wallet);
@@ -236,13 +226,4 @@ class _FakeWalletRepository extends WalletRepository {
     required String walletId,
     required String password,
   }) async => 'bitcoin-private-key';
-}
-
-class _FakeBackupStatusService extends WalletBackupStatusService {
-  String? clearedWalletId;
-
-  @override
-  Future<void> clearMnemonicBackedUp(String walletId) async {
-    clearedWalletId = walletId;
-  }
 }

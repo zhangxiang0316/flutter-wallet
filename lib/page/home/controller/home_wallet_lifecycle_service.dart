@@ -24,14 +24,11 @@ class WalletLifecycleService {
   WalletLifecycleService({
     required WalletRepository repository,
     required WalletCryptoService cryptoService,
-    required WalletBackupStatusService backupStatusService,
   }) : _repository = repository,
-       _cryptoService = cryptoService,
-       _backupStatusService = backupStatusService;
+       _cryptoService = cryptoService;
 
   final WalletRepository _repository;
   final WalletCryptoService _cryptoService;
-  final WalletBackupStatusService _backupStatusService;
 
   Future<WalletSnapshot> loadSnapshot() async {
     final snapshot = await _repository.loadWalletSnapshot();
@@ -96,8 +93,6 @@ class WalletLifecycleService {
 
   Future<WalletSnapshot> remove(WalletAccount wallet) async {
     await _repository.removeWallet(wallet.id);
-    PasswordCacheService.clearCache(walletId: wallet.id);
-    await _backupStatusService.clearMnemonicBackedUp(wallet.id);
     return loadSnapshot();
   }
 
@@ -152,13 +147,12 @@ class WalletLifecycleService {
     required WalletKeyPair keyPair,
     required String password,
   }) async {
-    await _repository.saveWalletSecret(
-      walletId: wallet.id,
+    await _repository.saveWalletWithSecret(
+      wallet: wallet,
       password: password,
       privateKeyHex: keyPair.privateKeyHex,
       mnemonic: keyPair.mnemonic,
     );
-    await _repository.saveWallet(wallet);
   }
 
   WalletAccount _walletFromKeyPair(

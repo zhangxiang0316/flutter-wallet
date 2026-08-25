@@ -150,12 +150,20 @@ class ChainBalanceCache {
   /// 清除指定钱包的新旧余额缓存。
   Future<void> clear(String walletId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('${_keyPrefix}_$walletId');
-      await prefs.remove('${_legacyKeyPrefix}_$walletId');
+      await clearForWalletDeletion(walletId);
     } catch (_) {
       // 清除失败不影响主流程。
     }
+  }
+
+  /// 删除钱包事务使用的严格清理入口。
+  ///
+  /// 与普通 [clear] 不同，失败会向上抛出，以便持久化 journal 保留 cleanupPending
+  /// 状态并在下次启动重试。
+  Future<void> clearForWalletDeletion(String walletId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('${_keyPrefix}_$walletId');
+    await prefs.remove('${_legacyKeyPrefix}_$walletId');
   }
 
   Map<String, dynamic> _toJson(ChainBalance balance) {

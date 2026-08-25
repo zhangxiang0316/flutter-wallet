@@ -330,4 +330,23 @@ class TransactionHistoryCache {
       // 清除失败不影响主流程
     }
   }
+
+  /// 严格清除指定钱包的全部远程历史和本地提交记录。
+  ///
+  /// 交易缓存 key 的资产部分是动态的，因此按钱包级前缀扫描。异常会向上抛出，
+  /// 由钱包删除 journal 在后续启动时继续重试。
+  Future<void> clearWallet(String walletId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final prefixes = [
+      '${_keyPrefix}_${walletId}_',
+      '${_localKeyPrefix}_${walletId}_',
+    ];
+    final keys = prefs
+        .getKeys()
+        .where((key) => prefixes.any(key.startsWith))
+        .toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
 }

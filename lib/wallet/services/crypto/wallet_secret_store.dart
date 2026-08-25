@@ -266,11 +266,54 @@ class WalletSecretStore {
   ///
   /// 同时删除当前格式的私钥/助记词和旧格式字段，确保移除钱包后不残留敏感信息。
   Future<void> removePrivateKey(String walletId) async {
-    await _storage.delete(key: _secretKey(walletId));
-    await _storage.delete(key: _mnemonicKey(walletId));
-    await _storage.delete(key: 'w_$walletId:salt');
-    await _storage.delete(key: 'w_$walletId:nonce');
-    await _storage.delete(key: 'w_$walletId:cipher');
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    for (final key in _allKeys(walletId)) {
+      try {
+        await _storage.delete(key: key);
+      } catch (error, stackTrace) {
+        firstError ??= error;
+        firstStackTrace ??= stackTrace;
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
+  }
+
+  /// 判断钱包是否存在任意当前或旧格式敏感数据。
+  Future<bool> hasAnySecrets(String walletId) async {
+    for (final key in _allKeys(walletId)) {
+      if (await _storage.containsKey(key: key)) return true;
+    }
+    return false;
+  }
+
+  /// 在安全存储内部复制一组加密 payload。
+  ///
+  /// 复制过程不会解密私钥或助记词。目标钱包原有但源钱包不存在的字段会被删除，
+  /// 因此该方法既可用于事务备份，也可用于把 staging payload 提交为正式 payload。
+  Future<void> copySecrets({
+    required String fromWalletId,
+    required String toWalletId,
+  }) async {
+    if (!await hasPrivateKey(fromWalletId)) {
+      throw const WalletSecretMissingException();
+    }
+    final sourceKeys = _allKeys(fromWalletId);
+    final targetKeys = _allKeys(toWalletId);
+    final values = <String?>[];
+    for (final key in sourceKeys) {
+      values.add(await _storage.read(key: key));
+    }
+    for (var index = 0; index < targetKeys.length; index++) {
+      final value = values[index];
+      if (value == null) {
+        await _storage.delete(key: targetKeys[index]);
+      } else {
+        await _storage.write(key: targetKeys[index], value: value);
+      }
+    }
   }
 
   /// 判断钱包是否存在私钥。
@@ -371,5 +414,15 @@ class WalletSecretStore {
   /// 生成助记词存储 key。
   String _mnemonicKey(String walletId) {
     return 'wallet_mnemonic_${base64Url.encode(utf8.encode(walletId))}';
+  }
+
+  List<String> _allKeys(String walletId) {
+    return [
+      _secretKey(walletId),
+      _mnemonicKey(walletId),
+      'w_$walletId:salt',
+      'w_$walletId:nonce',
+      'w_$walletId:cipher',
+    ];
   }
 }

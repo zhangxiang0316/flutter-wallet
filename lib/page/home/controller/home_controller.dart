@@ -4,7 +4,6 @@ import 'package:decimal/decimal.dart';
 
 import '../../../base/base_controller.dart';
 import '../../../generated/l10n.dart';
-import '../../../utils/password_cache_service.dart';
 import '../../../utils/toast_util.dart';
 import '../../../utils/safe_log.dart';
 import '../../../wallet/models/chain_balance.dart';
@@ -16,7 +15,6 @@ import '../../../wallet/services/chain_balance_cache.dart';
 import '../../../wallet/services/chain_balance_service.dart';
 import '../../../wallet/services/token_portfolio_service.dart';
 import '../../../wallet/services/config/wallet_asset_visibility_service.dart';
-import '../../../wallet/services/config/wallet_backup_status_service.dart';
 import '../../../wallet/services/config/wallet_chain_config_service.dart';
 import '../../../wallet/services/crypto/wallet_crypto_service.dart';
 import '../../../wallet/services/wallet_repository.dart';
@@ -42,7 +40,6 @@ class HomeController extends BaseController {
     ChainBalanceService? balanceService,
     AssetValuationService? valuationService,
     WalletAssetVisibilityService? assetVisibilityService,
-    WalletBackupStatusService? backupStatusService,
     WalletChainConfigService? chainConfigService,
     ChainBalanceCache? balanceCache,
     TokenPortfolioService? tokenPortfolioService,
@@ -63,7 +60,6 @@ class HomeController extends BaseController {
     _walletLifecycleService = WalletLifecycleService(
       repository: resolvedRepository,
       cryptoService: resolvedCryptoService,
-      backupStatusService: backupStatusService ?? WalletBackupStatusService(),
     );
     _walletMigrationService = WalletMigrationService(
       repository: resolvedRepository,

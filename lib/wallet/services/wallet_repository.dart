@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import '../../utils/storage.dart';
 import '../models/wallet_account.dart';
 import 'crypto/wallet_crypto_service.dart';
 import 'crypto/wallet_secret_store.dart';
+import 'wallet_local_data_cleanup_service.dart';
+import 'wallet_persistence_coordinator.dart';
 
 /// 钱包仓储服务。
 ///
@@ -16,21 +20,35 @@ class WalletRepository {
   ///
   /// 测试时可以注入存储、密钥仓库和加密服务；业务场景使用默认实现。
   WalletRepository({
-    Storage? storage,
+    KeyValueStorage? storage,
     WalletSecretStore? secretStore,
     WalletCryptoService? cryptoService,
+    WalletLocalDataCleanupService? cleanupService,
   }) : _storage = storage ?? Storage(),
        _secretStore = secretStore ?? WalletSecretStore(),
-       _cryptoService = cryptoService ?? WalletCryptoService();
+       _cryptoService = cryptoService ?? WalletCryptoService() {
+    _persistence = WalletPersistenceCoordinator(
+      storage: _storage,
+      secretStore: _secretStore,
+      cleanupService: cleanupService ?? WalletLocalDataCleanupService(),
+      writeWalletState: _writeWalletStateRaw,
+    );
+  }
 
   /// 钱包元数据存储。
-  final Storage _storage;
+  final KeyValueStorage _storage;
 
   /// 私钥和助记词加密存储。
   final WalletSecretStore _secretStore;
 
   /// 用于从助记词或私钥派生 Solana 私钥。
   final WalletCryptoService _cryptoService;
+
+  late final WalletPersistenceCoordinator _persistence;
+
+  /// 所有仓储实例共享的进程内写屏障，避免一个实例把另一个实例正在执行的 journal
+  /// 当成启动残留事务恢复。
+  static Future<void> _persistenceBarrier = Future<void>.value();
 
   /// 旧版本单钱包存储 key。
   ///
@@ -48,6 +66,13 @@ class WalletRepository {
   /// 优先读取新版本多钱包列表；如果不存在，则尝试读取旧版本单钱包数据，方便旧用户
   /// 进入迁移流程。这里不会读取私钥或助记词。
   Future<List<WalletAccount>> loadWallets() async {
+    return _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      return _loadWalletsRaw();
+    });
+  }
+
+  Future<List<WalletAccount>> _loadWalletsRaw() async {
     final walletsJson = await _storage.getJsonList(_walletsKey);
     if (walletsJson != null) {
       return walletsJson
@@ -68,35 +93,46 @@ class WalletRepository {
   /// 一次读取钱包列表和当前钱包，避免启动时分别解析同一份钱包 JSON。
   Future<({List<WalletAccount> wallets, WalletAccount? currentWallet})>
   loadWalletSnapshot() async {
-    final wallets = await loadWallets();
-    if (wallets.isEmpty) {
-      return (wallets: wallets, currentWallet: null);
-    }
-    final currentId = await loadCurrentWalletId();
-    final currentWallet = wallets.firstWhere(
-      (wallet) => wallet.id == currentId,
-      orElse: () => wallets.first,
-    );
-    return (wallets: wallets, currentWallet: currentWallet);
+    return _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      final wallets = await _loadWalletsRaw();
+      if (wallets.isEmpty) {
+        return (wallets: wallets, currentWallet: null);
+      }
+      final currentId = await _loadCurrentWalletIdRaw();
+      final currentWallet = wallets.firstWhere(
+        (wallet) => wallet.id == currentId,
+        orElse: () => wallets.first,
+      );
+      return (wallets: wallets, currentWallet: currentWallet);
+    });
   }
 
   /// 加载当前选中的钱包。
   ///
   /// 如果当前钱包 ID 丢失或找不到对应钱包，则退回到列表第一个钱包。
   Future<WalletAccount?> loadCurrentWallet() async {
-    final wallets = await loadWallets();
-    if (wallets.isEmpty) {
-      return null;
-    }
-    final currentId = await loadCurrentWalletId();
-    return wallets.firstWhere(
-      (wallet) => wallet.id == currentId,
-      orElse: () => wallets.first,
-    );
+    return _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      final wallets = await _loadWalletsRaw();
+      if (wallets.isEmpty) return null;
+      final currentId = await _loadCurrentWalletIdRaw();
+      return wallets.firstWhere(
+        (wallet) => wallet.id == currentId,
+        orElse: () => wallets.first,
+      );
+    });
   }
 
   /// 读取当前钱包 ID。
   Future<String?> loadCurrentWalletId() async {
+    return _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      return _loadCurrentWalletIdRaw();
+    });
+  }
+
+  Future<String?> _loadCurrentWalletIdRaw() async {
     final currentWalletId = await _storage.getString(_currentWalletIdKey);
     if (currentWalletId != null && currentWalletId.isNotEmpty) {
       return currentWalletId;
@@ -113,29 +149,57 @@ class WalletRepository {
     String? currentWalletId,
     bool allowDroppingLegacySecrets = false,
   }) async {
-    if (!allowDroppingLegacySecrets &&
-        wallets.any((wallet) => wallet.needsSecretMigration)) {
-      throw StateError('Legacy wallet secrets must be migrated before saving');
-    }
-    await _storage.setJsonList(
-      _walletsKey,
-      wallets.map((wallet) => wallet.toJson()).toList(),
-    );
-    if (currentWalletId != null && currentWalletId.isNotEmpty) {
-      await setCurrentWalletId(currentWalletId);
-    }
+    await _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      _validateWalletsForSave(
+        wallets,
+        allowDroppingLegacySecrets: allowDroppingLegacySecrets,
+      );
+      await _storage.setJsonList(
+        _walletsKey,
+        wallets.map((wallet) => wallet.toJson()).toList(),
+      );
+      if (currentWalletId != null && currentWalletId.isNotEmpty) {
+        await _storage.setString(_currentWalletIdKey, currentWalletId);
+      }
+    });
   }
 
   /// 新增或更新一个钱包，并把它设为当前钱包。
   Future<void> saveWallet(WalletAccount wallet) async {
-    final wallets = [...await loadWallets()];
-    final index = wallets.indexWhere((item) => item.id == wallet.id);
-    if (index >= 0) {
-      wallets[index] = wallet;
-    } else {
-      wallets.add(wallet);
-    }
-    await saveWallets(wallets, currentWalletId: wallet.id);
+    await _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      final wallets = [...await _loadWalletsRaw()];
+      _upsertWallet(wallets, wallet);
+      await _writeWalletStateRaw(wallets, wallet.id);
+    });
+  }
+
+  /// 使用 staging 密钥和持久化 journal 原子地新增或更新钱包。
+  Future<void> saveWalletWithSecret({
+    required WalletAccount wallet,
+    required String password,
+    required String privateKeyHex,
+    String? mnemonic,
+  }) {
+    return _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      final previousWallets = await _loadWalletsRaw();
+      _validateWalletsForSave(
+        previousWallets,
+        allowDroppingLegacySecrets: false,
+      );
+      await _persistence.ensureNoPendingTransaction();
+      final previousCurrentWalletId = await _loadCurrentWalletIdRaw();
+      await _persistence.upsert(
+        wallet: wallet,
+        password: password,
+        privateKeyHex: privateKeyHex,
+        mnemonic: mnemonic,
+        previousWallets: previousWallets,
+        previousCurrentWalletId: previousCurrentWalletId,
+      );
+    });
   }
 
   /// 修改钱包名称。
@@ -145,24 +209,21 @@ class WalletRepository {
     required String walletId,
     required String name,
   }) async {
-    final trimmedName = name.trim();
-    if (trimmedName.isEmpty) {
-      return null;
-    }
-
-    final wallets = [...await loadWallets()];
-    final index = wallets.indexWhere((item) => item.id == walletId);
-    if (index < 0) {
-      return null;
-    }
-
-    final nextWallet = wallets[index].copyWith(name: trimmedName);
-    wallets[index] = nextWallet;
-    await saveWallets(
-      wallets,
-      currentWalletId: await loadCurrentWalletId() ?? walletId,
-    );
-    return nextWallet;
+    return _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      final trimmedName = name.trim();
+      if (trimmedName.isEmpty) return null;
+      final wallets = [...await _loadWalletsRaw()];
+      final index = wallets.indexWhere((item) => item.id == walletId);
+      if (index < 0) return null;
+      final nextWallet = wallets[index].copyWith(name: trimmedName);
+      wallets[index] = nextWallet;
+      await _writeWalletStateRaw(
+        wallets,
+        await _loadCurrentWalletIdRaw() ?? walletId,
+      );
+      return nextWallet;
+    });
   }
 
   /// 保存钱包密钥。
@@ -341,7 +402,10 @@ class WalletRepository {
 
   /// 设置当前钱包 ID。
   Future<void> setCurrentWalletId(String walletId) {
-    return _storage.setString(_currentWalletIdKey, walletId);
+    return _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      await _storage.setString(_currentWalletIdKey, walletId);
+    });
   }
 
   /// 删除钱包。
@@ -349,18 +413,69 @@ class WalletRepository {
   /// 删除元数据后同步删除对应私钥和助记词。如果删掉的是当前钱包，会自动切到列表第一个；
   /// 如果没有钱包了，则清空当前钱包 ID。
   Future<void> removeWallet(String walletId) async {
-    final wallets = [...await loadWallets()]
-      ..removeWhere((wallet) => wallet.id == walletId);
-    final currentId = await loadCurrentWalletId();
-    final nextCurrentId = currentId == walletId
-        ? (wallets.isEmpty ? null : wallets.first.id)
-        : currentId;
+    await _serialized(() async {
+      await _persistence.recoverPendingTransaction();
+      final previousWallets = await _loadWalletsRaw();
+      _validateWalletsForSave(
+        previousWallets,
+        allowDroppingLegacySecrets: false,
+      );
+      await _persistence.ensureNoPendingTransaction();
+      final previousCurrentWalletId = await _loadCurrentWalletIdRaw();
+      await _persistence.remove(
+        walletId: walletId,
+        previousWallets: previousWallets,
+        previousCurrentWalletId: previousCurrentWalletId,
+      );
+    });
+  }
 
-    await saveWallets(wallets, currentWalletId: nextCurrentId);
-    await _secretStore.removePrivateKey(walletId);
-    if (nextCurrentId == null) {
+  Future<void> _writeWalletStateRaw(
+    List<WalletAccount> wallets,
+    String? currentWalletId,
+  ) async {
+    await _storage.setJsonList(
+      _walletsKey,
+      wallets.map((wallet) => wallet.toJson()).toList(growable: false),
+    );
+    if (currentWalletId == null || currentWalletId.isEmpty) {
       await _storage.remove(_currentWalletIdKey);
+    } else {
+      await _storage.setString(_currentWalletIdKey, currentWalletId);
     }
+  }
+
+  void _upsertWallet(List<WalletAccount> wallets, WalletAccount wallet) {
+    final index = wallets.indexWhere((item) => item.id == wallet.id);
+    if (index < 0) {
+      wallets.add(wallet);
+    } else {
+      wallets[index] = wallet;
+    }
+  }
+
+  void _validateWalletsForSave(
+    List<WalletAccount> wallets, {
+    required bool allowDroppingLegacySecrets,
+  }) {
+    if (!allowDroppingLegacySecrets &&
+        wallets.any((wallet) => wallet.needsSecretMigration)) {
+      throw StateError('Legacy wallet secrets must be migrated before saving');
+    }
+  }
+
+  Future<T> _serialized<T>(Future<T> Function() action) {
+    final previous = _persistenceBarrier;
+    final completed = Completer<void>();
+    _persistenceBarrier = completed.future;
+    return () async {
+      await previous;
+      try {
+        return await action();
+      } finally {
+        completed.complete();
+      }
+    }();
   }
 
   /// 读取旧版本单钱包数据。

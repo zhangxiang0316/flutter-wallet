@@ -6,7 +6,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///
 /// 新代码优先使用类型化方法，例如 [getString]、[getJsonList]、[setJsonList]。
 /// [getStorage]、[setStorage] 保留给旧调用方做兼容迁移。
-class Storage {
+/// 可替换的键值存储契约，便于高风险持久化流程做故障注入测试。
+abstract interface class KeyValueStorage {
+  Future<Object?> getValue(String key);
+  Future<String?> getString(String key);
+  Future<List<dynamic>?> getJsonList(String key);
+  Future<Map<String, dynamic>?> getJsonMap(String key);
+  Future<void> setString(String key, String value);
+  Future<void> setJsonList(String key, List<dynamic> value);
+  Future<void> setJsonMap(String key, Map<String, dynamic> value);
+  Future<bool> remove(String key);
+}
+
+class Storage implements KeyValueStorage {
   static final Storage _instance = Storage._();
 
   factory Storage() => _instance;
@@ -53,16 +65,19 @@ class Storage {
   }
 
   /// 读取原始 SharedPreferences 值，不做 JSON 自动解码。
+  @override
   Future<Object?> getValue(String key) async {
     final prefs = await _preferences;
     return prefs.get(key);
   }
 
+  @override
   Future<String?> getString(String key) async {
     final prefs = await _preferences;
     return prefs.getString(key);
   }
 
+  @override
   Future<List<dynamic>?> getJsonList(String key) async {
     final value = await getValue(key);
     if (value is List) {
@@ -75,6 +90,7 @@ class Storage {
     return null;
   }
 
+  @override
   Future<Map<String, dynamic>?> getJsonMap(String key) async {
     final decoded = _decodeJsonString(await getValue(key));
     if (decoded is Map) {
@@ -83,21 +99,25 @@ class Storage {
     return null;
   }
 
+  @override
   Future<void> setString(String key, String value) async {
     final prefs = await _preferences;
     await prefs.setString(key, value);
   }
 
+  @override
   Future<void> setJsonList(String key, List<dynamic> value) async {
     final prefs = await _preferences;
     await prefs.setString(key, jsonEncode(value));
   }
 
+  @override
   Future<void> setJsonMap(String key, Map<String, dynamic> value) async {
     final prefs = await _preferences;
     await prefs.setString(key, jsonEncode(value));
   }
 
+  @override
   Future<bool> remove(String key) async {
     final prefs = await _preferences;
     return prefs.remove(key);
