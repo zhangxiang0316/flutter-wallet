@@ -11,7 +11,7 @@
 - Web、Android、iOS、macOS 等平台兼容性；
 - 测试结构、静态分析和发布流程。
 
-本文初稿只记录审查结论；第 4.1、4.2 节已在后续改造中完成，落地情况记录在对应问题和文末验收记录。
+本文初稿只记录审查结论；第 4.1、4.2、4.3 节已在后续改造中完成，落地情况记录在对应问题和文末验收记录。
 
 ## 2. 当前质量基线
 
@@ -143,7 +143,7 @@ signingConfigs.getByName("debug")
 - APK/AAB 只接受 `flutter-Wallet-v<pubspec version>` 文件名，并生成同名 `.sha256` 文件；任一校验失败时不会报告构建成功；
 - APK 与 AAB 构建脚本复用 `scripts/android_release_common.sh`，避免两套发布校验逻辑漂移。
 
-### 4.3 P1：创建和导入流程未接入敏感页面生命周期保护
+### 4.3 P1：创建和导入流程未接入敏感页面生命周期保护（已完成）
 
 位置：
 
@@ -176,6 +176,16 @@ signingConfigs.getByName("debug")
 5. 只有平台确认启用成功后才显示提示；
 6. 使用引用计数或 token 管理嵌套敏感页面，避免一个页面释放时提前关闭全局保护；
 7. 增加 Web、Android、iOS/macOS 生命周期 Widget 测试或平台通道测试。
+
+完成情况（2026-08-25）：
+
+- 新增 `SensitiveDataScope`，创建、迁移和导入 Sheet 统一注册/注销敏感数据清理回调，并持有屏幕保护租约；
+- `PasswordSetupSheet` 在 inactive/paused/hidden/detached 对应的全局清理事件中清空密码、确认密码、助记词、钱包 ID 和抽词确认输入；异步创建在清理后返回时不会重新展示助记词；
+- `ImportWalletSheet` 在提交前把 secret/password 复制到本次调用的短生命周期变量，随即清空三个 `TextEditingController`；生命周期清理发生在提交前时不会继续发起导入；
+- `screen_security.dart` 使用条件导入，Web 不再加载 `dart:io`；Android/iOS 调用原生通道，Web/macOS/Windows 返回 `unsupported`，原生异常返回 `failed`；
+- `SecureScreen` 只有收到 `enabled` 才显示保护提示，不再把 unsupported/failed 当成成功；
+- 屏幕保护改为 token/引用计数租约，嵌套敏感页面只启用一次，最后一个租约释放后才关闭保护；
+- 增加屏幕保护状态、嵌套租约、作用域注册注销、创建/导入生命周期和异步中断测试，并完成 Web Release 构建验证。
 
 ### 4.4 P1：删除钱包后余额和交易历史缓存仍长期残留（核心清理已完成）
 
@@ -450,15 +460,15 @@ if (!Get.isRegistered<T>()) {
 | 优先级 | 数量 | 建议处理时间 |
 | --- | ---: | --- |
 | P0 | 0（2 项均已完成） | 已完成，Release 前持续回归 |
-| P1 | 6 | P0 完成后的第一个迭代 |
+| P1 | 5（另 1 项已完成） | P0 完成后的第一个迭代 |
 | P2 | 2 | 架构迭代内分批处理 |
 | P3 | 1 | 随近期 Flutter 兼容性维护清理 |
 
 如果只选择三个任务立即开始，建议依次选择：
 
-1. 敏感创建/导入页面保护；
-2. 钱包确认状态和广播结果校验；
-3. 密钥 payload 参数验证和升级机制。
+1. 钱包确认状态和广播结果校验；
+2. 密钥 payload 参数验证和升级机制；
+3. 第三方 API Key 服务端代理。
 
 ## 8. 本次复核记录（2026-08-25）
 
@@ -495,7 +505,7 @@ bash scripts/check_secrets.sh
 
 ```bash
 flutter test --no-pub
-# 400 项全部通过
+# 410 项全部通过
 
 flutter analyze --no-pub
 # 0 error、0 warning；保留审查时已有的 14 条 info
@@ -526,3 +536,23 @@ bash scripts/check_secrets.sh
 - 将预期指纹临时替换为错误值后，校验函数按预期返回失败；
 - APK/AAB 均生成同名 `.sha256` 文件；
 - 新增 `test/tooling/android_release_configuration_test.dart`，防止 Debug 回退、固定指纹和共享校验入口回归。
+
+## 11. 第 4.3 节改造验收记录（2026-08-25）
+
+实现文件：
+
+- `lib/utils/screen_security.dart`；
+- `lib/utils/screen_security_platform_io.dart`；
+- `lib/utils/screen_security_platform_stub.dart`；
+- `lib/widget/secure_screen.dart`；
+- `lib/widget/sensitive_data_scope.dart`；
+- `lib/page/home/view/widgets/password_setup_sheet.dart`；
+- `lib/page/home/view/widgets/import_wallet_sheet.dart`。
+
+验证结果：
+
+- 14 项屏幕保护、敏感作用域、创建和导入生命周期定向测试全部通过；
+- `flutter test --no-pub` 共 410 项全部通过；
+- `flutter build web --release` 成功，屏幕保护代码未触发 `dart:io Platform` 不支持错误；
+- `flutter analyze --no-pub` 为 0 error、0 warning，保留审查时已有的 14 条 info；
+- 敏感信息扫描和 `git diff --check` 通过。

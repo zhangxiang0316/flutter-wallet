@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../generated/l10n.dart';
@@ -44,22 +46,15 @@ class SecureScreen extends StatefulWidget {
 }
 
 class _SecureScreenState extends State<SecureScreen> {
+  ScreenSecurityLease? _lease;
+  Timer? _toastTimer;
+  int _securityEpoch = 0;
+
   @override
   void initState() {
     super.initState();
     if (widget.enabled) {
-      _enableSecurity();
-      // 延迟显示提示，避免页面动画冲突
-      if (widget.showToast) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            Toast.show(
-              S.current.screenshotProtectionEnabled,
-              displayTime: const Duration(seconds: 3),
-            );
-          }
-        });
-      }
+      _acquireSecurity();
     }
   }
 
@@ -68,29 +63,49 @@ class _SecureScreenState extends State<SecureScreen> {
     super.didUpdateWidget(oldWidget);
     if (widget.enabled != oldWidget.enabled) {
       if (widget.enabled) {
-        _enableSecurity();
+        _acquireSecurity();
       } else {
-        _disableSecurity();
+        _releaseSecurity();
       }
     }
   }
 
   @override
   void dispose() {
-    if (widget.enabled) {
-      _disableSecurity();
-    }
+    _releaseSecurity();
     super.dispose();
   }
 
-  /// 启用截屏保护。
-  Future<void> _enableSecurity() async {
-    await ScreenSecurity.enable();
+  Future<void> _acquireSecurity() async {
+    final epoch = ++_securityEpoch;
+    final lease = await ScreenSecurity.acquire();
+    if (!mounted || !widget.enabled || epoch != _securityEpoch) {
+      await lease.release();
+      return;
+    }
+    _lease = lease;
+    if (lease.state == ScreenSecurityState.enabled && widget.showToast) {
+      // 只有原生平台明确返回 enabled 才提示，避免 unsupported/failed 时误导用户。
+      _toastTimer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted && epoch == _securityEpoch && widget.enabled) {
+          Toast.show(
+            S.current.screenshotProtectionEnabled,
+            displayTime: const Duration(seconds: 3),
+          );
+        }
+      });
+    }
   }
 
-  /// 禁用截屏保护。
-  Future<void> _disableSecurity() async {
-    await ScreenSecurity.disable();
+  void _releaseSecurity() {
+    _securityEpoch++;
+    _toastTimer?.cancel();
+    _toastTimer = null;
+    final lease = _lease;
+    _lease = null;
+    if (lease != null) {
+      unawaited(lease.release());
+    }
   }
 
   @override

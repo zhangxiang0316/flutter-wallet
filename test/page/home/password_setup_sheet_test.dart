@@ -5,9 +5,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/generated/l10n.dart';
+import 'package:omnicast/page/home/controller/home_controller.dart';
 import 'package:omnicast/page/home/view/widgets/password_setup_sheet.dart';
+import 'package:omnicast/utils/sensitive_data_lifecycle.dart';
 
 void main() {
+  setUp(SensitiveDataLifecycle.reset);
+  tearDown(SensitiveDataLifecycle.reset);
+
   testWidgets('shows wallet creation progress and prevents duplicate submit', (
     tester,
   ) async {
@@ -63,6 +68,61 @@ void main() {
     for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
       expect(field.controller?.text, isEmpty);
     }
+  });
+
+  testWidgets('clears a displayed mnemonic when the app becomes inactive', (
+    tester,
+  ) async {
+    const mnemonic =
+        'abandon ability able about above absent absorb abstract absurd abuse access accident';
+    await tester.pumpWidget(
+      _testApp(
+        onSubmit: (_) async =>
+            const CreatedWalletBackup(walletId: 'wallet-1', mnemonic: mnemonic),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '123456');
+    await tester.enterText(fields.at(1), '123456');
+    await tester.tap(find.widgetWithText(FilledButton, '创建钱包'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('abandon'), findsOneWidget);
+    SensitiveDataLifecycle.clearAll();
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('abandon'), findsNothing);
+    expect(find.byType(TextField), findsNWidgets(2));
+    for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(field.controller?.text, isEmpty);
+    }
+  });
+
+  testWidgets('does not reveal a mnemonic returned after lifecycle clearing', (
+    tester,
+  ) async {
+    const mnemonic =
+        'abandon ability able about above absent absorb abstract absurd abuse access accident';
+    final result = Completer<Object?>();
+    await tester.pumpWidget(_testApp(onSubmit: (_) => result.future));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '123456');
+    await tester.enterText(fields.at(1), '123456');
+    await tester.tap(find.widgetWithText(FilledButton, '创建钱包'));
+    await tester.pump();
+    await tester.pump();
+
+    SensitiveDataLifecycle.clearAll();
+    result.complete(
+      const CreatedWalletBackup(walletId: 'wallet-1', mnemonic: mnemonic),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('abandon'), findsNothing);
   });
 }
 

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../utils/toast_util.dart';
 import '../../../../wallet/services/config/wallet_backup_status_service.dart';
+import '../../../../widget/sensitive_data_scope.dart';
 import '../../controller/home_controller.dart';
 import 'wallet_sheet_styles.dart';
 
@@ -75,8 +76,13 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
   final WalletBackupStatusService _backupStatusService =
       WalletBackupStatusService();
 
+  int _sensitiveEpoch = 0;
+
+  late final VoidCallback _sensitiveClearCallback = _clearSensitiveData;
+
   @override
   void dispose() {
+    _clearSensitiveData(notify: false);
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     for (final controller in _confirmWordControllers) {
@@ -87,18 +93,21 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: widget.isDismissible && !_isSubmitting,
-      child: VantSheet(
-        showHandle: widget.isDismissible,
-        bottomInset: MediaQuery.of(context).viewInsets.bottom,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          child: _mnemonic == null
-              ? _buildPasswordStep(context)
-              : _isConfirmingMnemonic
-              ? _buildMnemonicConfirmStep(context, _mnemonic!)
-              : _buildMnemonicBackupStep(context, _mnemonic!),
+    return SensitiveDataScope(
+      onClear: _sensitiveClearCallback,
+      child: PopScope(
+        canPop: widget.isDismissible && !_isSubmitting,
+        child: VantSheet(
+          showHandle: widget.isDismissible,
+          bottomInset: MediaQuery.of(context).viewInsets.bottom,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: _mnemonic == null
+                ? _buildPasswordStep(context)
+                : _isConfirmingMnemonic
+                ? _buildMnemonicConfirmStep(context, _mnemonic!)
+                : _buildMnemonicBackupStep(context, _mnemonic!),
+          ),
         ),
       ),
     );
@@ -282,6 +291,7 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
       return;
     }
 
+    final requestEpoch = _sensitiveEpoch;
     FocusManager.instance.primaryFocus?.unfocus();
     // 密码已复制到当前异步调用后，立即清空输入控制器，避免在助记词备份期间继续
     // 将敏感信息保留在 Widget 的文本缓冲区中。创建失败时用户需要重新输入。
@@ -290,10 +300,20 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     setState(() => _isSubmitting = true);
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
+    if (requestEpoch != _sensitiveEpoch) {
+      setState(() => _isSubmitting = false);
+      return;
+    }
 
     // 创建钱包可能返回助记词备份信息，迁移流程通常返回 bool。
     final result = await widget.onSubmit(password);
     if (!mounted) return;
+    if (requestEpoch != _sensitiveEpoch) {
+      await _finishInterruptedSubmission(
+        succeeded: result == true || result is CreatedWalletBackup,
+      );
+      return;
+    }
     if (result is CreatedWalletBackup) {
       setState(() {
         _walletId = result.walletId;
@@ -323,6 +343,7 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     final mnemonic = _mnemonic;
     final walletId = _walletId;
     if (mnemonic == null || walletId == null) return;
+    final requestEpoch = _sensitiveEpoch;
 
     final words = mnemonic.split(' ');
     final indexes = _confirmIndexes(words.length);
@@ -340,6 +361,11 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     setState(() => _isSubmitting = true);
     await _backupStatusService.markMnemonicBackedUp(walletId);
     if (!mounted) return;
+    if (requestEpoch != _sensitiveEpoch) {
+      await _finishInterruptedSubmission(succeeded: true);
+      return;
+    }
+    _clearSensitiveData();
     Toast.show(S.current.mnemonicBackedUp);
     Navigator.of(context).pop();
   }
@@ -356,6 +382,28 @@ class _PasswordSetupSheetState extends State<PasswordSetupSheet> {
     return candidates
         .where((index) => index >= 0 && index < wordCount)
         .toList(growable: false);
+  }
+
+  void _clearSensitiveData({bool notify = true}) {
+    _sensitiveEpoch++;
+    _passwordController.clear();
+    _confirmPasswordController.clear();
+    for (final controller in _confirmWordControllers) {
+      controller.clear();
+    }
+    _mnemonic = null;
+    _walletId = null;
+    _isConfirmingMnemonic = false;
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (notify && mounted) setState(() {});
+  }
+
+  Future<void> _finishInterruptedSubmission({required bool succeeded}) async {
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    if (!succeeded) return;
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) await Navigator.of(context).maybePop();
   }
 }
 
