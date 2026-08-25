@@ -3,8 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../../generated/l10n.dart';
-import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../../wallet/models/chain_balance.dart';
+import '../../../../widget/chain_presentation_scope.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_review_flow.dart';
 import 'transfer_styles.dart';
@@ -68,7 +68,7 @@ class TransferFormPanel extends StatelessWidget {
             decoration: transferInputDecoration(
               context,
               label: S.of(context).recipientAddress,
-              hint: _addressHint(asset),
+              hint: _addressHint(context, asset),
               icon: Icons.account_circle_outlined,
             ),
           ).marginOnly(bottom: 12.h),
@@ -140,11 +140,8 @@ class TransferFormPanel extends StatelessWidget {
   }
 
   /// 根据链类型返回地址输入框占位提示。
-  String _addressHint(ChainBalance asset) {
+  String _addressHint(BuildContext context, ChainBalance asset) {
     final chain = asset.chainRef;
-    return createDefaultChainAdapterRegistry()
-        .require(chain)
-        .presentation(chain)
-        .addressHint;
+    return ChainPresentationScope.of(context).presentation(chain).addressHint;
   }
 }

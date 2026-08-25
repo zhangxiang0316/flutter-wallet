@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../wallet/models/wallet_account.dart';
 import '../../../../wallet/models/wallet_chain.dart';
-import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
+import '../../../../widget/chain_presentation_scope.dart';
 import 'wallet_detail_common.dart';
 
 /// 各链地址列表区域。
@@ -135,8 +135,7 @@ class _ChainBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final adapter = createDefaultChainAdapterRegistry().require(chain);
-    final presentation = adapter.presentation(chain);
+    final presentation = ChainPresentationScope.of(context).presentation(chain);
     final color = Color(presentation.colorValue);
     return Container(
       width: 32.w,

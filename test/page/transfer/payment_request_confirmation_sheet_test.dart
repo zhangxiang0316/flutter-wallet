@@ -5,9 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/generated/l10n.dart';
 import 'package:omnicast/page/transfer/controller/transfer_controller.dart';
 import 'package:omnicast/page/transfer/view/widgets/payment_request_confirmation_sheet.dart';
+import 'package:omnicast/wallet/adapters/default_chain_adapter_registry.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/payment_request.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
+import 'package:omnicast/wallet/policies/chain_presentation_policy.dart';
+import 'package:omnicast/widget/chain_presentation_scope.dart';
 
 void main() {
   testWidgets('shows the current network before accepting a plain address', (
@@ -36,15 +39,18 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(375, 812),
-        builder: (_, _) => MaterialApp(
-          locale: const Locale('zh'),
-          localizationsDelegates: const [
-            S.delegate,
-            ...GlobalMaterialLocalizations.delegates,
-          ],
-          supportedLocales: S.delegate.supportedLocales,
-          home: const Scaffold(
-            body: PaymentRequestConfirmationSheet(resolution: resolution),
+        builder: (_, _) => ChainPresentationScope(
+          policy: ChainPresentationPolicy(createDefaultChainAdapterRegistry()),
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: const [
+              S.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: S.delegate.supportedLocales,
+            home: const Scaffold(
+              body: PaymentRequestConfirmationSheet(resolution: resolution),
+            ),
           ),
         ),
       ),

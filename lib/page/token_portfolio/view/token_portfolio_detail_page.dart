@@ -227,7 +227,7 @@ class _NetworkPositionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chainColor = homeChainColor(position.chain);
+    final chainColor = homeChainColor(context, position.chain);
     final balance = position.balance;
     return Semantics(
       button: true,

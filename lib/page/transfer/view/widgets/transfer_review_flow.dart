@@ -9,9 +9,9 @@ import '../../../../utils/toast_util.dart';
 import '../../../../utils/transaction_risk_checker.dart';
 import '../../../../wallet/models/chain_balance.dart';
 import '../../../../wallet/adapters/chain_adapter.dart';
-import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
 import '../../../../wallet/services/wallet_transfer_service.dart';
 import '../../../../widget/transaction_review_sheet.dart';
+import '../../../../widget/chain_presentation_scope.dart';
 import '../../controller/transfer_controller.dart';
 import 'transfer_styles.dart';
 
@@ -179,8 +179,8 @@ class TransferReviewFlow {
     final feeValue = Decimal.tryParse(feeEstimate?.amount ?? '');
     final amountPrice = args?.usdPrices[asset.symbol.toUpperCase()];
     final feePrice = args?.usdPrices[feeEstimate?.symbol.toUpperCase()];
-    final adapter = createDefaultChainAdapterRegistry().require(asset.chainRef);
-    final policy = adapter.transferPolicy(asset.chainRef);
+    final chainPolicy = ChainPresentationScope.of(context);
+    final policy = chainPolicy.transferPolicy(asset.chainRef);
     final risks = TransactionRiskChecker.checkAllRisks(
       context: TransactionRiskContext(
         amount: amount,
@@ -247,6 +247,7 @@ class TransferReviewFlow {
     ]);
 
     final clipboardAddress = _extractAddressFromTextForAsset(
+      context,
       asset,
       clipboardText ?? '',
     );
@@ -357,13 +358,14 @@ class TransferReviewFlow {
   }
 
   static String? _extractAddressFromTextForAsset(
+    BuildContext context,
     ChainBalance asset,
     String value,
   ) {
     if (value.trim().isEmpty) return null;
-    return createDefaultChainAdapterRegistry()
-        .require(asset.chainRef)
-        .extractAddress(value);
+    return ChainPresentationScope.of(
+      context,
+    ).extractAddress(asset.chainRef, value);
   }
 
   static TransactionRisk? _checkBurnAddress({

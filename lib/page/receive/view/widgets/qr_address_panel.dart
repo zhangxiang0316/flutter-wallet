@@ -35,7 +35,7 @@ class ReceiveQrAddressPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasAddress = address.trim().isNotEmpty;
     final hasQrData = qrData.trim().isNotEmpty;
-    final color = receiveChainColor(chain);
+    final color = receiveChainColor(context, chain);
     return ReceivePanel(
       title: S.of(context).receiveQrTitle,
       child: Column(

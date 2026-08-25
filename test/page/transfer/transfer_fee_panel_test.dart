@@ -5,9 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:omnicast/generated/l10n.dart';
 import 'package:omnicast/page/transfer/controller/transfer_controller.dart';
 import 'package:omnicast/page/transfer/view/widgets/transfer_fee_panel.dart';
+import 'package:omnicast/wallet/adapters/default_chain_adapter_registry.dart';
 import 'package:omnicast/wallet/models/chain_balance.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
+import 'package:omnicast/wallet/policies/chain_presentation_policy.dart';
 import 'package:omnicast/wallet/services/wallet_transfer_service.dart';
+import 'package:omnicast/widget/chain_presentation_scope.dart';
 
 void main() {
   testWidgets('shows the selected L2 network while keeping ETH as gas token', (
@@ -41,15 +44,18 @@ void main() {
 Widget _app(ChainBalance asset, TransferController controller) {
   return ScreenUtilInit(
     designSize: const Size(375, 812),
-    builder: (_, _) => MaterialApp(
-      locale: const Locale('zh'),
-      localizationsDelegates: const [
-        S.delegate,
-        ...GlobalMaterialLocalizations.delegates,
-      ],
-      supportedLocales: S.delegate.supportedLocales,
-      home: Scaffold(
-        body: TransferFeePanel(asset: asset, controller: controller),
+    builder: (_, _) => ChainPresentationScope(
+      policy: ChainPresentationPolicy(createDefaultChainAdapterRegistry()),
+      child: MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: const [
+          S.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        supportedLocales: S.delegate.supportedLocales,
+        home: Scaffold(
+          body: TransferFeePanel(asset: asset, controller: controller),
+        ),
       ),
     ),
   );

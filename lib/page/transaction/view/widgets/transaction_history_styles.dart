@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../wallet/models/wallet_chain.dart';
-import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
+import '../../../../widget/chain_presentation_scope.dart';
 
 /// 交易记录页面通用面板样式。
 BoxDecoration transactionPanelDecoration(BuildContext context) {
@@ -16,13 +16,13 @@ BoxDecoration transactionPanelDecoration(BuildContext context) {
 }
 
 /// 获取链或币种在交易记录页中的主色。
-Color transactionChainColor(WalletChainRef chain) {
+Color transactionChainColor(BuildContext context, WalletChainRef chain) {
   final configColor = chain is WalletChainConfig ? chain.colorValue : null;
   if (configColor != null) {
     return Color(configColor);
   }
-  final adapter = createDefaultChainAdapterRegistry().require(chain);
-  return Color(adapter.presentation(chain).colorValue);
+  final presentation = ChainPresentationScope.of(context).presentation(chain);
+  return Color(presentation.colorValue);
 }
 
 /// 压缩长地址或交易哈希。

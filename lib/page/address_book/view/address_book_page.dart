@@ -9,7 +9,7 @@ import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
 import '../../../wallet/models/wallet_address_book_entry.dart';
 import '../../../wallet/models/wallet_chain.dart';
-import '../../../wallet/adapters/default_chain_adapter_registry.dart';
+import '../../../wallet/policies/chain_presentation_policy.dart';
 import '../../../wallet/services/config/wallet_address_book_service.dart';
 import '../../../wallet/services/config/wallet_chain_config_service.dart';
 import 'widgets/address_book_action_sheet.dart';
@@ -39,7 +39,7 @@ class AddressBookPageArguments {
 class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
   @override
   AddressBookController generateController() {
-    return AddressBookController();
+    return AddressBookController(chainPolicy: Get.find());
   }
 
   @override
@@ -165,13 +165,16 @@ class AddressBookPage extends BaseScaffoldPage<AddressBookController> {
 
 class AddressBookController extends BaseController {
   AddressBookController({
+    required ChainPresentationPolicy chainPolicy,
     WalletAddressBookService? service,
     WalletChainConfigService? chainService,
   }) : _service = service ?? WalletAddressBookService(),
-       _chainService = chainService ?? WalletChainConfigService();
+       _chainService = chainService ?? WalletChainConfigService(),
+       _chainPolicy = chainPolicy;
 
   final WalletAddressBookService _service;
   final WalletChainConfigService _chainService;
+  final ChainPresentationPolicy _chainPolicy;
 
   AddressBookPageArguments arguments = const AddressBookPageArguments();
   List<WalletAddressBookEntry> entries = [];
@@ -250,13 +253,6 @@ class AddressBookController extends BaseController {
   }
 
   bool _isAddressValid(WalletChainConfig chain, String address) {
-    try {
-      createDefaultChainAdapterRegistry()
-          .require(chain)
-          .normalizeAddress(address);
-      return true;
-    } catch (_) {
-      return false;
-    }
+    return _chainPolicy.isValidAddress(chain, address);
   }
 }

@@ -6,6 +6,16 @@ import 'package:omnicast/wallet/models/wallet_chain.dart';
 
 void main() {
   group('ChainAdapterRegistry', () {
+    test('reuses the application default registry', () {
+      expect(
+        identical(
+          createDefaultChainAdapterRegistry(),
+          createDefaultChainAdapterRegistry(),
+        ),
+        isTrue,
+      );
+    });
+
     test('registers every supported chain type', () {
       final registry = createDefaultChainAdapterRegistry();
 

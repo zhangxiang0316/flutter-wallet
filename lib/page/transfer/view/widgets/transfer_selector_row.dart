@@ -45,7 +45,7 @@ class TransferSelectorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chainColor = transferChainColor(selectedAsset.chainRef);
+    final chainColor = transferChainColor(context, selectedAsset.chainRef);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
@@ -137,7 +137,7 @@ class _ChainDropdown extends StatelessWidget {
       decoration: _dropdownDecoration(
         context,
         label: S.of(context).selectTransferChain,
-        focusColor: transferChainColor(validSelectedChain),
+        focusColor: transferChainColor(context, validSelectedChain),
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
@@ -204,7 +204,7 @@ class _AssetDropdown extends StatelessWidget {
       decoration: _dropdownDecoration(
         context,
         label: S.of(context).selectTransferAsset,
-        focusColor: transferChainColor(selectedAsset.chainRef),
+        focusColor: transferChainColor(context, selectedAsset.chainRef),
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
@@ -242,7 +242,7 @@ class _ChainOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = transferChainColor(chain);
+    final color = transferChainColor(context, chain);
     return Row(
       children: [
         Container(

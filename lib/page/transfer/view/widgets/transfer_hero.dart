@@ -20,7 +20,7 @@ class TransferHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final assetColor = transferAssetColor(context, asset.symbol);
-    final chainColor = transferChainColor(asset.chainRef);
+    final chainColor = transferChainColor(context, asset.chainRef);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(18.w),

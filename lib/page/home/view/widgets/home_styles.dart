@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../wallet/models/wallet_chain.dart';
-import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
+import '../../../../widget/chain_presentation_scope.dart';
 
 /// 首页卡片和面板的统一背景、圆角和边框样式。
 BoxDecoration homePanelDecoration(BuildContext context) {
@@ -36,9 +36,9 @@ Color homeSubTextColor(BuildContext context) {
 }
 
 /// 首页各条链的品牌识别色。
-Color homeChainColor(WalletChainRef chain) {
-  final adapter = createDefaultChainAdapterRegistry().require(chain);
-  return Color(adapter.presentation(chain).colorValue);
+Color homeChainColor(BuildContext context, WalletChainRef chain) {
+  final presentation = ChainPresentationScope.of(context).presentation(chain);
+  return Color(presentation.colorValue);
 }
 
 /// 首页各币种头像和标识的颜色。

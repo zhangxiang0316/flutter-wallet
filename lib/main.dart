@@ -16,6 +16,10 @@ import 'utils/password_cache_service.dart';
 import 'utils/sensitive_data_lifecycle.dart';
 import 'utils/storage.dart';
 import 'utils/text_theme_util.dart';
+import 'wallet/adapters/chain_adapter_registry.dart';
+import 'wallet/adapters/default_chain_adapter_registry.dart';
+import 'wallet/policies/chain_presentation_policy.dart';
+import 'widget/chain_presentation_scope.dart';
 
 // 应用主题切换与持久化控制器
 class ThemeController extends GetxController {
@@ -77,8 +81,14 @@ void main() async {
   // 初始化主题控制器
   Get.put(ThemeController());
 
+  // 在应用组合根创建唯一的 Adapter Registry，并向页面注入只读展示策略。
+  final chainAdapterRegistry = createDefaultChainAdapterRegistry();
+  final chainPresentationPolicy = ChainPresentationPolicy(chainAdapterRegistry);
+  Get.put<ChainAdapterRegistry>(chainAdapterRegistry, permanent: true);
+  Get.put<ChainPresentationPolicy>(chainPresentationPolicy, permanent: true);
+
   // 先绘制 Flutter 首帧，避免本地存储读取拉长原生白屏时间。
-  runApp(const MyApp());
+  runApp(MyApp(chainPresentationPolicy: chainPresentationPolicy));
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _restoreSavedLanguage();
   });
@@ -96,7 +106,9 @@ Future<void> _restoreSavedLanguage() async {
 
 // 应用入口 Widget
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key, required this.chainPresentationPolicy});
+
+  final ChainPresentationPolicy chainPresentationPolicy;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -285,7 +297,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           // 路由回调
           routingCallback: (routing) {},
           // 弹窗初始化
-          builder: FlutterSmartDialog.init(),
+          builder: (context, child) => ChainPresentationScope(
+            policy: widget.chainPresentationPolicy,
+            child: FlutterSmartDialog.init()(context, child),
+          ),
         ),
       ),
     );

@@ -15,7 +15,7 @@ class TransactionAssetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = transactionChainColor(asset.chainRef);
+    final color = transactionChainColor(context, asset.chainRef);
     final subTextColor = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.58);

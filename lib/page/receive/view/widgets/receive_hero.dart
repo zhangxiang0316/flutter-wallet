@@ -20,7 +20,7 @@ class ReceiveHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = receiveChainColor(chain);
+    final color = receiveChainColor(context, chain);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(15.w),

@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../common/theme/app_theme_extension.dart';
 import '../../../../wallet/models/wallet_chain.dart';
-import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
+import '../../../../widget/chain_presentation_scope.dart';
 
 /// 转账页面通用面板装饰。
 ///
@@ -82,9 +82,9 @@ TextStyle transferInputTextStyle(BuildContext context) {
 }
 
 /// 获取链在转账页面中的强调色。
-Color transferChainColor(WalletChainRef chain) {
-  final adapter = createDefaultChainAdapterRegistry().require(chain);
-  return Color(adapter.presentation(chain).colorValue);
+Color transferChainColor(BuildContext context, WalletChainRef chain) {
+  final presentation = ChainPresentationScope.of(context).presentation(chain);
+  return Color(presentation.colorValue);
 }
 
 /// 获取币种在转账页面中的强调色。

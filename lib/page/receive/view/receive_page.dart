@@ -7,6 +7,7 @@ import 'package:getx_route_annotations/getx_route_annotations.dart';
 import '../../../base/base_scaffold_page.dart';
 import '../../../generated/l10n.dart';
 import '../../../utils/toast_util.dart';
+import '../../../wallet/adapters/chain_adapter_registry.dart';
 import '../controller/receive_controller.dart';
 import 'widgets/qr_address_panel.dart';
 import 'widgets/receive_hero.dart';
@@ -23,7 +24,7 @@ class ReceivePage extends BaseScaffoldPage<ReceiveController> {
   /// 创建收款页面控制器。
   @override
   ReceiveController generateController() {
-    return ReceiveController();
+    return ReceiveController(adapterRegistry: Get.find<ChainAdapterRegistry>());
   }
 
   /// 页面顶部导航栏。

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../wallet/models/wallet_chain.dart';
-import '../../../../wallet/adapters/default_chain_adapter_registry.dart';
+import '../../../../widget/chain_presentation_scope.dart';
 
 /// 收款页通用分隔线颜色。
 Color receiveDividerColor(BuildContext context) {
@@ -10,15 +10,14 @@ Color receiveDividerColor(BuildContext context) {
 }
 
 /// 获取收款页中每条链的品牌色。
-Color receiveChainColor(WalletChainRef chain) {
-  final adapter = createDefaultChainAdapterRegistry().require(chain);
-  return Color(adapter.presentation(chain).colorValue);
+Color receiveChainColor(BuildContext context, WalletChainRef chain) {
+  final presentation = ChainPresentationScope.of(context).presentation(chain);
+  return Color(presentation.colorValue);
 }
 
 /// 获取链在小圆点中的单字母缩写。
-String receiveChainLabel(WalletChainRef chain) {
-  final adapter = createDefaultChainAdapterRegistry().require(chain);
-  return adapter.presentation(chain).label;
+String receiveChainLabel(BuildContext context, WalletChainRef chain) {
+  return ChainPresentationScope.of(context).presentation(chain).label;
 }
 
 /// 收款页通用面板容器。
@@ -137,7 +136,7 @@ class ReceiveChainDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = receiveChainColor(chain);
+    final color = receiveChainColor(context, chain);
     return Container(
       width: 18.w,
       height: 18.w,
@@ -147,7 +146,7 @@ class ReceiveChainDot extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Text(
-        receiveChainLabel(chain),
+        receiveChainLabel(context, chain),
         style: TextStyle(
           color: color,
           fontSize: 9.sp,

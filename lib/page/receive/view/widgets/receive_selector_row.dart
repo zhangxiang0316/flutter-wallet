@@ -111,7 +111,7 @@ class _ChainDropdown extends StatelessWidget {
       decoration: _dropdownDecoration(
         context,
         label: S.of(context).selectReceiveChain,
-        focusColor: receiveChainColor(selectedChain),
+        focusColor: receiveChainColor(context, selectedChain),
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
@@ -209,13 +209,13 @@ class _AssetDropdown extends StatelessWidget {
       decoration: _dropdownDecoration(
         context,
         label: S.of(context).selectReceiveAsset,
-        focusColor: receiveChainColor(selectedAsset.chainRef),
+        focusColor: receiveChainColor(context, selectedAsset.chainRef),
       ),
       borderRadius: BorderRadius.circular(8.r),
       dropdownColor: Theme.of(context).cardColor,
       items: assets
           .map((asset) {
-            final color = receiveChainColor(asset.chainRef);
+            final color = receiveChainColor(context, asset.chainRef);
             return DropdownMenuItem<String>(
               value: asset.assetKey,
               child: Row(

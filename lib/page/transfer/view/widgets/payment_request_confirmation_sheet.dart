@@ -63,6 +63,7 @@ class PaymentRequestConfirmationSheet extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: transferChainColor(
+                        context,
                         targetAsset.chainRef,
                       ).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10.r),
@@ -70,7 +71,7 @@ class PaymentRequestConfirmationSheet extends StatelessWidget {
                     child: Icon(
                       Icons.qr_code_2_rounded,
                       size: 23.w,
-                      color: transferChainColor(targetAsset.chainRef),
+                      color: transferChainColor(context, targetAsset.chainRef),
                     ),
                   ),
                 ),
