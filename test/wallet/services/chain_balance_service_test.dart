@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omnicast/wallet/models/wallet_account.dart';
+import 'package:omnicast/wallet/models/wallet_asset.dart';
 import 'package:omnicast/wallet/models/wallet_chain.dart';
 import 'package:omnicast/wallet/services/chain_balance_service.dart';
 import 'package:omnicast/wallet/services/wallet_history_api_config.dart';
@@ -93,6 +97,54 @@ void main() {
       expect(completedChainIds.toSet().length, 9);
       expect(balances, isNotEmpty);
     });
+
+    test(
+      'limits concurrent chain balance loads and fills available workers',
+      () async {
+        final firstBatchStarted = Completer<void>();
+        final releaseFirstBatch = Completer<void>();
+        var activeLoads = 0;
+        var peakActiveLoads = 0;
+        var startedLoads = 0;
+        final service = ChainBalanceService(
+          balanceLoaders: {
+            WalletAddressNamespace.evm:
+                ({
+                  required WalletChainConfig chain,
+                  required String address,
+                  required List<WalletAsset> assets,
+                  required List<WalletAsset> customAssets,
+                }) async {
+                  activeLoads++;
+                  startedLoads++;
+                  if (activeLoads > peakActiveLoads) {
+                    peakActiveLoads = activeLoads;
+                  }
+                  if (startedLoads == 4) firstBatchStarted.complete();
+                  await releaseFirstBatch.future;
+                  activeLoads--;
+                  return const [];
+                },
+          },
+        );
+
+        final refresh = service.loadBalances(
+          addressesByNamespace: {WalletAddressNamespace.evm: '0x1234'},
+          enabledChains: WalletChain.values
+              .where((chain) => chain.isEvm)
+              .map((chain) => chain.config)
+              .toList(growable: false),
+        );
+
+        await firstBatchStarted.future;
+        expect(startedLoads, 4);
+        releaseFirstBatch.complete();
+        await refresh;
+
+        expect(startedLoads, 7);
+        expect(peakActiveLoads, 4);
+      },
+    );
 
     test('loads native Bitcoin balance from Esplora API', () async {
       final dio = Dio();

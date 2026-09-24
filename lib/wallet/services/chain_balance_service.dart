@@ -115,6 +115,9 @@ class ChainBalanceService {
   /// EVM 单个 RPC 节点的尝试时间，超时后尽快切换备用节点。
   static const Duration _evmRequestTimeout = Duration(seconds: 3);
 
+  /// 多链刷新时允许同时执行的链余额查询数。
+  static const int _maxConcurrentChainBalanceLoads = 4;
+
   /// EVM 链 RPC 备用节点。
   ///
   /// 每条 EVM 链按顺序尝试节点，前一个失败后自动切到下一个。
@@ -224,7 +227,7 @@ class ChainBalanceService {
     addLegacyAddress(WalletAddressNamespace.sui, suiAddress);
     addLegacyAddress(WalletAddressNamespace.aptos, aptosAddress);
     final addresses = ChainWalletAddresses(addressValues);
-    final tasks = <Future<List<ChainBalance>>>[];
+    final tasks = <Future<List<ChainBalance>> Function()>[];
 
     for (final chain in chains) {
       final adapter = _adapterRegistry.require(
@@ -238,7 +241,7 @@ class ChainBalanceService {
         customAssets,
       );
       tasks.add(
-        _loadByChain(
+        () => _loadByChain(
           chain: chain,
           address: address,
           assets: assets,
@@ -248,7 +251,21 @@ class ChainBalanceService {
       );
     }
 
-    final results = await Future.wait(tasks);
+    final results = List<List<ChainBalance>>.filled(tasks.length, const []);
+    var nextTaskIndex = 0;
+
+    Future<void> runWorker() async {
+      while (nextTaskIndex < tasks.length) {
+        final taskIndex = nextTaskIndex++;
+        results[taskIndex] = await tasks[taskIndex]();
+      }
+    }
+
+    final workerCount = tasks.length < _maxConcurrentChainBalanceLoads
+        ? tasks.length
+        : _maxConcurrentChainBalanceLoads;
+    await Future.wait(List.generate(workerCount, (_) => runWorker()));
+
     final balances = results.expand((items) => items).toList();
     _printLoadedBalances(results, balances);
     return balances;
