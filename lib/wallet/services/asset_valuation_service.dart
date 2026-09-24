@@ -84,8 +84,8 @@ class AssetValuationService {
   /// key 是应用内统一的大写币种符号，value 是该币种的 USD 单价。
   final Map<String, Decimal> _cachedUsdPrices = {};
 
-  /// 价格缓存写入时间，用于判断是否仍在 TTL 内。
-  DateTime? _cachedUsdPricesAt;
+  /// 各币种价格的写入时间，用于独立判断缓存 TTL。
+  final Map<String, DateTime> _cachedUsdPriceTimes = {};
 
   /// 对外暴露只读缓存，供首页在余额刷新之外复用最近一次价格。
   Map<String, Decimal> get cachedUsdPrices =>
@@ -93,11 +93,13 @@ class AssetValuationService {
 
   /// 当前缓存是否仍可直接使用。
   bool get hasFreshCachedPrices {
-    final cachedAt = _cachedUsdPricesAt;
-    if (cachedAt == null || _cachedUsdPrices.isEmpty) {
+    if (_cachedUsdPrices.isEmpty) {
       return false;
     }
-    return DateTime.now().difference(cachedAt) < _priceCacheTtl;
+    final now = DateTime.now();
+    return _cachedUsdPrices.keys.every(
+      (symbol) => _hasFreshCachedPrice(symbol, now: now),
+    );
   }
 
   /// 根据余额列表拉取所需非稳定币价格。
@@ -136,22 +138,34 @@ class AssetValuationService {
     if (requestedSymbols.isEmpty) {
       return cachedUsdPrices;
     }
-    if (hasFreshCachedPrices &&
-        requestedSymbols.every(_cachedUsdPrices.containsKey)) {
+    final now = DateTime.now();
+    final symbolsToLoad = requestedSymbols
+        .where((symbol) => !_hasFreshCachedPrice(symbol, now: now))
+        .toList(growable: false);
+    if (symbolsToLoad.isEmpty) {
       return cachedUsdPrices;
     }
 
-    _logPriceRequest(requestedSymbols);
-    final prices = await _priceProviderDispatcher.load(requestedSymbols);
+    _logPriceRequest(symbolsToLoad);
+    final prices = await _priceProviderDispatcher.load(symbolsToLoad);
 
-    // 只有拿到至少一个新价格时才刷新缓存时间，避免失败请求把旧缓存误标为新缓存。
-    if (prices.isNotEmpty) {
-      _cachedUsdPrices.addAll(prices);
-      _cachedUsdPricesAt = DateTime.now();
+    // 只更新本次实际取得价格的币种时间，不能延长其它旧缓存的有效期。
+    final loadedAt = DateTime.now();
+    for (final entry in prices.entries) {
+      final symbol = entry.key.toUpperCase();
+      _cachedUsdPrices[symbol] = entry.value;
+      _cachedUsdPriceTimes[symbol] = loadedAt;
     }
 
-    _logPriceResult(requestedSymbols, prices);
+    _logPriceResult(symbolsToLoad, prices);
     return cachedUsdPrices;
+  }
+
+  bool _hasFreshCachedPrice(String symbol, {required DateTime now}) {
+    final cachedAt = _cachedUsdPriceTimes[symbol];
+    return _cachedUsdPrices.containsKey(symbol) &&
+        cachedAt != null &&
+        now.difference(cachedAt) < _priceCacheTtl;
   }
 
   /// 解析 Binance ticker price 响应。

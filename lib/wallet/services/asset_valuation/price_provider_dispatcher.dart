@@ -26,16 +26,36 @@ class AssetPriceProviderDispatcher {
   final AssetPriceProviderResultLogger onProviderResult;
   final AssetPriceProviderErrorLogger onProviderError;
 
+  static const int _primaryBatchSize = 2;
+
   Future<Map<String, Decimal>> load(List<String> requestedSymbols) async {
     final prices = <String, Decimal>{};
 
-    for (final provider in primaryProviders) {
+    for (
+      var offset = 0;
+      offset < primaryProviders.length;
+      offset += _primaryBatchSize
+    ) {
       final missingSymbols = _missingSymbols(requestedSymbols, prices);
       if (missingSymbols.isEmpty) {
         break;
       }
-      final result = await _loadProvider(provider, missingSymbols);
-      prices.addAll(result);
+
+      final batch = primaryProviders
+          .skip(offset)
+          .take(_primaryBatchSize)
+          .toList(growable: false);
+      final results = await Future.wait(
+        batch.map((provider) => _loadProvider(provider, missingSymbols)),
+      );
+
+      // Future.wait 保留 batch 顺序；先添加的来源优先，和原有串行 fallback
+      // 语义一致，同时允许同一批来源并发完成。
+      for (final result in results) {
+        for (final entry in result.entries) {
+          prices.putIfAbsent(entry.key, () => entry.value);
+        }
+      }
     }
 
     final missingSymbols = _missingSymbols(requestedSymbols, prices);
