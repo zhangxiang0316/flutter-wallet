@@ -309,6 +309,52 @@ void main() {
     expect(controller.balances.single.amount, '2');
     controller.onClose();
   });
+
+  test(
+    'pauses balance refresh in background and refreshes on resume',
+    () async {
+      final service = _ControlledBalanceService();
+      final controller = _controller(
+        cache: _FakeBalanceCache(null),
+        networkBalances: const [],
+        balanceService: service,
+      );
+
+      controller.onPageVisible();
+      await service.waitForCallCount(1);
+      service.complete(0, const [
+        ChainBalance(
+          chain: WalletChain.ethereum,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '1',
+          address: _evmAddress,
+          decimals: 18,
+        ),
+      ]);
+      await _waitUntil(() => !controller.isLoading);
+
+      controller.onPaused();
+      controller.onResumed();
+      await service.waitForCallCount(2);
+
+      expect(service.callCount, 2);
+      service.complete(1, const [
+        ChainBalance(
+          chain: WalletChain.ethereum,
+          symbol: 'ETH',
+          name: 'Ethereum',
+          amount: '1.1',
+          address: _evmAddress,
+          decimals: 18,
+        ),
+      ]);
+      await _waitUntil(() => !controller.isLoading);
+
+      expect(controller.balances.single.amount, '1.1');
+      controller.onClose();
+    },
+  );
 }
 
 const _evmAddress = '0x1111111111111111111111111111111111111111';

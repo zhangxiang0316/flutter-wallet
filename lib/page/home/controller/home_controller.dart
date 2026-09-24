@@ -89,6 +89,9 @@ class HomeController extends BaseController {
   late final WalletAssetVisibilityService _assetVisibilityService;
   late final WalletChainConfigService _chainConfigService;
 
+  bool _isHomePageVisible = true;
+  bool _isAppForeground = true;
+
   /// 本地保存的钱包列表。
   List<WalletAccount> wallets = [];
 
@@ -185,8 +188,7 @@ class HomeController extends BaseController {
     );
     update();
     if (wallet != null) {
-      _balanceCoordinator.startAutoRefresh(refreshBalances);
-      unawaited(refreshBalances());
+      _resumeBalanceUpdates(refreshImmediately: true);
     }
   }
 
@@ -349,8 +351,7 @@ class HomeController extends BaseController {
     _updateWalletMaintenanceState();
     _balanceCoordinator.reset();
     update();
-    _balanceCoordinator.startAutoRefresh(refreshBalances);
-    unawaited(refreshBalances());
+    _resumeBalanceUpdates(refreshImmediately: true);
   }
 
   /// 删除当前钱包和页面状态，不触发任何链上操作。
@@ -365,8 +366,7 @@ class HomeController extends BaseController {
       if (wallet == null) {
         _balanceCoordinator.stopAutoRefresh();
       } else {
-        _balanceCoordinator.startAutoRefresh(refreshBalances);
-        unawaited(refreshBalances());
+        _resumeBalanceUpdates(refreshImmediately: true);
       }
     } else {
       update();
@@ -398,8 +398,7 @@ class HomeController extends BaseController {
       _balanceCoordinator.stopAutoRefresh();
       return;
     }
-    _balanceCoordinator.startAutoRefresh(refreshBalances);
-    unawaited(refreshBalances());
+    _resumeBalanceUpdates(refreshImmediately: true);
   }
 
   void _applyBalanceState(HomeBalanceState state) {
@@ -428,18 +427,65 @@ class HomeController extends BaseController {
   @override
   void onPageVisible() {
     super.onPageVisible();
-    if (wallet == null) return;
-    if (!_balanceCoordinator.hasAutoRefresh) {
-      _balanceCoordinator.startAutoRefresh(refreshBalances);
-    }
-    unawaited(refreshBalances());
+    _isHomePageVisible = true;
+    _resumeBalanceUpdates(refreshImmediately: true);
   }
 
   /// 页面不可见时暂停定时刷新，节省资源。
   @override
   void onPageInVisible() {
     super.onPageInVisible();
+    _isHomePageVisible = false;
     _balanceCoordinator.stopAutoRefresh();
+  }
+
+  @override
+  void onInactive() {
+    super.onInactive();
+    _pauseBalanceUpdates();
+  }
+
+  @override
+  void onHidden() {
+    super.onHidden();
+    _pauseBalanceUpdates();
+  }
+
+  @override
+  void onPaused() {
+    super.onPaused();
+    _pauseBalanceUpdates();
+  }
+
+  @override
+  void onDetached() {
+    super.onDetached();
+    _pauseBalanceUpdates();
+  }
+
+  @override
+  void onResumed() {
+    super.onResumed();
+    _isAppForeground = true;
+    _resumeBalanceUpdates(refreshImmediately: true);
+  }
+
+  void _pauseBalanceUpdates() {
+    _isAppForeground = false;
+    _balanceCoordinator.stopAutoRefresh();
+  }
+
+  void _resumeBalanceUpdates({bool refreshImmediately = false}) {
+    if (!_isAppForeground || !_isHomePageVisible || wallet == null) {
+      _balanceCoordinator.stopAutoRefresh();
+      return;
+    }
+    if (!_balanceCoordinator.hasAutoRefresh) {
+      _balanceCoordinator.startAutoRefresh(refreshBalances);
+    }
+    if (refreshImmediately) {
+      unawaited(refreshBalances());
+    }
   }
 
   @override

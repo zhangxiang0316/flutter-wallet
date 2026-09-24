@@ -57,9 +57,10 @@
 
 ### P2：应用后台时暂停或放慢自动刷新
 
-- **位置**：`lib/page/home/controller/home_controller_balance.dart:279-290`
-- **现状**：首页定时器每 60 秒触发一次刷新；定时器会在控制器关闭时停止，但没有在此处按应用前后台状态调整。
-- **建议**：监听应用生命周期，后台暂停或降低刷新频率，回到前台后再刷新一次。这样能减少无效 RPC 调用和电量消耗。
+- **位置**：`lib/page/home/controller/home_controller.dart`、`lib/page/home/controller/home_controller_balance.dart:279-290`
+- **状态**：已在当前工作区实施。
+- **改动**：首页控制器在应用进入 inactive、hidden、paused 或 detached 状态时停止定时刷新；应用恢复后，仅当首页仍可见且已有钱包时重启定时器并立即刷新。
+- **验证**：新增控制器生命周期测试；`home_controller_balance_test.dart` 7 项全部通过。
 
 ### P2：集中维护 RPC fallback 配置
 
